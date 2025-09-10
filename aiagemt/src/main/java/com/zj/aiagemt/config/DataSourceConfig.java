@@ -18,6 +18,7 @@ import com.zaxxer.hikari.HikariDataSource;
 
 
 @Component
+@Primary
 public class DataSourceConfig {
 
  // 多数据源配置
@@ -53,6 +54,7 @@ public class DataSourceConfig {
         return dataSource;
     }
     @Bean("sqlSessionFactory")
+    @Primary
     public SqlSessionFactoryBean sqlSessionFactory(@Qualifier("mysqlDataSource") DataSource mysqlDataSource) throws Exception {
         SqlSessionFactoryBean sqlSessionFactoryBean = new SqlSessionFactoryBean();
         sqlSessionFactoryBean.setDataSource(mysqlDataSource);
@@ -68,6 +70,7 @@ public class DataSourceConfig {
     }
 
     @Bean("sqlSessionTemplate")
+    @Primary
     public SqlSessionTemplate sqlSessionTemplate(@Qualifier("sqlSessionFactory") SqlSessionFactoryBean sqlSessionFactory) throws Exception {
         return new SqlSessionTemplate(Objects.requireNonNull(sqlSessionFactory.getObject()));
     }

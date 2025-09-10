@@ -1,7 +1,8 @@
-package com.zj.aiagemt.model.vo;
+package com.zj.aiagemt.model.enums;
 
 
-import com.zj.domain.agent.model.rag.RagAnswerAdvisor;
+import com.zj.aiagemt.model.vo.AiClientAdvisorVO;
+import com.zj.aiagemt.service.rag.RagAnswerAdvisor;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
