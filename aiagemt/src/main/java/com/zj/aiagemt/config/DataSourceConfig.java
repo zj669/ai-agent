@@ -1,16 +1,11 @@
 package com.zj.aiagemt.config;
 
-import java.util.Objects;
-
 import javax.sql.DataSource;
 
-import org.mybatis.spring.SqlSessionFactoryBean;
-import org.mybatis.spring.SqlSessionTemplate;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Primary;
-import org.springframework.core.io.support.PathMatchingResourcePatternResolver;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Component;
 
@@ -53,29 +48,6 @@ public class DataSourceConfig {
 
         return dataSource;
     }
-    @Bean("sqlSessionFactory")
-    @Primary
-    public SqlSessionFactoryBean sqlSessionFactory(@Qualifier("mysqlDataSource") DataSource mysqlDataSource) throws Exception {
-        SqlSessionFactoryBean sqlSessionFactoryBean = new SqlSessionFactoryBean();
-        sqlSessionFactoryBean.setDataSource(mysqlDataSource);
-
-        // 设置MyBatis配置文件位置
-        PathMatchingResourcePatternResolver resolver = new PathMatchingResourcePatternResolver();
-        sqlSessionFactoryBean.setConfigLocation(resolver.getResource("classpath:/mybatis/config/mybatis-config.xml"));
-
-        // // 设置Mapper XML文件位置
-        // sqlSessionFactoryBean.setMapperLocations(resolver.getResources("classpath:/mybatis/mapper/*.xml"));
-
-        return sqlSessionFactoryBean;
-    }
-
-    @Bean("sqlSessionTemplate")
-    @Primary
-    public SqlSessionTemplate sqlSessionTemplate(@Qualifier("sqlSessionFactory") SqlSessionFactoryBean sqlSessionFactory) throws Exception {
-        return new SqlSessionTemplate(Objects.requireNonNull(sqlSessionFactory.getObject()));
-    }
-
-
 
     @Bean("pgVectorDataSource")
     public DataSource pgVectorDataSource(

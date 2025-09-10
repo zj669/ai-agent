@@ -7,6 +7,7 @@ import com.zj.aiagemt.model.bo.ExecuteCommandEntity;
 import com.zj.aiagemt.model.common.Response;
 import com.zj.aiagemt.model.dto.AgentInfoDTO;
 import com.zj.aiagemt.model.dto.AutoAgentRequestDTO;
+import com.zj.aiagemt.service.AiAgentService;
 import com.zj.aiagemt.service.agent.execute.IExecuteStrategy;
 import jakarta.annotation.Resource;
 import jakarta.servlet.http.HttpServletResponse;
@@ -37,68 +38,23 @@ import java.util.concurrent.ThreadPoolExecutor;
 @RequestMapping("/api/v1/agent")
 @CrossOrigin(origins = "*", allowedHeaders = "*", methods = {RequestMethod.GET, RequestMethod.POST, RequestMethod.OPTIONS})
 public class AiAgentControlle {
-
-    @Resource(name = "autoAgentExecuteStrategy")
-    private IExecuteStrategy autoAgentExecuteStrategy;
-
     @Resource
-    private ThreadPoolExecutor threadPoolExecutor;
+    private AiAgentService aiAgentService;
 
     @RequestMapping(value = "auto_agent", method = RequestMethod.POST)
     public ResponseBodyEmitter autoAgent(@RequestBody AutoAgentRequestDTO request, HttpServletResponse response) {
         log.info("AutoAgent流式执行请求开始，请求信息：{}", JSON.toJSONString(request));
-        
-        try {
-            // 设置SSE响应头
-            response.setContentType("text/event-stream");
-            response.setCharacterEncoding("UTF-8");
-            response.setHeader("Cache-Control", "no-cache");
-            response.setHeader("Connection", "keep-alive");
+        // 设置SSE响应头
+        response.setContentType("text/event-stream");
+        response.setCharacterEncoding("UTF-8");
+        response.setHeader("Cache-Control", "no-cache");
+        response.setHeader("Connection", "keep-alive");
+        // 1. 创建流式输出对象
+        ResponseBodyEmitter emitter = new ResponseBodyEmitter(Long.MAX_VALUE);
 
-            // 1. 创建流式输出对象
-            ResponseBodyEmitter emitter = new ResponseBodyEmitter(Long.MAX_VALUE);
-            
-            // 2. 构建执行命令实体
-            ExecuteCommandEntity executeCommandEntity = ExecuteCommandEntity.builder()
-                    .aiAgentId(request.getAiAgentId())
-                    .userMessage(request.getMessage())
-                    .sessionId(request.getSessionId())
-                    .maxStep(request.getMaxStep())
-                    .build();
-            
-            // 3. 异步执行AutoAgent
-            threadPoolExecutor.execute(() -> {
-                try {
-                    autoAgentExecuteStrategy.execute(executeCommandEntity, emitter);
-                } catch (Exception e) {
-                    log.error("AutoAgent执行异常：{}", e.getMessage(), e);
-                    try {
-                        emitter.send("执行异常：" + e.getMessage());
-                    } catch (Exception ex) {
-                        log.error("发送异常信息失败：{}", ex.getMessage(), ex);
-                    }
-                } finally {
-                    try {
-                        emitter.complete();
-                    } catch (Exception e) {
-                        log.error("完成流式输出失败：{}", e.getMessage(), e);
-                    }
-                }
-            });
-            
-            return emitter;
+        return  aiAgentService.autoAgent(request, emitter);
 
-        } catch (Exception e) {
-            log.error("AutoAgent请求处理异常：{}", e.getMessage(), e);
-            ResponseBodyEmitter errorEmitter = new ResponseBodyEmitter();
-            try {
-                errorEmitter.send("请求处理异常：" + e.getMessage());
-                errorEmitter.complete();
-            } catch (Exception ex) {
-                log.error("发送错误信息失败：{}", ex.getMessage(), ex);
-            }
-            return errorEmitter;
-        }
+
     }
 
     @RequestMapping(value = "list", method = RequestMethod.GET)

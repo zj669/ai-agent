@@ -15,11 +15,14 @@ import io.modelcontextprotocol.client.transport.StdioClientTransport;
 import jakarta.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
+import org.springframework.http.HttpHeaders;
 import org.springframework.stereotype.Component;
 
+import java.net.http.HttpRequest;
 import java.time.Duration;
 import java.util.List;
 import java.util.Map;
+import java.util.function.Consumer;
 
 @Component
 @Slf4j
@@ -61,7 +64,6 @@ private McpSyncClient createMcpSyncClient(AiClientToolMcpVO aiClientToolMcpVO) {
     switch (transportType) {
         case "sse" -> {
             AiClientToolMcpVO.TransportConfigSse transportConfigSse = aiClientToolMcpVO.getTransportConfigSse();
-            // http://127.0.0.1:9999/sse?apikey=DElk89iu8Ehhnbu
             String originalBaseUri = transportConfigSse.getBaseUri();
             String baseUri;
             String sseEndpoint;
@@ -76,9 +78,16 @@ private McpSyncClient createMcpSyncClient(AiClientToolMcpVO aiClientToolMcpVO) {
             }
 
             sseEndpoint = StringUtils.isBlank(sseEndpoint) ? "/sse" : sseEndpoint;
+            Consumer<HttpRequest.Builder> requestCustomizer = null;
+            if(transportConfigSse.getHeaders() != null){
+                requestCustomizer = builder ->
+                        builder.header(HttpHeaders.AUTHORIZATION, transportConfigSse.getHeaders())
+                                .header(HttpHeaders.ACCEPT, "application/json");
+            }
 
             HttpClientSseClientTransport sseClientTransport = HttpClientSseClientTransport
                     .builder(baseUri) // 使用截取后的 baseUri
+                    .customizeRequest(requestCustomizer)
                     .sseEndpoint(sseEndpoint) // 使用截取或默认的 sseEndpoint
                     .build();
 

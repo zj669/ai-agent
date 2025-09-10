@@ -62,6 +62,7 @@ public class AiClientToolMcpVO {
     public static class TransportConfigSse {
         private String baseUri;
         private String sseEndpoint;
+        private String headers;
     }
 
     @Data

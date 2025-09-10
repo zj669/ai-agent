@@ -7,7 +7,7 @@ import org.springframework.stereotype.Service;
 import java.util.List;
 import java.util.Map;
 
-@Service
+
 public interface IAgentRepository {
     void queryApiByClientIdS(List<String> commandIdList, DefaultAgentArmoryFactory.DynamicContext context);
 

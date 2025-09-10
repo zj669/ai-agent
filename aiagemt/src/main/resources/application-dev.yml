@@ -57,12 +57,24 @@ spring:
         model: nomic-embed-text
         options:
           num_ctx: 512
-mybatis:
-  mapper-locations: classpath:/mybatis/mapper/*.xml
-  config-location:  classpath:/mybatis/config/mybatis-config.xml
+    agent:
+      auto-config:
+        enabled: true
+        client-ids: 3001,3002
 
-# # 日志
-# logging:
-#   level:
-#     root: info
-#   config: classpath:logback-spring.xml
+# MyBatis-Plus配置
+mybatis-plus:
+  configuration:
+    map-underscore-to-camel-case: true
+    log-impl: org.apache.ibatis.logging.stdout.StdOutImpl
+  global-config:
+    db-config:
+      logic-delete-field: deleted
+      logic-delete-value: 1
+      logic-not-delete-value: 0
+
+# 日志
+logging:
+  level:
+    root: info
+  config: classpath:logback-spring.xml
