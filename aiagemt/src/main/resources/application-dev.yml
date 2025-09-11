@@ -36,7 +36,7 @@ spring:
             connection-test-query: SELECT 1
         # readonly数据源 - JDBC
         pgvector:
-          url: jdbc:mysql://${READONLY_DB_HOST:8.137.84.161}:${READONLY_DB_PORT:15432}/${READONLY_DB_NAME:ai-rag-knowledge}
+          url: jdbc:postgresql://${READONLY_DB_HOST:8.137.84.161}:${READONLY_DB_PORT:15432}/${READONLY_DB_NAME:ai-rag-knowledge}
           driver-class-name: ${READONLY_DB_DRIVER:org.postgresql.Driver}
           username: ${READONLY_DB_USERNAME:postgres}
           password: ${READONLY_DB_PASSWORD:postgres}
@@ -53,11 +53,10 @@ spring:
     openai:
       base-url: https://globalai.vip
       api-key: sk-igZGYZBslPs4UxqU1r8BuprgCFzD388sk36Mwnp95jxsfgKp
-
-    ollama:
-      base-url: http://117.72.152.117:11434
       embedding:
-        model: nomic-embed-text
+        base-url: https://dashscope.aliyuncs.com/compatible-mode/v1
+        endpoint: https://dashscope.aliyuncs.com/compatible-mode/v1/embeddings
+        model: text-embedding-v4
         options:
           num_ctx: 512
     agent:

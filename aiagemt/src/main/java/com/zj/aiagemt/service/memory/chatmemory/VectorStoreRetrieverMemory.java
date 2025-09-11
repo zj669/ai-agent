@@ -149,7 +149,7 @@ public class VectorStoreRetrieverMemory implements ChatMemory {
             throw new IllegalArgumentException("消息列表不能为null");
         }
         if (messages.isEmpty()) {
-            log.debug("消息列表为空，跳过添加操作 - conversationId: {}", conversationId);
+            log.info("消息列表为空，跳过添加操作 - conversationId: {}", conversationId);
             return;
         }
         
@@ -198,7 +198,7 @@ public class VectorStoreRetrieverMemory implements ChatMemory {
             String queryText = buildQueryText(conversationId);
             
             if (!StringUtils.hasText(queryText)) {
-                log.debug("没有找到查询文本，返回空历史 - conversationId: {}", conversationId);
+                log.info("没有找到查询文本，返回空历史 - conversationId: {}", conversationId);
                 return new ArrayList<>();
             }
             
@@ -216,7 +216,7 @@ public class VectorStoreRetrieverMemory implements ChatMemory {
             // 转换为Message列表并按时间排序
             List<Message> messages = convertDocumentsToMessages(documents);
             
-            log.debug("📚 检索到 {} 条相关历史消息 - conversationId: {}, 查询: {}", 
+            log.info("📚 检索到 {} 条相关历史消息 - conversationId: {}, 查询: {}",
                     messages.size(), conversationId, queryText);
             
             return messages;
@@ -438,7 +438,7 @@ public class VectorStoreRetrieverMemory implements ChatMemory {
     private String buildQueryText(String conversationId) {
         // 简化实现：使用conversationId作为查询文本
         // 在实际应用中，这里应该基于最近的用户输入或对话上下文构建查询
-        // 可以考虑从当前会话的最后几条消息中提取关键词作为查询
+        // 可以考虑从当前会话的最后几条消息中提取关键词作为查询 todo
         return "相关对话历史 conversationId:" + conversationId;
     }
     

@@ -87,6 +87,15 @@ public enum AiClientAdvisorTypeEnumVO {
 
             return new SimpleLoggerAdvisor();
         }
+    },
+
+    VectorStoreRetrieverMemoryAdvisor("VectorStoreRetrieverMemoryAdvisor", "向量知识库记忆"){
+        @Override
+        public Advisor createAdvisor(AiClientAdvisorVO aiClientAdvisorVO, VectorStore vectorStore) {
+            AiClientAdvisorVO.VectorStoreRetriever vectorStoreRetriever = aiClientAdvisorVO.getVectorStoreRetriever();
+            VectorStoreRetrieverMemory vectorStoreRetrieverMemory = new VectorStoreRetrieverMemory(vectorStore, vectorStoreRetriever.getTopK(), vectorStoreRetriever.getSimilarityThreshold());
+            return new VectorStoreRetrieverMemoryAdvisor(vectorStoreRetrieverMemory);
+        }
     }
     
     ;
