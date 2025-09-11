@@ -1,88 +1,127 @@
 package com.zj.aiagemt.config;
 
-import javax.sql.DataSource;
-
-import org.springframework.beans.factory.annotation.Qualifier;
-import org.springframework.beans.factory.annotation.Value;
-import org.springframework.context.annotation.Bean;
-import org.springframework.context.annotation.Primary;
-import org.springframework.jdbc.core.JdbcTemplate;
-import org.springframework.stereotype.Component;
+import com.baomidou.mybatisplus.core.config.GlobalConfig;
+import com.baomidou.mybatisplus.extension.plugins.MybatisPlusInterceptor;
+import com.baomidou.mybatisplus.extension.spring.MybatisSqlSessionFactoryBean;
 
 import com.zaxxer.hikari.HikariDataSource;
+import org.apache.ibatis.session.SqlSessionFactory;
+import org.mybatis.spring.SqlSessionTemplate;
+import org.mybatis.spring.annotation.MapperScan;
+import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.boot.autoconfigure.jdbc.DataSourceProperties;
+import org.springframework.boot.context.properties.ConfigurationProperties;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.Primary;
+import org.springframework.core.io.support.PathMatchingResourcePatternResolver;
+import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.jdbc.datasource.DataSourceTransactionManager;
+import org.springframework.transaction.PlatformTransactionManager;
+import org.springframework.transaction.annotation.EnableTransactionManagement;
+import org.springframework.transaction.support.TransactionTemplate;
+import javax.sql.DataSource;
 
-
-@Component
-@Primary
+/**
+ * 数据源配置
+ * 配置主库(MyBatis-Plus)和ModuleBase(JPA)两个数据源
+ */
+@Configuration
+@EnableTransactionManagement
 public class DataSourceConfig {
 
- // 多数据源配置
-    @Bean("mysqlDataSource")
+    /**
+     * ========================= 主库数据源配置（MyBatis-Plus） =========================
+     */
+
     @Primary
-    public DataSource mysqlDataSource(
-            @Value("${spring.datasource.mysql.driver-class-name}") String driverClassName,
-            @Value("${spring.datasource.mysql.url}") String url,
-            @Value("${spring.datasource.mysql.username}") String username,
-            @Value("${spring.datasource.mysql.password}") String password,
-            @Value("${spring.datasource.mysql.hikari.maximum-pool-size:10}") int maximumPoolSize,
-            @Value("${spring.datasource.mysql.hikari.minimum-idle:5}") int minimumIdle,
-            @Value("${spring.datasource.mysql.hikari.idle-timeout:30000}") long idleTimeout,
-            @Value("${spring.datasource.mysql.hikari.connection-timeout:30000}") long
-                    connectionTimeout,
-            @Value("${spring.datasource.mysql.hikari.max-lifetime:1800000}") long maxLifetime) {
-
-        // 创建HikariCP连接池
-        HikariDataSource dataSource = new HikariDataSource();
-        dataSource.setDriverClassName(driverClassName);
-        dataSource.setJdbcUrl(url);
-        dataSource.setUsername(username);
-        dataSource.setPassword(password);
-
-        // 连接池参数配置
-        dataSource.setMaximumPoolSize(maximumPoolSize);     // 最大连接数：10
-        dataSource.setMinimumIdle(minimumIdle);             // 最小空闲连接数：5
-        dataSource.setIdleTimeout(idleTimeout);             // 空闲超时时间：30秒
-        dataSource.setConnectionTimeout(connectionTimeout); // 连接超时时间：30秒
-        dataSource.setMaxLifetime(maxLifetime);             // 连接最大生命周期：30分钟
-        dataSource.setPoolName("MainHikariPool");           // 连接池名称
-
-        return dataSource;
+    @Bean(name = "primaryDataSourceProperties")
+    @ConfigurationProperties("spring.datasource.dynamic.datasource.primary")
+    public DataSourceProperties primaryDataSourceProperties() {
+        return new DataSourceProperties();
     }
 
-    @Bean("pgVectorDataSource")
-    public DataSource pgVectorDataSource(
-            @Value("${spring.datasource.pgvector.driver-class-name}") String driverClassName,
-            @Value("${spring.datasource.pgvector.url}") String url,
-            @Value("${spring.datasource.pgvector.username}") String username,
-            @Value("${spring.datasource.pgvector.password}") String password,
-            @Value("${spring.datasource.pgvector.hikari.maximum-pool-size:5}") int maximumPoolSize,
-            @Value("${spring.datasource.pgvector.hikari.minimum-idle:2}") int minimumIdle,
-            @Value("${spring.datasource.pgvector.hikari.idle-timeout:30000}") long idleTimeout,
-            @Value("${spring.datasource.pgvector.hikari.connection-timeout:30000}") long connectionTimeout) {
-
-        HikariDataSource dataSource = new HikariDataSource();
-        dataSource.setDriverClassName(driverClassName);
-        dataSource.setJdbcUrl(url);
-        dataSource.setUsername(username);
-        dataSource.setPassword(password);
-
-        // 向量库专用连接池配置
-        dataSource.setMaximumPoolSize(maximumPoolSize);     // 较小连接数：5
-        dataSource.setMinimumIdle(minimumIdle);             // 较少空闲连接：2
-        dataSource.setIdleTimeout(idleTimeout);
-        dataSource.setConnectionTimeout(connectionTimeout);
-
-        // 向量库特殊配置
-        dataSource.setInitializationFailTimeout(1);        // 1ms快速失败
-        dataSource.setConnectionTestQuery("SELECT 1");      // 连接测试查询
-        dataSource.setAutoCommit(true);                     // 自动提交事务
-        dataSource.setPoolName("PgVectorHikariPool");       // 连接池名称
-
-        return dataSource;
+    @Primary
+    @Bean(name = "primaryDataSource")
+    @ConfigurationProperties("spring.datasource.dynamic.datasource.primary.hikari")
+    public DataSource primaryDataSource(
+            @Qualifier("primaryDataSourceProperties") DataSourceProperties properties) {
+        return properties.initializeDataSourceBuilder().build();
     }
+
+    @Primary
+    @Bean(name = "primarySqlSessionFactory")
+    public SqlSessionFactory primarySqlSessionFactory(
+            @Qualifier("primaryDataSource") DataSource dataSource,
+            MybatisPlusInterceptor mybatisPlusInterceptor) throws Exception {
+        MybatisSqlSessionFactoryBean factoryBean = new MybatisSqlSessionFactoryBean();
+        factoryBean.setDataSource(dataSource);
+        factoryBean.setMapperLocations(new PathMatchingResourcePatternResolver()
+                .getResources("classpath*:/mapper/competition/**/*.xml"));
+        factoryBean.setTypeAliasesPackage("com.ddm.competition.model.entity");
+        factoryBean.setPlugins(mybatisPlusInterceptor);
+        // AutoFill 手动注入
+        GlobalConfig globalConfig = new GlobalConfig();
+        globalConfig.setMetaObjectHandler(new AutoFillConfig());
+        factoryBean.setGlobalConfig(globalConfig);
+        return factoryBean.getObject();
+    }
+
+    @Primary
+    @Bean(name = "primarySqlSessionTemplate")
+    public SqlSessionTemplate primarySqlSessionTemplate(
+            @Qualifier("primarySqlSessionFactory") SqlSessionFactory sqlSessionFactory) {
+        return new SqlSessionTemplate(sqlSessionFactory);
+    }
+
+    @Primary
+    @Bean(name = "primaryTransactionManager")
+    public PlatformTransactionManager primaryTransactionManager(
+            @Qualifier("primaryDataSource") DataSource dataSource) {
+        return new DataSourceTransactionManager(dataSource);
+    }
+
+    @Bean(name = "transactionTemplate")
+    public TransactionTemplate transactionTemplate(PlatformTransactionManager transactionManager) {
+        return new TransactionTemplate(transactionManager);
+    }
+
+
+    /**
+     * ========================= 数据源配置（ReadOnly） =========================
+     */
+    @Bean(name = "pgVectorDataSourceProperties")
+    @ConfigurationProperties("spring.datasource.dynamic.datasource.pgvector")
+    public DataSourceProperties readonlyDataSourceProperties() {
+        return new DataSourceProperties();
+    }
+
+    @Bean(name ="pgVectorDataSource")
+    @ConfigurationProperties("spring.datasource.dynamic.datasource.pgvector.hikari")
+    public DataSource readOnlyDataSource(
+            @Qualifier("pgVectorDataSourceProperties") DataSourceProperties properties) {
+        return properties.initializeDataSourceBuilder().build();
+    }
+
 
     @Bean("pgVectorJdbcTemplate")
     public JdbcTemplate pgVectorJdbcTemplate(@Qualifier("pgVectorDataSource") DataSource dataSource) {
         return new JdbcTemplate(dataSource);
     }
+
 }
+
+
+/**
+ * MyBatis Mapper扫描配置
+ */
+@Configuration
+@MapperScan(
+        basePackages = "com.zj.aiagemt.mapper",
+        sqlSessionFactoryRef = "primarySqlSessionFactory"
+)
+class MybatisMapperScanConfig {
+}
+
+

@@ -2,11 +2,18 @@ package com.zj.aiagemt.model.enums;
 
 
 import com.zj.aiagemt.model.vo.AiClientAdvisorVO;
+import com.zj.aiagemt.service.memory.ConversationSummaryMemoryAdvisor;
+import com.zj.aiagemt.service.memory.VectorStoreRetrieverMemoryAdvisor;
+import com.zj.aiagemt.service.memory.chatmemory.ConversationSummaryMemory;
+import com.zj.aiagemt.service.memory.chatmemory.VectorStoreRetrieverMemory;
 import com.zj.aiagemt.service.rag.RagAnswerAdvisor;
+import com.zj.aiagemt.utils.SpringContextUtil;
+import jakarta.annotation.Resource;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import org.springframework.ai.chat.client.advisor.PromptChatMemoryAdvisor;
+import org.springframework.ai.chat.client.advisor.SimpleLoggerAdvisor;
 import org.springframework.ai.chat.client.advisor.api.Advisor;
 import org.springframework.ai.chat.memory.MessageWindowChatMemory;
 import org.springframework.ai.vectorstore.SearchRequest;
@@ -46,6 +53,39 @@ public enum AiClientAdvisorTypeEnumVO {
                     .topK(ragAnswer.getTopK())
                     .filterExpression(ragAnswer.getFilterExpression())
                     .build());
+        }
+    },
+
+    CONVERSATION_SUMMARY_MEMORY("ConversationSummaryMemoryAdvisor", "对话总结") {
+        @Override
+        public Advisor createAdvisor(AiClientAdvisorVO aiClientAdvisorVO, VectorStore vectorStore) {
+            SpringContextUtil springContextUtil = aiClientAdvisorVO.getSpringContextUtil();
+            // 创建记忆管理器（负责智能摘要和历史管理）
+            ConversationSummaryMemory memory = new ConversationSummaryMemory(springContextUtil);
+
+            return new ConversationSummaryMemoryAdvisor(memory);
+        }
+    },
+    
+    VECTOR_STORE_RETRIEVER_MEMORY("VectorStoreRetrieverMemoryAdvisor", "向量存储检索记忆") {
+        @Override
+        public Advisor createAdvisor(AiClientAdvisorVO aiClientAdvisorVO, VectorStore vectorStore) {
+            AiClientAdvisorVO.VectorStoreRetriever config = aiClientAdvisorVO.getVectorStoreRetriever();
+            
+            // 使用配置参数创建向量存储检索记忆管理器
+            int topK = config != null ? config.getTopK() : VectorStoreRetrieverMemory.DEFAULT_TOP_K;
+            float similarityThreshold = config != null ? config.getSimilarityThreshold() : VectorStoreRetrieverMemory.DEFAULT_SIMILARITY_THRESHOLD;
+            
+            VectorStoreRetrieverMemory memory = new VectorStoreRetrieverMemory(vectorStore, topK, similarityThreshold);
+            return new VectorStoreRetrieverMemoryAdvisor(memory);
+        }
+    },
+
+    SimpleLoggerAdvisor("SimpleLoggerAdvisor", "日志"){
+        @Override
+        public Advisor createAdvisor(AiClientAdvisorVO aiClientAdvisorVO, VectorStore vectorStore) {
+
+            return new SimpleLoggerAdvisor();
         }
     }
     

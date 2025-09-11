@@ -17,35 +17,38 @@ thread:
 # 数据库配置；启动时配置数据库资源信息
 spring:
   datasource:
-    mysql:
-      username: root
-      password: 123456
-      url: jdbc:mysql://8.137.84.161:13306/ai-agent-station-study?useUnicode=true&characterEncoding=utf8&zeroDateTimeBehavior=convertToNull&useSSL=false&serverTimezone=GMT%2B8
-      driver-class-name: com.mysql.cj.jdbc.Driver
-      type: com.zaxxer.hikari.HikariDataSource
-      hikari:
-        pool-name: Retail_HikariCP
-        minimum-idle: 15 #最小空闲连接数量
-        idle-timeout: 180000 #空闲连接存活最大时间，默认600000（10分钟）
-        maximum-pool-size: 25 #连接池最大连接数，默认是10
-        auto-commit: true  #此属性控制从池返回的连接的默认自动提交行为,默认值：true
-        max-lifetime: 1800000 #此属性控制池中连接的最长生命周期，值0表示无限生命周期，默认1800000即30分钟
-        connection-timeout: 30000 #数据库连接超时时间,默认30秒，即30000
-    pgvector:
-      username: postgres
-      password: postgres
-      url: jdbc:postgresql://8.137.84.161:15432/ai-rag-knowledge
-      driver-class-name: org.postgresql.Driver
-      type: com.zaxxer.hikari.HikariDataSource
-      hikari:
-        pool-name: Retail_HikariCP
-        minimum-idle: 15 #最小空闲连接数量
-        idle-timeout: 180000 #空闲连接存活最大时间，默认600000（10分钟）
-        maximum-pool-size: 25 #连接池最大连接数，默认是10
-        auto-commit: true  #此属性控制从池返回的连接的默认自动提交行为,默认值：true
-        max-lifetime: 1800000 #此属性控制池中连接的最长生命周期，值0表示无限生命周期，默认1800000即30分钟
-        connection-timeout: 30000 #数据库连接超时时间,默认30秒，即30000
-        connection-test-query: SELECT 1
+    dynamic:
+      datasource:
+        # 主库数据源 - MyBatis Plus
+        primary:
+          driver-class-name: ${PRIMARY_DB_DRIVER:com.mysql.cj.jdbc.Driver}
+          url: jdbc:mysql://${PRIMARY_DB_HOST:8.137.84.161}:${PRIMARY_DB_PORT:13306}/${PRIMARY_DB_NAME:ai-agent-station-study}?useUnicode=true&characterEncoding=utf8&zeroDateTimeBehavior=convertToNull&useSSL=false&serverTimezone=GMT%2B8
+          username: ${PRIMARY_DB_USER:root}
+          password: ${PRIMARY_DB_PASSWORD:123456}
+          type: com.zaxxer.hikari.HikariDataSource
+          hikari:
+            minimum-idle: ${PRIMARY_DB_MIN_IDLE:5}
+            maximum-pool-size: ${PRIMARY_DB_MAX_POOL_SIZE:15}
+            idle-timeout: ${PRIMARY_DB_IDLE_TIMEOUT:30000}
+            pool-name: PrimaryHikariCP
+            max-lifetime: ${PRIMARY_DB_MAX_LIFETIME:28740000}
+            connection-timeout: ${PRIMARY_DB_CONNECTION_TIMEOUT:30000}
+            connection-test-query: SELECT 1
+        # readonly数据源 - JDBC
+        pgvector:
+          url: jdbc:mysql://${READONLY_DB_HOST:8.137.84.161}:${READONLY_DB_PORT:15432}/${READONLY_DB_NAME:ai-rag-knowledge}
+          driver-class-name: ${READONLY_DB_DRIVER:org.postgresql.Driver}
+          username: ${READONLY_DB_USERNAME:postgres}
+          password: ${READONLY_DB_PASSWORD:postgres}
+          type: com.zaxxer.hikari.HikariDataSource
+          hikari:
+            minimum-idle: ${READONLY_DB_MIN_IDLE:5}
+            maximum-pool-size: ${READONLY_DB_MAX_POOL_SIZE:15}
+            idle-timeout: ${READONLY_DB_IDLE_TIMEOUT:30000}
+            pool-name: PgvectorHikariCP
+            max-lifetime: ${READONLY_DB_MAX_LIFETIME:28740000}
+            connection-timeout: ${READONLY_DB_CONNECTION_TIMEOUT:30000}
+            connection-test-query: SELECT 1
   ai:
     openai:
       base-url: https://globalai.vip
@@ -60,7 +63,7 @@ spring:
     agent:
       auto-config:
         enabled: true
-        client-ids: 3001,3002
+        client-ids: 3001,3002,3003
 
 # MyBatis-Plus配置
 mybatis-plus:
@@ -72,7 +75,20 @@ mybatis-plus:
       logic-delete-field: deleted
       logic-delete-value: 1
       logic-not-delete-value: 0
-
+# Redis
+redis:
+  sdk:
+    config:
+      host: 8.137.84.161
+      port: 16379
+      pool-size: 10
+      min-idle-size: 5
+      idle-timeout: 30000
+      connect-timeout: 5000
+      retry-attempts: 3
+      retry-interval: 1000
+      ping-interval: 60000
+      keep-alive: true
 # 日志
 logging:
   level:

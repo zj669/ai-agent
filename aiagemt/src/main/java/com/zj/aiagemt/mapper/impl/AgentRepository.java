@@ -10,6 +10,7 @@ import com.zj.aiagemt.model.entity.*;
 import com.zj.aiagemt.model.enums.AiAgentEnumVO;
 import com.zj.aiagemt.model.vo.*;
 import com.zj.aiagemt.service.agent.armory.factory.DefaultAgentArmoryFactory;
+import com.zj.aiagemt.utils.SpringContextUtil;
 import jakarta.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.annotation.Primary;
@@ -53,6 +54,8 @@ public class AgentRepository implements IAgentRepository {
 
     @Resource
     private AiClientToolMcpMapper aiClientToolMcpMapper;
+    @Resource
+    private SpringContextUtil springContextUtil;
 
     @Override
     public void queryApiByClientIdS(List<String> commandIdList, DefaultAgentArmoryFactory.DynamicContext context) {
@@ -266,6 +269,7 @@ public class AgentRepository implements IAgentRepository {
                 // 3. 解析extParam中的配置
                 AiClientAdvisorVO.ChatMemory chatMemory = null;
                 AiClientAdvisorVO.RagAnswer ragAnswer = null;
+                AiClientAdvisorVO.VectorStoreRetriever vectorStoreRetriever = null;
 
                 String extParam = aiClientAdvisor.getExtParam();
                 if (extParam != null && !extParam.trim().isEmpty()) {
@@ -276,6 +280,9 @@ public class AgentRepository implements IAgentRepository {
                         } else if ("RagAnswer".equals(aiClientAdvisor.getAdvisorType())) {
                             // 解析ragAnswer配置
                             ragAnswer = JSON.parseObject(extParam, AiClientAdvisorVO.RagAnswer.class);
+                        } else if ("VectorStoreRetrieverMemoryAdvisor".equals(aiClientAdvisor.getAdvisorType())) {
+                            // 解析vectorStoreRetriever配置
+                            vectorStoreRetriever = JSON.parseObject(extParam, AiClientAdvisorVO.VectorStoreRetriever.class);
                         }
                     } catch (Exception e) {
                         // 解析失败时忽略，使用默认值null
@@ -290,6 +297,8 @@ public class AgentRepository implements IAgentRepository {
                         .orderNum(aiClientAdvisor.getOrderNum())
                         .chatMemory(chatMemory)
                         .ragAnswer(ragAnswer)
+                        .vectorStoreRetriever(vectorStoreRetriever)
+                        .springContextUtil(springContextUtil)
                         .build();
 
                 result.add(advisorVO);

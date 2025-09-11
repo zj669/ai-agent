@@ -3,16 +3,12 @@ package com.zj.aiagemt.service.tool;
 import com.alibaba.fastjson2.JSON;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import reactor.core.publisher.Flux;
- 
+
 import org.springframework.ai.chat.client.ChatClientRequest;
 import org.springframework.ai.chat.client.ChatClientResponse;
 import org.springframework.ai.chat.client.advisor.api.BaseAdvisor;
 import org.springframework.ai.chat.client.advisor.api.AdvisorChain;
-import org.springframework.ai.chat.client.advisor.api.CallAdvisorChain;
-import org.springframework.ai.chat.client.advisor.api.StreamAdvisorChain;
-import org.springframework.ai.chat.client.advisor.AdvisorUtils;
- 
+
 public class SimpleLoggerAdvisor implements BaseAdvisor {
  
     private static final Logger logger = LoggerFactory.getLogger(SimpleLoggerAdvisor.class);
