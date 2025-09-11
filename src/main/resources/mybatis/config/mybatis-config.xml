@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE configuration
+        PUBLIC "-//mybatis.org//DTD Config 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-config.dtd">
+<configuration>
+    <settings>
+        <!-- 开启驼峰命名转换 -->
+        <setting name="mapUnderscoreToCamelCase" value="true"/>
+        <!-- 开启延迟加载 -->
+        <setting name="lazyLoadingEnabled" value="true"/>
+        <!-- 设置积极延迟加载 -->
+        <setting name="aggressiveLazyLoading" value="false"/>
+        <!-- 允许多种结果集从单独的语句中返回 -->
+        <setting name="multipleResultSetsEnabled" value="true"/>
+        <!-- 使用列标签代替列名 -->
+        <setting name="useColumnLabel" value="true"/>
+        <!-- 允许 JDBC 支持自动生成主键 -->
+        <setting name="useGeneratedKeys" value="false"/>
+        <!-- 指定 MyBatis 应如何自动映射列到字段或属性 -->
+        <setting name="autoMappingBehavior" value="PARTIAL"/>
+        <!-- 配置默认的执行器 -->
+        <setting name="defaultExecutorType" value="SIMPLE"/>
+        <!-- 设置超时时间 -->
+        <setting name="defaultStatementTimeout" value="25"/>
+        <!-- 设置数据库超时时间 -->
+        <setting name="defaultFetchSize" value="100"/>
+        <!-- 允许在嵌套语句中使用分页 -->
+        <setting name="safeRowBoundsEnabled" value="false"/>
+        <!-- 是否开启自动驼峰命名规则映射 -->
+        <setting name="mapUnderscoreToCamelCase" value="true"/>
+        <!-- 本地缓存机制 -->
+        <setting name="localCacheScope" value="SESSION"/>
+        <!-- 默认为其他未指定值的SQL参数设置TypeHandler -->
+        <setting name="jdbcTypeForNull" value="OTHER"/>
+        <!-- 指定对象的哪个方法触发一次延迟加载 -->
+        <setting name="lazyLoadTriggerMethods" value="equals,clone,hashCode,toString"/>
+    </settings>
+</configuration>
