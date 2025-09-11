@@ -1,7 +1,0 @@
-spring:
-  application:
-    name: aiagemt
-  config:
-    name: aiagemt
-  profiles:
-    active: dev
