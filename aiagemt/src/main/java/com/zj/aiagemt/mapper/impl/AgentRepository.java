@@ -172,7 +172,6 @@ public class AgentRepository implements IAgentRepository {
         Set<String> processedMcpIds = new HashSet<>();
 
         for (String clientId : commandIdList) {
-            // 1. 通过clientId查询关联的model配置
             List<AiClientConfig> clientConfigs = aiClientConfigMapper.selectList(new LambdaQueryWrapper<AiClientConfig>()
                     .eq(AiClientConfig::getSourceId, clientId)
                     .eq(AiClientConfig::getSourceType, AiAgentEnumVO.AI_CLIENT.getCode())

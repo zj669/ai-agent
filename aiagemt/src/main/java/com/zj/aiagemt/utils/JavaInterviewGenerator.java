@@ -348,6 +348,7 @@ public class JavaInterviewGenerator {
         prompt.append("- **完整性**: 从面试到知识点解析的完整闭环\n\n");
         
         prompt.append("### 6. 特殊要求\n");
+        prompt.append("- 在开始写文章之前， 可以使用sequential-thinking梳理文章书写脉络和相关知识点\n");
         prompt.append("- 每个技术问题都要有对应的详细解析\n");
         prompt.append("- 代码示例要完整且可执行, 必要时使用context7工具去搜索相关技术文档\n");
 //        prompt.append("- 业务场景要真实可信， 可以使用zhipuWebSearch搜索网上相关场景，并以此为参考\n");

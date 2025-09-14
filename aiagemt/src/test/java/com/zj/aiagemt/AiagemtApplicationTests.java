@@ -24,7 +24,7 @@ class AiagemtApplicationTests {
 
 	@Test
 	void contextLoads() throws Exception {
-		List<String> commandIdList = List.of(new String[]{"3001"});
+		List<String> commandIdList = List.of(new String[]{"2101"});
 		StrategyHandler<ArmoryCommandEntity, DefaultAgentArmoryFactory.DynamicContext, AgentArmoryVO> armoryStrategyHandler =
 				defaultArmoryStrategyFactory.strategyHandler();
 

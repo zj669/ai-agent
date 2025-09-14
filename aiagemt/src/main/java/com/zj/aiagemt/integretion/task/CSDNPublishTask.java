@@ -24,7 +24,7 @@ public class CSDNPublishTask {
         JavaInterviewGenerator.InterviewConfig config = JavaInterviewGenerator.randomSelect();
         JavaInterviewGenerator.printConfigInfo(config);
         String userInput =JavaInterviewGenerator.generatePrompt(config);
-        String beanName = AiAgentEnumVO.AI_CLIENT.getBeanName(String.valueOf(3002));
+        String beanName = AiAgentEnumVO.AI_CLIENT.getBeanName(String.valueOf(6001));
         ChatClient chatClient = springContextUtil.getBean(beanName);
         log.info("\n>>> QUESTION: {}", userInput);
         Flux<String> content = chatClient.prompt(userInput).stream().content();
