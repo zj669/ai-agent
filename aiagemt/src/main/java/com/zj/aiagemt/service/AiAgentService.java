@@ -1,13 +1,25 @@
 package com.zj.aiagemt.service;
 
+import com.zj.aiagemt.common.design.ruletree.StrategyHandler;
+import com.zj.aiagemt.mapper.impl.AgentRepository;
+import com.zj.aiagemt.model.bo.ArmoryCommandEntity;
 import com.zj.aiagemt.model.bo.ExecuteCommandEntity;
 import com.zj.aiagemt.model.dto.AutoAgentRequestDTO;
+import com.zj.aiagemt.model.enums.AiAgentEnumVO;
+import com.zj.aiagemt.service.agent.armory.factory.DefaultAgentArmoryFactory;
+import com.zj.aiagemt.service.agent.armory.model.AgentArmoryVO;
 import com.zj.aiagemt.service.agent.execute.IExecuteStrategy;
+import com.zj.aiagemt.utils.SpringContextUtil;
 import jakarta.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.ai.chat.client.ChatClient;
+import org.springframework.ai.chat.messages.Message;
+import org.springframework.ai.chat.messages.UserMessage;
 import org.springframework.stereotype.Service;
 import org.springframework.web.servlet.mvc.method.annotation.ResponseBodyEmitter;
+import reactor.core.publisher.Flux;
 
+import java.util.List;
 import java.util.concurrent.ThreadPoolExecutor;
 
 @Service
@@ -15,6 +27,11 @@ import java.util.concurrent.ThreadPoolExecutor;
 public class AiAgentService {
     @Resource(name = "autoAgentExecuteStrategy")
     private IExecuteStrategy autoAgentExecuteStrategy;
+    @Resource
+    private DefaultAgentArmoryFactory defaultArmoryStrategyFactory;
+    @Resource
+    private SpringContextUtil springContextUtil;
+
 
     @Resource
     private ThreadPoolExecutor threadPoolExecutor;
@@ -60,5 +77,26 @@ public class AiAgentService {
             }
             return errorEmitter;
         }
+    }
+
+
+    public void reload(List<String> clientId) throws Exception {
+        StrategyHandler<ArmoryCommandEntity, DefaultAgentArmoryFactory.DynamicContext, AgentArmoryVO> armoryStrategyHandler =
+                defaultArmoryStrategyFactory.strategyHandler();
+
+        AgentArmoryVO result = armoryStrategyHandler.apply(
+                ArmoryCommandEntity.builder()
+                        .commandType(AiAgentEnumVO.AI_CLIENT.getLoadDataStrategy())
+                        .commandIdList(clientId)
+                        .build(),
+                new DefaultAgentArmoryFactory.DynamicContext());
+    }
+
+    public Flux<String> modelChat(AutoAgentRequestDTO request) {
+        String aiAgentId = request.getAiAgentId();
+        ChatClient chatClient = springContextUtil.getBean(AiAgentEnumVO.AI_CLIENT.getBeanName(aiAgentId));
+        return chatClient.prompt()
+                .messages(new UserMessage(request.getMessage()))
+                .stream().content();
     }
 }

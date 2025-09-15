@@ -19,4 +19,9 @@ public class Response<T> implements Serializable {
     private String info;
     private T data;
 
+
+    public static <T> Response<T> success(T data) {
+        return new Response<T>("200", "success", data);
+    }
+
 }

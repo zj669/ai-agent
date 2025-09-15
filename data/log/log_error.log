@@ -1,678 +1,509 @@
-25-09-11.12:27:36.059 [main            ] WARN  AnnotationConfigServletWebServerApplicationContext - Exception encountered during context initialization - cancelling refresh attempt: org.springframework.beans.factory.BeanCreationException: Error creating bean with name 'ragUploadService': Injection of resource dependencies failed
-25-09-11.12:27:36.083 [main            ] ERROR SpringApplication      - Application run failed
-org.springframework.beans.factory.BeanCreationException: Error creating bean with name 'ragUploadService': Injection of resource dependencies failed
-	at org.springframework.context.annotation.CommonAnnotationBeanPostProcessor.postProcessProperties(CommonAnnotationBeanPostProcessor.java:372)
-	at org.springframework.beans.factory.support.AbstractAutowireCapableBeanFactory.populateBean(AbstractAutowireCapableBeanFactory.java:1459)
-	at org.springframework.beans.factory.support.AbstractAutowireCapableBeanFactory.doCreateBean(AbstractAutowireCapableBeanFactory.java:606)
-	at org.springframework.beans.factory.support.AbstractAutowireCapableBeanFactory.createBean(AbstractAutowireCapableBeanFactory.java:529)
-	at org.springframework.beans.factory.support.AbstractBeanFactory.lambda$doGetBean$0(AbstractBeanFactory.java:339)
-	at org.springframework.beans.factory.support.DefaultSingletonBeanRegistry.getSingleton(DefaultSingletonBeanRegistry.java:373)
-	at org.springframework.beans.factory.support.AbstractBeanFactory.doGetBean(AbstractBeanFactory.java:337)
-	at org.springframework.beans.factory.support.AbstractBeanFactory.getBean(AbstractBeanFactory.java:202)
-	at org.springframework.beans.factory.support.DefaultListableBeanFactory.instantiateSingleton(DefaultListableBeanFactory.java:1222)
-	at org.springframework.beans.factory.support.DefaultListableBeanFactory.preInstantiateSingleton(DefaultListableBeanFactory.java:1188)
-	at org.springframework.beans.factory.support.DefaultListableBeanFactory.preInstantiateSingletons(DefaultListableBeanFactory.java:1123)
-	at org.springframework.context.support.AbstractApplicationContext.finishBeanFactoryInitialization(AbstractApplicationContext.java:987)
-	at org.springframework.context.support.AbstractApplicationContext.refresh(AbstractApplicationContext.java:627)
+25-09-15.21:56:24.385 [main            ] WARN  AnnotationConfigServletWebServerApplicationContext - Exception encountered during context initialization - cancelling refresh attempt: org.springframework.beans.factory.BeanDefinitionStoreException: Failed to parse configuration class [com.zj.aiagemt.AiagemtApplication]
+25-09-15.21:56:24.413 [main            ] ERROR SpringApplication      - Application run failed
+org.springframework.beans.factory.BeanDefinitionStoreException: Failed to parse configuration class [com.zj.aiagemt.AiagemtApplication]
+	at org.springframework.context.annotation.ConfigurationClassParser.parse(ConfigurationClassParser.java:194)
+	at org.springframework.context.annotation.ConfigurationClassPostProcessor.processConfigBeanDefinitions(ConfigurationClassPostProcessor.java:418)
+	at org.springframework.context.annotation.ConfigurationClassPostProcessor.postProcessBeanDefinitionRegistry(ConfigurationClassPostProcessor.java:290)
+	at org.springframework.context.support.PostProcessorRegistrationDelegate.invokeBeanDefinitionRegistryPostProcessors(PostProcessorRegistrationDelegate.java:349)
+	at org.springframework.context.support.PostProcessorRegistrationDelegate.invokeBeanFactoryPostProcessors(PostProcessorRegistrationDelegate.java:118)
+	at org.springframework.context.support.AbstractApplicationContext.invokeBeanFactoryPostProcessors(AbstractApplicationContext.java:791)
+	at org.springframework.context.support.AbstractApplicationContext.refresh(AbstractApplicationContext.java:609)
 	at org.springframework.boot.web.servlet.context.ServletWebServerApplicationContext.refresh(ServletWebServerApplicationContext.java:146)
 	at org.springframework.boot.SpringApplication.refresh(SpringApplication.java:752)
 	at org.springframework.boot.SpringApplication.refreshContext(SpringApplication.java:439)
 	at org.springframework.boot.SpringApplication.run(SpringApplication.java:318)
 	at org.springframework.boot.SpringApplication.run(SpringApplication.java:1361)
 	at org.springframework.boot.SpringApplication.run(SpringApplication.java:1350)
-	at com.zj.aiagemt.AiagemtApplication.main(AiagemtApplication.java:16)
-Caused by: org.springframework.beans.factory.BeanCreationException: Error creating bean with name 'redissonClient' defined in class path resource [com/zj/aiagemt/integretion/redis/RedisClientConfig.class]: Failed to instantiate [org.redisson.api.RedissonClient]: Factory method 'redissonClient' threw exception with message: java.util.concurrent.ExecutionException: org.redisson.client.RedisConnectionException: java.net.UnknownHostException: Failed to resolve 'null' [A(1)] after 2 queries 
-	at org.springframework.beans.factory.support.ConstructorResolver.instantiate(ConstructorResolver.java:657)
-	at org.springframework.beans.factory.support.ConstructorResolver.instantiateUsingFactoryMethod(ConstructorResolver.java:645)
-	at org.springframework.beans.factory.support.AbstractAutowireCapableBeanFactory.instantiateUsingFactoryMethod(AbstractAutowireCapableBeanFactory.java:1375)
-	at org.springframework.beans.factory.support.AbstractAutowireCapableBeanFactory.createBeanInstance(AbstractAutowireCapableBeanFactory.java:1205)
-	at org.springframework.beans.factory.support.AbstractAutowireCapableBeanFactory.doCreateBean(AbstractAutowireCapableBeanFactory.java:569)
-	at org.springframework.beans.factory.support.AbstractAutowireCapableBeanFactory.createBean(AbstractAutowireCapableBeanFactory.java:529)
-	at org.springframework.beans.factory.support.AbstractBeanFactory.lambda$doGetBean$0(AbstractBeanFactory.java:339)
-	at org.springframework.beans.factory.support.DefaultSingletonBeanRegistry.getSingleton(DefaultSingletonBeanRegistry.java:373)
-	at org.springframework.beans.factory.support.AbstractBeanFactory.doGetBean(AbstractBeanFactory.java:337)
-	at org.springframework.beans.factory.support.AbstractBeanFactory.getBean(AbstractBeanFactory.java:207)
-	at org.springframework.beans.factory.support.AbstractAutowireCapableBeanFactory.resolveBeanByName(AbstractAutowireCapableBeanFactory.java:468)
-	at org.springframework.context.annotation.CommonAnnotationBeanPostProcessor.autowireResource(CommonAnnotationBeanPostProcessor.java:606)
-	at org.springframework.context.annotation.CommonAnnotationBeanPostProcessor.getResource(CommonAnnotationBeanPostProcessor.java:577)
-	at org.springframework.context.annotation.CommonAnnotationBeanPostProcessor$ResourceElement.getResourceToInject(CommonAnnotationBeanPostProcessor.java:739)
-	at org.springframework.beans.factory.annotation.InjectionMetadata$InjectedElement.inject(InjectionMetadata.java:272)
-	at org.springframework.beans.factory.annotation.InjectionMetadata.inject(InjectionMetadata.java:146)
-	at org.springframework.context.annotation.CommonAnnotationBeanPostProcessor.postProcessProperties(CommonAnnotationBeanPostProcessor.java:369)
-	... 19 common frames omitted
-Caused by: org.springframework.beans.BeanInstantiationException: Failed to instantiate [org.redisson.api.RedissonClient]: Factory method 'redissonClient' threw exception with message: java.util.concurrent.ExecutionException: org.redisson.client.RedisConnectionException: java.net.UnknownHostException: Failed to resolve 'null' [A(1)] after 2 queries 
-	at org.springframework.beans.factory.support.SimpleInstantiationStrategy.lambda$instantiate$0(SimpleInstantiationStrategy.java:200)
-	at org.springframework.beans.factory.support.SimpleInstantiationStrategy.instantiateWithFactoryMethod(SimpleInstantiationStrategy.java:89)
-	at org.springframework.beans.factory.support.SimpleInstantiationStrategy.instantiate(SimpleInstantiationStrategy.java:169)
-	at org.springframework.beans.factory.support.ConstructorResolver.instantiate(ConstructorResolver.java:653)
-	... 35 common frames omitted
-Caused by: org.redisson.client.RedisConnectionException: java.util.concurrent.ExecutionException: org.redisson.client.RedisConnectionException: java.net.UnknownHostException: Failed to resolve 'null' [A(1)] after 2 queries 
-	at org.redisson.connection.MasterSlaveConnectionManager.doConnect(MasterSlaveConnectionManager.java:227)
-	at org.redisson.connection.MasterSlaveConnectionManager.connect(MasterSlaveConnectionManager.java:187)
-	at org.redisson.connection.ConnectionManager.create(ConnectionManager.java:98)
-	at org.redisson.Redisson.<init>(Redisson.java:69)
-	at org.redisson.Redisson.create(Redisson.java:112)
-	at com.zj.aiagemt.integretion.redis.RedisClientConfig.redissonClient(RedisClientConfig.java:39)
-	at com.zj.aiagemt.integretion.redis.RedisClientConfig$$SpringCGLIB$$0.CGLIB$redissonClient$0(<generated>)
-	at com.zj.aiagemt.integretion.redis.RedisClientConfig$$SpringCGLIB$$FastClass$$1.invoke(<generated>)
-	at org.springframework.cglib.proxy.MethodProxy.invokeSuper(MethodProxy.java:258)
-	at org.springframework.context.annotation.ConfigurationClassEnhancer$BeanMethodInterceptor.intercept(ConfigurationClassEnhancer.java:400)
-	at com.zj.aiagemt.integretion.redis.RedisClientConfig$$SpringCGLIB$$0.redissonClient(<generated>)
+	at com.zj.aiagemt.AiagemtApplication.main(AiagemtApplication.java:15)
+Caused by: org.springframework.context.annotation.ConflictingBeanDefinitionException: Annotation-specified bean name 'rootNode' for bean class [com.zj.aiagemt.service.agent.execute.codereview.node.RootNode] conflicts with existing, non-compatible bean definition of same name and class [com.zj.aiagemt.service.agent.armory.node.RootNode]
+	at org.springframework.context.annotation.ClassPathBeanDefinitionScanner.checkCandidate(ClassPathBeanDefinitionScanner.java:361)
+	at org.springframework.context.annotation.ClassPathBeanDefinitionScanner.doScan(ClassPathBeanDefinitionScanner.java:288)
+	at org.springframework.context.annotation.ComponentScanAnnotationParser.parse(ComponentScanAnnotationParser.java:128)
+	at org.springframework.context.annotation.ConfigurationClassParser.doProcessConfigurationClass(ConfigurationClassParser.java:346)
+	at org.springframework.context.annotation.ConfigurationClassParser.processConfigurationClass(ConfigurationClassParser.java:281)
+	at org.springframework.context.annotation.ConfigurationClassParser.parse(ConfigurationClassParser.java:204)
+	at org.springframework.context.annotation.ConfigurationClassParser.parse(ConfigurationClassParser.java:172)
+	... 13 common frames omitted
+25-09-15.21:57:07.437 [main            ] WARN  AnnotationConfigServletWebServerApplicationContext - Exception encountered during context initialization - cancelling refresh attempt: org.springframework.beans.factory.BeanDefinitionStoreException: Failed to parse configuration class [com.zj.aiagemt.AiagemtApplication]
+25-09-15.21:57:07.465 [main            ] ERROR SpringApplication      - Application run failed
+org.springframework.beans.factory.BeanDefinitionStoreException: Failed to parse configuration class [com.zj.aiagemt.AiagemtApplication]
+	at org.springframework.context.annotation.ConfigurationClassParser.parse(ConfigurationClassParser.java:194)
+	at org.springframework.context.annotation.ConfigurationClassPostProcessor.processConfigBeanDefinitions(ConfigurationClassPostProcessor.java:418)
+	at org.springframework.context.annotation.ConfigurationClassPostProcessor.postProcessBeanDefinitionRegistry(ConfigurationClassPostProcessor.java:290)
+	at org.springframework.context.support.PostProcessorRegistrationDelegate.invokeBeanDefinitionRegistryPostProcessors(PostProcessorRegistrationDelegate.java:349)
+	at org.springframework.context.support.PostProcessorRegistrationDelegate.invokeBeanFactoryPostProcessors(PostProcessorRegistrationDelegate.java:118)
+	at org.springframework.context.support.AbstractApplicationContext.invokeBeanFactoryPostProcessors(AbstractApplicationContext.java:791)
+	at org.springframework.context.support.AbstractApplicationContext.refresh(AbstractApplicationContext.java:609)
+	at org.springframework.boot.web.servlet.context.ServletWebServerApplicationContext.refresh(ServletWebServerApplicationContext.java:146)
+	at org.springframework.boot.SpringApplication.refresh(SpringApplication.java:752)
+	at org.springframework.boot.SpringApplication.refreshContext(SpringApplication.java:439)
+	at org.springframework.boot.SpringApplication.run(SpringApplication.java:318)
+	at org.springframework.boot.SpringApplication.run(SpringApplication.java:1361)
+	at org.springframework.boot.SpringApplication.run(SpringApplication.java:1350)
+	at com.zj.aiagemt.AiagemtApplication.main(AiagemtApplication.java:15)
+Caused by: org.springframework.context.annotation.ConflictingBeanDefinitionException: Annotation-specified bean name 'rootNode' for bean class [com.zj.aiagemt.service.agent.execute.codereview.node.RootNode] conflicts with existing, non-compatible bean definition of same name and class [com.zj.aiagemt.service.agent.armory.node.RootNode]
+	at org.springframework.context.annotation.ClassPathBeanDefinitionScanner.checkCandidate(ClassPathBeanDefinitionScanner.java:361)
+	at org.springframework.context.annotation.ClassPathBeanDefinitionScanner.doScan(ClassPathBeanDefinitionScanner.java:288)
+	at org.springframework.context.annotation.ComponentScanAnnotationParser.parse(ComponentScanAnnotationParser.java:128)
+	at org.springframework.context.annotation.ConfigurationClassParser.doProcessConfigurationClass(ConfigurationClassParser.java:346)
+	at org.springframework.context.annotation.ConfigurationClassParser.processConfigurationClass(ConfigurationClassParser.java:281)
+	at org.springframework.context.annotation.ConfigurationClassParser.parse(ConfigurationClassParser.java:204)
+	at org.springframework.context.annotation.ConfigurationClassParser.parse(ConfigurationClassParser.java:172)
+	... 13 common frames omitted
+25-09-15.21:58:21.923 [main            ] WARN  MybatisSqlSessionFactoryBean - Property 'mapperLocations' was specified but matching resources are not found.
+25-09-15.21:58:22.255 [main            ] WARN  AnnotationConfigServletWebServerApplicationContext - Exception encountered during context initialization - cancelling refresh attempt: org.springframework.beans.factory.BeanCreationException: Error creating bean with name 'autoCodeReviewEndPoint': Injection of resource dependencies failed
+25-09-15.21:58:22.289 [main            ] ERROR LoggingFailureAnalysisReporter - 
+
+***************************
+APPLICATION FAILED TO START
+***************************
+
+Description:
+
+A component required a bean of type 'com.zj.aiagemt.service.agent.execute.codereview.factory.DefaultAutoCodeReviewExecuteStrategyFactory' that could not be found.
+
+
+Action:
+
+Consider defining a bean of type 'com.zj.aiagemt.service.agent.execute.codereview.factory.DefaultAutoCodeReviewExecuteStrategyFactory' in your configuration.
+
+25-09-15.21:58:43.084 [main            ] WARN  MybatisSqlSessionFactoryBean - Property 'mapperLocations' was specified but matching resources are not found.
+25-09-15.21:58:50.458 [RMI TCP Connection(4)-192.168.0.46] WARN  DataSourceHealthIndicator - DataSource health check failed
+org.springframework.jdbc.CannotGetJdbcConnectionException: Failed to obtain JDBC Connection
+	at org.springframework.jdbc.datasource.DataSourceUtils.getConnection(DataSourceUtils.java:84)
+	at org.springframework.jdbc.core.JdbcTemplate.execute(JdbcTemplate.java:342)
+	at org.springframework.boot.actuate.jdbc.DataSourceHealthIndicator.getProduct(DataSourceHealthIndicator.java:122)
+	at org.springframework.boot.actuate.jdbc.DataSourceHealthIndicator.doDataSourceHealthCheck(DataSourceHealthIndicator.java:105)
+	at org.springframework.boot.actuate.jdbc.DataSourceHealthIndicator.doHealthCheck(DataSourceHealthIndicator.java:100)
+	at org.springframework.boot.actuate.health.AbstractHealthIndicator.health(AbstractHealthIndicator.java:82)
+	at org.springframework.boot.actuate.health.HealthIndicator.getHealth(HealthIndicator.java:37)
+	at org.springframework.boot.actuate.health.HealthEndpoint.getHealth(HealthEndpoint.java:82)
+	at org.springframework.boot.actuate.health.HealthEndpoint.getHealth(HealthEndpoint.java:41)
+	at org.springframework.boot.actuate.health.HealthEndpointSupport.getLoggedHealth(HealthEndpointSupport.java:172)
+	at org.springframework.boot.actuate.health.HealthEndpointSupport.getContribution(HealthEndpointSupport.java:145)
+	at org.springframework.boot.actuate.health.HealthEndpointSupport.getAggregateContribution(HealthEndpointSupport.java:156)
+	at org.springframework.boot.actuate.health.HealthEndpointSupport.getContribution(HealthEndpointSupport.java:141)
+	at org.springframework.boot.actuate.health.HealthEndpointSupport.getAggregateContribution(HealthEndpointSupport.java:156)
+	at org.springframework.boot.actuate.health.HealthEndpointSupport.getContribution(HealthEndpointSupport.java:141)
+	at org.springframework.boot.actuate.health.HealthEndpointSupport.getHealth(HealthEndpointSupport.java:110)
+	at org.springframework.boot.actuate.health.HealthEndpointSupport.getHealth(HealthEndpointSupport.java:81)
+	at org.springframework.boot.actuate.health.HealthEndpoint.health(HealthEndpoint.java:76)
+	at org.springframework.boot.actuate.health.HealthEndpoint.health(HealthEndpoint.java:66)
 	at java.base/jdk.internal.reflect.DirectMethodHandleAccessor.invoke(DirectMethodHandleAccessor.java:103)
 	at java.base/java.lang.reflect.Method.invoke(Method.java:580)
-	at org.springframework.beans.factory.support.SimpleInstantiationStrategy.lambda$instantiate$0(SimpleInstantiationStrategy.java:172)
-	... 38 common frames omitted
-Caused by: java.util.concurrent.ExecutionException: org.redisson.client.RedisConnectionException: java.net.UnknownHostException: Failed to resolve 'null' [A(1)] after 2 queries 
-	at java.base/java.util.concurrent.CompletableFuture.reportGet(CompletableFuture.java:396)
-	at java.base/java.util.concurrent.CompletableFuture.get(CompletableFuture.java:2096)
-	at org.redisson.connection.MasterSlaveConnectionManager.doConnect(MasterSlaveConnectionManager.java:222)
-	... 51 common frames omitted
-Caused by: org.redisson.client.RedisConnectionException: java.net.UnknownHostException: Failed to resolve 'null' [A(1)] after 2 queries 
-	at org.redisson.client.RedisClient.lambda$resolveAddr$0(RedisClient.java:273)
-	at io.netty.util.concurrent.DefaultPromise.notifyListener0(DefaultPromise.java:603)
-	at io.netty.util.concurrent.DefaultPromise.notifyListeners0(DefaultPromise.java:596)
-	at io.netty.util.concurrent.DefaultPromise.notifyListenersNow(DefaultPromise.java:572)
-	at io.netty.util.concurrent.DefaultPromise.notifyListeners(DefaultPromise.java:505)
-	at io.netty.util.concurrent.DefaultPromise.setValue0(DefaultPromise.java:649)
-	at io.netty.util.concurrent.DefaultPromise.setFailure0(DefaultPromise.java:642)
-	at io.netty.util.concurrent.DefaultPromise.setFailure(DefaultPromise.java:123)
-	at io.netty.resolver.InetSocketAddressResolver$1.operationComplete(InetSocketAddressResolver.java:62)
-	at io.netty.util.concurrent.DefaultPromise.notifyListener0(DefaultPromise.java:603)
-	at io.netty.util.concurrent.DefaultPromise.notifyListeners0(DefaultPromise.java:596)
-	at io.netty.util.concurrent.DefaultPromise.notifyListenersNow(DefaultPromise.java:572)
-	at io.netty.util.concurrent.DefaultPromise.notifyListeners(DefaultPromise.java:505)
-	at io.netty.util.concurrent.DefaultPromise.setValue0(DefaultPromise.java:649)
-	at io.netty.util.concurrent.DefaultPromise.setFailure0(DefaultPromise.java:642)
-	at io.netty.util.concurrent.DefaultPromise.tryFailure(DefaultPromise.java:131)
-	at io.netty.resolver.dns.DnsNameResolver.tryFailure(DnsNameResolver.java:1075)
-	at io.netty.resolver.dns.DnsNameResolver.access$500(DnsNameResolver.java:96)
-	at io.netty.resolver.dns.DnsNameResolver$6.operationComplete(DnsNameResolver.java:1097)
-	at io.netty.util.concurrent.DefaultPromise.notifyListener0(DefaultPromise.java:603)
-	at io.netty.util.concurrent.DefaultPromise.notifyListenersNow(DefaultPromise.java:570)
-	at io.netty.util.concurrent.DefaultPromise.notifyListeners(DefaultPromise.java:505)
-	at io.netty.util.concurrent.DefaultPromise.setValue0(DefaultPromise.java:649)
-	at io.netty.util.concurrent.DefaultPromise.setFailure0(DefaultPromise.java:642)
-	at io.netty.util.concurrent.DefaultPromise.tryFailure(DefaultPromise.java:131)
-	at io.netty.resolver.dns.DnsResolveContext.finishResolve(DnsResolveContext.java:1158)
-	at io.netty.resolver.dns.DnsResolveContext.tryToFinishResolve(DnsResolveContext.java:1097)
-	at io.netty.resolver.dns.DnsResolveContext.query(DnsResolveContext.java:455)
-	at io.netty.resolver.dns.DnsResolveContext.onResponse(DnsResolveContext.java:686)
-	at io.netty.resolver.dns.DnsResolveContext.access$500(DnsResolveContext.java:70)
-	at io.netty.resolver.dns.DnsResolveContext$2.operationComplete(DnsResolveContext.java:513)
-	at io.netty.util.concurrent.DefaultPromise.notifyListener0(DefaultPromise.java:603)
-	at io.netty.util.concurrent.DefaultPromise.notifyListeners0(DefaultPromise.java:596)
-	at io.netty.util.concurrent.DefaultPromise.notifyListenersNow(DefaultPromise.java:572)
-	at io.netty.util.concurrent.DefaultPromise.notifyListeners(DefaultPromise.java:505)
-	at io.netty.util.concurrent.DefaultPromise.setValue0(DefaultPromise.java:649)
-	at io.netty.util.concurrent.DefaultPromise.setSuccess0(DefaultPromise.java:638)
-	at io.netty.util.concurrent.DefaultPromise.trySuccess(DefaultPromise.java:118)
-	at io.netty.resolver.dns.DnsQueryContext.trySuccess(DnsQueryContext.java:308)
-	at io.netty.resolver.dns.DnsQueryContext.finishSuccess(DnsQueryContext.java:299)
-	at io.netty.resolver.dns.DnsNameResolver$DnsResponseHandler.channelRead(DnsNameResolver.java:1491)
-	at io.netty.channel.AbstractChannelHandlerContext.invokeChannelRead(AbstractChannelHandlerContext.java:444)
-	at io.netty.channel.AbstractChannelHandlerContext.invokeChannelRead(AbstractChannelHandlerContext.java:420)
-	at io.netty.channel.AbstractChannelHandlerContext.fireChannelRead(AbstractChannelHandlerContext.java:412)
-	at io.netty.handler.codec.MessageToMessageDecoder.channelRead(MessageToMessageDecoder.java:107)
-	at io.netty.channel.AbstractChannelHandlerContext.invokeChannelRead(AbstractChannelHandlerContext.java:444)
-	at io.netty.channel.AbstractChannelHandlerContext.invokeChannelRead(AbstractChannelHandlerContext.java:420)
-	at io.netty.channel.AbstractChannelHandlerContext.fireChannelRead(AbstractChannelHandlerContext.java:412)
-	at io.netty.channel.DefaultChannelPipeline$HeadContext.channelRead(DefaultChannelPipeline.java:1357)
-	at io.netty.channel.AbstractChannelHandlerContext.invokeChannelRead(AbstractChannelHandlerContext.java:440)
-	at io.netty.channel.AbstractChannelHandlerContext.invokeChannelRead(AbstractChannelHandlerContext.java:420)
-	at io.netty.channel.DefaultChannelPipeline.fireChannelRead(DefaultChannelPipeline.java:868)
-	at io.netty.channel.nio.AbstractNioMessageChannel$NioMessageUnsafe.read(AbstractNioMessageChannel.java:97)
-	at io.netty.channel.nio.NioEventLoop.processSelectedKey(NioEventLoop.java:796)
-	at io.netty.channel.nio.NioEventLoop.processSelectedKeysOptimized(NioEventLoop.java:732)
-	at io.netty.channel.nio.NioEventLoop.processSelectedKeys(NioEventLoop.java:658)
-	at io.netty.channel.nio.NioEventLoop.run(NioEventLoop.java:562)
-	at io.netty.util.concurrent.SingleThreadEventExecutor$4.run(SingleThreadEventExecutor.java:998)
-	at io.netty.util.internal.ThreadExecutorMap$2.run(ThreadExecutorMap.java:74)
-	at io.netty.util.concurrent.FastThreadLocalRunnable.run(FastThreadLocalRunnable.java:30)
-	at java.base/java.lang.Thread.run(Thread.java:1583)
-Caused by: java.net.UnknownHostException: Failed to resolve 'null' [A(1)] after 2 queries 
-	at io.netty.resolver.dns.DnsResolveContext.finishResolve(DnsResolveContext.java:1150)
-	... 35 common frames omitted
-Caused by: io.netty.resolver.dns.DnsErrorCauseException: Query failed with NXDOMAIN
-	at io.netty.resolver.dns.DnsResolveContext.onResponse(..)(Unknown Source)
-25-09-11.12:28:51.590 [main            ] WARN  AdvisorNode            - 没有需要被初始化的 ai client advisor
-25-09-11.12:57:27.357 [HttpClient-1-Worker-4] ERROR HttpClientSseClientTransport - SSE connection error
-java.io.IOException: chunked transfer encoding, state: READING_LENGTH
-	at java.net.http/jdk.internal.net.http.common.Utils.wrapWithExtraDetail(Utils.java:391)
-	at java.net.http/jdk.internal.net.http.Http1Response$BodyReader.onReadError(Http1Response.java:676)
-	at java.net.http/jdk.internal.net.http.Http1AsyncReceiver.checkForErrors(Http1AsyncReceiver.java:302)
-	at java.net.http/jdk.internal.net.http.Http1AsyncReceiver.flush(Http1AsyncReceiver.java:268)
-	at java.net.http/jdk.internal.net.http.common.SequentialScheduler$LockingRestartableTask.run(SequentialScheduler.java:182)
-	at java.net.http/jdk.internal.net.http.common.SequentialScheduler$CompleteRestartableTask.run(SequentialScheduler.java:149)
-	at java.net.http/jdk.internal.net.http.common.SequentialScheduler$SchedulableTask.run(SequentialScheduler.java:207)
+	at org.springframework.util.ReflectionUtils.invokeMethod(ReflectionUtils.java:281)
+	at org.springframework.boot.actuate.endpoint.invoke.reflect.ReflectiveOperationInvoker.invoke(ReflectiveOperationInvoker.java:74)
+	at org.springframework.boot.actuate.endpoint.annotation.AbstractDiscoveredOperation.invoke(AbstractDiscoveredOperation.java:60)
+	at org.springframework.boot.actuate.endpoint.jmx.EndpointMBean.invoke(EndpointMBean.java:124)
+	at org.springframework.boot.actuate.endpoint.jmx.EndpointMBean.invoke(EndpointMBean.java:97)
+	at java.management/com.sun.jmx.interceptor.DefaultMBeanServerInterceptor.invoke(DefaultMBeanServerInterceptor.java:803)
+	at java.management/com.sun.jmx.mbeanserver.JmxMBeanServer.invoke(JmxMBeanServer.java:802)
+	at java.management.rmi/javax.management.remote.rmi.RMIConnectionImpl.doOperation(RMIConnectionImpl.java:1472)
+	at java.management.rmi/javax.management.remote.rmi.RMIConnectionImpl$PrivilegedOperation.run(RMIConnectionImpl.java:1310)
+	at java.management.rmi/javax.management.remote.rmi.RMIConnectionImpl.doPrivilegedOperation(RMIConnectionImpl.java:1405)
+	at java.management.rmi/javax.management.remote.rmi.RMIConnectionImpl.invoke(RMIConnectionImpl.java:829)
+	at java.base/jdk.internal.reflect.DirectMethodHandleAccessor.invoke(DirectMethodHandleAccessor.java:103)
+	at java.base/java.lang.reflect.Method.invoke(Method.java:580)
+	at java.rmi/sun.rmi.server.UnicastServerRef.dispatch(UnicastServerRef.java:360)
+	at java.rmi/sun.rmi.transport.Transport$1.run(Transport.java:200)
+	at java.rmi/sun.rmi.transport.Transport$1.run(Transport.java:197)
+	at java.base/java.security.AccessController.doPrivileged(AccessController.java:714)
+	at java.rmi/sun.rmi.transport.Transport.serviceCall(Transport.java:196)
+	at java.rmi/sun.rmi.transport.tcp.TCPTransport.handleMessages(TCPTransport.java:598)
+	at java.rmi/sun.rmi.transport.tcp.TCPTransport$ConnectionHandler.run0(TCPTransport.java:844)
+	at java.rmi/sun.rmi.transport.tcp.TCPTransport$ConnectionHandler.lambda$run$0(TCPTransport.java:721)
+	at java.base/java.security.AccessController.doPrivileged(AccessController.java:400)
+	at java.rmi/sun.rmi.transport.tcp.TCPTransport$ConnectionHandler.run(TCPTransport.java:720)
 	at java.base/java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1144)
 	at java.base/java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:642)
 	at java.base/java.lang.Thread.run(Thread.java:1583)
-Caused by: java.net.SocketException: Connection reset
-	at java.base/sun.nio.ch.SocketChannelImpl.throwConnectionReset(SocketChannelImpl.java:401)
-	at java.base/sun.nio.ch.SocketChannelImpl.read(SocketChannelImpl.java:434)
-	at java.net.http/jdk.internal.net.http.SocketTube.readAvailable(SocketTube.java:1178)
-	at java.net.http/jdk.internal.net.http.SocketTube$InternalReadPublisher$InternalReadSubscription.read(SocketTube.java:841)
-	at java.net.http/jdk.internal.net.http.SocketTube$SocketFlowTask.run(SocketTube.java:181)
-	at java.net.http/jdk.internal.net.http.common.SequentialScheduler$SchedulableTask.run(SequentialScheduler.java:207)
-	at java.net.http/jdk.internal.net.http.common.SequentialScheduler.runOrSchedule(SequentialScheduler.java:280)
-	at java.net.http/jdk.internal.net.http.common.SequentialScheduler.runOrSchedule(SequentialScheduler.java:233)
-	at java.net.http/jdk.internal.net.http.SocketTube$InternalReadPublisher$InternalReadSubscription.signalReadable(SocketTube.java:782)
-	at java.net.http/jdk.internal.net.http.SocketTube$InternalReadPublisher$ReadEvent.signalEvent(SocketTube.java:965)
-	at java.net.http/jdk.internal.net.http.SocketTube$SocketFlowEvent.handle(SocketTube.java:253)
-	at java.net.http/jdk.internal.net.http.HttpClientImpl$SelectorManager.handleEvent(HttpClientImpl.java:1469)
-	at java.net.http/jdk.internal.net.http.HttpClientImpl$SelectorManager.lambda$run$3(HttpClientImpl.java:1414)
-	at java.base/java.util.ArrayList.forEach(ArrayList.java:1596)
-	at java.net.http/jdk.internal.net.http.HttpClientImpl$SelectorManager.run(HttpClientImpl.java:1414)
-25-09-11.12:57:27.375 [ForkJoinPool.commonPool-worker-2] ERROR HttpClientSseClientTransport - SSE connection error
-java.util.concurrent.CompletionException: java.io.IOException: chunked transfer encoding, state: READING_LENGTH
-	at java.base/java.util.concurrent.CompletableFuture.encodeThrowable(CompletableFuture.java:332)
-	at java.base/java.util.concurrent.CompletableFuture.completeThrowable(CompletableFuture.java:347)
-	at java.base/java.util.concurrent.CompletableFuture.uniWhenComplete(CompletableFuture.java:874)
-	at java.base/java.util.concurrent.CompletableFuture$UniWhenComplete.tryFire(CompletableFuture.java:841)
-	at java.base/java.util.concurrent.CompletableFuture.postComplete(CompletableFuture.java:510)
-	at java.base/java.util.concurrent.CompletableFuture.completeExceptionally(CompletableFuture.java:2194)
-	at java.net.http/jdk.internal.net.http.ResponseSubscribers.lambda$getBodyAsync$2(ResponseSubscribers.java:1177)
-	at java.base/java.util.concurrent.CompletableFuture.uniWhenComplete(CompletableFuture.java:863)
-	at java.base/java.util.concurrent.CompletableFuture$UniWhenComplete.tryFire(CompletableFuture.java:841)
-	at java.base/java.util.concurrent.CompletableFuture.postComplete(CompletableFuture.java:510)
-	at java.base/java.util.concurrent.CompletableFuture.completeExceptionally(CompletableFuture.java:2194)
-	at java.net.http/jdk.internal.net.http.LineSubscriberAdapter$LineSubscription.loop(LineSubscriberAdapter.java:410)
-	at java.net.http/jdk.internal.net.http.common.SequentialScheduler$LockingRestartableTask.run(SequentialScheduler.java:182)
-	at java.net.http/jdk.internal.net.http.common.SequentialScheduler$CompleteRestartableTask.run(SequentialScheduler.java:149)
-	at java.net.http/jdk.internal.net.http.common.SequentialScheduler$SchedulableTask.run(SequentialScheduler.java:207)
-	at java.net.http/jdk.internal.net.http.common.SequentialScheduler.runOrSchedule(SequentialScheduler.java:280)
-	at java.net.http/jdk.internal.net.http.common.SequentialScheduler.runOrSchedule(SequentialScheduler.java:233)
-	at java.net.http/jdk.internal.net.http.LineSubscriberAdapter$LineSubscription.signalError(LineSubscriberAdapter.java:199)
-	at java.net.http/jdk.internal.net.http.LineSubscriberAdapter.onError(LineSubscriberAdapter.java:105)
-	at java.net.http/jdk.internal.net.http.common.HttpBodySubscriberWrapper.propagateError(HttpBodySubscriberWrapper.java:171)
-	at java.net.http/jdk.internal.net.http.common.HttpBodySubscriberWrapper.complete(HttpBodySubscriberWrapper.java:310)
-	at java.net.http/jdk.internal.net.http.common.HttpBodySubscriberWrapper.onError(HttpBodySubscriberWrapper.java:396)
-	at java.net.http/jdk.internal.net.http.Http1Response.lambda$readBody$1(Http1Response.java:347)
-	at java.net.http/jdk.internal.net.http.ResponseContent$ChunkedBodyParser.onError(ResponseContent.java:185)
-	at java.net.http/jdk.internal.net.http.Http1Response$BodyReader.onReadError(Http1Response.java:677)
-	at java.net.http/jdk.internal.net.http.Http1AsyncReceiver.checkForErrors(Http1AsyncReceiver.java:302)
-	at java.net.http/jdk.internal.net.http.Http1AsyncReceiver.flush(Http1AsyncReceiver.java:268)
-	at java.net.http/jdk.internal.net.http.common.SequentialScheduler$LockingRestartableTask.run(SequentialScheduler.java:182)
-	at java.net.http/jdk.internal.net.http.common.SequentialScheduler$CompleteRestartableTask.run(SequentialScheduler.java:149)
-	at java.net.http/jdk.internal.net.http.common.SequentialScheduler$SchedulableTask.run(SequentialScheduler.java:207)
+Caused by: org.postgresql.util.PSQLException: Connection to 117.72.152.117:15432 refused. Check that the hostname and port are correct and that the postmaster is accepting TCP/IP connections.
+	at org.postgresql.core.v3.ConnectionFactoryImpl.openConnectionImpl(ConnectionFactoryImpl.java:373)
+	at org.postgresql.core.ConnectionFactory.openConnection(ConnectionFactory.java:57)
+	at org.postgresql.jdbc.PgConnection.<init>(PgConnection.java:277)
+	at org.postgresql.Driver.makeConnection(Driver.java:448)
+	at org.postgresql.Driver.connect(Driver.java:298)
+	at com.zaxxer.hikari.util.DriverDataSource.getConnection(DriverDataSource.java:137)
+	at com.zaxxer.hikari.pool.PoolBase.newConnection(PoolBase.java:360)
+	at com.zaxxer.hikari.pool.PoolBase.newPoolEntry(PoolBase.java:202)
+	at com.zaxxer.hikari.pool.HikariPool.createPoolEntry(HikariPool.java:461)
+	at com.zaxxer.hikari.pool.HikariPool.checkFailFast(HikariPool.java:550)
+	at com.zaxxer.hikari.pool.HikariPool.<init>(HikariPool.java:98)
+	at com.zaxxer.hikari.HikariDataSource.getConnection(HikariDataSource.java:111)
+	at org.springframework.jdbc.datasource.DataSourceUtils.fetchConnection(DataSourceUtils.java:160)
+	at org.springframework.jdbc.datasource.DataSourceUtils.doGetConnection(DataSourceUtils.java:118)
+	at org.springframework.jdbc.datasource.DataSourceUtils.getConnection(DataSourceUtils.java:81)
+	... 46 common frames omitted
+Caused by: java.net.ConnectException: Connection refused: getsockopt
+	at java.base/sun.nio.ch.Net.pollConnect(Native Method)
+	at java.base/sun.nio.ch.Net.pollConnectNow(Net.java:682)
+	at java.base/sun.nio.ch.NioSocketImpl.timedFinishConnect(NioSocketImpl.java:549)
+	at java.base/sun.nio.ch.NioSocketImpl.connect(NioSocketImpl.java:592)
+	at java.base/java.net.SocksSocketImpl.connect(SocksSocketImpl.java:327)
+	at java.base/java.net.Socket.connect(Socket.java:751)
+	at org.postgresql.core.PGStream.createSocket(PGStream.java:261)
+	at org.postgresql.core.PGStream.<init>(PGStream.java:122)
+	at org.postgresql.core.v3.ConnectionFactoryImpl.tryConnect(ConnectionFactoryImpl.java:146)
+	at org.postgresql.core.v3.ConnectionFactoryImpl.openConnectionImpl(ConnectionFactoryImpl.java:289)
+	... 60 common frames omitted
+25-09-15.21:59:33.055 [main            ] WARN  MybatisSqlSessionFactoryBean - Property 'mapperLocations' was specified but matching resources are not found.
+25-09-15.21:59:38.969 [RMI TCP Connection(4)-192.168.0.46] WARN  DataSourceHealthIndicator - DataSource health check failed
+org.springframework.jdbc.CannotGetJdbcConnectionException: Failed to obtain JDBC Connection
+	at org.springframework.jdbc.datasource.DataSourceUtils.getConnection(DataSourceUtils.java:84)
+	at org.springframework.jdbc.core.JdbcTemplate.execute(JdbcTemplate.java:342)
+	at org.springframework.boot.actuate.jdbc.DataSourceHealthIndicator.getProduct(DataSourceHealthIndicator.java:122)
+	at org.springframework.boot.actuate.jdbc.DataSourceHealthIndicator.doDataSourceHealthCheck(DataSourceHealthIndicator.java:105)
+	at org.springframework.boot.actuate.jdbc.DataSourceHealthIndicator.doHealthCheck(DataSourceHealthIndicator.java:100)
+	at org.springframework.boot.actuate.health.AbstractHealthIndicator.health(AbstractHealthIndicator.java:82)
+	at org.springframework.boot.actuate.health.HealthIndicator.getHealth(HealthIndicator.java:37)
+	at org.springframework.boot.actuate.health.HealthEndpoint.getHealth(HealthEndpoint.java:82)
+	at org.springframework.boot.actuate.health.HealthEndpoint.getHealth(HealthEndpoint.java:41)
+	at org.springframework.boot.actuate.health.HealthEndpointSupport.getLoggedHealth(HealthEndpointSupport.java:172)
+	at org.springframework.boot.actuate.health.HealthEndpointSupport.getContribution(HealthEndpointSupport.java:145)
+	at org.springframework.boot.actuate.health.HealthEndpointSupport.getAggregateContribution(HealthEndpointSupport.java:156)
+	at org.springframework.boot.actuate.health.HealthEndpointSupport.getContribution(HealthEndpointSupport.java:141)
+	at org.springframework.boot.actuate.health.HealthEndpointSupport.getAggregateContribution(HealthEndpointSupport.java:156)
+	at org.springframework.boot.actuate.health.HealthEndpointSupport.getContribution(HealthEndpointSupport.java:141)
+	at org.springframework.boot.actuate.health.HealthEndpointSupport.getHealth(HealthEndpointSupport.java:110)
+	at org.springframework.boot.actuate.health.HealthEndpointSupport.getHealth(HealthEndpointSupport.java:81)
+	at org.springframework.boot.actuate.health.HealthEndpoint.health(HealthEndpoint.java:76)
+	at org.springframework.boot.actuate.health.HealthEndpoint.health(HealthEndpoint.java:66)
+	at java.base/jdk.internal.reflect.DirectMethodHandleAccessor.invoke(DirectMethodHandleAccessor.java:103)
+	at java.base/java.lang.reflect.Method.invoke(Method.java:580)
+	at org.springframework.util.ReflectionUtils.invokeMethod(ReflectionUtils.java:281)
+	at org.springframework.boot.actuate.endpoint.invoke.reflect.ReflectiveOperationInvoker.invoke(ReflectiveOperationInvoker.java:74)
+	at org.springframework.boot.actuate.endpoint.annotation.AbstractDiscoveredOperation.invoke(AbstractDiscoveredOperation.java:60)
+	at org.springframework.boot.actuate.endpoint.jmx.EndpointMBean.invoke(EndpointMBean.java:124)
+	at org.springframework.boot.actuate.endpoint.jmx.EndpointMBean.invoke(EndpointMBean.java:97)
+	at java.management/com.sun.jmx.interceptor.DefaultMBeanServerInterceptor.invoke(DefaultMBeanServerInterceptor.java:803)
+	at java.management/com.sun.jmx.mbeanserver.JmxMBeanServer.invoke(JmxMBeanServer.java:802)
+	at java.management.rmi/javax.management.remote.rmi.RMIConnectionImpl.doOperation(RMIConnectionImpl.java:1472)
+	at java.management.rmi/javax.management.remote.rmi.RMIConnectionImpl$PrivilegedOperation.run(RMIConnectionImpl.java:1310)
+	at java.management.rmi/javax.management.remote.rmi.RMIConnectionImpl.doPrivilegedOperation(RMIConnectionImpl.java:1405)
+	at java.management.rmi/javax.management.remote.rmi.RMIConnectionImpl.invoke(RMIConnectionImpl.java:829)
+	at java.base/jdk.internal.reflect.DirectMethodHandleAccessor.invoke(DirectMethodHandleAccessor.java:103)
+	at java.base/java.lang.reflect.Method.invoke(Method.java:580)
+	at java.rmi/sun.rmi.server.UnicastServerRef.dispatch(UnicastServerRef.java:360)
+	at java.rmi/sun.rmi.transport.Transport$1.run(Transport.java:200)
+	at java.rmi/sun.rmi.transport.Transport$1.run(Transport.java:197)
+	at java.base/java.security.AccessController.doPrivileged(AccessController.java:714)
+	at java.rmi/sun.rmi.transport.Transport.serviceCall(Transport.java:196)
+	at java.rmi/sun.rmi.transport.tcp.TCPTransport.handleMessages(TCPTransport.java:598)
+	at java.rmi/sun.rmi.transport.tcp.TCPTransport$ConnectionHandler.run0(TCPTransport.java:844)
+	at java.rmi/sun.rmi.transport.tcp.TCPTransport$ConnectionHandler.lambda$run$0(TCPTransport.java:721)
+	at java.base/java.security.AccessController.doPrivileged(AccessController.java:400)
+	at java.rmi/sun.rmi.transport.tcp.TCPTransport$ConnectionHandler.run(TCPTransport.java:720)
 	at java.base/java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1144)
 	at java.base/java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:642)
 	at java.base/java.lang.Thread.run(Thread.java:1583)
-Caused by: java.io.IOException: chunked transfer encoding, state: READING_LENGTH
-	at java.net.http/jdk.internal.net.http.common.Utils.wrapWithExtraDetail(Utils.java:391)
-	at java.net.http/jdk.internal.net.http.Http1Response$BodyReader.onReadError(Http1Response.java:676)
-	... 8 common frames omitted
-Caused by: java.net.SocketException: Connection reset
-	at java.base/sun.nio.ch.SocketChannelImpl.throwConnectionReset(SocketChannelImpl.java:401)
-	at java.base/sun.nio.ch.SocketChannelImpl.read(SocketChannelImpl.java:434)
-	at java.net.http/jdk.internal.net.http.SocketTube.readAvailable(SocketTube.java:1178)
-	at java.net.http/jdk.internal.net.http.SocketTube$InternalReadPublisher$InternalReadSubscription.read(SocketTube.java:841)
-	at java.net.http/jdk.internal.net.http.SocketTube$SocketFlowTask.run(SocketTube.java:181)
-	at java.net.http/jdk.internal.net.http.common.SequentialScheduler$SchedulableTask.run(SequentialScheduler.java:207)
-	at java.net.http/jdk.internal.net.http.common.SequentialScheduler.runOrSchedule(SequentialScheduler.java:280)
-	at java.net.http/jdk.internal.net.http.common.SequentialScheduler.runOrSchedule(SequentialScheduler.java:233)
-	at java.net.http/jdk.internal.net.http.SocketTube$InternalReadPublisher$InternalReadSubscription.signalReadable(SocketTube.java:782)
-	at java.net.http/jdk.internal.net.http.SocketTube$InternalReadPublisher$ReadEvent.signalEvent(SocketTube.java:965)
-	at java.net.http/jdk.internal.net.http.SocketTube$SocketFlowEvent.handle(SocketTube.java:253)
-	at java.net.http/jdk.internal.net.http.HttpClientImpl$SelectorManager.handleEvent(HttpClientImpl.java:1469)
-	at java.net.http/jdk.internal.net.http.HttpClientImpl$SelectorManager.lambda$run$3(HttpClientImpl.java:1414)
-	at java.base/java.util.ArrayList.forEach(ArrayList.java:1596)
-	at java.net.http/jdk.internal.net.http.HttpClientImpl$SelectorManager.run(HttpClientImpl.java:1414)
-25-09-11.12:57:27.379 [HttpClient-2-Worker-3] ERROR HttpClientSseClientTransport - SSE connection error
-java.io.IOException: chunked transfer encoding, state: READING_LENGTH
-	at java.net.http/jdk.internal.net.http.common.Utils.wrapWithExtraDetail(Utils.java:391)
-	at java.net.http/jdk.internal.net.http.Http1Response$BodyReader.onReadError(Http1Response.java:676)
-	at java.net.http/jdk.internal.net.http.Http1AsyncReceiver.checkForErrors(Http1AsyncReceiver.java:302)
-	at java.net.http/jdk.internal.net.http.Http1AsyncReceiver.flush(Http1AsyncReceiver.java:268)
-	at java.net.http/jdk.internal.net.http.common.SequentialScheduler$LockingRestartableTask.run(SequentialScheduler.java:182)
-	at java.net.http/jdk.internal.net.http.common.SequentialScheduler$CompleteRestartableTask.run(SequentialScheduler.java:149)
-	at java.net.http/jdk.internal.net.http.common.SequentialScheduler$SchedulableTask.run(SequentialScheduler.java:207)
-	at java.base/java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1144)
-	at java.base/java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:642)
-	at java.base/java.lang.Thread.run(Thread.java:1583)
-Caused by: java.net.SocketException: Connection reset
-	at java.base/sun.nio.ch.SocketChannelImpl.throwConnectionReset(SocketChannelImpl.java:401)
-	at java.base/sun.nio.ch.SocketChannelImpl.read(SocketChannelImpl.java:434)
-	at java.net.http/jdk.internal.net.http.SocketTube.readAvailable(SocketTube.java:1178)
-	at java.net.http/jdk.internal.net.http.SocketTube$InternalReadPublisher$InternalReadSubscription.read(SocketTube.java:841)
-	at java.net.http/jdk.internal.net.http.SocketTube$SocketFlowTask.run(SocketTube.java:181)
-	at java.net.http/jdk.internal.net.http.common.SequentialScheduler$SchedulableTask.run(SequentialScheduler.java:207)
-	at java.net.http/jdk.internal.net.http.common.SequentialScheduler.runOrSchedule(SequentialScheduler.java:280)
-	at java.net.http/jdk.internal.net.http.common.SequentialScheduler.runOrSchedule(SequentialScheduler.java:233)
-	at java.net.http/jdk.internal.net.http.SocketTube$InternalReadPublisher$InternalReadSubscription.signalReadable(SocketTube.java:782)
-	at java.net.http/jdk.internal.net.http.SocketTube$InternalReadPublisher$ReadEvent.signalEvent(SocketTube.java:965)
-	at java.net.http/jdk.internal.net.http.SocketTube$SocketFlowEvent.handle(SocketTube.java:253)
-	at java.net.http/jdk.internal.net.http.HttpClientImpl$SelectorManager.handleEvent(HttpClientImpl.java:1469)
-	at java.net.http/jdk.internal.net.http.HttpClientImpl$SelectorManager.lambda$run$3(HttpClientImpl.java:1414)
-	at java.base/java.util.ArrayList.forEach(ArrayList.java:1596)
-	at java.net.http/jdk.internal.net.http.HttpClientImpl$SelectorManager.run(HttpClientImpl.java:1414)
-25-09-11.12:57:27.380 [ForkJoinPool.commonPool-worker-2] ERROR HttpClientSseClientTransport - SSE connection error
-java.util.concurrent.CompletionException: java.io.IOException: chunked transfer encoding, state: READING_LENGTH
-	at java.base/java.util.concurrent.CompletableFuture.encodeThrowable(CompletableFuture.java:332)
-	at java.base/java.util.concurrent.CompletableFuture.completeThrowable(CompletableFuture.java:347)
-	at java.base/java.util.concurrent.CompletableFuture.uniWhenComplete(CompletableFuture.java:874)
-	at java.base/java.util.concurrent.CompletableFuture$UniWhenComplete.tryFire(CompletableFuture.java:841)
-	at java.base/java.util.concurrent.CompletableFuture.postComplete(CompletableFuture.java:510)
-	at java.base/java.util.concurrent.CompletableFuture.completeExceptionally(CompletableFuture.java:2194)
-	at java.net.http/jdk.internal.net.http.ResponseSubscribers.lambda$getBodyAsync$2(ResponseSubscribers.java:1177)
-	at java.base/java.util.concurrent.CompletableFuture.uniWhenComplete(CompletableFuture.java:863)
-	at java.base/java.util.concurrent.CompletableFuture$UniWhenComplete.tryFire(CompletableFuture.java:841)
-	at java.base/java.util.concurrent.CompletableFuture.postComplete(CompletableFuture.java:510)
-	at java.base/java.util.concurrent.CompletableFuture.completeExceptionally(CompletableFuture.java:2194)
-	at java.net.http/jdk.internal.net.http.LineSubscriberAdapter$LineSubscription.loop(LineSubscriberAdapter.java:410)
-	at java.net.http/jdk.internal.net.http.common.SequentialScheduler$LockingRestartableTask.run(SequentialScheduler.java:182)
-	at java.net.http/jdk.internal.net.http.common.SequentialScheduler$CompleteRestartableTask.run(SequentialScheduler.java:149)
-	at java.net.http/jdk.internal.net.http.common.SequentialScheduler$SchedulableTask.run(SequentialScheduler.java:207)
-	at java.net.http/jdk.internal.net.http.common.SequentialScheduler.runOrSchedule(SequentialScheduler.java:280)
-	at java.net.http/jdk.internal.net.http.common.SequentialScheduler.runOrSchedule(SequentialScheduler.java:233)
-	at java.net.http/jdk.internal.net.http.LineSubscriberAdapter$LineSubscription.signalError(LineSubscriberAdapter.java:199)
-	at java.net.http/jdk.internal.net.http.LineSubscriberAdapter.onError(LineSubscriberAdapter.java:105)
-	at java.net.http/jdk.internal.net.http.common.HttpBodySubscriberWrapper.propagateError(HttpBodySubscriberWrapper.java:171)
-	at java.net.http/jdk.internal.net.http.common.HttpBodySubscriberWrapper.complete(HttpBodySubscriberWrapper.java:310)
-	at java.net.http/jdk.internal.net.http.common.HttpBodySubscriberWrapper.onError(HttpBodySubscriberWrapper.java:396)
-	at java.net.http/jdk.internal.net.http.Http1Response.lambda$readBody$1(Http1Response.java:347)
-	at java.net.http/jdk.internal.net.http.ResponseContent$ChunkedBodyParser.onError(ResponseContent.java:185)
-	at java.net.http/jdk.internal.net.http.Http1Response$BodyReader.onReadError(Http1Response.java:677)
-	at java.net.http/jdk.internal.net.http.Http1AsyncReceiver.checkForErrors(Http1AsyncReceiver.java:302)
-	at java.net.http/jdk.internal.net.http.Http1AsyncReceiver.flush(Http1AsyncReceiver.java:268)
-	at java.net.http/jdk.internal.net.http.common.SequentialScheduler$LockingRestartableTask.run(SequentialScheduler.java:182)
-	at java.net.http/jdk.internal.net.http.common.SequentialScheduler$CompleteRestartableTask.run(SequentialScheduler.java:149)
-	at java.net.http/jdk.internal.net.http.common.SequentialScheduler$SchedulableTask.run(SequentialScheduler.java:207)
-	at java.base/java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1144)
-	at java.base/java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:642)
-	at java.base/java.lang.Thread.run(Thread.java:1583)
-Caused by: java.io.IOException: chunked transfer encoding, state: READING_LENGTH
-	at java.net.http/jdk.internal.net.http.common.Utils.wrapWithExtraDetail(Utils.java:391)
-	at java.net.http/jdk.internal.net.http.Http1Response$BodyReader.onReadError(Http1Response.java:676)
-	... 8 common frames omitted
-Caused by: java.net.SocketException: Connection reset
-	at java.base/sun.nio.ch.SocketChannelImpl.throwConnectionReset(SocketChannelImpl.java:401)
-	at java.base/sun.nio.ch.SocketChannelImpl.read(SocketChannelImpl.java:434)
-	at java.net.http/jdk.internal.net.http.SocketTube.readAvailable(SocketTube.java:1178)
-	at java.net.http/jdk.internal.net.http.SocketTube$InternalReadPublisher$InternalReadSubscription.read(SocketTube.java:841)
-	at java.net.http/jdk.internal.net.http.SocketTube$SocketFlowTask.run(SocketTube.java:181)
-	at java.net.http/jdk.internal.net.http.common.SequentialScheduler$SchedulableTask.run(SequentialScheduler.java:207)
-	at java.net.http/jdk.internal.net.http.common.SequentialScheduler.runOrSchedule(SequentialScheduler.java:280)
-	at java.net.http/jdk.internal.net.http.common.SequentialScheduler.runOrSchedule(SequentialScheduler.java:233)
-	at java.net.http/jdk.internal.net.http.SocketTube$InternalReadPublisher$InternalReadSubscription.signalReadable(SocketTube.java:782)
-	at java.net.http/jdk.internal.net.http.SocketTube$InternalReadPublisher$ReadEvent.signalEvent(SocketTube.java:965)
-	at java.net.http/jdk.internal.net.http.SocketTube$SocketFlowEvent.handle(SocketTube.java:253)
-	at java.net.http/jdk.internal.net.http.HttpClientImpl$SelectorManager.handleEvent(HttpClientImpl.java:1469)
-	at java.net.http/jdk.internal.net.http.HttpClientImpl$SelectorManager.lambda$run$3(HttpClientImpl.java:1414)
-	at java.base/java.util.ArrayList.forEach(ArrayList.java:1596)
-	at java.net.http/jdk.internal.net.http.HttpClientImpl$SelectorManager.run(HttpClientImpl.java:1414)
-25-09-11.12:59:34.918 [main            ] ERROR AiAgentAutoConfiguration - AI Agent 自动装配失败
-java.lang.RuntimeException: err! advisorType ConversationSummaryMemoryAdvisor not exist!
-	at com.zj.aiagemt.model.enums.AiClientAdvisorTypeEnumVO.getByCode(AiClientAdvisorTypeEnumVO.java:98)
-	at com.zj.aiagemt.service.agent.armory.node.AdvisorNode.createAdvisor(AdvisorNode.java:67)
-	at com.zj.aiagemt.service.agent.armory.node.AdvisorNode.doApply(AdvisorNode.java:51)
-	at com.zj.aiagemt.service.agent.armory.node.AdvisorNode.doApply(AdvisorNode.java:19)
-	at com.zj.aiagemt.common.design.ruletree.AbstractMultiThreadStrategyRouter.apply(AbstractMultiThreadStrategyRouter.java:38)
-	at com.zj.aiagemt.common.design.ruletree.AbstractMultiThreadStrategyRouter.router(AbstractMultiThreadStrategyRouter.java:28)
-	at com.zj.aiagemt.service.agent.armory.node.McpNode.doApply(McpNode.java:53)
-	at com.zj.aiagemt.service.agent.armory.node.McpNode.doApply(McpNode.java:27)
-	at com.zj.aiagemt.common.design.ruletree.AbstractMultiThreadStrategyRouter.apply(AbstractMultiThreadStrategyRouter.java:38)
-	at com.zj.aiagemt.common.design.ruletree.AbstractMultiThreadStrategyRouter.router(AbstractMultiThreadStrategyRouter.java:28)
-	at com.zj.aiagemt.service.agent.armory.node.ModelNode.doApply(ModelNode.java:47)
-	at com.zj.aiagemt.service.agent.armory.node.ModelNode.doApply(ModelNode.java:18)
-	at com.zj.aiagemt.common.design.ruletree.AbstractMultiThreadStrategyRouter.apply(AbstractMultiThreadStrategyRouter.java:38)
-	at com.zj.aiagemt.common.design.ruletree.AbstractMultiThreadStrategyRouter.router(AbstractMultiThreadStrategyRouter.java:28)
-	at com.zj.aiagemt.service.agent.armory.node.ApiNode.doApply(ApiNode.java:41)
-	at com.zj.aiagemt.service.agent.armory.node.ApiNode.doApply(ApiNode.java:19)
-	at com.zj.aiagemt.common.design.ruletree.AbstractMultiThreadStrategyRouter.apply(AbstractMultiThreadStrategyRouter.java:38)
-	at com.zj.aiagemt.common.design.ruletree.AbstractMultiThreadStrategyRouter.router(AbstractMultiThreadStrategyRouter.java:28)
-	at com.zj.aiagemt.service.agent.armory.node.RootNode.doApply(RootNode.java:25)
-	at com.zj.aiagemt.service.agent.armory.node.RootNode.doApply(RootNode.java:15)
-	at com.zj.aiagemt.common.design.ruletree.AbstractMultiThreadStrategyRouter.apply(AbstractMultiThreadStrategyRouter.java:38)
-	at com.zj.aiagemt.config.AiAgentAutoConfiguration.onApplicationEvent(AiAgentAutoConfiguration.java:70)
-	at com.zj.aiagemt.config.AiAgentAutoConfiguration.onApplicationEvent(AiAgentAutoConfiguration.java:23)
-	at com.zj.aiagemt.config.AiAgentAutoConfiguration$$SpringCGLIB$$0.onApplicationEvent(<generated>)
-	at org.springframework.context.event.SimpleApplicationEventMulticaster.doInvokeListener(SimpleApplicationEventMulticaster.java:185)
-	at org.springframework.context.event.SimpleApplicationEventMulticaster.invokeListener(SimpleApplicationEventMulticaster.java:178)
-	at org.springframework.context.event.SimpleApplicationEventMulticaster.multicastEvent(SimpleApplicationEventMulticaster.java:156)
-	at org.springframework.context.support.AbstractApplicationContext.publishEvent(AbstractApplicationContext.java:454)
-	at org.springframework.context.support.AbstractApplicationContext.publishEvent(AbstractApplicationContext.java:387)
-	at org.springframework.boot.context.event.EventPublishingRunListener.ready(EventPublishingRunListener.java:109)
-	at org.springframework.boot.SpringApplicationRunListeners.lambda$ready$6(SpringApplicationRunListeners.java:80)
-	at java.base/java.lang.Iterable.forEach(Iterable.java:75)
-	at org.springframework.boot.SpringApplicationRunListeners.doWithListeners(SpringApplicationRunListeners.java:118)
-	at org.springframework.boot.SpringApplicationRunListeners.doWithListeners(SpringApplicationRunListeners.java:112)
-	at org.springframework.boot.SpringApplicationRunListeners.ready(SpringApplicationRunListeners.java:80)
-	at org.springframework.boot.SpringApplication.run(SpringApplication.java:332)
-	at org.springframework.boot.SpringApplication.run(SpringApplication.java:1361)
-	at org.springframework.boot.SpringApplication.run(SpringApplication.java:1350)
-	at com.zj.aiagemt.AiagemtApplication.main(AiagemtApplication.java:16)
-25-09-11.17:16:49.679 [main            ] WARN  ClassPathMapperScanner - Skipping MapperFactoryBean with name 'aiAgentFlowConfigMapper' and 'com.zj.aiagemt.mapper.AiAgentFlowConfigMapper' mapperInterface. Bean already defined with the same name!
-25-09-11.17:16:49.679 [main            ] WARN  ClassPathMapperScanner - Skipping MapperFactoryBean with name 'aiAgentMapper' and 'com.zj.aiagemt.mapper.AiAgentMapper' mapperInterface. Bean already defined with the same name!
-25-09-11.17:16:49.679 [main            ] WARN  ClassPathMapperScanner - Skipping MapperFactoryBean with name 'aiAgentTaskScheduleMapper' and 'com.zj.aiagemt.mapper.AiAgentTaskScheduleMapper' mapperInterface. Bean already defined with the same name!
-25-09-11.17:16:49.679 [main            ] WARN  ClassPathMapperScanner - Skipping MapperFactoryBean with name 'aiClientAdvisorMapper' and 'com.zj.aiagemt.mapper.AiClientAdvisorMapper' mapperInterface. Bean already defined with the same name!
-25-09-11.17:16:49.679 [main            ] WARN  ClassPathMapperScanner - Skipping MapperFactoryBean with name 'aiClientApiMapper' and 'com.zj.aiagemt.mapper.AiClientApiMapper' mapperInterface. Bean already defined with the same name!
-25-09-11.17:16:49.679 [main            ] WARN  ClassPathMapperScanner - Skipping MapperFactoryBean with name 'aiClientConfigMapper' and 'com.zj.aiagemt.mapper.AiClientConfigMapper' mapperInterface. Bean already defined with the same name!
-25-09-11.17:16:49.679 [main            ] WARN  ClassPathMapperScanner - Skipping MapperFactoryBean with name 'aiClientMapper' and 'com.zj.aiagemt.mapper.AiClientMapper' mapperInterface. Bean already defined with the same name!
-25-09-11.17:16:49.679 [main            ] WARN  ClassPathMapperScanner - Skipping MapperFactoryBean with name 'aiClientModelMapper' and 'com.zj.aiagemt.mapper.AiClientModelMapper' mapperInterface. Bean already defined with the same name!
-25-09-11.17:16:49.679 [main            ] WARN  ClassPathMapperScanner - Skipping MapperFactoryBean with name 'aiClientRagOrderMapper' and 'com.zj.aiagemt.mapper.AiClientRagOrderMapper' mapperInterface. Bean already defined with the same name!
-25-09-11.17:16:49.679 [main            ] WARN  ClassPathMapperScanner - Skipping MapperFactoryBean with name 'aiClientSystemPromptMapper' and 'com.zj.aiagemt.mapper.AiClientSystemPromptMapper' mapperInterface. Bean already defined with the same name!
-25-09-11.17:16:49.679 [main            ] WARN  ClassPathMapperScanner - Skipping MapperFactoryBean with name 'aiClientToolMcpMapper' and 'com.zj.aiagemt.mapper.AiClientToolMcpMapper' mapperInterface. Bean already defined with the same name!
-25-09-11.17:16:49.679 [main            ] WARN  ClassPathMapperScanner - Skipping MapperFactoryBean with name 'IAgentRepository' and 'com.zj.aiagemt.mapper.IAgentRepository' mapperInterface. Bean already defined with the same name!
-25-09-11.17:16:49.680 [main            ] WARN  ClassPathMapperScanner - No MyBatis mapper was found in '[com.zj.aiagemt.mapper]' package. Please check your configuration.
-25-09-11.17:16:50.244 [main            ] WARN  AnnotationConfigServletWebServerApplicationContext - Exception encountered during context initialization - cancelling refresh attempt: org.springframework.beans.factory.BeanCreationException: Error creating bean with name 'aiAgentAutoConfiguration': Injection of resource dependencies failed
-25-09-11.17:16:50.269 [main            ] ERROR SpringApplication      - Application run failed
-org.springframework.beans.factory.BeanCreationException: Error creating bean with name 'aiAgentAutoConfiguration': Injection of resource dependencies failed
-	at org.springframework.context.annotation.CommonAnnotationBeanPostProcessor.postProcessProperties(CommonAnnotationBeanPostProcessor.java:372)
-	at org.springframework.beans.factory.support.AbstractAutowireCapableBeanFactory.populateBean(AbstractAutowireCapableBeanFactory.java:1459)
-	at org.springframework.beans.factory.support.AbstractAutowireCapableBeanFactory.doCreateBean(AbstractAutowireCapableBeanFactory.java:606)
-	at org.springframework.beans.factory.support.AbstractAutowireCapableBeanFactory.createBean(AbstractAutowireCapableBeanFactory.java:529)
-	at org.springframework.beans.factory.support.AbstractBeanFactory.lambda$doGetBean$0(AbstractBeanFactory.java:339)
-	at org.springframework.beans.factory.support.DefaultSingletonBeanRegistry.getSingleton(DefaultSingletonBeanRegistry.java:373)
-	at org.springframework.beans.factory.support.AbstractBeanFactory.doGetBean(AbstractBeanFactory.java:337)
-	at org.springframework.beans.factory.support.AbstractBeanFactory.getBean(AbstractBeanFactory.java:202)
-	at org.springframework.beans.factory.support.DefaultListableBeanFactory.instantiateSingleton(DefaultListableBeanFactory.java:1222)
-	at org.springframework.beans.factory.support.DefaultListableBeanFactory.preInstantiateSingleton(DefaultListableBeanFactory.java:1188)
-	at org.springframework.beans.factory.support.DefaultListableBeanFactory.preInstantiateSingletons(DefaultListableBeanFactory.java:1123)
-	at org.springframework.context.support.AbstractApplicationContext.finishBeanFactoryInitialization(AbstractApplicationContext.java:987)
-	at org.springframework.context.support.AbstractApplicationContext.refresh(AbstractApplicationContext.java:627)
-	at org.springframework.boot.web.servlet.context.ServletWebServerApplicationContext.refresh(ServletWebServerApplicationContext.java:146)
-	at org.springframework.boot.SpringApplication.refresh(SpringApplication.java:752)
-	at org.springframework.boot.SpringApplication.refreshContext(SpringApplication.java:439)
-	at org.springframework.boot.SpringApplication.run(SpringApplication.java:318)
-	at org.springframework.boot.SpringApplication.run(SpringApplication.java:1361)
-	at org.springframework.boot.SpringApplication.run(SpringApplication.java:1350)
-	at com.zj.aiagemt.AiagemtApplication.main(AiagemtApplication.java:16)
-Caused by: org.springframework.beans.factory.UnsatisfiedDependencyException: Error creating bean with name 'defaultAgentArmoryFactory' defined in file [D:\JavaProgram\ai-agent\aiagemt\aiagemt\target\classes\com\zj\aiagemt\service\agent\armory\factory\DefaultAgentArmoryFactory.class]: Unsatisfied dependency expressed through constructor parameter 0: Error creating bean with name 'rootNode': Injection of resource dependencies failed
-	at org.springframework.beans.factory.support.ConstructorResolver.createArgumentArray(ConstructorResolver.java:804)
-	at org.springframework.beans.factory.support.ConstructorResolver.autowireConstructor(ConstructorResolver.java:240)
-	at org.springframework.beans.factory.support.AbstractAutowireCapableBeanFactory.autowireConstructor(AbstractAutowireCapableBeanFactory.java:1395)
-	at org.springframework.beans.factory.support.AbstractAutowireCapableBeanFactory.createBeanInstance(AbstractAutowireCapableBeanFactory.java:1232)
-	at org.springframework.beans.factory.support.AbstractAutowireCapableBeanFactory.doCreateBean(AbstractAutowireCapableBeanFactory.java:569)
-	at org.springframework.beans.factory.support.AbstractAutowireCapableBeanFactory.createBean(AbstractAutowireCapableBeanFactory.java:529)
-	at org.springframework.beans.factory.support.AbstractBeanFactory.lambda$doGetBean$0(AbstractBeanFactory.java:339)
-	at org.springframework.beans.factory.support.DefaultSingletonBeanRegistry.getSingleton(DefaultSingletonBeanRegistry.java:373)
-	at org.springframework.beans.factory.support.AbstractBeanFactory.doGetBean(AbstractBeanFactory.java:337)
-	at org.springframework.beans.factory.support.AbstractBeanFactory.getBean(AbstractBeanFactory.java:202)
-	at org.springframework.beans.factory.config.DependencyDescriptor.resolveCandidate(DependencyDescriptor.java:254)
-	at org.springframework.beans.factory.support.DefaultListableBeanFactory.doResolveDependency(DefaultListableBeanFactory.java:1752)
-	at org.springframework.beans.factory.support.DefaultListableBeanFactory.resolveDependency(DefaultListableBeanFactory.java:1635)
-	at org.springframework.context.annotation.CommonAnnotationBeanPostProcessor.autowireResource(CommonAnnotationBeanPostProcessor.java:599)
-	at org.springframework.context.annotation.CommonAnnotationBeanPostProcessor.getResource(CommonAnnotationBeanPostProcessor.java:577)
-	at org.springframework.context.annotation.CommonAnnotationBeanPostProcessor$ResourceElement.getResourceToInject(CommonAnnotationBeanPostProcessor.java:739)
-	at org.springframework.beans.factory.annotation.InjectionMetadata$InjectedElement.inject(InjectionMetadata.java:272)
-	at org.springframework.beans.factory.annotation.InjectionMetadata.inject(InjectionMetadata.java:146)
-	at org.springframework.context.annotation.CommonAnnotationBeanPostProcessor.postProcessProperties(CommonAnnotationBeanPostProcessor.java:369)
-	... 19 common frames omitted
-Caused by: org.springframework.beans.factory.BeanCreationException: Error creating bean with name 'rootNode': Injection of resource dependencies failed
-	at org.springframework.context.annotation.CommonAnnotationBeanPostProcessor.postProcessProperties(CommonAnnotationBeanPostProcessor.java:372)
-	at org.springframework.beans.factory.support.AbstractAutowireCapableBeanFactory.populateBean(AbstractAutowireCapableBeanFactory.java:1459)
-	at org.springframework.beans.factory.support.AbstractAutowireCapableBeanFactory.doCreateBean(AbstractAutowireCapableBeanFactory.java:606)
-	at org.springframework.beans.factory.support.AbstractAutowireCapableBeanFactory.createBean(AbstractAutowireCapableBeanFactory.java:529)
-	at org.springframework.beans.factory.support.AbstractBeanFactory.lambda$doGetBean$0(AbstractBeanFactory.java:339)
-	at org.springframework.beans.factory.support.DefaultSingletonBeanRegistry.getSingleton(DefaultSingletonBeanRegistry.java:373)
-	at org.springframework.beans.factory.support.AbstractBeanFactory.doGetBean(AbstractBeanFactory.java:337)
-	at org.springframework.beans.factory.support.AbstractBeanFactory.getBean(AbstractBeanFactory.java:202)
-	at org.springframework.beans.factory.support.DefaultListableBeanFactory.doResolveDependency(DefaultListableBeanFactory.java:1690)
-	at org.springframework.beans.factory.support.DefaultListableBeanFactory.resolveDependency(DefaultListableBeanFactory.java:1635)
-	at org.springframework.beans.factory.support.ConstructorResolver.resolveAutowiredArgument(ConstructorResolver.java:913)
-	at org.springframework.beans.factory.support.ConstructorResolver.createArgumentArray(ConstructorResolver.java:791)
-	... 37 common frames omitted
-Caused by: org.springframework.beans.factory.BeanCreationException: Error creating bean with name 'apiNode': Injection of resource dependencies failed
-	at org.springframework.context.annotation.CommonAnnotationBeanPostProcessor.postProcessProperties(CommonAnnotationBeanPostProcessor.java:372)
-	at org.springframework.beans.factory.support.AbstractAutowireCapableBeanFactory.populateBean(AbstractAutowireCapableBeanFactory.java:1459)
-	at org.springframework.beans.factory.support.AbstractAutowireCapableBeanFactory.doCreateBean(AbstractAutowireCapableBeanFactory.java:606)
-	at org.springframework.beans.factory.support.AbstractAutowireCapableBeanFactory.createBean(AbstractAutowireCapableBeanFactory.java:529)
-	at org.springframework.beans.factory.support.AbstractBeanFactory.lambda$doGetBean$0(AbstractBeanFactory.java:339)
-	at org.springframework.beans.factory.support.DefaultSingletonBeanRegistry.getSingleton(DefaultSingletonBeanRegistry.java:373)
-	at org.springframework.beans.factory.support.AbstractBeanFactory.doGetBean(AbstractBeanFactory.java:337)
-	at org.springframework.beans.factory.support.AbstractBeanFactory.getBean(AbstractBeanFactory.java:207)
-	at org.springframework.beans.factory.support.AbstractAutowireCapableBeanFactory.resolveBeanByName(AbstractAutowireCapableBeanFactory.java:468)
-	at org.springframework.context.annotation.CommonAnnotationBeanPostProcessor.autowireResource(CommonAnnotationBeanPostProcessor.java:606)
-	at org.springframework.context.annotation.CommonAnnotationBeanPostProcessor.getResource(CommonAnnotationBeanPostProcessor.java:577)
-	at org.springframework.context.annotation.CommonAnnotationBeanPostProcessor$ResourceElement.getResourceToInject(CommonAnnotationBeanPostProcessor.java:739)
-	at org.springframework.beans.factory.annotation.InjectionMetadata$InjectedElement.inject(InjectionMetadata.java:272)
-	at org.springframework.beans.factory.annotation.InjectionMetadata.inject(InjectionMetadata.java:146)
-	at org.springframework.context.annotation.CommonAnnotationBeanPostProcessor.postProcessProperties(CommonAnnotationBeanPostProcessor.java:369)
-	... 48 common frames omitted
-Caused by: org.springframework.beans.factory.BeanCreationException: Error creating bean with name 'modelNode': Injection of resource dependencies failed
-	at org.springframework.context.annotation.CommonAnnotationBeanPostProcessor.postProcessProperties(CommonAnnotationBeanPostProcessor.java:372)
-	at org.springframework.beans.factory.support.AbstractAutowireCapableBeanFactory.populateBean(AbstractAutowireCapableBeanFactory.java:1459)
-	at org.springframework.beans.factory.support.AbstractAutowireCapableBeanFactory.doCreateBean(AbstractAutowireCapableBeanFactory.java:606)
-	at org.springframework.beans.factory.support.AbstractAutowireCapableBeanFactory.createBean(AbstractAutowireCapableBeanFactory.java:529)
-	at org.springframework.beans.factory.support.AbstractBeanFactory.lambda$doGetBean$0(AbstractBeanFactory.java:339)
-	at org.springframework.beans.factory.support.DefaultSingletonBeanRegistry.getSingleton(DefaultSingletonBeanRegistry.java:373)
-	at org.springframework.beans.factory.support.AbstractBeanFactory.doGetBean(AbstractBeanFactory.java:337)
-	at org.springframework.beans.factory.support.AbstractBeanFactory.getBean(AbstractBeanFactory.java:207)
-	at org.springframework.beans.factory.support.AbstractAutowireCapableBeanFactory.resolveBeanByName(AbstractAutowireCapableBeanFactory.java:468)
-	at org.springframework.context.annotation.CommonAnnotationBeanPostProcessor.autowireResource(CommonAnnotationBeanPostProcessor.java:606)
-	at org.springframework.context.annotation.CommonAnnotationBeanPostProcessor.getResource(CommonAnnotationBeanPostProcessor.java:577)
-	at org.springframework.context.annotation.CommonAnnotationBeanPostProcessor$ResourceElement.getResourceToInject(CommonAnnotationBeanPostProcessor.java:739)
-	at org.springframework.beans.factory.annotation.InjectionMetadata$InjectedElement.inject(InjectionMetadata.java:272)
-	at org.springframework.beans.factory.annotation.InjectionMetadata.inject(InjectionMetadata.java:146)
-	at org.springframework.context.annotation.CommonAnnotationBeanPostProcessor.postProcessProperties(CommonAnnotationBeanPostProcessor.java:369)
-	... 62 common frames omitted
-Caused by: org.springframework.beans.factory.BeanCreationException: Error creating bean with name 'mcpNode': Injection of resource dependencies failed
-	at org.springframework.context.annotation.CommonAnnotationBeanPostProcessor.postProcessProperties(CommonAnnotationBeanPostProcessor.java:372)
-	at org.springframework.beans.factory.support.AbstractAutowireCapableBeanFactory.populateBean(AbstractAutowireCapableBeanFactory.java:1459)
-	at org.springframework.beans.factory.support.AbstractAutowireCapableBeanFactory.doCreateBean(AbstractAutowireCapableBeanFactory.java:606)
-	at org.springframework.beans.factory.support.AbstractAutowireCapableBeanFactory.createBean(AbstractAutowireCapableBeanFactory.java:529)
-	at org.springframework.beans.factory.support.AbstractBeanFactory.lambda$doGetBean$0(AbstractBeanFactory.java:339)
-	at org.springframework.beans.factory.support.DefaultSingletonBeanRegistry.getSingleton(DefaultSingletonBeanRegistry.java:373)
-	at org.springframework.beans.factory.support.AbstractBeanFactory.doGetBean(AbstractBeanFactory.java:337)
-	at org.springframework.beans.factory.support.AbstractBeanFactory.getBean(AbstractBeanFactory.java:207)
-	at org.springframework.beans.factory.support.AbstractAutowireCapableBeanFactory.resolveBeanByName(AbstractAutowireCapableBeanFactory.java:468)
-	at org.springframework.context.annotation.CommonAnnotationBeanPostProcessor.autowireResource(CommonAnnotationBeanPostProcessor.java:606)
-	at org.springframework.context.annotation.CommonAnnotationBeanPostProcessor.getResource(CommonAnnotationBeanPostProcessor.java:577)
-	at org.springframework.context.annotation.CommonAnnotationBeanPostProcessor$ResourceElement.getResourceToInject(CommonAnnotationBeanPostProcessor.java:739)
-	at org.springframework.beans.factory.annotation.InjectionMetadata$InjectedElement.inject(InjectionMetadata.java:272)
-	at org.springframework.beans.factory.annotation.InjectionMetadata.inject(InjectionMetadata.java:146)
-	at org.springframework.context.annotation.CommonAnnotationBeanPostProcessor.postProcessProperties(CommonAnnotationBeanPostProcessor.java:369)
-	... 76 common frames omitted
-Caused by: org.springframework.beans.factory.BeanCreationException: Error creating bean with name 'advisorNode': Injection of resource dependencies failed
-	at org.springframework.context.annotation.CommonAnnotationBeanPostProcessor.postProcessProperties(CommonAnnotationBeanPostProcessor.java:372)
-	at org.springframework.beans.factory.support.AbstractAutowireCapableBeanFactory.populateBean(AbstractAutowireCapableBeanFactory.java:1459)
-	at org.springframework.beans.factory.support.AbstractAutowireCapableBeanFactory.doCreateBean(AbstractAutowireCapableBeanFactory.java:606)
-	at org.springframework.beans.factory.support.AbstractAutowireCapableBeanFactory.createBean(AbstractAutowireCapableBeanFactory.java:529)
-	at org.springframework.beans.factory.support.AbstractBeanFactory.lambda$doGetBean$0(AbstractBeanFactory.java:339)
-	at org.springframework.beans.factory.support.DefaultSingletonBeanRegistry.getSingleton(DefaultSingletonBeanRegistry.java:373)
-	at org.springframework.beans.factory.support.AbstractBeanFactory.doGetBean(AbstractBeanFactory.java:337)
-	at org.springframework.beans.factory.support.AbstractBeanFactory.getBean(AbstractBeanFactory.java:207)
-	at org.springframework.beans.factory.support.AbstractAutowireCapableBeanFactory.resolveBeanByName(AbstractAutowireCapableBeanFactory.java:468)
-	at org.springframework.context.annotation.CommonAnnotationBeanPostProcessor.autowireResource(CommonAnnotationBeanPostProcessor.java:606)
-	at org.springframework.context.annotation.CommonAnnotationBeanPostProcessor.getResource(CommonAnnotationBeanPostProcessor.java:577)
-	at org.springframework.context.annotation.CommonAnnotationBeanPostProcessor$ResourceElement.getResourceToInject(CommonAnnotationBeanPostProcessor.java:739)
-	at org.springframework.beans.factory.annotation.InjectionMetadata$InjectedElement.inject(InjectionMetadata.java:272)
-	at org.springframework.beans.factory.annotation.InjectionMetadata.inject(InjectionMetadata.java:146)
-	at org.springframework.context.annotation.CommonAnnotationBeanPostProcessor.postProcessProperties(CommonAnnotationBeanPostProcessor.java:369)
-	... 90 common frames omitted
-Caused by: org.springframework.beans.factory.UnsatisfiedDependencyException: Error creating bean with name 'pgVectorStore' defined in class path resource [com/zj/aiagemt/config/EmbedingModelConfig.class]: Unsatisfied dependency expressed through method 'pgVectorStore' parameter 0: No qualifying bean of type 'org.springframework.jdbc.core.JdbcTemplate' available: expected at least 1 bean which qualifies as autowire candidate. Dependency annotations: {@org.springframework.beans.factory.annotation.Qualifier("pgVectorJdbcTemplate")}
-	at org.springframework.beans.factory.support.ConstructorResolver.createArgumentArray(ConstructorResolver.java:804)
-	at org.springframework.beans.factory.support.ConstructorResolver.instantiateUsingFactoryMethod(ConstructorResolver.java:546)
-	at org.springframework.beans.factory.support.AbstractAutowireCapableBeanFactory.instantiateUsingFactoryMethod(AbstractAutowireCapableBeanFactory.java:1375)
-	at org.springframework.beans.factory.support.AbstractAutowireCapableBeanFactory.createBeanInstance(AbstractAutowireCapableBeanFactory.java:1205)
-	at org.springframework.beans.factory.support.AbstractAutowireCapableBeanFactory.doCreateBean(AbstractAutowireCapableBeanFactory.java:569)
-	at org.springframework.beans.factory.support.AbstractAutowireCapableBeanFactory.createBean(AbstractAutowireCapableBeanFactory.java:529)
-	at org.springframework.beans.factory.support.AbstractBeanFactory.lambda$doGetBean$0(AbstractBeanFactory.java:339)
-	at org.springframework.beans.factory.support.DefaultSingletonBeanRegistry.getSingleton(DefaultSingletonBeanRegistry.java:373)
-	at org.springframework.beans.factory.support.AbstractBeanFactory.doGetBean(AbstractBeanFactory.java:337)
-	at org.springframework.beans.factory.support.AbstractBeanFactory.getBean(AbstractBeanFactory.java:202)
-	at org.springframework.beans.factory.config.DependencyDescriptor.resolveCandidate(DependencyDescriptor.java:254)
-	at org.springframework.beans.factory.support.DefaultListableBeanFactory.doResolveDependency(DefaultListableBeanFactory.java:1752)
-	at org.springframework.beans.factory.support.DefaultListableBeanFactory.resolveDependency(DefaultListableBeanFactory.java:1635)
-	at org.springframework.context.annotation.CommonAnnotationBeanPostProcessor.autowireResource(CommonAnnotationBeanPostProcessor.java:599)
-	at org.springframework.context.annotation.CommonAnnotationBeanPostProcessor.getResource(CommonAnnotationBeanPostProcessor.java:577)
-	at org.springframework.context.annotation.CommonAnnotationBeanPostProcessor$ResourceElement.getResourceToInject(CommonAnnotationBeanPostProcessor.java:739)
-	at org.springframework.beans.factory.annotation.InjectionMetadata$InjectedElement.inject(InjectionMetadata.java:272)
-	at org.springframework.beans.factory.annotation.InjectionMetadata.inject(InjectionMetadata.java:146)
-	at org.springframework.context.annotation.CommonAnnotationBeanPostProcessor.postProcessProperties(CommonAnnotationBeanPostProcessor.java:369)
-	... 104 common frames omitted
-Caused by: org.springframework.beans.factory.NoSuchBeanDefinitionException: No qualifying bean of type 'org.springframework.jdbc.core.JdbcTemplate' available: expected at least 1 bean which qualifies as autowire candidate. Dependency annotations: {@org.springframework.beans.factory.annotation.Qualifier("pgVectorJdbcTemplate")}
-	at org.springframework.beans.factory.support.DefaultListableBeanFactory.raiseNoMatchingBeanFound(DefaultListableBeanFactory.java:2291)
-	at org.springframework.beans.factory.support.DefaultListableBeanFactory.doResolveDependency(DefaultListableBeanFactory.java:1715)
-	at org.springframework.beans.factory.support.DefaultListableBeanFactory.resolveDependency(DefaultListableBeanFactory.java:1635)
-	at org.springframework.beans.factory.support.ConstructorResolver.resolveAutowiredArgument(ConstructorResolver.java:913)
-	at org.springframework.beans.factory.support.ConstructorResolver.createArgumentArray(ConstructorResolver.java:791)
-	... 122 common frames omitted
-25-09-11.17:18:52.322 [main            ] WARN  ClassPathMapperScanner - Skipping MapperFactoryBean with name 'aiAgentFlowConfigMapper' and 'com.zj.aiagemt.mapper.AiAgentFlowConfigMapper' mapperInterface. Bean already defined with the same name!
-25-09-11.17:18:52.322 [main            ] WARN  ClassPathMapperScanner - Skipping MapperFactoryBean with name 'aiAgentMapper' and 'com.zj.aiagemt.mapper.AiAgentMapper' mapperInterface. Bean already defined with the same name!
-25-09-11.17:18:52.322 [main            ] WARN  ClassPathMapperScanner - Skipping MapperFactoryBean with name 'aiAgentTaskScheduleMapper' and 'com.zj.aiagemt.mapper.AiAgentTaskScheduleMapper' mapperInterface. Bean already defined with the same name!
-25-09-11.17:18:52.322 [main            ] WARN  ClassPathMapperScanner - Skipping MapperFactoryBean with name 'aiClientAdvisorMapper' and 'com.zj.aiagemt.mapper.AiClientAdvisorMapper' mapperInterface. Bean already defined with the same name!
-25-09-11.17:18:52.323 [main            ] WARN  ClassPathMapperScanner - Skipping MapperFactoryBean with name 'aiClientApiMapper' and 'com.zj.aiagemt.mapper.AiClientApiMapper' mapperInterface. Bean already defined with the same name!
-25-09-11.17:18:52.323 [main            ] WARN  ClassPathMapperScanner - Skipping MapperFactoryBean with name 'aiClientConfigMapper' and 'com.zj.aiagemt.mapper.AiClientConfigMapper' mapperInterface. Bean already defined with the same name!
-25-09-11.17:18:52.323 [main            ] WARN  ClassPathMapperScanner - Skipping MapperFactoryBean with name 'aiClientMapper' and 'com.zj.aiagemt.mapper.AiClientMapper' mapperInterface. Bean already defined with the same name!
-25-09-11.17:18:52.323 [main            ] WARN  ClassPathMapperScanner - Skipping MapperFactoryBean with name 'aiClientModelMapper' and 'com.zj.aiagemt.mapper.AiClientModelMapper' mapperInterface. Bean already defined with the same name!
-25-09-11.17:18:52.323 [main            ] WARN  ClassPathMapperScanner - Skipping MapperFactoryBean with name 'aiClientRagOrderMapper' and 'com.zj.aiagemt.mapper.AiClientRagOrderMapper' mapperInterface. Bean already defined with the same name!
-25-09-11.17:18:52.323 [main            ] WARN  ClassPathMapperScanner - Skipping MapperFactoryBean with name 'aiClientSystemPromptMapper' and 'com.zj.aiagemt.mapper.AiClientSystemPromptMapper' mapperInterface. Bean already defined with the same name!
-25-09-11.17:18:52.323 [main            ] WARN  ClassPathMapperScanner - Skipping MapperFactoryBean with name 'aiClientToolMcpMapper' and 'com.zj.aiagemt.mapper.AiClientToolMcpMapper' mapperInterface. Bean already defined with the same name!
-25-09-11.17:18:52.323 [main            ] WARN  ClassPathMapperScanner - Skipping MapperFactoryBean with name 'IAgentRepository' and 'com.zj.aiagemt.mapper.IAgentRepository' mapperInterface. Bean already defined with the same name!
-25-09-11.17:18:52.323 [main            ] WARN  ClassPathMapperScanner - No MyBatis mapper was found in '[com.zj.aiagemt.mapper]' package. Please check your configuration.
-25-09-11.17:18:52.887 [main            ] WARN  AnnotationConfigServletWebServerApplicationContext - Exception encountered during context initialization - cancelling refresh attempt: org.springframework.beans.factory.BeanCreationException: Error creating bean with name 'aiAgentAutoConfiguration': Injection of resource dependencies failed
-25-09-11.17:18:52.913 [main            ] ERROR SpringApplication      - Application run failed
-org.springframework.beans.factory.BeanCreationException: Error creating bean with name 'aiAgentAutoConfiguration': Injection of resource dependencies failed
-	at org.springframework.context.annotation.CommonAnnotationBeanPostProcessor.postProcessProperties(CommonAnnotationBeanPostProcessor.java:372)
-	at org.springframework.beans.factory.support.AbstractAutowireCapableBeanFactory.populateBean(AbstractAutowireCapableBeanFactory.java:1459)
-	at org.springframework.beans.factory.support.AbstractAutowireCapableBeanFactory.doCreateBean(AbstractAutowireCapableBeanFactory.java:606)
-	at org.springframework.beans.factory.support.AbstractAutowireCapableBeanFactory.createBean(AbstractAutowireCapableBeanFactory.java:529)
-	at org.springframework.beans.factory.support.AbstractBeanFactory.lambda$doGetBean$0(AbstractBeanFactory.java:339)
-	at org.springframework.beans.factory.support.DefaultSingletonBeanRegistry.getSingleton(DefaultSingletonBeanRegistry.java:373)
-	at org.springframework.beans.factory.support.AbstractBeanFactory.doGetBean(AbstractBeanFactory.java:337)
-	at org.springframework.beans.factory.support.AbstractBeanFactory.getBean(AbstractBeanFactory.java:202)
-	at org.springframework.beans.factory.support.DefaultListableBeanFactory.instantiateSingleton(DefaultListableBeanFactory.java:1222)
-	at org.springframework.beans.factory.support.DefaultListableBeanFactory.preInstantiateSingleton(DefaultListableBeanFactory.java:1188)
-	at org.springframework.beans.factory.support.DefaultListableBeanFactory.preInstantiateSingletons(DefaultListableBeanFactory.java:1123)
-	at org.springframework.context.support.AbstractApplicationContext.finishBeanFactoryInitialization(AbstractApplicationContext.java:987)
-	at org.springframework.context.support.AbstractApplicationContext.refresh(AbstractApplicationContext.java:627)
-	at org.springframework.boot.web.servlet.context.ServletWebServerApplicationContext.refresh(ServletWebServerApplicationContext.java:146)
-	at org.springframework.boot.SpringApplication.refresh(SpringApplication.java:752)
-	at org.springframework.boot.SpringApplication.refreshContext(SpringApplication.java:439)
-	at org.springframework.boot.SpringApplication.run(SpringApplication.java:318)
-	at org.springframework.boot.SpringApplication.run(SpringApplication.java:1361)
-	at org.springframework.boot.SpringApplication.run(SpringApplication.java:1350)
-	at com.zj.aiagemt.AiagemtApplication.main(AiagemtApplication.java:16)
-Caused by: org.springframework.beans.factory.UnsatisfiedDependencyException: Error creating bean with name 'defaultAgentArmoryFactory' defined in file [D:\JavaProgram\ai-agent\aiagemt\aiagemt\target\classes\com\zj\aiagemt\service\agent\armory\factory\DefaultAgentArmoryFactory.class]: Unsatisfied dependency expressed through constructor parameter 0: Error creating bean with name 'rootNode': Injection of resource dependencies failed
-	at org.springframework.beans.factory.support.ConstructorResolver.createArgumentArray(ConstructorResolver.java:804)
-	at org.springframework.beans.factory.support.ConstructorResolver.autowireConstructor(ConstructorResolver.java:240)
-	at org.springframework.beans.factory.support.AbstractAutowireCapableBeanFactory.autowireConstructor(AbstractAutowireCapableBeanFactory.java:1395)
-	at org.springframework.beans.factory.support.AbstractAutowireCapableBeanFactory.createBeanInstance(AbstractAutowireCapableBeanFactory.java:1232)
-	at org.springframework.beans.factory.support.AbstractAutowireCapableBeanFactory.doCreateBean(AbstractAutowireCapableBeanFactory.java:569)
-	at org.springframework.beans.factory.support.AbstractAutowireCapableBeanFactory.createBean(AbstractAutowireCapableBeanFactory.java:529)
-	at org.springframework.beans.factory.support.AbstractBeanFactory.lambda$doGetBean$0(AbstractBeanFactory.java:339)
-	at org.springframework.beans.factory.support.DefaultSingletonBeanRegistry.getSingleton(DefaultSingletonBeanRegistry.java:373)
-	at org.springframework.beans.factory.support.AbstractBeanFactory.doGetBean(AbstractBeanFactory.java:337)
-	at org.springframework.beans.factory.support.AbstractBeanFactory.getBean(AbstractBeanFactory.java:202)
-	at org.springframework.beans.factory.config.DependencyDescriptor.resolveCandidate(DependencyDescriptor.java:254)
-	at org.springframework.beans.factory.support.DefaultListableBeanFactory.doResolveDependency(DefaultListableBeanFactory.java:1752)
-	at org.springframework.beans.factory.support.DefaultListableBeanFactory.resolveDependency(DefaultListableBeanFactory.java:1635)
-	at org.springframework.context.annotation.CommonAnnotationBeanPostProcessor.autowireResource(CommonAnnotationBeanPostProcessor.java:599)
-	at org.springframework.context.annotation.CommonAnnotationBeanPostProcessor.getResource(CommonAnnotationBeanPostProcessor.java:577)
-	at org.springframework.context.annotation.CommonAnnotationBeanPostProcessor$ResourceElement.getResourceToInject(CommonAnnotationBeanPostProcessor.java:739)
-	at org.springframework.beans.factory.annotation.InjectionMetadata$InjectedElement.inject(InjectionMetadata.java:272)
-	at org.springframework.beans.factory.annotation.InjectionMetadata.inject(InjectionMetadata.java:146)
-	at org.springframework.context.annotation.CommonAnnotationBeanPostProcessor.postProcessProperties(CommonAnnotationBeanPostProcessor.java:369)
-	... 19 common frames omitted
-Caused by: org.springframework.beans.factory.BeanCreationException: Error creating bean with name 'rootNode': Injection of resource dependencies failed
-	at org.springframework.context.annotation.CommonAnnotationBeanPostProcessor.postProcessProperties(CommonAnnotationBeanPostProcessor.java:372)
-	at org.springframework.beans.factory.support.AbstractAutowireCapableBeanFactory.populateBean(AbstractAutowireCapableBeanFactory.java:1459)
-	at org.springframework.beans.factory.support.AbstractAutowireCapableBeanFactory.doCreateBean(AbstractAutowireCapableBeanFactory.java:606)
-	at org.springframework.beans.factory.support.AbstractAutowireCapableBeanFactory.createBean(AbstractAutowireCapableBeanFactory.java:529)
-	at org.springframework.beans.factory.support.AbstractBeanFactory.lambda$doGetBean$0(AbstractBeanFactory.java:339)
-	at org.springframework.beans.factory.support.DefaultSingletonBeanRegistry.getSingleton(DefaultSingletonBeanRegistry.java:373)
-	at org.springframework.beans.factory.support.AbstractBeanFactory.doGetBean(AbstractBeanFactory.java:337)
-	at org.springframework.beans.factory.support.AbstractBeanFactory.getBean(AbstractBeanFactory.java:202)
-	at org.springframework.beans.factory.support.DefaultListableBeanFactory.doResolveDependency(DefaultListableBeanFactory.java:1690)
-	at org.springframework.beans.factory.support.DefaultListableBeanFactory.resolveDependency(DefaultListableBeanFactory.java:1635)
-	at org.springframework.beans.factory.support.ConstructorResolver.resolveAutowiredArgument(ConstructorResolver.java:913)
-	at org.springframework.beans.factory.support.ConstructorResolver.createArgumentArray(ConstructorResolver.java:791)
-	... 37 common frames omitted
-Caused by: org.springframework.beans.factory.BeanCreationException: Error creating bean with name 'apiNode': Injection of resource dependencies failed
-	at org.springframework.context.annotation.CommonAnnotationBeanPostProcessor.postProcessProperties(CommonAnnotationBeanPostProcessor.java:372)
-	at org.springframework.beans.factory.support.AbstractAutowireCapableBeanFactory.populateBean(AbstractAutowireCapableBeanFactory.java:1459)
-	at org.springframework.beans.factory.support.AbstractAutowireCapableBeanFactory.doCreateBean(AbstractAutowireCapableBeanFactory.java:606)
-	at org.springframework.beans.factory.support.AbstractAutowireCapableBeanFactory.createBean(AbstractAutowireCapableBeanFactory.java:529)
-	at org.springframework.beans.factory.support.AbstractBeanFactory.lambda$doGetBean$0(AbstractBeanFactory.java:339)
-	at org.springframework.beans.factory.support.DefaultSingletonBeanRegistry.getSingleton(DefaultSingletonBeanRegistry.java:373)
-	at org.springframework.beans.factory.support.AbstractBeanFactory.doGetBean(AbstractBeanFactory.java:337)
-	at org.springframework.beans.factory.support.AbstractBeanFactory.getBean(AbstractBeanFactory.java:207)
-	at org.springframework.beans.factory.support.AbstractAutowireCapableBeanFactory.resolveBeanByName(AbstractAutowireCapableBeanFactory.java:468)
-	at org.springframework.context.annotation.CommonAnnotationBeanPostProcessor.autowireResource(CommonAnnotationBeanPostProcessor.java:606)
-	at org.springframework.context.annotation.CommonAnnotationBeanPostProcessor.getResource(CommonAnnotationBeanPostProcessor.java:577)
-	at org.springframework.context.annotation.CommonAnnotationBeanPostProcessor$ResourceElement.getResourceToInject(CommonAnnotationBeanPostProcessor.java:739)
-	at org.springframework.beans.factory.annotation.InjectionMetadata$InjectedElement.inject(InjectionMetadata.java:272)
-	at org.springframework.beans.factory.annotation.InjectionMetadata.inject(InjectionMetadata.java:146)
-	at org.springframework.context.annotation.CommonAnnotationBeanPostProcessor.postProcessProperties(CommonAnnotationBeanPostProcessor.java:369)
-	... 48 common frames omitted
-Caused by: org.springframework.beans.factory.BeanCreationException: Error creating bean with name 'modelNode': Injection of resource dependencies failed
-	at org.springframework.context.annotation.CommonAnnotationBeanPostProcessor.postProcessProperties(CommonAnnotationBeanPostProcessor.java:372)
-	at org.springframework.beans.factory.support.AbstractAutowireCapableBeanFactory.populateBean(AbstractAutowireCapableBeanFactory.java:1459)
-	at org.springframework.beans.factory.support.AbstractAutowireCapableBeanFactory.doCreateBean(AbstractAutowireCapableBeanFactory.java:606)
-	at org.springframework.beans.factory.support.AbstractAutowireCapableBeanFactory.createBean(AbstractAutowireCapableBeanFactory.java:529)
-	at org.springframework.beans.factory.support.AbstractBeanFactory.lambda$doGetBean$0(AbstractBeanFactory.java:339)
-	at org.springframework.beans.factory.support.DefaultSingletonBeanRegistry.getSingleton(DefaultSingletonBeanRegistry.java:373)
-	at org.springframework.beans.factory.support.AbstractBeanFactory.doGetBean(AbstractBeanFactory.java:337)
-	at org.springframework.beans.factory.support.AbstractBeanFactory.getBean(AbstractBeanFactory.java:207)
-	at org.springframework.beans.factory.support.AbstractAutowireCapableBeanFactory.resolveBeanByName(AbstractAutowireCapableBeanFactory.java:468)
-	at org.springframework.context.annotation.CommonAnnotationBeanPostProcessor.autowireResource(CommonAnnotationBeanPostProcessor.java:606)
-	at org.springframework.context.annotation.CommonAnnotationBeanPostProcessor.getResource(CommonAnnotationBeanPostProcessor.java:577)
-	at org.springframework.context.annotation.CommonAnnotationBeanPostProcessor$ResourceElement.getResourceToInject(CommonAnnotationBeanPostProcessor.java:739)
-	at org.springframework.beans.factory.annotation.InjectionMetadata$InjectedElement.inject(InjectionMetadata.java:272)
-	at org.springframework.beans.factory.annotation.InjectionMetadata.inject(InjectionMetadata.java:146)
-	at org.springframework.context.annotation.CommonAnnotationBeanPostProcessor.postProcessProperties(CommonAnnotationBeanPostProcessor.java:369)
-	... 62 common frames omitted
-Caused by: org.springframework.beans.factory.BeanCreationException: Error creating bean with name 'mcpNode': Injection of resource dependencies failed
-	at org.springframework.context.annotation.CommonAnnotationBeanPostProcessor.postProcessProperties(CommonAnnotationBeanPostProcessor.java:372)
-	at org.springframework.beans.factory.support.AbstractAutowireCapableBeanFactory.populateBean(AbstractAutowireCapableBeanFactory.java:1459)
-	at org.springframework.beans.factory.support.AbstractAutowireCapableBeanFactory.doCreateBean(AbstractAutowireCapableBeanFactory.java:606)
-	at org.springframework.beans.factory.support.AbstractAutowireCapableBeanFactory.createBean(AbstractAutowireCapableBeanFactory.java:529)
-	at org.springframework.beans.factory.support.AbstractBeanFactory.lambda$doGetBean$0(AbstractBeanFactory.java:339)
-	at org.springframework.beans.factory.support.DefaultSingletonBeanRegistry.getSingleton(DefaultSingletonBeanRegistry.java:373)
-	at org.springframework.beans.factory.support.AbstractBeanFactory.doGetBean(AbstractBeanFactory.java:337)
-	at org.springframework.beans.factory.support.AbstractBeanFactory.getBean(AbstractBeanFactory.java:207)
-	at org.springframework.beans.factory.support.AbstractAutowireCapableBeanFactory.resolveBeanByName(AbstractAutowireCapableBeanFactory.java:468)
-	at org.springframework.context.annotation.CommonAnnotationBeanPostProcessor.autowireResource(CommonAnnotationBeanPostProcessor.java:606)
-	at org.springframework.context.annotation.CommonAnnotationBeanPostProcessor.getResource(CommonAnnotationBeanPostProcessor.java:577)
-	at org.springframework.context.annotation.CommonAnnotationBeanPostProcessor$ResourceElement.getResourceToInject(CommonAnnotationBeanPostProcessor.java:739)
-	at org.springframework.beans.factory.annotation.InjectionMetadata$InjectedElement.inject(InjectionMetadata.java:272)
-	at org.springframework.beans.factory.annotation.InjectionMetadata.inject(InjectionMetadata.java:146)
-	at org.springframework.context.annotation.CommonAnnotationBeanPostProcessor.postProcessProperties(CommonAnnotationBeanPostProcessor.java:369)
-	... 76 common frames omitted
-Caused by: org.springframework.beans.factory.BeanCreationException: Error creating bean with name 'advisorNode': Injection of resource dependencies failed
-	at org.springframework.context.annotation.CommonAnnotationBeanPostProcessor.postProcessProperties(CommonAnnotationBeanPostProcessor.java:372)
-	at org.springframework.beans.factory.support.AbstractAutowireCapableBeanFactory.populateBean(AbstractAutowireCapableBeanFactory.java:1459)
-	at org.springframework.beans.factory.support.AbstractAutowireCapableBeanFactory.doCreateBean(AbstractAutowireCapableBeanFactory.java:606)
-	at org.springframework.beans.factory.support.AbstractAutowireCapableBeanFactory.createBean(AbstractAutowireCapableBeanFactory.java:529)
-	at org.springframework.beans.factory.support.AbstractBeanFactory.lambda$doGetBean$0(AbstractBeanFactory.java:339)
-	at org.springframework.beans.factory.support.DefaultSingletonBeanRegistry.getSingleton(DefaultSingletonBeanRegistry.java:373)
-	at org.springframework.beans.factory.support.AbstractBeanFactory.doGetBean(AbstractBeanFactory.java:337)
-	at org.springframework.beans.factory.support.AbstractBeanFactory.getBean(AbstractBeanFactory.java:207)
-	at org.springframework.beans.factory.support.AbstractAutowireCapableBeanFactory.resolveBeanByName(AbstractAutowireCapableBeanFactory.java:468)
-	at org.springframework.context.annotation.CommonAnnotationBeanPostProcessor.autowireResource(CommonAnnotationBeanPostProcessor.java:606)
-	at org.springframework.context.annotation.CommonAnnotationBeanPostProcessor.getResource(CommonAnnotationBeanPostProcessor.java:577)
-	at org.springframework.context.annotation.CommonAnnotationBeanPostProcessor$ResourceElement.getResourceToInject(CommonAnnotationBeanPostProcessor.java:739)
-	at org.springframework.beans.factory.annotation.InjectionMetadata$InjectedElement.inject(InjectionMetadata.java:272)
-	at org.springframework.beans.factory.annotation.InjectionMetadata.inject(InjectionMetadata.java:146)
-	at org.springframework.context.annotation.CommonAnnotationBeanPostProcessor.postProcessProperties(CommonAnnotationBeanPostProcessor.java:369)
-	... 90 common frames omitted
-Caused by: org.springframework.beans.factory.UnsatisfiedDependencyException: Error creating bean with name 'pgVectorStore' defined in class path resource [com/zj/aiagemt/config/EmbedingModelConfig.class]: Unsatisfied dependency expressed through method 'pgVectorStore' parameter 0: No qualifying bean of type 'org.springframework.jdbc.core.JdbcTemplate' available: expected at least 1 bean which qualifies as autowire candidate. Dependency annotations: {@org.springframework.beans.factory.annotation.Qualifier("pgVectorJdbcTemplate")}
-	at org.springframework.beans.factory.support.ConstructorResolver.createArgumentArray(ConstructorResolver.java:804)
-	at org.springframework.beans.factory.support.ConstructorResolver.instantiateUsingFactoryMethod(ConstructorResolver.java:546)
-	at org.springframework.beans.factory.support.AbstractAutowireCapableBeanFactory.instantiateUsingFactoryMethod(AbstractAutowireCapableBeanFactory.java:1375)
-	at org.springframework.beans.factory.support.AbstractAutowireCapableBeanFactory.createBeanInstance(AbstractAutowireCapableBeanFactory.java:1205)
-	at org.springframework.beans.factory.support.AbstractAutowireCapableBeanFactory.doCreateBean(AbstractAutowireCapableBeanFactory.java:569)
-	at org.springframework.beans.factory.support.AbstractAutowireCapableBeanFactory.createBean(AbstractAutowireCapableBeanFactory.java:529)
-	at org.springframework.beans.factory.support.AbstractBeanFactory.lambda$doGetBean$0(AbstractBeanFactory.java:339)
-	at org.springframework.beans.factory.support.DefaultSingletonBeanRegistry.getSingleton(DefaultSingletonBeanRegistry.java:373)
-	at org.springframework.beans.factory.support.AbstractBeanFactory.doGetBean(AbstractBeanFactory.java:337)
-	at org.springframework.beans.factory.support.AbstractBeanFactory.getBean(AbstractBeanFactory.java:202)
-	at org.springframework.beans.factory.config.DependencyDescriptor.resolveCandidate(DependencyDescriptor.java:254)
-	at org.springframework.beans.factory.support.DefaultListableBeanFactory.doResolveDependency(DefaultListableBeanFactory.java:1752)
-	at org.springframework.beans.factory.support.DefaultListableBeanFactory.resolveDependency(DefaultListableBeanFactory.java:1635)
-	at org.springframework.context.annotation.CommonAnnotationBeanPostProcessor.autowireResource(CommonAnnotationBeanPostProcessor.java:599)
-	at org.springframework.context.annotation.CommonAnnotationBeanPostProcessor.getResource(CommonAnnotationBeanPostProcessor.java:577)
-	at org.springframework.context.annotation.CommonAnnotationBeanPostProcessor$ResourceElement.getResourceToInject(CommonAnnotationBeanPostProcessor.java:739)
-	at org.springframework.beans.factory.annotation.InjectionMetadata$InjectedElement.inject(InjectionMetadata.java:272)
-	at org.springframework.beans.factory.annotation.InjectionMetadata.inject(InjectionMetadata.java:146)
-	at org.springframework.context.annotation.CommonAnnotationBeanPostProcessor.postProcessProperties(CommonAnnotationBeanPostProcessor.java:369)
-	... 104 common frames omitted
-Caused by: org.springframework.beans.factory.NoSuchBeanDefinitionException: No qualifying bean of type 'org.springframework.jdbc.core.JdbcTemplate' available: expected at least 1 bean which qualifies as autowire candidate. Dependency annotations: {@org.springframework.beans.factory.annotation.Qualifier("pgVectorJdbcTemplate")}
-	at org.springframework.beans.factory.support.DefaultListableBeanFactory.raiseNoMatchingBeanFound(DefaultListableBeanFactory.java:2291)
-	at org.springframework.beans.factory.support.DefaultListableBeanFactory.doResolveDependency(DefaultListableBeanFactory.java:1715)
-	at org.springframework.beans.factory.support.DefaultListableBeanFactory.resolveDependency(DefaultListableBeanFactory.java:1635)
-	at org.springframework.beans.factory.support.ConstructorResolver.resolveAutowiredArgument(ConstructorResolver.java:913)
-	at org.springframework.beans.factory.support.ConstructorResolver.createArgumentArray(ConstructorResolver.java:791)
-	... 122 common frames omitted
+Caused by: org.postgresql.util.PSQLException: FATAL: database "ai-rag-knowledge" does not exist
+	at org.postgresql.core.v3.QueryExecutorImpl.receiveErrorResponse(QueryExecutorImpl.java:2734)
+	at org.postgresql.core.v3.QueryExecutorImpl.readStartupMessages(QueryExecutorImpl.java:2859)
+	at org.postgresql.core.v3.QueryExecutorImpl.<init>(QueryExecutorImpl.java:178)
+	at org.postgresql.core.v3.ConnectionFactoryImpl.openConnectionImpl(ConnectionFactoryImpl.java:344)
+	at org.postgresql.core.ConnectionFactory.openConnection(ConnectionFactory.java:57)
+	at org.postgresql.jdbc.PgConnection.<init>(PgConnection.java:277)
+	at org.postgresql.Driver.makeConnection(Driver.java:448)
+	at org.postgresql.Driver.connect(Driver.java:298)
+	at com.zaxxer.hikari.util.DriverDataSource.getConnection(DriverDataSource.java:137)
+	at com.zaxxer.hikari.pool.PoolBase.newConnection(PoolBase.java:360)
+	at com.zaxxer.hikari.pool.PoolBase.newPoolEntry(PoolBase.java:202)
+	at com.zaxxer.hikari.pool.HikariPool.createPoolEntry(HikariPool.java:461)
+	at com.zaxxer.hikari.pool.HikariPool.checkFailFast(HikariPool.java:550)
+	at com.zaxxer.hikari.pool.HikariPool.<init>(HikariPool.java:98)
+	at com.zaxxer.hikari.HikariDataSource.getConnection(HikariDataSource.java:111)
+	at org.springframework.jdbc.datasource.DataSourceUtils.fetchConnection(DataSourceUtils.java:160)
+	at org.springframework.jdbc.datasource.DataSourceUtils.doGetConnection(DataSourceUtils.java:118)
+	at org.springframework.jdbc.datasource.DataSourceUtils.getConnection(DataSourceUtils.java:81)
+	... 46 common frames omitted
+25-09-15.22:01:01.342 [main            ] WARN  MybatisSqlSessionFactoryBean - Property 'mapperLocations' was specified but matching resources are not found.
+25-09-15.22:01:51.736 [main            ] WARN  MybatisSqlSessionFactoryBean - Property 'mapperLocations' was specified but matching resources are not found.
+25-09-15.22:03:26.123 [http-nio-8091-exec-1] WARN  DefaultHandlerExceptionResolver - Resolved [org.springframework.http.converter.HttpMessageNotReadableException: Required request body is missing: public java.lang.String com.zj.aiagemt.controller.api.autoCodeReview.AutoCodeReviewEndPoint.codeReview(java.lang.String)]
+25-09-15.22:03:35.667 [http-nio-8091-exec-2] WARN  DefaultHandlerExceptionResolver - Resolved [org.springframework.http.converter.HttpMessageNotReadableException: Required request body is missing: public java.lang.String com.zj.aiagemt.controller.api.autoCodeReview.AutoCodeReviewEndPoint.codeReview(java.lang.String)]
+25-09-15.22:03:59.794 [http-nio-8091-exec-3] ERROR AutoCodeReviewEndPoint - 自动审计执行失败:java.lang.NullPointerException: Cannot invoke "com.zj.aiagemt.model.vo.AiAgentClientFlowConfigVO.getClientId()" because "aiAgentClientFlowConfigVO" is null
+25-09-15.22:04:59.538 [main            ] WARN  MybatisSqlSessionFactoryBean - Property 'mapperLocations' was specified but matching resources are not found.
+25-09-15.22:06:39.527 [main            ] WARN  MybatisSqlSessionFactoryBean - Property 'mapperLocations' was specified but matching resources are not found.
+25-09-15.22:10:01.292 [main            ] WARN  MybatisSqlSessionFactoryBean - Property 'mapperLocations' was specified but matching resources are not found.
+25-09-15.22:13:36.116 [main            ] WARN  MybatisSqlSessionFactoryBean - Property 'mapperLocations' was specified but matching resources are not found.
+25-09-15.22:17:24.195 [pool-2-thread-10] WARN  PoolBase               - PrimaryHikariCP - Failed to validate connection com.mysql.cj.jdbc.ConnectionImpl@bf2a121 (No operations allowed after connection closed.). Possibly consider using a shorter maxLifetime value.
+25-09-15.22:17:24.195 [pool-2-thread-9 ] WARN  PoolBase               - PrimaryHikariCP - Failed to validate connection com.mysql.cj.jdbc.ConnectionImpl@5d0c6b8b (No operations allowed after connection closed.). Possibly consider using a shorter maxLifetime value.
+25-09-15.22:17:24.195 [pool-2-thread-11] WARN  PoolBase               - PrimaryHikariCP - Failed to validate connection com.mysql.cj.jdbc.ConnectionImpl@62d28aa5 (No operations allowed after connection closed.). Possibly consider using a shorter maxLifetime value.
+25-09-15.22:17:24.195 [pool-2-thread-7 ] WARN  PoolBase               - PrimaryHikariCP - Failed to validate connection com.mysql.cj.jdbc.ConnectionImpl@613ad06a (No operations allowed after connection closed.). Possibly consider using a shorter maxLifetime value.
+25-09-15.22:17:24.195 [pool-2-thread-8 ] WARN  PoolBase               - PrimaryHikariCP - Failed to validate connection com.mysql.cj.jdbc.ConnectionImpl@65e3964c (No operations allowed after connection closed.). Possibly consider using a shorter maxLifetime value.
+25-09-15.22:17:24.476 [http-nio-8091-exec-2] WARN  AdvisorNode            - 没有需要被初始化的 ai client advisor
+25-09-15.22:19:24.477 [main            ] WARN  MybatisSqlSessionFactoryBean - Property 'mapperLocations' was specified but matching resources are not found.
+25-09-15.22:25:05.743 [main            ] WARN  MybatisSqlSessionFactoryBean - Property 'mapperLocations' was specified but matching resources are not found.
+25-09-15.22:26:56.487 [http-nio-8091-exec-1] ERROR SummaryNode            - history: 作为一名专业的Java代码安全审计专家，我将对本次提交的diff内容进行详细分析和审计。
+
+---
+
+### **变更分析**
+
+#### **1. 文件: `auto-code-review-sdk/src/main/java/com/zj/autocodereview/sdk/service/git/GitCommandOperation.java`**
+
+*   **修改意图:**
+    将用于构建GitHub Review Log URI的路径前缀从 `"/blob/main/"` 修改为 `"/tree/main/"`。
+    *   原始路径 `"/blob/main/"` 通常用于直接访问GitHub仓库中某个特定文件的内容。
+    *   修改后的路径 `"/tree/main/"` 通常用于访问GitHub仓库中某个特定目录的视图。
+    *   结合代码中的 `fileName` 变量名，此方法预期返回一个指向特定文件的URI。因此，将 `blob` 改为 `tree` 可能改变了URI的实际指向（从文件内容页到文件所在目录页），这似乎与变量名 `fileName` 的语义不符，或可能是一个功能性修正（例如，链接目标从文件内容变为文件所在的目录视图）。如果意图仍是链接到文件内容，则此变更是错误的。
+*   **敏感操作:**
+    *   涉及URI构建和字符串拼接，这可以被视为一种数据输出操作。如果该URI用于与外部服务交互或展示给用户，则需要确保其正确性和安全性。
+
+#### **2. 文件: `auto-code-review-sdk/src/test/java/com/zj/autocodereview/sdk/test/WXTest.java`**
+
+*   **修改意图:**
+    将测试方法 `test1()` 中的 `System.out.println("test2");` 修改为 `System.out.println("test23");`。
+    这很可能是一个调试性的、无实质功能性影响的变更，用于在测试运行时区分或识别不同的输出信息。
+*   **敏感操作:**
+    *   `System.out.println` 属于标准的IO操作（向控制台输出）。
+
+---
+
+### **安全审计**
+
+#### **1. 文件: `auto-code-review-sdk/src/main/java/com/zj/autocodereview/sdk/service/git/GitCommandOperation.java`**
+
+*   **OWASP TOP 10 漏洞:**
+    *   **SQL注入/XSS/CSRF:** 无直接相关漏洞。`fileName` 和 `dateFolderName` 看起来是由内部逻辑生成或控制的，不直接来源于用户输入。如果它们确实包含不受控的用户输入且未经过滤，拼接在URI中存在URL重定向或XSS风险，但从现有代码看可能性较低。
+*   **不安全的权限控制:** 无直接相关。
+*   **敏感数据硬编码:** 无。`githubReviewLogUri` 是一个变量，不是硬编码的敏感数据。路径前缀的改变不引入敏感数据。
+*   **不安全的反序列化:** 无。
+*   **日志信息泄露:** `logger.info("openai-code-review git commit and push done! {}", fileName);` 记录了 `fileName`。如果 `fileName` 包含敏感信息，则存在日志泄露风险。此变更本身未改变日志内容。
+*   **安全相关代码:** 无直接安全相关代码（如加密、认证等）的修改。
+
+#### **2. 文件: `auto-code-review-sdk/src/test/java/com/zj/autocodereview/sdk/test/WXTest.java`**
+
+*   这是一个测试文件，通常不直接涉及生产环境的安全性。
+*   **OWASP TOP 10 漏洞:** 无。
+*   **不安全的权限控制:** 无。
+*   **敏感数据硬编码:** 无。
+*   **不安全的反序列化:** 无。
+*   **日志信息泄露:** `System.out.println("test23");` 输出的字符串不包含敏感信息。
+*   **安全相关代码:** 无。
+
+---
+
+### **代码质量检查**
+
+#### **1. 文件: `auto-code-review-sdk/src/main/java/com/zj/autocodereview/sdk/service/git/GitCommandOperation.java`**
+
+*   **代码风格是否符合项目规范:** 字符串拼接方式是常见的，符合现有代码风格。
+*   **是否存在重复代码/魔法数字:** 无重复代码。`/blob/main/` 和 `/tree/main/` 是字符串字面量，在此上下文中不视为魔法数字。
+*   **异常处理是否完备:** 该行代码仅为字符串拼接，本身不会抛出检查型异常，无需额外异常处理。
+*   **资源释放是否可靠:** 无资源操作，不涉及资源释放。
+
+#### **2. 文件: `auto-code-review-sdk/src/test/java/com/zj/autocodereview/sdk/test/WXTest.java`**
+
+*   **代码风格是否符合项目规范:** 在测试代码中使用 `System.out.println` 输出调试信息是可接受的，但生产代码中应使用日志框架。
+*   **是否存在重复代码/魔法数字:** 无重复代码。"test23" 是一个字符串字面量。
+*   **异常处理是否完备:** `System.out.println` 不抛出检查型异常。
+*   **资源释放是否可靠:** 无资源操作。
+
+---
+
+### **兼容性影响**
+
+#### **1. 文件: `auto-code-review-sdk/src/main/java/com/zj/autocodereview/sdk/service/git/GitCommandOperation.java`**
+
+*   **修改是否会导致上下游接口兼容性问题:**
+    **高风险。** 如果此方法返回的URI（`githubReviewLogUri + ...`）被其他模块、服务或前端界面使用，并且这些消费者期望该URI能直接链接到文件的内容（即期待 `"/blob/main/"` 路径），那么将路径前缀改为 `"/tree/main/"` 会导致兼容性问题。例如，用户点击链接后，可能看到的是文件所在的目录列表而不是文件内容。需要与URI的消费者进行确认。
+*   **数据库变更是否需要迁移脚本:** 无数据库变更。
+
+#### **2. 文件: `auto-code-review-sdk/src/test/java/com/zj/autocodereview/sdk/test/WXTest.java`**
+
+*   **修改是否会导致上下游接口兼容性问题:** 这是一个测试文件中的修改，不会对生产环境的接口产生兼容性影响。
+*   **数据库变更是否需要迁移脚本:** 无数据库变更。
+
+---
+
+### **改进建议**
+
+#### **1. 文件: `auto-code-review-sdk/src/main/java/com/zj/autocodereview/sdk/service/git/GitCommandOperation.java`**
+
+*   **对高风险变更提供具体修复方案:**
+    *   **修复方案:** 首先，明确此URI的最终期望链接目标。
+        *   **如果目标是链接到文件内容：** 应该将变更回滚，保留 `"/blob/main/"`。
+            ```java
+            // 修复为链接到文件内容
+            return githubReviewLogUri + "/blob/main/" + dateFolderName + "/" + fileName;
+            ```
+        *   **如果目标确实是链接到文件所在的目录（虽然与`fileName`变量名语义略有冲突）：** 确认无误后，保持当前变更。但在这种情况下，`fileName` 作为路径的一部分显得多余或不准确，可能需要重命名变量或调整URI结构。
+*   **对可优化点提供重构建议（附代码示例）:**
+    *   **优化点:** URI的构建应更加健壮和可读，尤其是在涉及多个路径段和可能需要编码的场景。使用URI构建器可以避免手动拼接字符串的潜在错误和维护复杂性。
+    *   **重构建议（假设目标是链接到文件内容）：** 使用 `UriComponentsBuilder` (推荐Spring项目) 或 `java.net.URI`。
+        ```java
+        import org.springframework.web.util.UriComponentsBuilder;
+
+        // ... (在GitCommandOperation类中)
+
+        public String getReviewLogUri(String githubReviewLogUri, String dateFolderName, String fileName) {
+            logger.info("openai-code-review git commit and push done! {}", fileName);
+
+            // 假设意图是链接到文件内容，使用 "/blob/main/"
+            return UriComponentsBuilder.fromUriString(githubReviewLogUri)
+                                       .pathSegment("blob", "main", dateFolderName, fileName)
+                                       .build()
+                                       .toUriString();
+        }
+        ```
+        *   **说明:** `UriComponentsBuilder` 能够自动处理路径段的编码和斜杠的正确添加，使URI构建更清晰、更安全。
+
+#### **2. 文件: `auto-code-review-sdk/src/test/java/com/zj/autocodereview/sdk/test/WXTest.java`**
+
+*   这是一个测试文件中的微小修改，通常不需要额外的修复或重构建议，因为它不影响生产代码质量或安全性。如果项目对测试日志有严格规范，可以建议使用统一的日志框架（如SLF4J）代替 `System.out.println`，但这对于此类简单调试输出优先级较低。
+25-09-15.22:26:56.489 [http-nio-8091-exec-1] ERROR AutoCodeReviewEndPoint - 自动审计执行失败:Cannot invoke "com.zj.aiagemt.model.vo.AiAgentClientFlowConfigVO.getClientId()" because "aiAgentClientFlowConfigVO" is null
+25-09-15.22:30:39.819 [main            ] WARN  MybatisSqlSessionFactoryBean - Property 'mapperLocations' was specified but matching resources are not found.
+25-09-15.22:37:09.952 [http-nio-8091-exec-1] ERROR SummaryNode            - history: 作为一名专业的Java代码安全审计专家，我对本次提交的Diff内容进行了全面分析。
+
+---
+
+### **变更分析**
+
+1.  **文件: `auto-code-review-sdk/src/main/java/com/zj/autocodereview/sdk/service/git/GitCommandOperation.java`**
+
+    *   **变更点:**
+        ```diff
+        -        return githubReviewLogUri + "/blob/main/" + dateFolderName + "/" + fileName;
+        +        return githubReviewLogUri + "/tree/main/" + dateFolderName + "/" + fileName;
+        ```
+    *   **修改意图:** 将构造的GitHub链接中的路径从 `"/blob/main/"` 改为 `"/tree/main/"`。
+        *   在GitHub的URL结构中，`blob` 通常用于直接查看文件的内容，而 `tree` 用于查看某个目录下的文件列表。
+        *   此修改的意图可能是为了：
+            1.  纠正一个错误的URL前缀，使其指向文件所在的目录视图（例如，`dateFolderName` 是一个目录，用户希望查看该目录下的内容，包括 `fileName`）。
+            2.  如果 `dateFolderName + "/" + fileName` 实际上代表一个文件，那么从 `blob` 改为 `tree` 会导致链接不再直接指向文件内容，而是指向 `dateFolderName` 目录（如果 `fileName` 只是该目录下的一个子项）。这可能是为了让用户能看到文件上下文。
+        *   **需要进一步确认：** 最终期望的链接行为是直接查看文件内容，还是查看文件所在的目录列表。
+    *   **敏感操作:** 涉及构建外部资源URL（可以视为一种对外API调用或外部链接的生成）。
+
+2.  **文件: `auto-code-review-sdk/src/test/java/com/zj/autocodereview/sdk/test/WXTest.java`**
+
+    *   **变更点:**
+        ```diff
+        -        System.out.println("test2");
+        +        System.out.println("test23");
+        ```
+    *   **修改意图:** 将测试方法 `test1()` 中的打印输出从 `"test2"` 更改为 `"test23"`。这通常是测试代码在调试、区分测试步骤或调整输出信息时进行的修改。
+    *   **敏感操作:** 无。
+
+---
+
+### **安全审计**
+
+1.  **OWASP TOP 10 漏洞 (SQL注入/XSS/CSRF等):**
+    *   **GitCommandOperation.java:**
+        *   **潜在风险: URL注入/开放重定向。** 在 `pushToGit` 方法中，URL的构建依赖 `githubReviewLogUri`、`dateFolderName` 和 `fileName`。如果 `dateFolderName` 或 `fileName` 来自于不受信任的用户输入，并且没有经过充分的验证和URL编码，攻击者可能通过注入特殊字符（如 `../` 进行路径遍历，或 `javascript:` 进行XSS，或外部URL进行开放重定向）来构造恶意链接。
+        *   **当前判断:** 考虑到 `dateFolderName` 看起来像日期，`fileName` 看起来像内部生成的文件名，这些变量通常由程序内部逻辑生成或严格控制，因此直接来自用户输入的可能性较小。假定它们是安全的内部生成数据，则此处直接的URL注入风险较低。但仍然建议对所有拼接到URL中的变量进行严格的验证和URL编码作为最佳实践。
+    *   **WXTest.java:** 测试代码，无直接生产环境安全风险。
+
+2.  **不安全的权限控制:** 无此方面的变更。
+
+3.  **敏感数据硬编码:** 无此方面的变更。
+
+4.  **不安全的反序列化:** 无此方面的变更。
+
+5.  **日志信息泄露:**
+    *   `logger.info("openai-code-review git commit and push done! {}", fileName);` 记录了 `fileName`。如果 `fileName` 本身不包含敏感信息，则无风险。通常文件名不被视为敏感信息。
+
+6.  **安全相关代码 (加密算法、身份验证、会话管理):** 无此方面的变更。
+
+---
+
+### **代码质量检查**
+
+1.  **代码风格是否符合项目规范:**
+    *   本次变更幅度较小，从diff内容看，新代码的风格与原有代码保持一致，符合常见的Java代码规范。
+
+2.  **是否存在重复代码/魔法数字:**
+    *   本次变更未引入新的重复代码或魔法数字。
+
+3.  **异常处理是否完备:**
+    *   `GitCommandOperation.java` 中的 `pushToGit` 方法声明 `throws GitAPIException`，表示将Git操作相关的异常向上抛出。这符合Java异常处理的最佳实践，将异常处理的责任委托给调用方。具体的异常捕获和处理逻辑不在本次diff范围内，但方法签名本身是合理的。
+    *   `WXTest.java` 是测试代码，异常处理通常不作为核心关注点，主要用于验证功能。
+
+4.  **资源释放是否可靠 (如：流关闭、连接池管理):**
+    *   本次变更未直接涉及新的资源（如流、数据库连接）的创建或管理，因此不涉及资源释放问题。
+
+---
+
+### **兼容性影响**
+
+1.  **修改是否会导致上下游接口兼容性问题:**
+    *   **GitCommandOperation.java:** **此为本次变更最大的兼容性风险点。**
+        *   `pushToGit` 方法的返回值是一个GitHub URL。如果系统中的其他模块或外部系统依赖于这个URL的精确格式（特别是 `"/blob/"` 前缀，它意味着直接链接到文件内容），那么将 `"/blob/"` 改为 `"/tree/"` 会导致这些依赖方获取的URL失效，无法实现其预期功能（例如，期望点击链接直接查看文件内容，现在却跳转到目录列表）。
+        *   需要仔细评估 `pushToGit` 方法的调用方，确定他们对返回URL的期望用途。
+    *   **WXTest.java:** 测试代码，对生产环境的兼容性无影响。
+
+2.  **数据库变更是否需要迁移脚本:** 无数据库变更，无需迁移脚本。
+
+---
+
+### **改进建议**
+
+1.  **对高风险变更提供具体修复方案:**
+
+    *   **风险点:** `GitCommandOperation.java` 中URL返回格式变更的兼容性问题。
+    *   **修复/改进方案:**
+        1.  **明确URL意图并沟通:** 在修改前或修改后，与该方法的所有调用方（包括其他服务、前端页面、或文档）进行沟通，明确返回URL的意图究竟是链接到文件内容（`blob`）还是文件所在目录（`tree`）。如果意图是文件内容，则应保留 `blob`；如果意图是目录，则当前 `tree` 是合适的。
+        2.  **提供配置或参数化:** 如果两种URL都有潜在用途，可以考虑：
+            *   在 `pushToGit` 方法中添加一个布尔参数（例如 `boolean linkToFileContent`）来控制返回 `blob` 或 `tree` URL。
+            *   将 `"/blob/"` 或 `"/tree/"` 作为配置项，允许在运行时根据部署环境或业务需求进行切换。
+
+        *   **代码示例 (参数化):**
+            ```java
+            public String pushToGit(Git git, String dateFolderName, String fileName, boolean linkToFileContent) throws GitAPIException {
+                // ... (原有代码) ...
+                logger.info("openai-code-review git commit and push done! {}", fileName);
+
+                String pathPrefix = linkToFileContent ? "/blob/main/" : "/tree/main/";
+                return githubReviewLogUri + pathPrefix + dateFolderName + "/" + fileName;
+            }
+            ```
+
+2.  **对可优化点提供重构建议 (附代码示例):**
+
+    *   **可优化点:** `GitCommandOperation.java` 中URL构建的安全性与健壮性。
+    *   **重构建议:** 对拼接到URL中的动态部分（`dateFolderName` 和 `fileName`）进行URL编码，以防止潜在的URL注入或路径遍历问题，提高链接的健壮性。
+    *   **代码示例:**
+        ```java
+        import java.net.URLEncoder;
+        import java.nio.charset.StandardCharsets;
+        // ...
+
+        public String pushToGit(Git git , String dateFolderName, String fileName) throws GitAPIException {
+            // ... (原有代码) ...
+            logger.info("openai-code-review git commit and push done! {}", fileName);
+
+            // 对动态部分进行URL编码，确保特殊字符不会破坏URL结构或引入安全漏洞
+            String encodedDateFolderName = URLEncoder.encode(dateFolderName, StandardCharsets.UTF_8.toString());
+            String encodedFileName = URLEncoder.encode(fileName, StandardCharsets.UTF_8.toString());
+
+            return githubReviewLogUri + "/tree/main/" + encodedDateFolderName + "/" + encodedFileName;
+        }
+        ```
+        *   **注意:** 在进行URL编码前，需要确保 `dateFolderName` 和 `fileName` 不包含任何不应编码的`/`。如果 `/` 是路径分隔符的一部分，那么通常不应编码。然而，为了防止路径遍历，更严格的校验（如检查是否包含 `../` 或其他非预期字符）也是必要的。上述编码主要防止文件名或文件夹名本身包含特殊字符。
+
+    *   **可优化点:** `WXTest.java` 中的 `System.out.println`。
+    *   **重构建议:** 在测试代码中，如果 `System.out.println` 是为了调试或展示测试流程，更好的做法是使用测试框架提供的日志或断言，使其输出更清晰、更易于自动化测试工具解析，并且可以根据日志级别控制输出。
+    *   **代码示例 (使用Logback或SLF4J):**
+        ```java
+        // 首先，在类级别引入logger
+        // import org.slf4j.Logger;
+        // import org.slf4j.LoggerFactory;
+        // private static final Logger logger = LoggerFactory.getLogger(WXTest.class);
+
+        private void test1(){
+            AtomicInteger num = new AtomicInteger(0);
+            // logger.debug("Starting test1 with initial state test23"); // 使用日志，而不是直接System.out.println
+            System.out.println("test23"); // 如果只是简单的测试输出，当前修改也无妨
+            new Thread(() -> {
+                while (num.get() <= 100) {
+                    System.out.println("num:"+ num.getAndIncrement());
+                }
+            }).start();
+        }
+        ```
+
+---
+
+**总结:**
+
+本次变更主要涉及一个GitHub URL路径的修正（`blob` 改为 `tree`）和一个测试用例的打印信息修改。其中，GitHub URL路径的修改是本次评审的重点，它可能带来兼容性问题，并存在潜在的URL注入风险（尽管风险较低，但仍建议采取防御性编程）。测试代码的修改风险极低。建议优先评估和解决URL兼容性问题，并对URL构建进行加固。

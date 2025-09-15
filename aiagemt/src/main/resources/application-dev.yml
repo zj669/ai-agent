@@ -36,7 +36,7 @@ spring:
             connection-test-query: SELECT 1
         # readonly数据源 - JDBC
         pgvector:
-          url: jdbc:postgresql://${READONLY_DB_HOST:117.72.152.117}:${READONLY_DB_PORT:15432}/${READONLY_DB_NAME:ai-rag-knowledge}
+          url: jdbc:postgresql://${READONLY_DB_HOST:117.72.152.117}:${READONLY_DB_PORT:5432}/${READONLY_DB_NAME:postgres}
           driver-class-name: ${READONLY_DB_DRIVER:org.postgresql.Driver}
           username: ${READONLY_DB_USERNAME:root}
           password: ${READONLY_DB_PASSWORD:123456}
@@ -94,3 +94,53 @@ logging:
   level:
     root: info
   config: classpath:logback-spring.xml
+
+
+# Actuator 监控配置
+management:
+  # 端点配置
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics,prometheus,env,configprops
+      base-path: /actuator
+      cors:
+        allowed-origins: "*"
+        allowed-methods: GET,POST
+
+  # 端点详细配置
+  endpoint:
+    health:
+      show-details: always
+      show-components: always
+    prometheus:
+      access: unrestricted
+    info:
+      access: unrestricted
+    env:
+      access: unrestricted
+
+  # 指标配置
+  metrics:
+    # 分布式指标配置
+    distribution:
+      percentiles-histogram:
+        http.server.requests: true
+        spring.data.repository.invocations: true
+      percentiles:
+        http.server.requests: 0.5, 0.95, 0.99
+
+    # 标签配置
+    tags:
+      application: ${spring.application.name}
+      environment: development
+
+# 应用信息配置
+info:
+  app:
+    name: ${spring.application.name}
+    description: "agent Application with Prometheus Monitoring"
+    version: "1.0.0"
+    encoding: "UTF-8"
+    java:
+      version: ${java.version}

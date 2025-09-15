@@ -1,0 +1,993 @@
+25-09-14.19:30:35.918 [SpringApplicationShutdownHook] INFO  GracefulShutdown       - Commencing graceful shutdown. Waiting for active requests to complete
+25-09-14.19:30:35.944 [tomcat-shutdown ] INFO  GracefulShutdown       - Graceful shutdown complete
+25-09-14.19:30:36.004 [SpringApplicationShutdownHook] INFO  HikariDataSource       - PrimaryHikariCP - Shutdown initiated...
+25-09-14.19:30:36.014 [SpringApplicationShutdownHook] INFO  HikariDataSource       - PrimaryHikariCP - Shutdown completed.
+25-09-14.19:31:40.728 [background-preinit] INFO  Version                - HV000001: Hibernate Validator 8.0.3.Final
+25-09-14.19:31:40.800 [main            ] INFO  AiagemtApplication     - Starting AiagemtApplication using Java 21.0.6 with PID 47136 (D:\java\ai-agent\ai-agent\aiagemt\target\classes started by 32183 in D:\java\ai-agent\ai-agent)
+25-09-14.19:31:40.802 [main            ] INFO  AiagemtApplication     - The following 1 profile is active: "dev"
+25-09-14.19:31:41.848 [main            ] INFO  RepositoryConfigurationDelegate - Multiple Spring Data modules found, entering strict repository configuration mode
+25-09-14.19:31:41.850 [main            ] INFO  RepositoryConfigurationDelegate - Bootstrapping Spring Data Redis repositories in DEFAULT mode.
+25-09-14.19:31:41.913 [main            ] INFO  RepositoryConfigurationDelegate - Finished Spring Data repository scanning in 45 ms. Found 0 Redis repository interfaces.
+25-09-14.19:31:42.811 [main            ] INFO  TomcatWebServer        - Tomcat initialized with port 8091 (http)
+25-09-14.19:31:42.827 [main            ] INFO  Http11NioProtocol      - Initializing ProtocolHandler ["http-nio-8091"]
+25-09-14.19:31:42.829 [main            ] INFO  StandardService        - Starting service [Tomcat]
+25-09-14.19:31:42.829 [main            ] INFO  StandardEngine         - Starting Servlet engine: [Apache Tomcat/10.1.44]
+25-09-14.19:31:42.985 [main            ] INFO  [/]                    - Initializing Spring embedded WebApplicationContext
+25-09-14.19:31:42.985 [main            ] INFO  ServletWebServerApplicationContext - Root WebApplicationContext: initialization completed in 2132 ms
+25-09-14.19:31:43.674 [main            ] INFO  PgVectorStore          - Using the vector table name: vector_store. Is empty: false
+25-09-14.19:31:43.680 [main            ] INFO  PgVectorStore          - Initializing PGVectorStore schema for table: vector_store in schema: public
+25-09-14.19:31:43.680 [main            ] INFO  PgVectorStore          - vectorTableValidationsEnabled false
+25-09-14.19:31:43.760 [main            ] WARN  MybatisSqlSessionFactoryBean - Property 'mapperLocations' was specified but matching resources are not found.
+25-09-14.19:31:44.550 [main            ] INFO  Version                - Redisson 3.45.1
+25-09-14.19:31:45.221 [redisson-netty-1-6] INFO  ConnectionsHolder      - 1 connections initialized for 117.72.152.117/117.72.152.117:16379
+25-09-14.19:31:45.741 [redisson-netty-1-13] INFO  ConnectionsHolder      - 5 connections initialized for 117.72.152.117/117.72.152.117:16379
+25-09-14.19:31:46.818 [main            ] INFO  Http11NioProtocol      - Starting ProtocolHandler ["http-nio-8091"]
+25-09-14.19:31:46.833 [main            ] INFO  TomcatWebServer        - Tomcat started on port 8091 (http) with context path '/'
+25-09-14.19:31:46.848 [main            ] INFO  AiagemtApplication     - Started AiagemtApplication in 6.974 seconds (process running for 8.114)
+25-09-14.19:31:46.852 [main            ] INFO  AiAgentAutoConfiguration - AI Agent 自动装配开始，配置: AiAgentAutoConfigProperties(enabled=true, clientIds=[6001, 3101, 3102, 3103, 3104])
+25-09-14.19:31:46.853 [main            ] INFO  AiAgentAutoConfiguration - 开始自动装配AI客户端，客户端ID列表: [6001, 3101, 3102, 3103, 3104]
+25-09-14.19:31:46.855 [main            ] INFO  RootNode               - 开始加载数据 commandTypeaiClientLoadDataStrategy
+25-09-14.19:31:46.855 [main            ] INFO  ClientLoadDataStrategy - 开始异步加载数据
+25-09-14.19:31:46.982 [pool-2-thread-3 ] INFO  HikariDataSource       - PrimaryHikariCP - Starting...
+25-09-14.19:31:47.830 [pool-2-thread-3 ] INFO  HikariPool             - PrimaryHikariCP - Added connection com.mysql.cj.jdbc.ConnectionImpl@25397904
+25-09-14.19:31:47.832 [pool-2-thread-3 ] INFO  HikariDataSource       - PrimaryHikariCP - Start completed.
+25-09-14.19:31:50.025 [main            ] INFO  ClientLoadDataStrategy - 结束异步加载数据
+25-09-14.19:31:50.026 [main            ] INFO  ApiNode                - Ai Agent 构建节点，客户端,ApiNode
+25-09-14.19:31:50.028 [main            ] INFO  SpringContextUtil      - 成功注册Bean: ai_client_api_1001
+25-09-14.19:31:50.031 [main            ] INFO  SpringContextUtil      - 成功注册Bean: ai_client_api_1002
+25-09-14.19:31:50.031 [main            ] INFO  ModelNode              - Ai Agent 构建节点，客户端,ModelNode
+25-09-14.19:31:50.032 [main            ] INFO  SpringContextUtil      - 成功注册Bean: ai_client_model_2001
+25-09-14.19:31:50.033 [main            ] INFO  SpringContextUtil      - 成功注册Bean: ai_client_model_3001
+25-09-14.19:31:50.034 [main            ] INFO  McpNode                - Ai Agent 构建节点，客户端,McpNode
+25-09-14.19:31:50.466 [HttpClient-1-Worker-0] INFO  McpAsyncClient         - Server response with Protocol: 2024-11-05, Capabilities: ServerCapabilities[completions=null, experimental=null, logging=LoggingCapabilities[], prompts=null, resources=ResourceCapabilities[subscribe=true, listChanged=true], tools=ToolCapabilities[listChanged=true]], Info: Implementation[name=csdn, version=1.0.0] and Instructions null
+25-09-14.19:31:50.547 [main            ] INFO  McpNode                - Tool SSE MCP Initialized InitializeResult[protocolVersion=2024-11-05, capabilities=ServerCapabilities[completions=null, experimental=null, logging=LoggingCapabilities[], prompts=null, resources=ResourceCapabilities[subscribe=true, listChanged=true], tools=ToolCapabilities[listChanged=true]], serverInfo=Implementation[name=csdn, version=1.0.0], instructions=null]
+25-09-14.19:31:50.549 [main            ] INFO  SpringContextUtil      - 成功注册Bean: ai_client_tool_mcp_5001
+25-09-14.19:31:50.915 [HttpClient-2-Worker-2] INFO  McpAsyncClient         - Server response with Protocol: 2024-11-05, Capabilities: ServerCapabilities[completions=null, experimental=null, logging=LoggingCapabilities[], prompts=null, resources=ResourceCapabilities[subscribe=true, listChanged=true], tools=ToolCapabilities[listChanged=true]], Info: Implementation[name=sequential-thinking, version=1.0.0] and Instructions null
+25-09-14.19:31:50.992 [main            ] INFO  McpNode                - Tool SSE MCP Initialized InitializeResult[protocolVersion=2024-11-05, capabilities=ServerCapabilities[completions=null, experimental=null, logging=LoggingCapabilities[], prompts=null, resources=ResourceCapabilities[subscribe=true, listChanged=true], tools=ToolCapabilities[listChanged=true]], serverInfo=Implementation[name=sequential-thinking, version=1.0.0], instructions=null]
+25-09-14.19:31:50.992 [main            ] INFO  SpringContextUtil      - 成功注册Bean: ai_client_tool_mcp_6001
+25-09-14.19:31:51.292 [HttpClient-3-Worker-0] INFO  McpAsyncClient         - Server response with Protocol: 2024-11-05, Capabilities: ServerCapabilities[completions=null, experimental=null, logging=LoggingCapabilities[], prompts=null, resources=ResourceCapabilities[subscribe=true, listChanged=true], tools=ToolCapabilities[listChanged=true]], Info: Implementation[name=context7, version=1.0.0] and Instructions null
+25-09-14.19:31:51.376 [main            ] INFO  McpNode                - Tool SSE MCP Initialized InitializeResult[protocolVersion=2024-11-05, capabilities=ServerCapabilities[completions=null, experimental=null, logging=LoggingCapabilities[], prompts=null, resources=ResourceCapabilities[subscribe=true, listChanged=true], tools=ToolCapabilities[listChanged=true]], serverInfo=Implementation[name=context7, version=1.0.0], instructions=null]
+25-09-14.19:31:51.377 [main            ] INFO  SpringContextUtil      - 成功注册Bean: ai_client_tool_mcp_6002
+25-09-14.19:31:51.661 [HttpClient-4-Worker-2] INFO  McpAsyncClient         - Server response with Protocol: 2024-11-05, Capabilities: ServerCapabilities[completions=null, experimental=null, logging=LoggingCapabilities[], prompts=null, resources=ResourceCapabilities[subscribe=true, listChanged=true], tools=ToolCapabilities[listChanged=true]], Info: Implementation[name=memory, version=1.0.0] and Instructions null
+25-09-14.19:31:51.732 [main            ] INFO  McpNode                - Tool SSE MCP Initialized InitializeResult[protocolVersion=2024-11-05, capabilities=ServerCapabilities[completions=null, experimental=null, logging=LoggingCapabilities[], prompts=null, resources=ResourceCapabilities[subscribe=true, listChanged=true], tools=ToolCapabilities[listChanged=true]], serverInfo=Implementation[name=memory, version=1.0.0], instructions=null]
+25-09-14.19:31:51.732 [main            ] INFO  SpringContextUtil      - 成功注册Bean: ai_client_tool_mcp_6003
+25-09-14.19:31:51.746 [main            ] INFO  AdvisorNode            - Ai Agent 构建节点，Advisor 顾问角色{"commandIdList":["6001","3101","3102","3103","3104"],"commandType":"aiClientLoadDataStrategy"}
+25-09-14.19:31:51.762 [main            ] INFO  SpringContextUtil      - 成功注册Bean: ai_client_advisor_4001
+25-09-14.19:31:51.762 [main            ] INFO  ClientNode             - Ai Agent 构建节点，客户端ClientNode
+25-09-14.19:31:52.132 [main            ] INFO  SpringContextUtil      - 成功注册Bean: ai_client_6001
+25-09-14.19:31:52.135 [main            ] INFO  SpringContextUtil      - 成功注册Bean: ai_client_3101
+25-09-14.19:31:52.135 [main            ] INFO  SpringContextUtil      - 成功注册Bean: ai_client_3102
+25-09-14.19:31:52.135 [main            ] INFO  SpringContextUtil      - 成功注册Bean: ai_client_3103
+25-09-14.19:31:52.135 [main            ] INFO  SpringContextUtil      - 成功注册Bean: ai_client_3104
+25-09-14.19:31:52.136 [main            ] INFO  AiAgentAutoConfiguration - AI Agent 自动装配完成，结果: AgentArmoryVO(dynamicContext=DefaultAgentArmoryFactory.DynamicContext(dataObjects={ai_client_api_data_list=[AiClientApiVO(apiId=1001, baseUrl=https://api.deepseek.com, apiKey=sk-94cf6ede84454afcbfe8d401e34d3c2c, completionsPath=v1/chat/completions, embeddingsPath=v1/embeddings), AiClientApiVO(apiId=1002, baseUrl=https://globalai.vip, apiKey=sk-M5krIRHhrlTXuR409xwhJilDom8o3Cu6lf4x3HKvvDwBUR7l, completionsPath=v1/chat/completions, embeddingsPath=1)], ai_client_advisor_data_list=[AiClientAdvisorVO(advisorId=4001, advisorName=记忆, advisorType=ChatMemory, orderNum=1, chatMemory=AiClientAdvisorVO.ChatMemory(maxMessages=200), ragAnswer=null, vectorStoreRetriever=null, springContextUtil=com.zj.aiagemt.utils.SpringContextUtil@636e4bf8)], ai_client_model_data_list=[AiClientModelVO(modelId=2001, apiId=1001, modelName=deepseek-chat, modelType=deepseek, toolMcpIds=[5001, 5002]), AiClientModelVO(modelId=3001, apiId=1002, modelName=gemini-2.5-flash-thinking, modelType=gemini, toolMcpIds=[5007])], ai_client_tool_mcp_data_list=[AiClientToolMcpVO(mcpId=5001, mcpName=CSDN自动发帖, transportType=sse, transportConfig={
+	"baseUri":"http://117.72.152.117:8081",
+    "headers": "zj669",
+        "sseEndpoint":"/csdn/sse"
+}
+, requestTimeout=180, transportConfigSse=AiClientToolMcpVO.TransportConfigSse(baseUri=http://117.72.152.117:8081, sseEndpoint=/csdn/sse, headers=zj669), transportConfigStdio=null), AiClientToolMcpVO(mcpId=6001, mcpName=顺序思考, transportType=sse, transportConfig={
+	"baseUri":"http://117.72.152.117:8081",
+    "headers": "zj669",
+        "sseEndpoint":"/sequential-thinking/sse"
+}, requestTimeout=180, transportConfigSse=AiClientToolMcpVO.TransportConfigSse(baseUri=http://117.72.152.117:8081, sseEndpoint=/sequential-thinking/sse, headers=zj669), transportConfigStdio=null), AiClientToolMcpVO(mcpId=6002, mcpName=代码搜索, transportType=sse, transportConfig={
+	"baseUri":"http://117.72.152.117:8081",
+    "headers": "zj669",
+        "sseEndpoint":"/context7/sse"
+}, requestTimeout=180, transportConfigSse=AiClientToolMcpVO.TransportConfigSse(baseUri=http://117.72.152.117:8081, sseEndpoint=/context7/sse, headers=zj669), transportConfigStdio=null), AiClientToolMcpVO(mcpId=6003, mcpName=管理记忆, transportType=sse, transportConfig={
+	"baseUri":"http://117.72.152.117:8081",
+    "headers": "zj669",
+        "sseEndpoint":"/memory/sse"
+}
+, requestTimeout=180, transportConfigSse=AiClientToolMcpVO.TransportConfigSse(baseUri=http://117.72.152.117:8081, sseEndpoint=/memory/sse, headers=zj669), transportConfigStdio=null)], ai_client_system_prompt_data_list={6003=AiClientSystemPromptVO(promptId=6003, promptName=发布文章到CSDN, promptContent=根据以上内容，不要阐述其他信息，请根据文章内容，直接提供；文章标题、文章内容、文章标签（多个用英文逗号隔开）、文章简述（100字），发布文章到CSDN。, description=CSDN发布), 6102=AiClientSystemPromptVO(promptId=6102, promptName=负责具体任务执行, promptContent=# 角色
+你是一个精准任务执行器，名叫 AutoAgent Precision Executor。
+# 核心能力
+你专注于精准执行具体的任务步骤：
+1. **精准执行**: 严格按照分析师的策略执行任务
+2. **工具使用**: 熟练使用各种工具完成复杂操作
+3. **质量控制**: 确保每一步执行的准确性和完整性
+4. **结果记录**: 详细记录执行过程和结果
+# 执行原则
+- **专注性**: 专注于当前分配的具体任务
+- **精准性**: 确保执行结果的准确性和质量
+- **完整性**: 完整执行所有必要的步骤
+- **可追溯性**: 详细记录执行过程便于后续分析
+# 输出格式
+**执行目标:**
+[本轮要执行的具体目标]
+**执行过程:**
+[详细的执行步骤和使用的工具]
+**执行结果:**
+[执行的具体结果和获得的信息]
+**质量检查:**
+[对执行结果的质量评估], description=负责具体任务执行), 6101=AiClientSystemPromptVO(promptId=6101, promptName=负责任务分析和状态判断, promptContent=# 角色
+你是一个专业的任务分析师，名叫 AutoAgent Task Analyzer。
+# 核心职责
+你负责分析任务的当前状态、执行历史和下一步行动计划：
+1. **状态分析**: 深度分析当前任务完成情况和执行历史
+2. **进度评估**: 评估任务完成进度和质量
+3. **策略制定**: 制定下一步最优执行策略
+4. **完成判断**: 准确判断任务是否已完成
+# 分析原则
+- **全面性**: 综合考虑所有执行历史和当前状态
+- **准确性**: 准确评估任务完成度和质量
+- **前瞻性**: 预测可能的问题和最优路径
+- **效率性**: 优化执行路径，避免重复工作
+# 输出格式
+**任务状态分析:**
+[当前任务完成情况的详细分析]
+**执行历史评估:**
+[对已完成工作的质量和效果评估]
+**下一步策略:**
+[具体的下一步执行计划和策略]
+**完成度评估:** [0-100]%
+**任务状态:** [CONTINUE/COMPLETED], description=负责任务分析和状态判断), 6104=AiClientSystemPromptVO(promptId=6104, promptName=智能响应助手, promptContent=# 角色
+你是一个智能响应助手，名叫 AutoAgent React。
+# 说明
+你负责对用户的即时问题进行快速响应和处理，适用于简单的查询和交互。
+# 处理方式
+- 对于简单问题，直接给出答案
+- 对于需要工具的问题，调用相应工具获取信息
+- 保持响应的及时性和准确性
+今天是 {current_date}。, description=智能响应助手), 6103=AiClientSystemPromptVO(promptId=6103, promptName=负责质量检查和优化, promptContent=# 角色
+你是一个专业的质量监督员，名叫 AutoAgent Quality Supervisor。
+# 核心职责
+你负责监督和评估执行质量：
+1. **质量评估**: 评估执行结果的准确性和完整性
+2. **问题识别**: 识别执行过程中的问题和不足
+3. **改进建议**: 提供具体的改进建议和优化方案
+4. **标准制定**: 制定质量标准和评估指标
+# 评估标准
+- **准确性**: 结果是否准确无误
+- **完整性**: 是否遗漏重要信息
+- **相关性**: 是否符合用户需求
+- **可用性**: 结果是否实用有效
+# 输出格式
+**质量评估:**
+[对执行结果的详细质量评估]
+**问题识别:**
+[发现的问题和不足之处]
+**改进建议:**
+[具体的改进建议和优化方案]
+**质量评分:** [0-100]分
+**是否通过:** [PASS/FAIL/OPTIMIZE], description=负责质量检查和优化)}, ai_client_data_list=[AiClientVO(clientId=6001, clientName=CSDN自动发帖, description=你是一名专门生成JAVA面试文章的专家, modelId=2001, promptIdList=[6003], mcpIdList=[5001, 6001, 6002, 6003], advisorIdList=[]), AiClientVO(clientId=3101, clientName=任务分析和状态判断, description=你是一个专业的任务分析师，名叫 AutoAgent Task Analyzer。, modelId=3001, promptIdList=[6101], mcpIdList=[], advisorIdList=[4001]), AiClientVO(clientId=3102, clientName=具体任务执行, description=你是一个精准任务执行器，名叫 AutoAgent Precision Executor。, modelId=3001, promptIdList=[6102], mcpIdList=[], advisorIdList=[4001]), AiClientVO(clientId=3103, clientName=质量检查和优化, description=你是一个专业的质量监督员，名叫 AutoAgent Quality Supervisor。, modelId=3001, promptIdList=[6103], mcpIdList=[], advisorIdList=[4001]), AiClientVO(clientId=3104, clientName=负责响应式处理, description=你是一个智能响应助手，名叫 AutoAgent React。, modelId=3001, promptIdList=[6104], mcpIdList=[], advisorIdList=[])]}))
+25-09-14.19:35:11.942 [SpringApplicationShutdownHook] INFO  GracefulShutdown       - Commencing graceful shutdown. Waiting for active requests to complete
+25-09-14.19:35:11.962 [tomcat-shutdown ] INFO  GracefulShutdown       - Graceful shutdown complete
+25-09-14.19:35:11.984 [SpringApplicationShutdownHook] INFO  HikariDataSource       - PrimaryHikariCP - Shutdown initiated...
+25-09-14.19:35:11.991 [SpringApplicationShutdownHook] INFO  HikariDataSource       - PrimaryHikariCP - Shutdown completed.
+25-09-14.19:36:15.466 [background-preinit] INFO  Version                - HV000001: Hibernate Validator 8.0.3.Final
+25-09-14.19:36:15.526 [main            ] INFO  AiagemtApplication     - Starting AiagemtApplication using Java 21.0.6 with PID 47604 (D:\java\ai-agent\ai-agent\aiagemt\target\classes started by 32183 in D:\java\ai-agent\ai-agent)
+25-09-14.19:36:15.526 [main            ] INFO  AiagemtApplication     - The following 1 profile is active: "dev"
+25-09-14.19:36:16.770 [main            ] INFO  RepositoryConfigurationDelegate - Multiple Spring Data modules found, entering strict repository configuration mode
+25-09-14.19:36:16.774 [main            ] INFO  RepositoryConfigurationDelegate - Bootstrapping Spring Data Redis repositories in DEFAULT mode.
+25-09-14.19:36:16.835 [main            ] INFO  RepositoryConfigurationDelegate - Finished Spring Data repository scanning in 44 ms. Found 0 Redis repository interfaces.
+25-09-14.19:36:17.701 [main            ] INFO  TomcatWebServer        - Tomcat initialized with port 8091 (http)
+25-09-14.19:36:17.726 [main            ] INFO  Http11NioProtocol      - Initializing ProtocolHandler ["http-nio-8091"]
+25-09-14.19:36:17.730 [main            ] INFO  StandardService        - Starting service [Tomcat]
+25-09-14.19:36:17.731 [main            ] INFO  StandardEngine         - Starting Servlet engine: [Apache Tomcat/10.1.44]
+25-09-14.19:36:17.888 [main            ] INFO  [/]                    - Initializing Spring embedded WebApplicationContext
+25-09-14.19:36:17.888 [main            ] INFO  ServletWebServerApplicationContext - Root WebApplicationContext: initialization completed in 2318 ms
+25-09-14.19:36:18.575 [main            ] INFO  PgVectorStore          - Using the vector table name: vector_store. Is empty: false
+25-09-14.19:36:18.581 [main            ] INFO  PgVectorStore          - Initializing PGVectorStore schema for table: vector_store in schema: public
+25-09-14.19:36:18.581 [main            ] INFO  PgVectorStore          - vectorTableValidationsEnabled false
+25-09-14.19:36:18.668 [main            ] WARN  MybatisSqlSessionFactoryBean - Property 'mapperLocations' was specified but matching resources are not found.
+25-09-14.19:36:19.344 [main            ] INFO  Version                - Redisson 3.45.1
+25-09-14.19:36:19.894 [redisson-netty-1-6] INFO  ConnectionsHolder      - 1 connections initialized for 117.72.152.117/117.72.152.117:16379
+25-09-14.19:36:20.454 [redisson-netty-1-13] INFO  ConnectionsHolder      - 5 connections initialized for 117.72.152.117/117.72.152.117:16379
+25-09-14.19:36:21.503 [main            ] INFO  Http11NioProtocol      - Starting ProtocolHandler ["http-nio-8091"]
+25-09-14.19:36:21.516 [main            ] INFO  TomcatWebServer        - Tomcat started on port 8091 (http) with context path '/'
+25-09-14.19:36:21.531 [main            ] INFO  AiagemtApplication     - Started AiagemtApplication in 6.992 seconds (process running for 8.073)
+25-09-14.19:36:21.535 [main            ] INFO  AiAgentAutoConfiguration - AI Agent 自动装配开始，配置: AiAgentAutoConfigProperties(enabled=true, clientIds=[6001, 3101, 3102, 3103, 3104])
+25-09-14.19:36:21.536 [main            ] INFO  AiAgentAutoConfiguration - 开始自动装配AI客户端，客户端ID列表: [6001, 3101, 3102, 3103, 3104]
+25-09-14.19:36:21.538 [main            ] INFO  RootNode               - 开始加载数据 commandTypeaiClientLoadDataStrategy
+25-09-14.19:36:21.538 [main            ] INFO  ClientLoadDataStrategy - 开始异步加载数据
+25-09-14.19:36:21.643 [pool-2-thread-1 ] INFO  HikariDataSource       - PrimaryHikariCP - Starting...
+25-09-14.19:36:22.493 [pool-2-thread-1 ] INFO  HikariPool             - PrimaryHikariCP - Added connection com.mysql.cj.jdbc.ConnectionImpl@346d3bd2
+25-09-14.19:36:22.495 [pool-2-thread-1 ] INFO  HikariDataSource       - PrimaryHikariCP - Start completed.
+25-09-14.19:36:24.844 [main            ] INFO  ClientLoadDataStrategy - 结束异步加载数据
+25-09-14.19:36:24.844 [main            ] INFO  ApiNode                - Ai Agent 构建节点，客户端,ApiNode
+25-09-14.19:36:24.846 [main            ] INFO  SpringContextUtil      - 成功注册Bean: ai_client_api_1001
+25-09-14.19:36:24.847 [main            ] INFO  SpringContextUtil      - 成功注册Bean: ai_client_api_1002
+25-09-14.19:36:24.847 [main            ] INFO  ModelNode              - Ai Agent 构建节点，客户端,ModelNode
+25-09-14.19:36:24.849 [main            ] INFO  SpringContextUtil      - 成功注册Bean: ai_client_model_2001
+25-09-14.19:36:24.849 [main            ] INFO  SpringContextUtil      - 成功注册Bean: ai_client_model_3001
+25-09-14.19:36:24.849 [main            ] INFO  McpNode                - Ai Agent 构建节点，客户端,McpNode
+25-09-14.19:36:25.277 [HttpClient-1-Worker-2] INFO  McpAsyncClient         - Server response with Protocol: 2024-11-05, Capabilities: ServerCapabilities[completions=null, experimental=null, logging=LoggingCapabilities[], prompts=null, resources=ResourceCapabilities[subscribe=true, listChanged=true], tools=ToolCapabilities[listChanged=true]], Info: Implementation[name=csdn, version=1.0.0] and Instructions null
+25-09-14.19:36:25.358 [main            ] INFO  McpNode                - Tool SSE MCP Initialized InitializeResult[protocolVersion=2024-11-05, capabilities=ServerCapabilities[completions=null, experimental=null, logging=LoggingCapabilities[], prompts=null, resources=ResourceCapabilities[subscribe=true, listChanged=true], tools=ToolCapabilities[listChanged=true]], serverInfo=Implementation[name=csdn, version=1.0.0], instructions=null]
+25-09-14.19:36:25.360 [main            ] INFO  SpringContextUtil      - 成功注册Bean: ai_client_tool_mcp_5001
+25-09-14.19:36:25.650 [HttpClient-2-Worker-2] INFO  McpAsyncClient         - Server response with Protocol: 2024-11-05, Capabilities: ServerCapabilities[completions=null, experimental=null, logging=LoggingCapabilities[], prompts=null, resources=ResourceCapabilities[subscribe=true, listChanged=true], tools=ToolCapabilities[listChanged=true]], Info: Implementation[name=sequential-thinking, version=1.0.0] and Instructions null
+25-09-14.19:36:25.733 [main            ] INFO  McpNode                - Tool SSE MCP Initialized InitializeResult[protocolVersion=2024-11-05, capabilities=ServerCapabilities[completions=null, experimental=null, logging=LoggingCapabilities[], prompts=null, resources=ResourceCapabilities[subscribe=true, listChanged=true], tools=ToolCapabilities[listChanged=true]], serverInfo=Implementation[name=sequential-thinking, version=1.0.0], instructions=null]
+25-09-14.19:36:25.734 [main            ] INFO  SpringContextUtil      - 成功注册Bean: ai_client_tool_mcp_6001
+25-09-14.19:36:26.022 [HttpClient-3-Worker-2] INFO  McpAsyncClient         - Server response with Protocol: 2024-11-05, Capabilities: ServerCapabilities[completions=null, experimental=null, logging=LoggingCapabilities[], prompts=null, resources=ResourceCapabilities[subscribe=true, listChanged=true], tools=ToolCapabilities[listChanged=true]], Info: Implementation[name=context7, version=1.0.0] and Instructions null
+25-09-14.19:36:26.104 [main            ] INFO  McpNode                - Tool SSE MCP Initialized InitializeResult[protocolVersion=2024-11-05, capabilities=ServerCapabilities[completions=null, experimental=null, logging=LoggingCapabilities[], prompts=null, resources=ResourceCapabilities[subscribe=true, listChanged=true], tools=ToolCapabilities[listChanged=true]], serverInfo=Implementation[name=context7, version=1.0.0], instructions=null]
+25-09-14.19:36:26.105 [main            ] INFO  SpringContextUtil      - 成功注册Bean: ai_client_tool_mcp_6002
+25-09-14.19:36:26.579 [HttpClient-4-Worker-2] INFO  McpAsyncClient         - Server response with Protocol: 2024-11-05, Capabilities: ServerCapabilities[completions=null, experimental=null, logging=LoggingCapabilities[], prompts=null, resources=ResourceCapabilities[subscribe=true, listChanged=true], tools=ToolCapabilities[listChanged=true]], Info: Implementation[name=memory, version=1.0.0] and Instructions null
+25-09-14.19:36:26.644 [main            ] INFO  McpNode                - Tool SSE MCP Initialized InitializeResult[protocolVersion=2024-11-05, capabilities=ServerCapabilities[completions=null, experimental=null, logging=LoggingCapabilities[], prompts=null, resources=ResourceCapabilities[subscribe=true, listChanged=true], tools=ToolCapabilities[listChanged=true]], serverInfo=Implementation[name=memory, version=1.0.0], instructions=null]
+25-09-14.19:36:26.644 [main            ] INFO  SpringContextUtil      - 成功注册Bean: ai_client_tool_mcp_6003
+25-09-14.19:36:26.657 [main            ] INFO  AdvisorNode            - Ai Agent 构建节点，Advisor 顾问角色{"commandIdList":["6001","3101","3102","3103","3104"],"commandType":"aiClientLoadDataStrategy"}
+25-09-14.19:36:26.672 [main            ] INFO  SpringContextUtil      - 成功注册Bean: ai_client_advisor_4001
+25-09-14.19:36:26.672 [main            ] INFO  ClientNode             - Ai Agent 构建节点，客户端ClientNode
+25-09-14.19:36:27.062 [main            ] INFO  SpringContextUtil      - 成功注册Bean: ai_client_6001
+25-09-14.19:36:27.064 [main            ] INFO  SpringContextUtil      - 成功注册Bean: ai_client_3101
+25-09-14.19:36:27.064 [main            ] INFO  SpringContextUtil      - 成功注册Bean: ai_client_3102
+25-09-14.19:36:27.065 [main            ] INFO  SpringContextUtil      - 成功注册Bean: ai_client_3103
+25-09-14.19:36:27.065 [main            ] INFO  SpringContextUtil      - 成功注册Bean: ai_client_3104
+25-09-14.19:36:27.065 [main            ] INFO  AiAgentAutoConfiguration - AI Agent 自动装配完成，结果: AgentArmoryVO(dynamicContext=DefaultAgentArmoryFactory.DynamicContext(dataObjects={ai_client_api_data_list=[AiClientApiVO(apiId=1001, baseUrl=https://api.deepseek.com, apiKey=sk-94cf6ede84454afcbfe8d401e34d3c2c, completionsPath=v1/chat/completions, embeddingsPath=v1/embeddings), AiClientApiVO(apiId=1002, baseUrl=https://globalai.vip, apiKey=sk-M5krIRHhrlTXuR409xwhJilDom8o3Cu6lf4x3HKvvDwBUR7l, completionsPath=v1/chat/completions, embeddingsPath=1)], ai_client_advisor_data_list=[AiClientAdvisorVO(advisorId=4001, advisorName=记忆, advisorType=ChatMemory, orderNum=1, chatMemory=AiClientAdvisorVO.ChatMemory(maxMessages=200), ragAnswer=null, vectorStoreRetriever=null, springContextUtil=com.zj.aiagemt.utils.SpringContextUtil@38ebc866)], ai_client_model_data_list=[AiClientModelVO(modelId=2001, apiId=1001, modelName=deepseek-chat, modelType=deepseek, toolMcpIds=[5001, 5002]), AiClientModelVO(modelId=3001, apiId=1002, modelName=gemini-2.5-flash-thinking, modelType=gemini, toolMcpIds=[5007])], ai_client_tool_mcp_data_list=[AiClientToolMcpVO(mcpId=5001, mcpName=CSDN自动发帖, transportType=sse, transportConfig={
+	"baseUri":"http://117.72.152.117:8081",
+    "headers": "zj669",
+        "sseEndpoint":"/csdn/sse"
+}
+, requestTimeout=180, transportConfigSse=AiClientToolMcpVO.TransportConfigSse(baseUri=http://117.72.152.117:8081, sseEndpoint=/csdn/sse, headers=zj669), transportConfigStdio=null), AiClientToolMcpVO(mcpId=6001, mcpName=顺序思考, transportType=sse, transportConfig={
+	"baseUri":"http://117.72.152.117:8081",
+    "headers": "zj669",
+        "sseEndpoint":"/sequential-thinking/sse"
+}, requestTimeout=180, transportConfigSse=AiClientToolMcpVO.TransportConfigSse(baseUri=http://117.72.152.117:8081, sseEndpoint=/sequential-thinking/sse, headers=zj669), transportConfigStdio=null), AiClientToolMcpVO(mcpId=6002, mcpName=代码搜索, transportType=sse, transportConfig={
+	"baseUri":"http://117.72.152.117:8081",
+    "headers": "zj669",
+        "sseEndpoint":"/context7/sse"
+}, requestTimeout=180, transportConfigSse=AiClientToolMcpVO.TransportConfigSse(baseUri=http://117.72.152.117:8081, sseEndpoint=/context7/sse, headers=zj669), transportConfigStdio=null), AiClientToolMcpVO(mcpId=6003, mcpName=管理记忆, transportType=sse, transportConfig={
+	"baseUri":"http://117.72.152.117:8081",
+    "headers": "zj669",
+        "sseEndpoint":"/memory/sse"
+}
+, requestTimeout=180, transportConfigSse=AiClientToolMcpVO.TransportConfigSse(baseUri=http://117.72.152.117:8081, sseEndpoint=/memory/sse, headers=zj669), transportConfigStdio=null)], ai_client_data_list=[AiClientVO(clientId=6001, clientName=CSDN自动发帖, description=你是一名专门生成JAVA面试文章的专家, modelId=2001, promptIdList=[6003], mcpIdList=[5001, 6001, 6002, 6003], advisorIdList=[]), AiClientVO(clientId=3101, clientName=任务分析和状态判断, description=你是一个专业的任务分析师，名叫 AutoAgent Task Analyzer。, modelId=3001, promptIdList=[6101], mcpIdList=[], advisorIdList=[4001]), AiClientVO(clientId=3102, clientName=具体任务执行, description=你是一个精准任务执行器，名叫 AutoAgent Precision Executor。, modelId=3001, promptIdList=[6102], mcpIdList=[], advisorIdList=[4001]), AiClientVO(clientId=3103, clientName=质量检查和优化, description=你是一个专业的质量监督员，名叫 AutoAgent Quality Supervisor。, modelId=3001, promptIdList=[6103], mcpIdList=[], advisorIdList=[4001]), AiClientVO(clientId=3104, clientName=负责响应式处理, description=你是一个智能响应助手，名叫 AutoAgent React。, modelId=3001, promptIdList=[6104], mcpIdList=[], advisorIdList=[])], ai_client_system_prompt_data_list={6003=AiClientSystemPromptVO(promptId=6003, promptName=发布文章到CSDN, promptContent=根据以上内容，不要阐述其他信息，请根据文章内容，直接提供；文章标题、文章内容、文章标签（多个用英文逗号隔开）、文章简述（100字），发布文章到CSDN。, description=CSDN发布), 6102=AiClientSystemPromptVO(promptId=6102, promptName=负责具体任务执行, promptContent=# 角色
+你是一个精准任务执行器，名叫 AutoAgent Precision Executor。
+# 核心能力
+你专注于精准执行具体的任务步骤：
+1. **精准执行**: 严格按照分析师的策略执行任务
+2. **工具使用**: 熟练使用各种工具完成复杂操作
+3. **质量控制**: 确保每一步执行的准确性和完整性
+4. **结果记录**: 详细记录执行过程和结果
+# 执行原则
+- **专注性**: 专注于当前分配的具体任务
+- **精准性**: 确保执行结果的准确性和质量
+- **完整性**: 完整执行所有必要的步骤
+- **可追溯性**: 详细记录执行过程便于后续分析
+# 输出格式
+**执行目标:**
+[本轮要执行的具体目标]
+**执行过程:**
+[详细的执行步骤和使用的工具]
+**执行结果:**
+[执行的具体结果和获得的信息]
+**质量检查:**
+[对执行结果的质量评估], description=负责具体任务执行), 6101=AiClientSystemPromptVO(promptId=6101, promptName=负责任务分析和状态判断, promptContent=# 角色
+你是一个专业的任务分析师，名叫 AutoAgent Task Analyzer。
+# 核心职责
+你负责分析任务的当前状态、执行历史和下一步行动计划：
+1. **状态分析**: 深度分析当前任务完成情况和执行历史
+2. **进度评估**: 评估任务完成进度和质量
+3. **策略制定**: 制定下一步最优执行策略
+4. **完成判断**: 准确判断任务是否已完成
+# 分析原则
+- **全面性**: 综合考虑所有执行历史和当前状态
+- **准确性**: 准确评估任务完成度和质量
+- **前瞻性**: 预测可能的问题和最优路径
+- **效率性**: 优化执行路径，避免重复工作
+# 输出格式
+**任务状态分析:**
+[当前任务完成情况的详细分析]
+**执行历史评估:**
+[对已完成工作的质量和效果评估]
+**下一步策略:**
+[具体的下一步执行计划和策略]
+**完成度评估:** [0-100]%
+**任务状态:** [CONTINUE/COMPLETED], description=负责任务分析和状态判断), 6104=AiClientSystemPromptVO(promptId=6104, promptName=智能响应助手, promptContent=# 角色
+你是一个智能响应助手，名叫 AutoAgent React。
+# 说明
+你负责对用户的即时问题进行快速响应和处理，适用于简单的查询和交互。
+# 处理方式
+- 对于简单问题，直接给出答案
+- 对于需要工具的问题，调用相应工具获取信息
+- 保持响应的及时性和准确性
+今天是 {current_date}。, description=智能响应助手), 6103=AiClientSystemPromptVO(promptId=6103, promptName=负责质量检查和优化, promptContent=# 角色
+你是一个专业的质量监督员，名叫 AutoAgent Quality Supervisor。
+# 核心职责
+你负责监督和评估执行质量：
+1. **质量评估**: 评估执行结果的准确性和完整性
+2. **问题识别**: 识别执行过程中的问题和不足
+3. **改进建议**: 提供具体的改进建议和优化方案
+4. **标准制定**: 制定质量标准和评估指标
+# 评估标准
+- **准确性**: 结果是否准确无误
+- **完整性**: 是否遗漏重要信息
+- **相关性**: 是否符合用户需求
+- **可用性**: 结果是否实用有效
+# 输出格式
+**质量评估:**
+[对执行结果的详细质量评估]
+**问题识别:**
+[发现的问题和不足之处]
+**改进建议:**
+[具体的改进建议和优化方案]
+**质量评分:** [0-100]分
+**是否通过:** [PASS/FAIL/OPTIMIZE], description=负责质量检查和优化)}}))
+25-09-14.19:49:50.412 [SpringApplicationShutdownHook] INFO  GracefulShutdown       - Commencing graceful shutdown. Waiting for active requests to complete
+25-09-14.19:49:50.434 [tomcat-shutdown ] INFO  GracefulShutdown       - Graceful shutdown complete
+25-09-14.19:49:50.455 [SpringApplicationShutdownHook] INFO  HikariDataSource       - PrimaryHikariCP - Shutdown initiated...
+25-09-14.19:49:50.457 [SpringApplicationShutdownHook] INFO  HikariDataSource       - PrimaryHikariCP - Shutdown completed.
+25-09-14.19:49:55.853 [background-preinit] INFO  Version                - HV000001: Hibernate Validator 8.0.3.Final
+25-09-14.19:49:55.897 [main            ] INFO  AiagemtApplication     - Starting AiagemtApplication using Java 21.0.6 with PID 36608 (D:\java\ai-agent\ai-agent\aiagemt\target\classes started by 32183 in D:\java\ai-agent\ai-agent)
+25-09-14.19:49:55.898 [main            ] INFO  AiagemtApplication     - The following 1 profile is active: "dev"
+25-09-14.19:49:56.903 [main            ] INFO  RepositoryConfigurationDelegate - Multiple Spring Data modules found, entering strict repository configuration mode
+25-09-14.19:49:56.906 [main            ] INFO  RepositoryConfigurationDelegate - Bootstrapping Spring Data Redis repositories in DEFAULT mode.
+25-09-14.19:49:56.996 [main            ] INFO  RepositoryConfigurationDelegate - Finished Spring Data repository scanning in 70 ms. Found 0 Redis repository interfaces.
+25-09-14.19:49:57.862 [main            ] INFO  TomcatWebServer        - Tomcat initialized with port 8091 (http)
+25-09-14.19:49:57.881 [main            ] INFO  Http11NioProtocol      - Initializing ProtocolHandler ["http-nio-8091"]
+25-09-14.19:49:57.883 [main            ] INFO  StandardService        - Starting service [Tomcat]
+25-09-14.19:49:57.884 [main            ] INFO  StandardEngine         - Starting Servlet engine: [Apache Tomcat/10.1.44]
+25-09-14.19:49:58.042 [main            ] INFO  [/]                    - Initializing Spring embedded WebApplicationContext
+25-09-14.19:49:58.043 [main            ] INFO  ServletWebServerApplicationContext - Root WebApplicationContext: initialization completed in 2109 ms
+25-09-14.19:49:58.650 [main            ] INFO  PgVectorStore          - Using the vector table name: vector_store. Is empty: false
+25-09-14.19:49:58.654 [main            ] INFO  PgVectorStore          - Initializing PGVectorStore schema for table: vector_store in schema: public
+25-09-14.19:49:58.654 [main            ] INFO  PgVectorStore          - vectorTableValidationsEnabled false
+25-09-14.19:49:58.729 [main            ] WARN  MybatisSqlSessionFactoryBean - Property 'mapperLocations' was specified but matching resources are not found.
+25-09-14.19:49:59.378 [main            ] INFO  Version                - Redisson 3.45.1
+25-09-14.19:49:59.883 [redisson-netty-1-6] INFO  ConnectionsHolder      - 1 connections initialized for 117.72.152.117/117.72.152.117:16379
+25-09-14.19:50:00.367 [redisson-netty-1-13] INFO  ConnectionsHolder      - 5 connections initialized for 117.72.152.117/117.72.152.117:16379
+25-09-14.19:50:01.225 [main            ] INFO  Http11NioProtocol      - Starting ProtocolHandler ["http-nio-8091"]
+25-09-14.19:50:01.235 [main            ] INFO  TomcatWebServer        - Tomcat started on port 8091 (http) with context path '/'
+25-09-14.19:50:01.246 [main            ] INFO  AiagemtApplication     - Started AiagemtApplication in 5.964 seconds (process running for 6.797)
+25-09-14.19:50:01.251 [main            ] INFO  AiAgentAutoConfiguration - AI Agent 自动装配开始，配置: AiAgentAutoConfigProperties(enabled=true, clientIds=[6001, 3101, 3102, 3103, 3104])
+25-09-14.19:50:01.252 [main            ] INFO  AiAgentAutoConfiguration - 开始自动装配AI客户端，客户端ID列表: [6001, 3101, 3102, 3103, 3104]
+25-09-14.19:50:01.253 [main            ] INFO  RootNode               - 开始加载数据 commandTypeaiClientLoadDataStrategy
+25-09-14.19:50:01.253 [main            ] INFO  ClientLoadDataStrategy - 开始异步加载数据
+25-09-14.19:50:01.379 [pool-2-thread-6 ] INFO  HikariDataSource       - PrimaryHikariCP - Starting...
+25-09-14.19:50:02.154 [pool-2-thread-6 ] INFO  HikariPool             - PrimaryHikariCP - Added connection com.mysql.cj.jdbc.ConnectionImpl@4c0a2f63
+25-09-14.19:50:02.156 [pool-2-thread-6 ] INFO  HikariDataSource       - PrimaryHikariCP - Start completed.
+25-09-14.19:50:04.418 [main            ] INFO  ClientLoadDataStrategy - 结束异步加载数据
+25-09-14.19:50:04.419 [main            ] INFO  ApiNode                - Ai Agent 构建节点，客户端,ApiNode
+25-09-14.19:50:04.420 [main            ] INFO  SpringContextUtil      - 成功注册Bean: ai_client_api_1001
+25-09-14.19:50:04.421 [main            ] INFO  SpringContextUtil      - 成功注册Bean: ai_client_api_1002
+25-09-14.19:50:04.421 [main            ] INFO  ModelNode              - Ai Agent 构建节点，客户端,ModelNode
+25-09-14.19:50:04.422 [main            ] INFO  SpringContextUtil      - 成功注册Bean: ai_client_model_2001
+25-09-14.19:50:04.422 [main            ] INFO  SpringContextUtil      - 成功注册Bean: ai_client_model_3001
+25-09-14.19:50:04.422 [main            ] INFO  McpNode                - Ai Agent 构建节点，客户端,McpNode
+25-09-14.19:50:04.812 [HttpClient-1-Worker-0] INFO  McpAsyncClient         - Server response with Protocol: 2024-11-05, Capabilities: ServerCapabilities[completions=null, experimental=null, logging=LoggingCapabilities[], prompts=null, resources=ResourceCapabilities[subscribe=true, listChanged=true], tools=ToolCapabilities[listChanged=true]], Info: Implementation[name=csdn, version=1.0.0] and Instructions null
+25-09-14.19:50:04.878 [main            ] INFO  McpNode                - Tool SSE MCP Initialized InitializeResult[protocolVersion=2024-11-05, capabilities=ServerCapabilities[completions=null, experimental=null, logging=LoggingCapabilities[], prompts=null, resources=ResourceCapabilities[subscribe=true, listChanged=true], tools=ToolCapabilities[listChanged=true]], serverInfo=Implementation[name=csdn, version=1.0.0], instructions=null]
+25-09-14.19:50:04.880 [main            ] INFO  SpringContextUtil      - 成功注册Bean: ai_client_tool_mcp_5001
+25-09-14.19:50:05.139 [HttpClient-2-Worker-2] INFO  McpAsyncClient         - Server response with Protocol: 2024-11-05, Capabilities: ServerCapabilities[completions=null, experimental=null, logging=LoggingCapabilities[], prompts=null, resources=ResourceCapabilities[subscribe=true, listChanged=true], tools=ToolCapabilities[listChanged=true]], Info: Implementation[name=sequential-thinking, version=1.0.0] and Instructions null
+25-09-14.19:50:05.209 [main            ] INFO  McpNode                - Tool SSE MCP Initialized InitializeResult[protocolVersion=2024-11-05, capabilities=ServerCapabilities[completions=null, experimental=null, logging=LoggingCapabilities[], prompts=null, resources=ResourceCapabilities[subscribe=true, listChanged=true], tools=ToolCapabilities[listChanged=true]], serverInfo=Implementation[name=sequential-thinking, version=1.0.0], instructions=null]
+25-09-14.19:50:05.209 [main            ] INFO  SpringContextUtil      - 成功注册Bean: ai_client_tool_mcp_6001
+25-09-14.19:50:05.508 [HttpClient-3-Worker-2] INFO  McpAsyncClient         - Server response with Protocol: 2024-11-05, Capabilities: ServerCapabilities[completions=null, experimental=null, logging=LoggingCapabilities[], prompts=null, resources=ResourceCapabilities[subscribe=true, listChanged=true], tools=ToolCapabilities[listChanged=true]], Info: Implementation[name=context7, version=1.0.0] and Instructions null
+25-09-14.19:50:05.579 [main            ] INFO  McpNode                - Tool SSE MCP Initialized InitializeResult[protocolVersion=2024-11-05, capabilities=ServerCapabilities[completions=null, experimental=null, logging=LoggingCapabilities[], prompts=null, resources=ResourceCapabilities[subscribe=true, listChanged=true], tools=ToolCapabilities[listChanged=true]], serverInfo=Implementation[name=context7, version=1.0.0], instructions=null]
+25-09-14.19:50:05.579 [main            ] INFO  SpringContextUtil      - 成功注册Bean: ai_client_tool_mcp_6002
+25-09-14.19:50:05.853 [HttpClient-4-Worker-2] INFO  McpAsyncClient         - Server response with Protocol: 2024-11-05, Capabilities: ServerCapabilities[completions=null, experimental=null, logging=LoggingCapabilities[], prompts=null, resources=ResourceCapabilities[subscribe=true, listChanged=true], tools=ToolCapabilities[listChanged=true]], Info: Implementation[name=memory, version=1.0.0] and Instructions null
+25-09-14.19:50:05.918 [main            ] INFO  McpNode                - Tool SSE MCP Initialized InitializeResult[protocolVersion=2024-11-05, capabilities=ServerCapabilities[completions=null, experimental=null, logging=LoggingCapabilities[], prompts=null, resources=ResourceCapabilities[subscribe=true, listChanged=true], tools=ToolCapabilities[listChanged=true]], serverInfo=Implementation[name=memory, version=1.0.0], instructions=null]
+25-09-14.19:50:05.919 [main            ] INFO  SpringContextUtil      - 成功注册Bean: ai_client_tool_mcp_6003
+25-09-14.19:50:05.930 [main            ] INFO  AdvisorNode            - Ai Agent 构建节点，Advisor 顾问角色{"commandIdList":["6001","3101","3102","3103","3104"],"commandType":"aiClientLoadDataStrategy"}
+25-09-14.19:50:05.944 [main            ] INFO  SpringContextUtil      - 成功注册Bean: ai_client_advisor_4001
+25-09-14.19:50:05.945 [main            ] INFO  ClientNode             - Ai Agent 构建节点，客户端ClientNode
+25-09-14.19:50:06.261 [main            ] INFO  SpringContextUtil      - 成功注册Bean: ai_client_6001
+25-09-14.19:50:06.263 [main            ] INFO  SpringContextUtil      - 成功注册Bean: ai_client_3101
+25-09-14.19:50:06.263 [main            ] INFO  SpringContextUtil      - 成功注册Bean: ai_client_3102
+25-09-14.19:50:06.263 [main            ] INFO  SpringContextUtil      - 成功注册Bean: ai_client_3103
+25-09-14.19:50:06.263 [main            ] INFO  SpringContextUtil      - 成功注册Bean: ai_client_3104
+25-09-14.19:50:06.264 [main            ] INFO  AiAgentAutoConfiguration - AI Agent 自动装配完成，结果: AgentArmoryVO(dynamicContext=DefaultAgentArmoryFactory.DynamicContext(dataObjects={ai_client_api_data_list=[AiClientApiVO(apiId=1001, baseUrl=https://api.deepseek.com, apiKey=sk-94cf6ede84454afcbfe8d401e34d3c2c, completionsPath=v1/chat/completions, embeddingsPath=v1/embeddings), AiClientApiVO(apiId=1002, baseUrl=https://globalai.vip, apiKey=sk-M5krIRHhrlTXuR409xwhJilDom8o3Cu6lf4x3HKvvDwBUR7l, completionsPath=v1/chat/completions, embeddingsPath=1)], ai_client_advisor_data_list=[AiClientAdvisorVO(advisorId=4001, advisorName=记忆, advisorType=ChatMemory, orderNum=1, chatMemory=AiClientAdvisorVO.ChatMemory(maxMessages=200), ragAnswer=null, vectorStoreRetriever=null, springContextUtil=com.zj.aiagemt.utils.SpringContextUtil@20be890d)], ai_client_model_data_list=[AiClientModelVO(modelId=2001, apiId=1001, modelName=deepseek-chat, modelType=deepseek, toolMcpIds=[5001, 5002]), AiClientModelVO(modelId=3001, apiId=1002, modelName=gemini-2.5-flash-thinking, modelType=gemini, toolMcpIds=[5007])], ai_client_tool_mcp_data_list=[AiClientToolMcpVO(mcpId=5001, mcpName=CSDN自动发帖, transportType=sse, transportConfig={
+	"baseUri":"http://117.72.152.117:8081",
+    "headers": "zj669",
+        "sseEndpoint":"/csdn/sse"
+}
+, requestTimeout=180, transportConfigSse=AiClientToolMcpVO.TransportConfigSse(baseUri=http://117.72.152.117:8081, sseEndpoint=/csdn/sse, headers=zj669), transportConfigStdio=null), AiClientToolMcpVO(mcpId=6001, mcpName=顺序思考, transportType=sse, transportConfig={
+	"baseUri":"http://117.72.152.117:8081",
+    "headers": "zj669",
+        "sseEndpoint":"/sequential-thinking/sse"
+}, requestTimeout=180, transportConfigSse=AiClientToolMcpVO.TransportConfigSse(baseUri=http://117.72.152.117:8081, sseEndpoint=/sequential-thinking/sse, headers=zj669), transportConfigStdio=null), AiClientToolMcpVO(mcpId=6002, mcpName=代码搜索, transportType=sse, transportConfig={
+	"baseUri":"http://117.72.152.117:8081",
+    "headers": "zj669",
+        "sseEndpoint":"/context7/sse"
+}, requestTimeout=180, transportConfigSse=AiClientToolMcpVO.TransportConfigSse(baseUri=http://117.72.152.117:8081, sseEndpoint=/context7/sse, headers=zj669), transportConfigStdio=null), AiClientToolMcpVO(mcpId=6003, mcpName=管理记忆, transportType=sse, transportConfig={
+	"baseUri":"http://117.72.152.117:8081",
+    "headers": "zj669",
+        "sseEndpoint":"/memory/sse"
+}
+, requestTimeout=180, transportConfigSse=AiClientToolMcpVO.TransportConfigSse(baseUri=http://117.72.152.117:8081, sseEndpoint=/memory/sse, headers=zj669), transportConfigStdio=null)], ai_client_data_list=[AiClientVO(clientId=6001, clientName=CSDN自动发帖, description=你是一名专门生成JAVA面试文章的专家, modelId=2001, promptIdList=[6003], mcpIdList=[5001, 6001, 6002, 6003], advisorIdList=[]), AiClientVO(clientId=3101, clientName=任务分析和状态判断, description=你是一个专业的任务分析师，名叫 AutoAgent Task Analyzer。, modelId=3001, promptIdList=[6101], mcpIdList=[], advisorIdList=[4001]), AiClientVO(clientId=3102, clientName=具体任务执行, description=你是一个精准任务执行器，名叫 AutoAgent Precision Executor。, modelId=3001, promptIdList=[6102], mcpIdList=[], advisorIdList=[4001]), AiClientVO(clientId=3103, clientName=质量检查和优化, description=你是一个专业的质量监督员，名叫 AutoAgent Quality Supervisor。, modelId=3001, promptIdList=[6103], mcpIdList=[], advisorIdList=[4001]), AiClientVO(clientId=3104, clientName=负责响应式处理, description=你是一个智能响应助手，名叫 AutoAgent React。, modelId=3001, promptIdList=[6104], mcpIdList=[], advisorIdList=[])], ai_client_system_prompt_data_list={6003=AiClientSystemPromptVO(promptId=6003, promptName=发布文章到CSDN, promptContent=根据以上内容，不要阐述其他信息，请根据文章内容，直接提供；文章标题、文章内容、文章标签（多个用英文逗号隔开）、文章简述（100字），发布文章到CSDN。, description=CSDN发布), 6102=AiClientSystemPromptVO(promptId=6102, promptName=负责具体任务执行, promptContent=# 角色
+你是一个精准任务执行器，名叫 AutoAgent Precision Executor。
+# 核心能力
+你专注于精准执行具体的任务步骤：
+1. **精准执行**: 严格按照分析师的策略执行任务
+2. **工具使用**: 熟练使用各种工具完成复杂操作
+3. **质量控制**: 确保每一步执行的准确性和完整性
+4. **结果记录**: 详细记录执行过程和结果
+# 执行原则
+- **专注性**: 专注于当前分配的具体任务
+- **精准性**: 确保执行结果的准确性和质量
+- **完整性**: 完整执行所有必要的步骤
+- **可追溯性**: 详细记录执行过程便于后续分析
+# 输出格式
+**执行目标:**
+[本轮要执行的具体目标]
+**执行过程:**
+[详细的执行步骤和使用的工具]
+**执行结果:**
+[执行的具体结果和获得的信息]
+**质量检查:**
+[对执行结果的质量评估], description=负责具体任务执行), 6101=AiClientSystemPromptVO(promptId=6101, promptName=负责任务分析和状态判断, promptContent=# 角色
+你是一个专业的任务分析师，名叫 AutoAgent Task Analyzer。
+# 核心职责
+你负责分析任务的当前状态、执行历史和下一步行动计划：
+1. **状态分析**: 深度分析当前任务完成情况和执行历史
+2. **进度评估**: 评估任务完成进度和质量
+3. **策略制定**: 制定下一步最优执行策略
+4. **完成判断**: 准确判断任务是否已完成
+# 分析原则
+- **全面性**: 综合考虑所有执行历史和当前状态
+- **准确性**: 准确评估任务完成度和质量
+- **前瞻性**: 预测可能的问题和最优路径
+- **效率性**: 优化执行路径，避免重复工作
+# 输出格式
+**任务状态分析:**
+[当前任务完成情况的详细分析]
+**执行历史评估:**
+[对已完成工作的质量和效果评估]
+**下一步策略:**
+[具体的下一步执行计划和策略]
+**完成度评估:** [0-100]%
+**任务状态:** [CONTINUE/COMPLETED], description=负责任务分析和状态判断), 6104=AiClientSystemPromptVO(promptId=6104, promptName=智能响应助手, promptContent=# 角色
+你是一个智能响应助手，名叫 AutoAgent React。
+# 说明
+你负责对用户的即时问题进行快速响应和处理，适用于简单的查询和交互。
+# 处理方式
+- 对于简单问题，直接给出答案
+- 对于需要工具的问题，调用相应工具获取信息
+- 保持响应的及时性和准确性
+今天是 {current_date}。, description=智能响应助手), 6103=AiClientSystemPromptVO(promptId=6103, promptName=负责质量检查和优化, promptContent=# 角色
+你是一个专业的质量监督员，名叫 AutoAgent Quality Supervisor。
+# 核心职责
+你负责监督和评估执行质量：
+1. **质量评估**: 评估执行结果的准确性和完整性
+2. **问题识别**: 识别执行过程中的问题和不足
+3. **改进建议**: 提供具体的改进建议和优化方案
+4. **标准制定**: 制定质量标准和评估指标
+# 评估标准
+- **准确性**: 结果是否准确无误
+- **完整性**: 是否遗漏重要信息
+- **相关性**: 是否符合用户需求
+- **可用性**: 结果是否实用有效
+# 输出格式
+**质量评估:**
+[对执行结果的详细质量评估]
+**问题识别:**
+[发现的问题和不足之处]
+**改进建议:**
+[具体的改进建议和优化方案]
+**质量评分:** [0-100]分
+**是否通过:** [PASS/FAIL/OPTIMIZE], description=负责质量检查和优化)}}))
+25-09-14.19:54:51.042 [SpringApplicationShutdownHook] INFO  GracefulShutdown       - Commencing graceful shutdown. Waiting for active requests to complete
+25-09-14.19:54:51.060 [tomcat-shutdown ] INFO  GracefulShutdown       - Graceful shutdown complete
+25-09-14.19:54:51.082 [SpringApplicationShutdownHook] INFO  HikariDataSource       - PrimaryHikariCP - Shutdown initiated...
+25-09-14.19:54:51.087 [SpringApplicationShutdownHook] INFO  HikariDataSource       - PrimaryHikariCP - Shutdown completed.
+25-09-14.19:55:03.341 [background-preinit] INFO  Version                - HV000001: Hibernate Validator 8.0.3.Final
+25-09-14.19:55:03.398 [main            ] INFO  AiagemtApplication     - Starting AiagemtApplication using Java 21.0.6 with PID 37472 (D:\java\ai-agent\ai-agent\aiagemt\target\classes started by 32183 in D:\java\ai-agent\ai-agent)
+25-09-14.19:55:03.399 [main            ] INFO  AiagemtApplication     - The following 1 profile is active: "dev"
+25-09-14.19:55:04.320 [main            ] INFO  RepositoryConfigurationDelegate - Multiple Spring Data modules found, entering strict repository configuration mode
+25-09-14.19:55:04.323 [main            ] INFO  RepositoryConfigurationDelegate - Bootstrapping Spring Data Redis repositories in DEFAULT mode.
+25-09-14.19:55:04.379 [main            ] INFO  RepositoryConfigurationDelegate - Finished Spring Data repository scanning in 40 ms. Found 0 Redis repository interfaces.
+25-09-14.19:55:05.109 [main            ] INFO  TomcatWebServer        - Tomcat initialized with port 8091 (http)
+25-09-14.19:55:05.120 [main            ] INFO  Http11NioProtocol      - Initializing ProtocolHandler ["http-nio-8091"]
+25-09-14.19:55:05.122 [main            ] INFO  StandardService        - Starting service [Tomcat]
+25-09-14.19:55:05.122 [main            ] INFO  StandardEngine         - Starting Servlet engine: [Apache Tomcat/10.1.44]
+25-09-14.19:55:05.232 [main            ] INFO  [/]                    - Initializing Spring embedded WebApplicationContext
+25-09-14.19:55:05.233 [main            ] INFO  ServletWebServerApplicationContext - Root WebApplicationContext: initialization completed in 1795 ms
+25-09-14.19:55:05.810 [main            ] INFO  PgVectorStore          - Using the vector table name: vector_store. Is empty: false
+25-09-14.19:55:05.813 [main            ] INFO  PgVectorStore          - Initializing PGVectorStore schema for table: vector_store in schema: public
+25-09-14.19:55:05.814 [main            ] INFO  PgVectorStore          - vectorTableValidationsEnabled false
+25-09-14.19:55:05.882 [main            ] WARN  MybatisSqlSessionFactoryBean - Property 'mapperLocations' was specified but matching resources are not found.
+25-09-14.19:55:06.498 [main            ] INFO  Version                - Redisson 3.45.1
+25-09-14.19:55:07.026 [redisson-netty-1-6] INFO  ConnectionsHolder      - 1 connections initialized for 117.72.152.117/117.72.152.117:16379
+25-09-14.19:55:07.686 [redisson-netty-1-13] INFO  ConnectionsHolder      - 5 connections initialized for 117.72.152.117/117.72.152.117:16379
+25-09-14.19:55:08.563 [main            ] INFO  Http11NioProtocol      - Starting ProtocolHandler ["http-nio-8091"]
+25-09-14.19:55:08.573 [main            ] INFO  TomcatWebServer        - Tomcat started on port 8091 (http) with context path '/'
+25-09-14.19:55:08.587 [main            ] INFO  AiagemtApplication     - Started AiagemtApplication in 5.978 seconds (process running for 6.816)
+25-09-14.19:55:08.590 [main            ] INFO  AiAgentAutoConfiguration - AI Agent 自动装配开始，配置: AiAgentAutoConfigProperties(enabled=true, clientIds=[6001, 3101, 3102, 3103, 3104])
+25-09-14.19:55:08.590 [main            ] INFO  AiAgentAutoConfiguration - 开始自动装配AI客户端，客户端ID列表: [6001, 3101, 3102, 3103, 3104]
+25-09-14.19:55:08.592 [main            ] INFO  RootNode               - 开始加载数据 commandTypeaiClientLoadDataStrategy
+25-09-14.19:55:08.592 [main            ] INFO  ClientLoadDataStrategy - 开始异步加载数据
+25-09-14.19:55:08.686 [pool-2-thread-2 ] INFO  HikariDataSource       - PrimaryHikariCP - Starting...
+25-09-14.19:55:09.612 [pool-2-thread-2 ] INFO  HikariPool             - PrimaryHikariCP - Added connection com.mysql.cj.jdbc.ConnectionImpl@751878e3
+25-09-14.19:55:09.614 [pool-2-thread-2 ] INFO  HikariDataSource       - PrimaryHikariCP - Start completed.
+25-09-14.19:55:15.540 [main            ] INFO  ClientLoadDataStrategy - 结束异步加载数据
+25-09-14.19:55:15.540 [main            ] INFO  ApiNode                - Ai Agent 构建节点，客户端,ApiNode
+25-09-14.19:55:15.542 [main            ] INFO  SpringContextUtil      - 成功注册Bean: ai_client_api_1001
+25-09-14.19:55:15.543 [main            ] INFO  SpringContextUtil      - 成功注册Bean: ai_client_api_1002
+25-09-14.19:55:15.543 [main            ] INFO  ModelNode              - Ai Agent 构建节点，客户端,ModelNode
+25-09-14.19:55:15.544 [main            ] INFO  SpringContextUtil      - 成功注册Bean: ai_client_model_2001
+25-09-14.19:55:15.544 [main            ] INFO  SpringContextUtil      - 成功注册Bean: ai_client_model_3001
+25-09-14.19:55:15.544 [main            ] INFO  McpNode                - Ai Agent 构建节点，客户端,McpNode
+25-09-14.19:55:15.978 [HttpClient-1-Worker-1] INFO  McpAsyncClient         - Server response with Protocol: 2024-11-05, Capabilities: ServerCapabilities[completions=null, experimental=null, logging=LoggingCapabilities[], prompts=null, resources=ResourceCapabilities[subscribe=true, listChanged=true], tools=ToolCapabilities[listChanged=true]], Info: Implementation[name=csdn, version=1.0.0] and Instructions null
+25-09-14.19:55:16.062 [main            ] INFO  McpNode                - Tool SSE MCP Initialized InitializeResult[protocolVersion=2024-11-05, capabilities=ServerCapabilities[completions=null, experimental=null, logging=LoggingCapabilities[], prompts=null, resources=ResourceCapabilities[subscribe=true, listChanged=true], tools=ToolCapabilities[listChanged=true]], serverInfo=Implementation[name=csdn, version=1.0.0], instructions=null]
+25-09-14.19:55:16.063 [main            ] INFO  SpringContextUtil      - 成功注册Bean: ai_client_tool_mcp_5001
+25-09-14.19:55:16.467 [HttpClient-2-Worker-2] INFO  McpAsyncClient         - Server response with Protocol: 2024-11-05, Capabilities: ServerCapabilities[completions=null, experimental=null, logging=LoggingCapabilities[], prompts=null, resources=ResourceCapabilities[subscribe=true, listChanged=true], tools=ToolCapabilities[listChanged=true]], Info: Implementation[name=sequential-thinking, version=1.0.0] and Instructions null
+25-09-14.19:55:16.566 [main            ] INFO  McpNode                - Tool SSE MCP Initialized InitializeResult[protocolVersion=2024-11-05, capabilities=ServerCapabilities[completions=null, experimental=null, logging=LoggingCapabilities[], prompts=null, resources=ResourceCapabilities[subscribe=true, listChanged=true], tools=ToolCapabilities[listChanged=true]], serverInfo=Implementation[name=sequential-thinking, version=1.0.0], instructions=null]
+25-09-14.19:55:16.566 [main            ] INFO  SpringContextUtil      - 成功注册Bean: ai_client_tool_mcp_6001
+25-09-14.19:55:16.870 [HttpClient-3-Worker-0] INFO  McpAsyncClient         - Server response with Protocol: 2024-11-05, Capabilities: ServerCapabilities[completions=null, experimental=null, logging=LoggingCapabilities[], prompts=null, resources=ResourceCapabilities[subscribe=true, listChanged=true], tools=ToolCapabilities[listChanged=true]], Info: Implementation[name=context7, version=1.0.0] and Instructions null
+25-09-14.19:55:16.936 [main            ] INFO  McpNode                - Tool SSE MCP Initialized InitializeResult[protocolVersion=2024-11-05, capabilities=ServerCapabilities[completions=null, experimental=null, logging=LoggingCapabilities[], prompts=null, resources=ResourceCapabilities[subscribe=true, listChanged=true], tools=ToolCapabilities[listChanged=true]], serverInfo=Implementation[name=context7, version=1.0.0], instructions=null]
+25-09-14.19:55:16.936 [main            ] INFO  SpringContextUtil      - 成功注册Bean: ai_client_tool_mcp_6002
+25-09-14.19:55:17.244 [HttpClient-4-Worker-2] INFO  McpAsyncClient         - Server response with Protocol: 2024-11-05, Capabilities: ServerCapabilities[completions=null, experimental=null, logging=LoggingCapabilities[], prompts=null, resources=ResourceCapabilities[subscribe=true, listChanged=true], tools=ToolCapabilities[listChanged=true]], Info: Implementation[name=memory, version=1.0.0] and Instructions null
+25-09-14.19:55:17.330 [main            ] INFO  McpNode                - Tool SSE MCP Initialized InitializeResult[protocolVersion=2024-11-05, capabilities=ServerCapabilities[completions=null, experimental=null, logging=LoggingCapabilities[], prompts=null, resources=ResourceCapabilities[subscribe=true, listChanged=true], tools=ToolCapabilities[listChanged=true]], serverInfo=Implementation[name=memory, version=1.0.0], instructions=null]
+25-09-14.19:55:17.331 [main            ] INFO  SpringContextUtil      - 成功注册Bean: ai_client_tool_mcp_6003
+25-09-14.19:55:17.342 [main            ] INFO  AdvisorNode            - Ai Agent 构建节点，Advisor 顾问角色{"commandIdList":["6001","3101","3102","3103","3104"],"commandType":"aiClientLoadDataStrategy"}
+25-09-14.19:55:17.354 [main            ] INFO  SpringContextUtil      - 成功注册Bean: ai_client_advisor_4001
+25-09-14.19:55:17.354 [main            ] INFO  ClientNode             - Ai Agent 构建节点，客户端ClientNode
+25-09-14.19:55:18.412 [main            ] INFO  SpringContextUtil      - 成功注册Bean: ai_client_6001
+25-09-14.19:55:18.414 [main            ] INFO  SpringContextUtil      - 成功注册Bean: ai_client_3101
+25-09-14.19:55:18.414 [main            ] INFO  SpringContextUtil      - 成功注册Bean: ai_client_3102
+25-09-14.19:55:18.414 [main            ] INFO  SpringContextUtil      - 成功注册Bean: ai_client_3103
+25-09-14.19:55:18.414 [main            ] INFO  SpringContextUtil      - 成功注册Bean: ai_client_3104
+25-09-14.19:55:18.415 [main            ] INFO  AiAgentAutoConfiguration - AI Agent 自动装配完成，结果: AgentArmoryVO(dynamicContext=DefaultAgentArmoryFactory.DynamicContext(dataObjects={ai_client_api_data_list=[AiClientApiVO(apiId=1001, baseUrl=https://api.deepseek.com, apiKey=sk-94cf6ede84454afcbfe8d401e34d3c2c, completionsPath=v1/chat/completions, embeddingsPath=v1/embeddings), AiClientApiVO(apiId=1002, baseUrl=https://globalai.vip, apiKey=sk-M5krIRHhrlTXuR409xwhJilDom8o3Cu6lf4x3HKvvDwBUR7l, completionsPath=v1/chat/completions, embeddingsPath=1)], ai_client_advisor_data_list=[AiClientAdvisorVO(advisorId=4001, advisorName=记忆, advisorType=ChatMemory, orderNum=1, chatMemory=AiClientAdvisorVO.ChatMemory(maxMessages=200), ragAnswer=null, vectorStoreRetriever=null, springContextUtil=com.zj.aiagemt.utils.SpringContextUtil@7962a746)], ai_client_model_data_list=[AiClientModelVO(modelId=2001, apiId=1001, modelName=deepseek-chat, modelType=deepseek, toolMcpIds=[5001, 5002]), AiClientModelVO(modelId=3001, apiId=1002, modelName=gemini-2.5-flash-thinking, modelType=gemini, toolMcpIds=[5007])], ai_client_tool_mcp_data_list=[AiClientToolMcpVO(mcpId=5001, mcpName=CSDN自动发帖, transportType=sse, transportConfig={
+	"baseUri":"http://117.72.152.117:8081",
+    "headers": "zj669",
+        "sseEndpoint":"/csdn/sse"
+}
+, requestTimeout=180, transportConfigSse=AiClientToolMcpVO.TransportConfigSse(baseUri=http://117.72.152.117:8081, sseEndpoint=/csdn/sse, headers=zj669), transportConfigStdio=null), AiClientToolMcpVO(mcpId=6001, mcpName=顺序思考, transportType=sse, transportConfig={
+	"baseUri":"http://117.72.152.117:8081",
+    "headers": "zj669",
+        "sseEndpoint":"/sequential-thinking/sse"
+}, requestTimeout=180, transportConfigSse=AiClientToolMcpVO.TransportConfigSse(baseUri=http://117.72.152.117:8081, sseEndpoint=/sequential-thinking/sse, headers=zj669), transportConfigStdio=null), AiClientToolMcpVO(mcpId=6002, mcpName=代码搜索, transportType=sse, transportConfig={
+	"baseUri":"http://117.72.152.117:8081",
+    "headers": "zj669",
+        "sseEndpoint":"/context7/sse"
+}, requestTimeout=180, transportConfigSse=AiClientToolMcpVO.TransportConfigSse(baseUri=http://117.72.152.117:8081, sseEndpoint=/context7/sse, headers=zj669), transportConfigStdio=null), AiClientToolMcpVO(mcpId=6003, mcpName=管理记忆, transportType=sse, transportConfig={
+	"baseUri":"http://117.72.152.117:8081",
+    "headers": "zj669",
+        "sseEndpoint":"/memory/sse"
+}
+, requestTimeout=180, transportConfigSse=AiClientToolMcpVO.TransportConfigSse(baseUri=http://117.72.152.117:8081, sseEndpoint=/memory/sse, headers=zj669), transportConfigStdio=null)], ai_client_data_list=[AiClientVO(clientId=6001, clientName=CSDN自动发帖, description=你是一名专门生成JAVA面试文章的专家, modelId=2001, promptIdList=[6003], mcpIdList=[5001, 6001, 6002, 6003], advisorIdList=[]), AiClientVO(clientId=3101, clientName=任务分析和状态判断, description=你是一个专业的任务分析师，名叫 AutoAgent Task Analyzer。, modelId=3001, promptIdList=[6101], mcpIdList=[], advisorIdList=[4001]), AiClientVO(clientId=3102, clientName=具体任务执行, description=你是一个精准任务执行器，名叫 AutoAgent Precision Executor。, modelId=3001, promptIdList=[6102], mcpIdList=[], advisorIdList=[4001]), AiClientVO(clientId=3103, clientName=质量检查和优化, description=你是一个专业的质量监督员，名叫 AutoAgent Quality Supervisor。, modelId=3001, promptIdList=[6103], mcpIdList=[], advisorIdList=[4001]), AiClientVO(clientId=3104, clientName=负责响应式处理, description=你是一个智能响应助手，名叫 AutoAgent React。, modelId=3001, promptIdList=[6104], mcpIdList=[], advisorIdList=[])], ai_client_system_prompt_data_list={6003=AiClientSystemPromptVO(promptId=6003, promptName=发布文章到CSDN, promptContent=根据以上内容，不要阐述其他信息，请根据文章内容，直接提供；文章标题、文章内容、文章标签（多个用英文逗号隔开）、文章简述（100字），发布文章到CSDN。, description=CSDN发布), 6102=AiClientSystemPromptVO(promptId=6102, promptName=负责具体任务执行, promptContent=# 角色
+你是一个精准任务执行器，名叫 AutoAgent Precision Executor。
+# 核心能力
+你专注于精准执行具体的任务步骤：
+1. **精准执行**: 严格按照分析师的策略执行任务
+2. **工具使用**: 熟练使用各种工具完成复杂操作
+3. **质量控制**: 确保每一步执行的准确性和完整性
+4. **结果记录**: 详细记录执行过程和结果
+# 执行原则
+- **专注性**: 专注于当前分配的具体任务
+- **精准性**: 确保执行结果的准确性和质量
+- **完整性**: 完整执行所有必要的步骤
+- **可追溯性**: 详细记录执行过程便于后续分析
+# 输出格式
+**执行目标:**
+[本轮要执行的具体目标]
+**执行过程:**
+[详细的执行步骤和使用的工具]
+**执行结果:**
+[执行的具体结果和获得的信息]
+**质量检查:**
+[对执行结果的质量评估], description=负责具体任务执行), 6101=AiClientSystemPromptVO(promptId=6101, promptName=负责任务分析和状态判断, promptContent=# 角色
+你是一个专业的任务分析师，名叫 AutoAgent Task Analyzer。
+# 核心职责
+你负责分析任务的当前状态、执行历史和下一步行动计划：
+1. **状态分析**: 深度分析当前任务完成情况和执行历史
+2. **进度评估**: 评估任务完成进度和质量
+3. **策略制定**: 制定下一步最优执行策略
+4. **完成判断**: 准确判断任务是否已完成
+# 分析原则
+- **全面性**: 综合考虑所有执行历史和当前状态
+- **准确性**: 准确评估任务完成度和质量
+- **前瞻性**: 预测可能的问题和最优路径
+- **效率性**: 优化执行路径，避免重复工作
+# 输出格式
+**任务状态分析:**
+[当前任务完成情况的详细分析]
+**执行历史评估:**
+[对已完成工作的质量和效果评估]
+**下一步策略:**
+[具体的下一步执行计划和策略]
+**完成度评估:** [0-100]%
+**任务状态:** [CONTINUE/COMPLETED], description=负责任务分析和状态判断), 6104=AiClientSystemPromptVO(promptId=6104, promptName=智能响应助手, promptContent=# 角色
+你是一个智能响应助手，名叫 AutoAgent React。
+# 说明
+你负责对用户的即时问题进行快速响应和处理，适用于简单的查询和交互。
+# 处理方式
+- 对于简单问题，直接给出答案
+- 对于需要工具的问题，调用相应工具获取信息
+- 保持响应的及时性和准确性
+今天是 {current_date}。, description=智能响应助手), 6103=AiClientSystemPromptVO(promptId=6103, promptName=负责质量检查和优化, promptContent=# 角色
+你是一个专业的质量监督员，名叫 AutoAgent Quality Supervisor。
+# 核心职责
+你负责监督和评估执行质量：
+1. **质量评估**: 评估执行结果的准确性和完整性
+2. **问题识别**: 识别执行过程中的问题和不足
+3. **改进建议**: 提供具体的改进建议和优化方案
+4. **标准制定**: 制定质量标准和评估指标
+# 评估标准
+- **准确性**: 结果是否准确无误
+- **完整性**: 是否遗漏重要信息
+- **相关性**: 是否符合用户需求
+- **可用性**: 结果是否实用有效
+# 输出格式
+**质量评估:**
+[对执行结果的详细质量评估]
+**问题识别:**
+[发现的问题和不足之处]
+**改进建议:**
+[具体的改进建议和优化方案]
+**质量评分:** [0-100]分
+**是否通过:** [PASS/FAIL/OPTIMIZE], description=负责质量检查和优化)}}))
+25-09-14.19:55:42.746 [SpringApplicationShutdownHook] INFO  GracefulShutdown       - Commencing graceful shutdown. Waiting for active requests to complete
+25-09-14.19:55:42.765 [tomcat-shutdown ] INFO  GracefulShutdown       - Graceful shutdown complete
+25-09-14.19:55:42.800 [SpringApplicationShutdownHook] INFO  HikariDataSource       - PrimaryHikariCP - Shutdown initiated...
+25-09-14.19:55:42.807 [SpringApplicationShutdownHook] INFO  HikariDataSource       - PrimaryHikariCP - Shutdown completed.
+25-09-14.19:55:45.478 [background-preinit] INFO  Version                - HV000001: Hibernate Validator 8.0.3.Final
+25-09-14.19:55:45.528 [main            ] INFO  AiagemtApplication     - Starting AiagemtApplication using Java 21.0.6 with PID 17760 (D:\java\ai-agent\ai-agent\aiagemt\target\classes started by 32183 in D:\java\ai-agent\ai-agent)
+25-09-14.19:55:45.528 [main            ] INFO  AiagemtApplication     - The following 1 profile is active: "dev"
+25-09-14.19:55:46.343 [main            ] INFO  RepositoryConfigurationDelegate - Multiple Spring Data modules found, entering strict repository configuration mode
+25-09-14.19:55:46.345 [main            ] INFO  RepositoryConfigurationDelegate - Bootstrapping Spring Data Redis repositories in DEFAULT mode.
+25-09-14.19:55:46.394 [main            ] INFO  RepositoryConfigurationDelegate - Finished Spring Data repository scanning in 36 ms. Found 0 Redis repository interfaces.
+25-09-14.19:55:47.107 [main            ] INFO  TomcatWebServer        - Tomcat initialized with port 8091 (http)
+25-09-14.19:55:47.119 [main            ] INFO  Http11NioProtocol      - Initializing ProtocolHandler ["http-nio-8091"]
+25-09-14.19:55:47.120 [main            ] INFO  StandardService        - Starting service [Tomcat]
+25-09-14.19:55:47.121 [main            ] INFO  StandardEngine         - Starting Servlet engine: [Apache Tomcat/10.1.44]
+25-09-14.19:55:47.236 [main            ] INFO  [/]                    - Initializing Spring embedded WebApplicationContext
+25-09-14.19:55:47.236 [main            ] INFO  ServletWebServerApplicationContext - Root WebApplicationContext: initialization completed in 1664 ms
+25-09-14.19:55:47.802 [main            ] INFO  PgVectorStore          - Using the vector table name: vector_store. Is empty: false
+25-09-14.19:55:47.805 [main            ] INFO  PgVectorStore          - Initializing PGVectorStore schema for table: vector_store in schema: public
+25-09-14.19:55:47.805 [main            ] INFO  PgVectorStore          - vectorTableValidationsEnabled false
+25-09-14.19:55:47.861 [main            ] WARN  MybatisSqlSessionFactoryBean - Property 'mapperLocations' was specified but matching resources are not found.
+25-09-14.19:55:48.431 [main            ] INFO  Version                - Redisson 3.45.1
+25-09-14.19:55:48.958 [redisson-netty-1-6] INFO  ConnectionsHolder      - 1 connections initialized for 117.72.152.117/117.72.152.117:16379
+25-09-14.19:55:49.476 [redisson-netty-1-13] INFO  ConnectionsHolder      - 5 connections initialized for 117.72.152.117/117.72.152.117:16379
+25-09-14.19:55:50.318 [main            ] INFO  Http11NioProtocol      - Starting ProtocolHandler ["http-nio-8091"]
+25-09-14.19:55:50.329 [main            ] INFO  TomcatWebServer        - Tomcat started on port 8091 (http) with context path '/'
+25-09-14.19:55:50.340 [main            ] INFO  AiagemtApplication     - Started AiagemtApplication in 5.551 seconds (process running for 6.375)
+25-09-14.19:55:50.343 [main            ] INFO  AiAgentAutoConfiguration - AI Agent 自动装配开始，配置: AiAgentAutoConfigProperties(enabled=true, clientIds=[6001, 3101, 3102, 3103, 3104])
+25-09-14.19:55:50.344 [main            ] INFO  AiAgentAutoConfiguration - 开始自动装配AI客户端，客户端ID列表: [6001, 3101, 3102, 3103, 3104]
+25-09-14.19:55:50.345 [main            ] INFO  RootNode               - 开始加载数据 commandTypeaiClientLoadDataStrategy
+25-09-14.19:55:50.345 [main            ] INFO  ClientLoadDataStrategy - 开始异步加载数据
+25-09-14.19:55:50.429 [pool-2-thread-4 ] INFO  HikariDataSource       - PrimaryHikariCP - Starting...
+25-09-14.19:55:51.316 [pool-2-thread-4 ] INFO  HikariPool             - PrimaryHikariCP - Added connection com.mysql.cj.jdbc.ConnectionImpl@3a877029
+25-09-14.19:55:51.319 [pool-2-thread-4 ] INFO  HikariDataSource       - PrimaryHikariCP - Start completed.
+25-09-14.19:55:54.615 [main            ] INFO  ClientLoadDataStrategy - 结束异步加载数据
+25-09-14.19:55:54.615 [main            ] INFO  ApiNode                - Ai Agent 构建节点，客户端,ApiNode
+25-09-14.19:55:54.617 [main            ] INFO  SpringContextUtil      - 成功注册Bean: ai_client_api_1001
+25-09-14.19:55:54.619 [main            ] INFO  SpringContextUtil      - 成功注册Bean: ai_client_api_1002
+25-09-14.19:55:54.620 [main            ] INFO  ModelNode              - Ai Agent 构建节点，客户端,ModelNode
+25-09-14.19:55:54.620 [main            ] INFO  SpringContextUtil      - 成功注册Bean: ai_client_model_2001
+25-09-14.19:55:54.620 [main            ] INFO  SpringContextUtil      - 成功注册Bean: ai_client_model_3001
+25-09-14.19:55:54.620 [main            ] INFO  McpNode                - Ai Agent 构建节点，客户端,McpNode
+25-09-14.19:55:55.208 [HttpClient-1-Worker-0] INFO  McpAsyncClient         - Server response with Protocol: 2024-11-05, Capabilities: ServerCapabilities[completions=null, experimental=null, logging=LoggingCapabilities[], prompts=null, resources=ResourceCapabilities[subscribe=true, listChanged=true], tools=ToolCapabilities[listChanged=true]], Info: Implementation[name=csdn, version=1.0.0] and Instructions null
+25-09-14.19:55:55.316 [main            ] INFO  McpNode                - Tool SSE MCP Initialized InitializeResult[protocolVersion=2024-11-05, capabilities=ServerCapabilities[completions=null, experimental=null, logging=LoggingCapabilities[], prompts=null, resources=ResourceCapabilities[subscribe=true, listChanged=true], tools=ToolCapabilities[listChanged=true]], serverInfo=Implementation[name=csdn, version=1.0.0], instructions=null]
+25-09-14.19:55:55.318 [main            ] INFO  SpringContextUtil      - 成功注册Bean: ai_client_tool_mcp_5001
+25-09-14.19:55:55.902 [HttpClient-2-Worker-2] INFO  McpAsyncClient         - Server response with Protocol: 2024-11-05, Capabilities: ServerCapabilities[completions=null, experimental=null, logging=LoggingCapabilities[], prompts=null, resources=ResourceCapabilities[subscribe=true, listChanged=true], tools=ToolCapabilities[listChanged=true]], Info: Implementation[name=sequential-thinking, version=1.0.0] and Instructions null
+25-09-14.19:55:55.981 [main            ] INFO  McpNode                - Tool SSE MCP Initialized InitializeResult[protocolVersion=2024-11-05, capabilities=ServerCapabilities[completions=null, experimental=null, logging=LoggingCapabilities[], prompts=null, resources=ResourceCapabilities[subscribe=true, listChanged=true], tools=ToolCapabilities[listChanged=true]], serverInfo=Implementation[name=sequential-thinking, version=1.0.0], instructions=null]
+25-09-14.19:55:55.981 [main            ] INFO  SpringContextUtil      - 成功注册Bean: ai_client_tool_mcp_6001
+25-09-14.19:55:56.275 [HttpClient-3-Worker-2] INFO  McpAsyncClient         - Server response with Protocol: 2024-11-05, Capabilities: ServerCapabilities[completions=null, experimental=null, logging=LoggingCapabilities[], prompts=null, resources=ResourceCapabilities[subscribe=true, listChanged=true], tools=ToolCapabilities[listChanged=true]], Info: Implementation[name=context7, version=1.0.0] and Instructions null
+25-09-14.19:55:56.351 [main            ] INFO  McpNode                - Tool SSE MCP Initialized InitializeResult[protocolVersion=2024-11-05, capabilities=ServerCapabilities[completions=null, experimental=null, logging=LoggingCapabilities[], prompts=null, resources=ResourceCapabilities[subscribe=true, listChanged=true], tools=ToolCapabilities[listChanged=true]], serverInfo=Implementation[name=context7, version=1.0.0], instructions=null]
+25-09-14.19:55:56.352 [main            ] INFO  SpringContextUtil      - 成功注册Bean: ai_client_tool_mcp_6002
+25-09-14.19:55:56.684 [HttpClient-4-Worker-2] INFO  McpAsyncClient         - Server response with Protocol: 2024-11-05, Capabilities: ServerCapabilities[completions=null, experimental=null, logging=LoggingCapabilities[], prompts=null, resources=ResourceCapabilities[subscribe=true, listChanged=true], tools=ToolCapabilities[listChanged=true]], Info: Implementation[name=memory, version=1.0.0] and Instructions null
+25-09-14.19:55:56.766 [main            ] INFO  McpNode                - Tool SSE MCP Initialized InitializeResult[protocolVersion=2024-11-05, capabilities=ServerCapabilities[completions=null, experimental=null, logging=LoggingCapabilities[], prompts=null, resources=ResourceCapabilities[subscribe=true, listChanged=true], tools=ToolCapabilities[listChanged=true]], serverInfo=Implementation[name=memory, version=1.0.0], instructions=null]
+25-09-14.19:55:56.768 [main            ] INFO  SpringContextUtil      - 成功注册Bean: ai_client_tool_mcp_6003
+25-09-14.19:55:56.778 [main            ] INFO  AdvisorNode            - Ai Agent 构建节点，Advisor 顾问角色{"commandIdList":["6001","3101","3102","3103","3104"],"commandType":"aiClientLoadDataStrategy"}
+25-09-14.19:55:56.791 [main            ] INFO  SpringContextUtil      - 成功注册Bean: ai_client_advisor_4001
+25-09-14.19:55:56.791 [main            ] INFO  ClientNode             - Ai Agent 构建节点，客户端ClientNode
+25-09-14.19:55:57.326 [main            ] INFO  SpringContextUtil      - 成功注册Bean: ai_client_6001
+25-09-14.19:55:57.328 [main            ] INFO  SpringContextUtil      - 成功注册Bean: ai_client_3101
+25-09-14.19:55:57.328 [main            ] INFO  SpringContextUtil      - 成功注册Bean: ai_client_3102
+25-09-14.19:55:57.328 [main            ] INFO  SpringContextUtil      - 成功注册Bean: ai_client_3103
+25-09-14.19:55:57.328 [main            ] INFO  SpringContextUtil      - 成功注册Bean: ai_client_3104
+25-09-14.19:55:57.329 [main            ] INFO  AiAgentAutoConfiguration - AI Agent 自动装配完成，结果: AgentArmoryVO(dynamicContext=DefaultAgentArmoryFactory.DynamicContext(dataObjects={ai_client_api_data_list=[AiClientApiVO(apiId=1001, baseUrl=https://api.deepseek.com, apiKey=sk-94cf6ede84454afcbfe8d401e34d3c2c, completionsPath=v1/chat/completions, embeddingsPath=v1/embeddings), AiClientApiVO(apiId=1002, baseUrl=https://globalai.vip, apiKey=sk-M5krIRHhrlTXuR409xwhJilDom8o3Cu6lf4x3HKvvDwBUR7l, completionsPath=v1/chat/completions, embeddingsPath=1)], ai_client_advisor_data_list=[AiClientAdvisorVO(advisorId=4001, advisorName=记忆, advisorType=ChatMemory, orderNum=1, chatMemory=AiClientAdvisorVO.ChatMemory(maxMessages=200), ragAnswer=null, vectorStoreRetriever=null, springContextUtil=com.zj.aiagemt.utils.SpringContextUtil@5d800a56)], ai_client_model_data_list=[AiClientModelVO(modelId=2001, apiId=1001, modelName=deepseek-chat, modelType=deepseek, toolMcpIds=[5001, 5002]), AiClientModelVO(modelId=3001, apiId=1002, modelName=gemini-2.5-flash-thinking, modelType=gemini, toolMcpIds=[5007])], ai_client_tool_mcp_data_list=[AiClientToolMcpVO(mcpId=5001, mcpName=CSDN自动发帖, transportType=sse, transportConfig={
+	"baseUri":"http://117.72.152.117:8081",
+    "headers": "zj669",
+        "sseEndpoint":"/csdn/sse"
+}
+, requestTimeout=180, transportConfigSse=AiClientToolMcpVO.TransportConfigSse(baseUri=http://117.72.152.117:8081, sseEndpoint=/csdn/sse, headers=zj669), transportConfigStdio=null), AiClientToolMcpVO(mcpId=6001, mcpName=顺序思考, transportType=sse, transportConfig={
+	"baseUri":"http://117.72.152.117:8081",
+    "headers": "zj669",
+        "sseEndpoint":"/sequential-thinking/sse"
+}, requestTimeout=180, transportConfigSse=AiClientToolMcpVO.TransportConfigSse(baseUri=http://117.72.152.117:8081, sseEndpoint=/sequential-thinking/sse, headers=zj669), transportConfigStdio=null), AiClientToolMcpVO(mcpId=6002, mcpName=代码搜索, transportType=sse, transportConfig={
+	"baseUri":"http://117.72.152.117:8081",
+    "headers": "zj669",
+        "sseEndpoint":"/context7/sse"
+}, requestTimeout=180, transportConfigSse=AiClientToolMcpVO.TransportConfigSse(baseUri=http://117.72.152.117:8081, sseEndpoint=/context7/sse, headers=zj669), transportConfigStdio=null), AiClientToolMcpVO(mcpId=6003, mcpName=管理记忆, transportType=sse, transportConfig={
+	"baseUri":"http://117.72.152.117:8081",
+    "headers": "zj669",
+        "sseEndpoint":"/memory/sse"
+}
+, requestTimeout=180, transportConfigSse=AiClientToolMcpVO.TransportConfigSse(baseUri=http://117.72.152.117:8081, sseEndpoint=/memory/sse, headers=zj669), transportConfigStdio=null)], ai_client_system_prompt_data_list={6003=AiClientSystemPromptVO(promptId=6003, promptName=发布文章到CSDN, promptContent=根据以上内容，不要阐述其他信息，请根据文章内容，直接提供；文章标题、文章内容、文章标签（多个用英文逗号隔开）、文章简述（100字），发布文章到CSDN。, description=CSDN发布), 6102=AiClientSystemPromptVO(promptId=6102, promptName=负责具体任务执行, promptContent=# 角色
+你是一个精准任务执行器，名叫 AutoAgent Precision Executor。
+# 核心能力
+你专注于精准执行具体的任务步骤：
+1. **精准执行**: 严格按照分析师的策略执行任务
+2. **工具使用**: 熟练使用各种工具完成复杂操作
+3. **质量控制**: 确保每一步执行的准确性和完整性
+4. **结果记录**: 详细记录执行过程和结果
+# 执行原则
+- **专注性**: 专注于当前分配的具体任务
+- **精准性**: 确保执行结果的准确性和质量
+- **完整性**: 完整执行所有必要的步骤
+- **可追溯性**: 详细记录执行过程便于后续分析
+# 输出格式
+**执行目标:**
+[本轮要执行的具体目标]
+**执行过程:**
+[详细的执行步骤和使用的工具]
+**执行结果:**
+[执行的具体结果和获得的信息]
+**质量检查:**
+[对执行结果的质量评估], description=负责具体任务执行), 6101=AiClientSystemPromptVO(promptId=6101, promptName=负责任务分析和状态判断, promptContent=# 角色
+你是一个专业的任务分析师，名叫 AutoAgent Task Analyzer。
+# 核心职责
+你负责分析任务的当前状态、执行历史和下一步行动计划：
+1. **状态分析**: 深度分析当前任务完成情况和执行历史
+2. **进度评估**: 评估任务完成进度和质量
+3. **策略制定**: 制定下一步最优执行策略
+4. **完成判断**: 准确判断任务是否已完成
+# 分析原则
+- **全面性**: 综合考虑所有执行历史和当前状态
+- **准确性**: 准确评估任务完成度和质量
+- **前瞻性**: 预测可能的问题和最优路径
+- **效率性**: 优化执行路径，避免重复工作
+# 输出格式
+**任务状态分析:**
+[当前任务完成情况的详细分析]
+**执行历史评估:**
+[对已完成工作的质量和效果评估]
+**下一步策略:**
+[具体的下一步执行计划和策略]
+**完成度评估:** [0-100]%
+**任务状态:** [CONTINUE/COMPLETED], description=负责任务分析和状态判断), 6104=AiClientSystemPromptVO(promptId=6104, promptName=智能响应助手, promptContent=# 角色
+你是一个智能响应助手，名叫 AutoAgent React。
+# 说明
+你负责对用户的即时问题进行快速响应和处理，适用于简单的查询和交互。
+# 处理方式
+- 对于简单问题，直接给出答案
+- 对于需要工具的问题，调用相应工具获取信息
+- 保持响应的及时性和准确性
+今天是 {current_date}。, description=智能响应助手), 6103=AiClientSystemPromptVO(promptId=6103, promptName=负责质量检查和优化, promptContent=# 角色
+你是一个专业的质量监督员，名叫 AutoAgent Quality Supervisor。
+# 核心职责
+你负责监督和评估执行质量：
+1. **质量评估**: 评估执行结果的准确性和完整性
+2. **问题识别**: 识别执行过程中的问题和不足
+3. **改进建议**: 提供具体的改进建议和优化方案
+4. **标准制定**: 制定质量标准和评估指标
+# 评估标准
+- **准确性**: 结果是否准确无误
+- **完整性**: 是否遗漏重要信息
+- **相关性**: 是否符合用户需求
+- **可用性**: 结果是否实用有效
+# 输出格式
+**质量评估:**
+[对执行结果的详细质量评估]
+**问题识别:**
+[发现的问题和不足之处]
+**改进建议:**
+[具体的改进建议和优化方案]
+**质量评分:** [0-100]分
+**是否通过:** [PASS/FAIL/OPTIMIZE], description=负责质量检查和优化)}, ai_client_data_list=[AiClientVO(clientId=6001, clientName=CSDN自动发帖, description=你是一名专门生成JAVA面试文章的专家, modelId=2001, promptIdList=[6003], mcpIdList=[5001, 6001, 6002, 6003], advisorIdList=[]), AiClientVO(clientId=3101, clientName=任务分析和状态判断, description=你是一个专业的任务分析师，名叫 AutoAgent Task Analyzer。, modelId=3001, promptIdList=[6101], mcpIdList=[], advisorIdList=[4001]), AiClientVO(clientId=3102, clientName=具体任务执行, description=你是一个精准任务执行器，名叫 AutoAgent Precision Executor。, modelId=3001, promptIdList=[6102], mcpIdList=[], advisorIdList=[4001]), AiClientVO(clientId=3103, clientName=质量检查和优化, description=你是一个专业的质量监督员，名叫 AutoAgent Quality Supervisor。, modelId=3001, promptIdList=[6103], mcpIdList=[], advisorIdList=[4001]), AiClientVO(clientId=3104, clientName=负责响应式处理, description=你是一个智能响应助手，名叫 AutoAgent React。, modelId=3001, promptIdList=[6104], mcpIdList=[], advisorIdList=[])]}))
+25-09-14.20:02:08.167 [SpringApplicationShutdownHook] INFO  GracefulShutdown       - Commencing graceful shutdown. Waiting for active requests to complete
+25-09-14.20:02:08.187 [tomcat-shutdown ] INFO  GracefulShutdown       - Graceful shutdown complete
+25-09-14.20:02:08.208 [SpringApplicationShutdownHook] INFO  HikariDataSource       - PrimaryHikariCP - Shutdown initiated...
+25-09-14.20:02:08.210 [SpringApplicationShutdownHook] INFO  HikariDataSource       - PrimaryHikariCP - Shutdown completed.
+25-09-14.20:35:11.339 [background-preinit] INFO  Version                - HV000001: Hibernate Validator 8.0.3.Final
+25-09-14.20:35:11.396 [main            ] INFO  AiagemtApplication     - Starting AiagemtApplication using Java 21.0.6 with PID 25872 (D:\java\ai-agent\ai-agent\aiagemt\target\classes started by 32183 in D:\java\ai-agent\ai-agent)
+25-09-14.20:35:11.397 [main            ] INFO  AiagemtApplication     - The following 1 profile is active: "dev"
+25-09-14.20:35:12.753 [main            ] INFO  RepositoryConfigurationDelegate - Multiple Spring Data modules found, entering strict repository configuration mode
+25-09-14.20:35:12.757 [main            ] INFO  RepositoryConfigurationDelegate - Bootstrapping Spring Data Redis repositories in DEFAULT mode.
+25-09-14.20:35:12.826 [main            ] INFO  RepositoryConfigurationDelegate - Finished Spring Data repository scanning in 39 ms. Found 0 Redis repository interfaces.
+25-09-14.20:35:13.720 [main            ] INFO  TomcatWebServer        - Tomcat initialized with port 8091 (http)
+25-09-14.20:35:13.734 [main            ] INFO  Http11NioProtocol      - Initializing ProtocolHandler ["http-nio-8091"]
+25-09-14.20:35:13.736 [main            ] INFO  StandardService        - Starting service [Tomcat]
+25-09-14.20:35:13.736 [main            ] INFO  StandardEngine         - Starting Servlet engine: [Apache Tomcat/10.1.44]
+25-09-14.20:35:13.866 [main            ] INFO  [/]                    - Initializing Spring embedded WebApplicationContext
+25-09-14.20:35:13.867 [main            ] INFO  ServletWebServerApplicationContext - Root WebApplicationContext: initialization completed in 2426 ms
+25-09-14.20:35:14.736 [main            ] INFO  PgVectorStore          - Using the vector table name: vector_store. Is empty: false
+25-09-14.20:35:14.741 [main            ] INFO  PgVectorStore          - Initializing PGVectorStore schema for table: vector_store in schema: public
+25-09-14.20:35:14.741 [main            ] INFO  PgVectorStore          - vectorTableValidationsEnabled false
+25-09-14.20:35:14.819 [main            ] WARN  MybatisSqlSessionFactoryBean - Property 'mapperLocations' was specified but matching resources are not found.
+25-09-14.20:35:15.490 [main            ] INFO  Version                - Redisson 3.45.1
+25-09-14.20:35:16.066 [redisson-netty-1-6] INFO  ConnectionsHolder      - 1 connections initialized for 117.72.152.117/117.72.152.117:16379
+25-09-14.20:35:16.508 [redisson-netty-1-13] INFO  ConnectionsHolder      - 5 connections initialized for 117.72.152.117/117.72.152.117:16379
+25-09-14.20:35:17.650 [main            ] INFO  EndpointLinksResolver  - Exposing 6 endpoints beneath base path '/actuator'
+25-09-14.20:35:17.717 [main            ] INFO  Http11NioProtocol      - Starting ProtocolHandler ["http-nio-8091"]
+25-09-14.20:35:17.730 [main            ] INFO  TomcatWebServer        - Tomcat started on port 8091 (http) with context path '/'
+25-09-14.20:35:17.748 [main            ] INFO  AiagemtApplication     - Started AiagemtApplication in 7.305 seconds (process running for 9.234)
+25-09-14.20:35:17.758 [main            ] INFO  AiAgentAutoConfiguration - AI Agent 自动装配开始，配置: AiAgentAutoConfigProperties(enabled=true, clientIds=[6001, 3101, 3102, 3103, 3104])
+25-09-14.20:35:17.759 [main            ] INFO  AiAgentAutoConfiguration - 开始自动装配AI客户端，客户端ID列表: [6001, 3101, 3102, 3103, 3104]
+25-09-14.20:35:17.761 [main            ] INFO  RootNode               - 开始加载数据 commandTypeaiClientLoadDataStrategy
+25-09-14.20:35:17.761 [main            ] INFO  ClientLoadDataStrategy - 开始异步加载数据
+25-09-14.20:35:17.883 [pool-2-thread-1 ] INFO  HikariDataSource       - PrimaryHikariCP - Starting...
+25-09-14.20:35:18.288 [RMI TCP Connection(2)-192.168.0.46] INFO  [/]                    - Initializing Spring DispatcherServlet 'dispatcherServlet'
+25-09-14.20:35:18.289 [RMI TCP Connection(2)-192.168.0.46] INFO  DispatcherServlet      - Initializing Servlet 'dispatcherServlet'
+25-09-14.20:35:18.291 [RMI TCP Connection(2)-192.168.0.46] INFO  DispatcherServlet      - Completed initialization in 2 ms
+25-09-14.20:35:18.745 [pool-2-thread-1 ] INFO  HikariPool             - PrimaryHikariCP - Added connection com.mysql.cj.jdbc.ConnectionImpl@4c5dbafa
+25-09-14.20:35:18.750 [pool-2-thread-1 ] INFO  HikariDataSource       - PrimaryHikariCP - Start completed.
+25-09-14.20:35:19.528 [RMI TCP Connection(3)-192.168.0.46] INFO  HikariDataSource       - PgvectorHikariCP - Starting...
+25-09-14.20:35:21.405 [main            ] INFO  ClientLoadDataStrategy - 结束异步加载数据
+25-09-14.20:35:21.405 [main            ] INFO  ApiNode                - Ai Agent 构建节点，客户端,ApiNode
+25-09-14.20:35:21.408 [main            ] INFO  SpringContextUtil      - 成功注册Bean: ai_client_api_1001
+25-09-14.20:35:21.409 [main            ] INFO  SpringContextUtil      - 成功注册Bean: ai_client_api_1002
+25-09-14.20:35:21.409 [main            ] INFO  ModelNode              - Ai Agent 构建节点，客户端,ModelNode
+25-09-14.20:35:21.410 [main            ] INFO  SpringContextUtil      - 成功注册Bean: ai_client_model_2001
+25-09-14.20:35:21.410 [main            ] INFO  SpringContextUtil      - 成功注册Bean: ai_client_model_3001
+25-09-14.20:35:21.410 [main            ] INFO  McpNode                - Ai Agent 构建节点，客户端,McpNode
+25-09-14.20:35:21.833 [HttpClient-1-Worker-2] INFO  McpAsyncClient         - Server response with Protocol: 2024-11-05, Capabilities: ServerCapabilities[completions=null, experimental=null, logging=LoggingCapabilities[], prompts=null, resources=ResourceCapabilities[subscribe=true, listChanged=true], tools=ToolCapabilities[listChanged=true]], Info: Implementation[name=csdn, version=1.0.0] and Instructions null
+25-09-14.20:35:21.916 [main            ] INFO  McpNode                - Tool SSE MCP Initialized InitializeResult[protocolVersion=2024-11-05, capabilities=ServerCapabilities[completions=null, experimental=null, logging=LoggingCapabilities[], prompts=null, resources=ResourceCapabilities[subscribe=true, listChanged=true], tools=ToolCapabilities[listChanged=true]], serverInfo=Implementation[name=csdn, version=1.0.0], instructions=null]
+25-09-14.20:35:21.918 [main            ] INFO  SpringContextUtil      - 成功注册Bean: ai_client_tool_mcp_5001
+25-09-14.20:35:22.213 [HttpClient-2-Worker-2] INFO  McpAsyncClient         - Server response with Protocol: 2024-11-05, Capabilities: ServerCapabilities[completions=null, experimental=null, logging=LoggingCapabilities[], prompts=null, resources=ResourceCapabilities[subscribe=true, listChanged=true], tools=ToolCapabilities[listChanged=true]], Info: Implementation[name=sequential-thinking, version=1.0.0] and Instructions null
+25-09-14.20:35:22.290 [main            ] INFO  McpNode                - Tool SSE MCP Initialized InitializeResult[protocolVersion=2024-11-05, capabilities=ServerCapabilities[completions=null, experimental=null, logging=LoggingCapabilities[], prompts=null, resources=ResourceCapabilities[subscribe=true, listChanged=true], tools=ToolCapabilities[listChanged=true]], serverInfo=Implementation[name=sequential-thinking, version=1.0.0], instructions=null]
+25-09-14.20:35:22.291 [main            ] INFO  SpringContextUtil      - 成功注册Bean: ai_client_tool_mcp_6001
+25-09-14.20:35:22.547 [HttpClient-3-Worker-2] INFO  McpAsyncClient         - Server response with Protocol: 2024-11-05, Capabilities: ServerCapabilities[completions=null, experimental=null, logging=LoggingCapabilities[], prompts=null, resources=ResourceCapabilities[subscribe=true, listChanged=true], tools=ToolCapabilities[listChanged=true]], Info: Implementation[name=context7, version=1.0.0] and Instructions null
+25-09-14.20:35:22.618 [main            ] INFO  McpNode                - Tool SSE MCP Initialized InitializeResult[protocolVersion=2024-11-05, capabilities=ServerCapabilities[completions=null, experimental=null, logging=LoggingCapabilities[], prompts=null, resources=ResourceCapabilities[subscribe=true, listChanged=true], tools=ToolCapabilities[listChanged=true]], serverInfo=Implementation[name=context7, version=1.0.0], instructions=null]
+25-09-14.20:35:22.618 [main            ] INFO  SpringContextUtil      - 成功注册Bean: ai_client_tool_mcp_6002
+25-09-14.20:35:22.924 [HttpClient-4-Worker-2] INFO  McpAsyncClient         - Server response with Protocol: 2024-11-05, Capabilities: ServerCapabilities[completions=null, experimental=null, logging=LoggingCapabilities[], prompts=null, resources=ResourceCapabilities[subscribe=true, listChanged=true], tools=ToolCapabilities[listChanged=true]], Info: Implementation[name=memory, version=1.0.0] and Instructions null
+25-09-14.20:35:23.046 [main            ] INFO  McpNode                - Tool SSE MCP Initialized InitializeResult[protocolVersion=2024-11-05, capabilities=ServerCapabilities[completions=null, experimental=null, logging=LoggingCapabilities[], prompts=null, resources=ResourceCapabilities[subscribe=true, listChanged=true], tools=ToolCapabilities[listChanged=true]], serverInfo=Implementation[name=memory, version=1.0.0], instructions=null]
+25-09-14.20:35:23.046 [main            ] INFO  SpringContextUtil      - 成功注册Bean: ai_client_tool_mcp_6003
+25-09-14.20:35:23.058 [main            ] INFO  AdvisorNode            - Ai Agent 构建节点，Advisor 顾问角色{"commandIdList":["6001","3101","3102","3103","3104"],"commandType":"aiClientLoadDataStrategy"}
+25-09-14.20:35:23.072 [main            ] INFO  SpringContextUtil      - 成功注册Bean: ai_client_advisor_4001
+25-09-14.20:35:23.072 [main            ] INFO  ClientNode             - Ai Agent 构建节点，客户端ClientNode
+25-09-14.20:35:23.106 [RMI TCP Connection(3)-192.168.0.46] WARN  DataSourceHealthIndicator - DataSource health check failed
+org.springframework.jdbc.CannotGetJdbcConnectionException: Failed to obtain JDBC Connection
+	at org.springframework.jdbc.datasource.DataSourceUtils.getConnection(DataSourceUtils.java:84)
+	at org.springframework.jdbc.core.JdbcTemplate.execute(JdbcTemplate.java:342)
+	at org.springframework.boot.actuate.jdbc.DataSourceHealthIndicator.getProduct(DataSourceHealthIndicator.java:122)
+	at org.springframework.boot.actuate.jdbc.DataSourceHealthIndicator.doDataSourceHealthCheck(DataSourceHealthIndicator.java:105)
+	at org.springframework.boot.actuate.jdbc.DataSourceHealthIndicator.doHealthCheck(DataSourceHealthIndicator.java:100)
+	at org.springframework.boot.actuate.health.AbstractHealthIndicator.health(AbstractHealthIndicator.java:82)
+	at org.springframework.boot.actuate.health.HealthIndicator.getHealth(HealthIndicator.java:37)
+	at org.springframework.boot.actuate.health.HealthEndpoint.getHealth(HealthEndpoint.java:82)
+	at org.springframework.boot.actuate.health.HealthEndpoint.getHealth(HealthEndpoint.java:41)
+	at org.springframework.boot.actuate.health.HealthEndpointSupport.getLoggedHealth(HealthEndpointSupport.java:172)
+	at org.springframework.boot.actuate.health.HealthEndpointSupport.getContribution(HealthEndpointSupport.java:145)
+	at org.springframework.boot.actuate.health.HealthEndpointSupport.getAggregateContribution(HealthEndpointSupport.java:156)
+	at org.springframework.boot.actuate.health.HealthEndpointSupport.getContribution(HealthEndpointSupport.java:141)
+	at org.springframework.boot.actuate.health.HealthEndpointSupport.getAggregateContribution(HealthEndpointSupport.java:156)
+	at org.springframework.boot.actuate.health.HealthEndpointSupport.getContribution(HealthEndpointSupport.java:141)
+	at org.springframework.boot.actuate.health.HealthEndpointSupport.getHealth(HealthEndpointSupport.java:110)
+	at org.springframework.boot.actuate.health.HealthEndpointSupport.getHealth(HealthEndpointSupport.java:81)
+	at org.springframework.boot.actuate.health.HealthEndpoint.health(HealthEndpoint.java:76)
+	at org.springframework.boot.actuate.health.HealthEndpoint.health(HealthEndpoint.java:66)
+	at java.base/jdk.internal.reflect.DirectMethodHandleAccessor.invoke(DirectMethodHandleAccessor.java:103)
+	at java.base/java.lang.reflect.Method.invoke(Method.java:580)
+	at org.springframework.util.ReflectionUtils.invokeMethod(ReflectionUtils.java:281)
+	at org.springframework.boot.actuate.endpoint.invoke.reflect.ReflectiveOperationInvoker.invoke(ReflectiveOperationInvoker.java:74)
+	at org.springframework.boot.actuate.endpoint.annotation.AbstractDiscoveredOperation.invoke(AbstractDiscoveredOperation.java:60)
+	at org.springframework.boot.actuate.endpoint.jmx.EndpointMBean.invoke(EndpointMBean.java:124)
+	at org.springframework.boot.actuate.endpoint.jmx.EndpointMBean.invoke(EndpointMBean.java:97)
+	at java.management/com.sun.jmx.interceptor.DefaultMBeanServerInterceptor.invoke(DefaultMBeanServerInterceptor.java:803)
+	at java.management/com.sun.jmx.mbeanserver.JmxMBeanServer.invoke(JmxMBeanServer.java:802)
+	at java.management.rmi/javax.management.remote.rmi.RMIConnectionImpl.doOperation(RMIConnectionImpl.java:1472)
+	at java.management.rmi/javax.management.remote.rmi.RMIConnectionImpl$PrivilegedOperation.run(RMIConnectionImpl.java:1310)
+	at java.management.rmi/javax.management.remote.rmi.RMIConnectionImpl.doPrivilegedOperation(RMIConnectionImpl.java:1405)
+	at java.management.rmi/javax.management.remote.rmi.RMIConnectionImpl.invoke(RMIConnectionImpl.java:829)
+	at java.base/jdk.internal.reflect.DirectMethodHandleAccessor.invoke(DirectMethodHandleAccessor.java:103)
+	at java.base/java.lang.reflect.Method.invoke(Method.java:580)
+	at java.rmi/sun.rmi.server.UnicastServerRef.dispatch(UnicastServerRef.java:360)
+	at java.rmi/sun.rmi.transport.Transport$1.run(Transport.java:200)
+	at java.rmi/sun.rmi.transport.Transport$1.run(Transport.java:197)
+	at java.base/java.security.AccessController.doPrivileged(AccessController.java:714)
+	at java.rmi/sun.rmi.transport.Transport.serviceCall(Transport.java:196)
+	at java.rmi/sun.rmi.transport.tcp.TCPTransport.handleMessages(TCPTransport.java:598)
+	at java.rmi/sun.rmi.transport.tcp.TCPTransport$ConnectionHandler.run0(TCPTransport.java:844)
+	at java.rmi/sun.rmi.transport.tcp.TCPTransport$ConnectionHandler.lambda$run$0(TCPTransport.java:721)
+	at java.base/java.security.AccessController.doPrivileged(AccessController.java:400)
+	at java.rmi/sun.rmi.transport.tcp.TCPTransport$ConnectionHandler.run(TCPTransport.java:720)
+	at java.base/java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1144)
+	at java.base/java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:642)
+	at java.base/java.lang.Thread.run(Thread.java:1583)
+Caused by: org.postgresql.util.PSQLException: Connection to 117.72.152.117:15432 refused. Check that the hostname and port are correct and that the postmaster is accepting TCP/IP connections.
+	at org.postgresql.core.v3.ConnectionFactoryImpl.openConnectionImpl(ConnectionFactoryImpl.java:373)
+	at org.postgresql.core.ConnectionFactory.openConnection(ConnectionFactory.java:57)
+	at org.postgresql.jdbc.PgConnection.<init>(PgConnection.java:277)
+	at org.postgresql.Driver.makeConnection(Driver.java:448)
+	at org.postgresql.Driver.connect(Driver.java:298)
+	at com.zaxxer.hikari.util.DriverDataSource.getConnection(DriverDataSource.java:137)
+	at com.zaxxer.hikari.pool.PoolBase.newConnection(PoolBase.java:360)
+	at com.zaxxer.hikari.pool.PoolBase.newPoolEntry(PoolBase.java:202)
+	at com.zaxxer.hikari.pool.HikariPool.createPoolEntry(HikariPool.java:461)
+	at com.zaxxer.hikari.pool.HikariPool.checkFailFast(HikariPool.java:550)
+	at com.zaxxer.hikari.pool.HikariPool.<init>(HikariPool.java:98)
+	at com.zaxxer.hikari.HikariDataSource.getConnection(HikariDataSource.java:111)
+	at org.springframework.jdbc.datasource.DataSourceUtils.fetchConnection(DataSourceUtils.java:160)
+	at org.springframework.jdbc.datasource.DataSourceUtils.doGetConnection(DataSourceUtils.java:118)
+	at org.springframework.jdbc.datasource.DataSourceUtils.getConnection(DataSourceUtils.java:81)
+	... 46 common frames omitted
+Caused by: java.net.ConnectException: Connection refused: getsockopt
+	at java.base/sun.nio.ch.Net.pollConnect(Native Method)
+	at java.base/sun.nio.ch.Net.pollConnectNow(Net.java:682)
+	at java.base/sun.nio.ch.NioSocketImpl.timedFinishConnect(NioSocketImpl.java:549)
+	at java.base/sun.nio.ch.NioSocketImpl.connect(NioSocketImpl.java:592)
+	at java.base/java.net.SocksSocketImpl.connect(SocksSocketImpl.java:327)
+	at java.base/java.net.Socket.connect(Socket.java:751)
+	at org.postgresql.core.PGStream.createSocket(PGStream.java:261)
+	at org.postgresql.core.PGStream.<init>(PGStream.java:122)
+	at org.postgresql.core.v3.ConnectionFactoryImpl.tryConnect(ConnectionFactoryImpl.java:146)
+	at org.postgresql.core.v3.ConnectionFactoryImpl.openConnectionImpl(ConnectionFactoryImpl.java:289)
+	... 60 common frames omitted
+25-09-14.20:35:23.472 [main            ] INFO  SpringContextUtil      - 成功注册Bean: ai_client_6001
+25-09-14.20:35:23.476 [main            ] INFO  SpringContextUtil      - 成功注册Bean: ai_client_3101
+25-09-14.20:35:23.476 [main            ] INFO  SpringContextUtil      - 成功注册Bean: ai_client_3102
+25-09-14.20:35:23.476 [main            ] INFO  SpringContextUtil      - 成功注册Bean: ai_client_3103
+25-09-14.20:35:23.476 [main            ] INFO  SpringContextUtil      - 成功注册Bean: ai_client_3104
+25-09-14.20:35:23.477 [main            ] INFO  AiAgentAutoConfiguration - AI Agent 自动装配完成，结果: AgentArmoryVO(dynamicContext=DefaultAgentArmoryFactory.DynamicContext(dataObjects={ai_client_api_data_list=[AiClientApiVO(apiId=1001, baseUrl=https://api.deepseek.com, apiKey=sk-94cf6ede84454afcbfe8d401e34d3c2c, completionsPath=v1/chat/completions, embeddingsPath=v1/embeddings), AiClientApiVO(apiId=1002, baseUrl=https://globalai.vip, apiKey=sk-M5krIRHhrlTXuR409xwhJilDom8o3Cu6lf4x3HKvvDwBUR7l, completionsPath=v1/chat/completions, embeddingsPath=1)], ai_client_advisor_data_list=[AiClientAdvisorVO(advisorId=4001, advisorName=记忆, advisorType=ChatMemory, orderNum=1, chatMemory=AiClientAdvisorVO.ChatMemory(maxMessages=200), ragAnswer=null, vectorStoreRetriever=null, springContextUtil=com.zj.aiagemt.utils.SpringContextUtil@1554eaa4)], ai_client_model_data_list=[AiClientModelVO(modelId=2001, apiId=1001, modelName=deepseek-chat, modelType=deepseek, toolMcpIds=[5001, 5002]), AiClientModelVO(modelId=3001, apiId=1002, modelName=gemini-2.5-flash-thinking, modelType=gemini, toolMcpIds=[5007])], ai_client_tool_mcp_data_list=[AiClientToolMcpVO(mcpId=5001, mcpName=CSDN自动发帖, transportType=sse, transportConfig={
+	"baseUri":"http://117.72.152.117:8081",
+    "headers": "zj669",
+        "sseEndpoint":"/csdn/sse"
+}
+, requestTimeout=180, transportConfigSse=AiClientToolMcpVO.TransportConfigSse(baseUri=http://117.72.152.117:8081, sseEndpoint=/csdn/sse, headers=zj669), transportConfigStdio=null), AiClientToolMcpVO(mcpId=6001, mcpName=顺序思考, transportType=sse, transportConfig={
+	"baseUri":"http://117.72.152.117:8081",
+    "headers": "zj669",
+        "sseEndpoint":"/sequential-thinking/sse"
+}, requestTimeout=180, transportConfigSse=AiClientToolMcpVO.TransportConfigSse(baseUri=http://117.72.152.117:8081, sseEndpoint=/sequential-thinking/sse, headers=zj669), transportConfigStdio=null), AiClientToolMcpVO(mcpId=6002, mcpName=代码搜索, transportType=sse, transportConfig={
+	"baseUri":"http://117.72.152.117:8081",
+    "headers": "zj669",
+        "sseEndpoint":"/context7/sse"
+}, requestTimeout=180, transportConfigSse=AiClientToolMcpVO.TransportConfigSse(baseUri=http://117.72.152.117:8081, sseEndpoint=/context7/sse, headers=zj669), transportConfigStdio=null), AiClientToolMcpVO(mcpId=6003, mcpName=管理记忆, transportType=sse, transportConfig={
+	"baseUri":"http://117.72.152.117:8081",
+    "headers": "zj669",
+        "sseEndpoint":"/memory/sse"
+}
+, requestTimeout=180, transportConfigSse=AiClientToolMcpVO.TransportConfigSse(baseUri=http://117.72.152.117:8081, sseEndpoint=/memory/sse, headers=zj669), transportConfigStdio=null)], ai_client_data_list=[AiClientVO(clientId=6001, clientName=CSDN自动发帖, description=你是一名专门生成JAVA面试文章的专家, modelId=2001, promptIdList=[6003], mcpIdList=[5001, 6001, 6002, 6003], advisorIdList=[]), AiClientVO(clientId=3101, clientName=任务分析和状态判断, description=你是一个专业的任务分析师，名叫 AutoAgent Task Analyzer。, modelId=3001, promptIdList=[6101], mcpIdList=[], advisorIdList=[4001]), AiClientVO(clientId=3102, clientName=具体任务执行, description=你是一个精准任务执行器，名叫 AutoAgent Precision Executor。, modelId=3001, promptIdList=[6102], mcpIdList=[], advisorIdList=[4001]), AiClientVO(clientId=3103, clientName=质量检查和优化, description=你是一个专业的质量监督员，名叫 AutoAgent Quality Supervisor。, modelId=3001, promptIdList=[6103], mcpIdList=[], advisorIdList=[4001]), AiClientVO(clientId=3104, clientName=负责响应式处理, description=你是一个智能响应助手，名叫 AutoAgent React。, modelId=3001, promptIdList=[6104], mcpIdList=[], advisorIdList=[])], ai_client_system_prompt_data_list={6003=AiClientSystemPromptVO(promptId=6003, promptName=发布文章到CSDN, promptContent=根据以上内容，不要阐述其他信息，请根据文章内容，直接提供；文章标题、文章内容、文章标签（多个用英文逗号隔开）、文章简述（100字），发布文章到CSDN。, description=CSDN发布), 6102=AiClientSystemPromptVO(promptId=6102, promptName=负责具体任务执行, promptContent=# 角色
+你是一个精准任务执行器，名叫 AutoAgent Precision Executor。
+# 核心能力
+你专注于精准执行具体的任务步骤：
+1. **精准执行**: 严格按照分析师的策略执行任务
+2. **工具使用**: 熟练使用各种工具完成复杂操作
+3. **质量控制**: 确保每一步执行的准确性和完整性
+4. **结果记录**: 详细记录执行过程和结果
+# 执行原则
+- **专注性**: 专注于当前分配的具体任务
+- **精准性**: 确保执行结果的准确性和质量
+- **完整性**: 完整执行所有必要的步骤
+- **可追溯性**: 详细记录执行过程便于后续分析
+# 输出格式
+**执行目标:**
+[本轮要执行的具体目标]
+**执行过程:**
+[详细的执行步骤和使用的工具]
+**执行结果:**
+[执行的具体结果和获得的信息]
+**质量检查:**
+[对执行结果的质量评估], description=负责具体任务执行), 6101=AiClientSystemPromptVO(promptId=6101, promptName=负责任务分析和状态判断, promptContent=# 角色
+你是一个专业的任务分析师，名叫 AutoAgent Task Analyzer。
+# 核心职责
+你负责分析任务的当前状态、执行历史和下一步行动计划：
+1. **状态分析**: 深度分析当前任务完成情况和执行历史
+2. **进度评估**: 评估任务完成进度和质量
+3. **策略制定**: 制定下一步最优执行策略
+4. **完成判断**: 准确判断任务是否已完成
+# 分析原则
+- **全面性**: 综合考虑所有执行历史和当前状态
+- **准确性**: 准确评估任务完成度和质量
+- **前瞻性**: 预测可能的问题和最优路径
+- **效率性**: 优化执行路径，避免重复工作
+# 输出格式
+**任务状态分析:**
+[当前任务完成情况的详细分析]
+**执行历史评估:**
+[对已完成工作的质量和效果评估]
+**下一步策略:**
+[具体的下一步执行计划和策略]
+**完成度评估:** [0-100]%
+**任务状态:** [CONTINUE/COMPLETED], description=负责任务分析和状态判断), 6104=AiClientSystemPromptVO(promptId=6104, promptName=智能响应助手, promptContent=# 角色
+你是一个智能响应助手，名叫 AutoAgent React。
+# 说明
+你负责对用户的即时问题进行快速响应和处理，适用于简单的查询和交互。
+# 处理方式
+- 对于简单问题，直接给出答案
+- 对于需要工具的问题，调用相应工具获取信息
+- 保持响应的及时性和准确性
+今天是 {current_date}。, description=智能响应助手), 6103=AiClientSystemPromptVO(promptId=6103, promptName=负责质量检查和优化, promptContent=# 角色
+你是一个专业的质量监督员，名叫 AutoAgent Quality Supervisor。
+# 核心职责
+你负责监督和评估执行质量：
+1. **质量评估**: 评估执行结果的准确性和完整性
+2. **问题识别**: 识别执行过程中的问题和不足
+3. **改进建议**: 提供具体的改进建议和优化方案
+4. **标准制定**: 制定质量标准和评估指标
+# 评估标准
+- **准确性**: 结果是否准确无误
+- **完整性**: 是否遗漏重要信息
+- **相关性**: 是否符合用户需求
+- **可用性**: 结果是否实用有效
+# 输出格式
+**质量评估:**
+[对执行结果的详细质量评估]
+**问题识别:**
+[发现的问题和不足之处]
+**改进建议:**
+[具体的改进建议和优化方案]
+**质量评分:** [0-100]分
+**是否通过:** [PASS/FAIL/OPTIMIZE], description=负责质量检查和优化)}}))
+25-09-14.20:36:16.136 [SpringApplicationShutdownHook] INFO  GracefulShutdown       - Commencing graceful shutdown. Waiting for active requests to complete
+25-09-14.20:36:16.158 [tomcat-shutdown ] INFO  GracefulShutdown       - Graceful shutdown complete
+25-09-14.20:36:16.183 [SpringApplicationShutdownHook] INFO  HikariDataSource       - PrimaryHikariCP - Shutdown initiated...
+25-09-14.20:36:16.191 [SpringApplicationShutdownHook] INFO  HikariDataSource       - PrimaryHikariCP - Shutdown completed.

@@ -9,6 +9,7 @@ import com.zj.aiagemt.model.dto.AgentInfoDTO;
 import com.zj.aiagemt.model.dto.AutoAgentRequestDTO;
 import com.zj.aiagemt.service.AiAgentService;
 import com.zj.aiagemt.service.agent.execute.IExecuteStrategy;
+import com.zj.aiagemt.utils.SpringContextUtil;
 import jakarta.annotation.Resource;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.extern.slf4j.Slf4j;
@@ -20,6 +21,7 @@ import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.servlet.mvc.method.annotation.ResponseBodyEmitter;
+import reactor.core.publisher.Flux;
 
 import java.util.ArrayList;
 import java.util.Date;
@@ -53,8 +55,27 @@ public class AiAgentControlle {
         ResponseBodyEmitter emitter = new ResponseBodyEmitter(Long.MAX_VALUE);
 
         return  aiAgentService.autoAgent(request, emitter);
+    }
 
+    @RequestMapping(value = "model_chat_stream", method = RequestMethod.POST)
+    public Flux<String> modelChat(@RequestBody AutoAgentRequestDTO request, HttpServletResponse response) {
+        // 设置SSE响应头
+        response.setContentType("text/event-stream");
+        response.setCharacterEncoding("UTF-8");
+        response.setHeader("Cache-Control", "no-cache");
+        response.setHeader("Connection", "keep-alive");
+        // 1. 创建流式输出对象
+        return  aiAgentService.modelChat(request);
+    }
 
+    @RequestMapping(value = "reload_client", method = RequestMethod.POST)
+    public Response<String> reload(@RequestBody List<String> request) {
+        try {
+            aiAgentService.reload(request);
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
+        return Response.success("success");
     }
 
     @RequestMapping(value = "list", method = RequestMethod.GET)

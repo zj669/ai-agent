@@ -12,9 +12,11 @@ import io.modelcontextprotocol.client.McpSyncClient;
 import io.modelcontextprotocol.client.transport.HttpClientSseClientTransport;
 import io.modelcontextprotocol.client.transport.ServerParameters;
 import io.modelcontextprotocol.client.transport.StdioClientTransport;
+import io.modelcontextprotocol.spec.McpSchema;
 import jakarta.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
+import org.springframework.ai.tool.method.MethodToolCallbackProvider;
 import org.springframework.http.HttpHeaders;
 import org.springframework.stereotype.Component;
 
@@ -107,7 +109,6 @@ private McpSyncClient createMcpSyncClient(AiClientToolMcpVO aiClientToolMcpVO) {
                     .args(stdio.getArgs())
                     .env(stdio.getEnv())
                     .build();
-
             var mcpClient = McpClient.sync(new StdioClientTransport(stdioParams))
                     .requestTimeout(Duration.ofSeconds(aiClientToolMcpVO.getRequestTimeout())).build();
             var init_stdio = mcpClient.initialize();

@@ -111,17 +111,3 @@ public class DataSourceConfig {
     }
 
 }
-
-
-/**
- * MyBatis Mapper扫描配置
- */
-@Configuration
-@MapperScan(
-        basePackages = "com.zj.aiagemt.mapper",
-        sqlSessionFactoryRef = "primarySqlSessionFactory"
-)
-class MybatisMapperScanConfig {
-}
-
-
