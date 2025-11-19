@@ -3,8 +3,8 @@ package com.zj.aiagemt;
 import com.zj.aiagemt.common.design.ruletree.StrategyHandler;
 import com.zj.aiagemt.model.bo.ArmoryCommandEntity;
 import com.zj.aiagemt.model.enums.AiAgentEnumVO;
-import com.zj.aiagemt.service.agent.armory.factory.DefaultAgentArmoryFactory;
-import com.zj.aiagemt.service.agent.armory.model.AgentArmoryVO;
+import com.zj.aiagemt.service.agent.impl.armory.factory.DefaultAgentArmoryFactory;
+import com.zj.aiagemt.service.agent.impl.armory.model.AgentArmoryVO;
 import com.zj.aiagemt.utils.SpringContextUtil;
 import jakarta.annotation.Resource;
 import org.junit.jupiter.api.Test;
@@ -12,7 +12,6 @@ import org.springframework.ai.chat.client.ChatClient;
 import org.springframework.boot.test.context.SpringBootTest;
 
 import java.util.List;
-import java.util.Scanner;
 
 @SpringBootTest
 class AiagemtApplicationTests {

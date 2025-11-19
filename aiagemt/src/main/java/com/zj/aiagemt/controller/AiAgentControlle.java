@@ -3,13 +3,10 @@ package com.zj.aiagemt.controller;
 
 import com.alibaba.fastjson.JSON;
 
-import com.zj.aiagemt.model.bo.ExecuteCommandEntity;
 import com.zj.aiagemt.model.common.Response;
 import com.zj.aiagemt.model.dto.AgentInfoDTO;
 import com.zj.aiagemt.model.dto.AutoAgentRequestDTO;
 import com.zj.aiagemt.service.AiAgentService;
-import com.zj.aiagemt.service.agent.execute.IExecuteStrategy;
-import com.zj.aiagemt.utils.SpringContextUtil;
 import jakarta.annotation.Resource;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.extern.slf4j.Slf4j;
@@ -28,7 +25,6 @@ import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.ThreadPoolExecutor;
 
 /**
  * AutoAgent 自动智能对话体

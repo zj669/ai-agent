@@ -1,19 +1,17 @@
 package com.zj.aiagemt.service;
 
 import com.zj.aiagemt.common.design.ruletree.StrategyHandler;
-import com.zj.aiagemt.mapper.impl.AgentRepository;
 import com.zj.aiagemt.model.bo.ArmoryCommandEntity;
 import com.zj.aiagemt.model.bo.ExecuteCommandEntity;
 import com.zj.aiagemt.model.dto.AutoAgentRequestDTO;
 import com.zj.aiagemt.model.enums.AiAgentEnumVO;
-import com.zj.aiagemt.service.agent.armory.factory.DefaultAgentArmoryFactory;
-import com.zj.aiagemt.service.agent.armory.model.AgentArmoryVO;
-import com.zj.aiagemt.service.agent.execute.IExecuteStrategy;
+import com.zj.aiagemt.service.agent.impl.armory.factory.DefaultAgentArmoryFactory;
+import com.zj.aiagemt.service.agent.impl.armory.model.AgentArmoryVO;
+import com.zj.aiagemt.service.agent.factory.IExecuteStrategy;
 import com.zj.aiagemt.utils.SpringContextUtil;
 import jakarta.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.ai.chat.client.ChatClient;
-import org.springframework.ai.chat.messages.Message;
 import org.springframework.ai.chat.messages.UserMessage;
 import org.springframework.stereotype.Service;
 import org.springframework.web.servlet.mvc.method.annotation.ResponseBodyEmitter;

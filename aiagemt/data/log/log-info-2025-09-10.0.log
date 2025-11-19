@@ -18,14 +18,14 @@
 25-09-10.20:57:32.294 [main            ] INFO  RootNode               - 开始加载数据 commandTypeaiClientLoadDataStrategy
 25-09-10.20:57:32.294 [main            ] INFO  ClientLoadDataStrategy - 开始异步加载数据
 25-09-10.20:57:32.320 [main            ] ERROR AiAgentAutoConfiguration - AI Agent 自动装配失败
-java.util.concurrent.CompletionException: org.apache.ibatis.binding.BindingException: Invalid bound statement (not found): com.zj.aiagemt.mapper.entity.AiClientConfigMapper.selectList
+java.util.concurrent.CompletionException: org.apache.ibatis.binding.BindingException: Invalid bound statement (not found): com.zj.aiagemt.Repository.entity.AiClientConfigMapper.selectList
 	at java.base/java.util.concurrent.CompletableFuture.encodeThrowable(CompletableFuture.java:315)
 	at java.base/java.util.concurrent.CompletableFuture.completeThrowable(CompletableFuture.java:320)
 	at java.base/java.util.concurrent.CompletableFuture$AsyncRun.run(CompletableFuture.java:1807)
 	at java.base/java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1144)
 	at java.base/java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:642)
 	at java.base/java.lang.Thread.run(Thread.java:1583)
-Caused by: org.apache.ibatis.binding.BindingException: Invalid bound statement (not found): com.zj.aiagemt.mapper.entity.AiClientConfigMapper.selectList
+Caused by: org.apache.ibatis.binding.BindingException: Invalid bound statement (not found): com.zj.aiagemt.Repository.entity.AiClientConfigMapper.selectList
 	at org.apache.ibatis.binding.MapperMethod$SqlCommand.<init>(MapperMethod.java:229)
 	at org.apache.ibatis.binding.MapperMethod.<init>(MapperMethod.java:53)
 	at org.apache.ibatis.binding.MapperProxy.lambda$cachedInvoker$0(MapperProxy.java:96)
@@ -34,7 +34,7 @@ Caused by: org.apache.ibatis.binding.BindingException: Invalid bound statement (
 	at org.apache.ibatis.binding.MapperProxy.cachedInvoker(MapperProxy.java:94)
 	at org.apache.ibatis.binding.MapperProxy.invoke(MapperProxy.java:86)
 	at jdk.proxy2/jdk.proxy2.$Proxy82.selectList(Unknown Source)
-	at com.zj.aiagemt.mapper.impl.AgentRepository.queryApiByClientIdS(AgentRepository.java:65)
+	at com.zj.aiagemt.Repository.AgentRepository.queryApiByClientIdS(AgentRepository.java:65)
 	at java.base/jdk.internal.reflect.DirectMethodHandleAccessor.invoke(DirectMethodHandleAccessor.java:103)
 	at java.base/java.lang.reflect.Method.invoke(Method.java:580)
 	at org.springframework.aop.support.AopUtils.invokeJoinpointUsingReflection(AopUtils.java:360)
@@ -43,7 +43,7 @@ Caused by: org.apache.ibatis.binding.BindingException: Invalid bound statement (
 	at org.springframework.dao.support.PersistenceExceptionTranslationInterceptor.invoke(PersistenceExceptionTranslationInterceptor.java:138)
 	at org.springframework.aop.framework.ReflectiveMethodInvocation.proceed(ReflectiveMethodInvocation.java:184)
 	at org.springframework.aop.framework.CglibAopProxy$DynamicAdvisedInterceptor.intercept(CglibAopProxy.java:728)
-	at com.zj.aiagemt.mapper.impl.AgentRepository$$SpringCGLIB$$0.queryApiByClientIdS(<generated>)
+	at com.zj.aiagemt.Repository.AgentRepository$$SpringCGLIB$$0.queryApiByClientIdS(<generated>)
 	at com.zj.aiagemt.service.agent.armory.strategy.ClientLoadDataStrategy.lambda$loadData$0(ClientLoadDataStrategy.java:26)
 	at java.base/java.util.concurrent.CompletableFuture$AsyncRun.run(CompletableFuture.java:1804)
 	... 3 common frames omitted
@@ -69,14 +69,14 @@ Caused by: org.apache.ibatis.binding.BindingException: Invalid bound statement (
 25-09-10.20:58:39.206 [main            ] INFO  RootNode               - 开始加载数据 commandTypeaiClientLoadDataStrategy
 25-09-10.20:58:39.206 [main            ] INFO  ClientLoadDataStrategy - 开始异步加载数据
 25-09-10.20:58:39.230 [main            ] ERROR AiAgentAutoConfiguration - AI Agent 自动装配失败
-java.util.concurrent.CompletionException: org.apache.ibatis.binding.BindingException: Invalid bound statement (not found): com.zj.aiagemt.mapper.entity.AiClientConfigMapper.selectList
+java.util.concurrent.CompletionException: org.apache.ibatis.binding.BindingException: Invalid bound statement (not found): com.zj.aiagemt.Repository.entity.AiClientConfigMapper.selectList
 	at java.base/java.util.concurrent.CompletableFuture.encodeThrowable(CompletableFuture.java:315)
 	at java.base/java.util.concurrent.CompletableFuture.completeThrowable(CompletableFuture.java:320)
 	at java.base/java.util.concurrent.CompletableFuture$AsyncRun.run(CompletableFuture.java:1807)
 	at java.base/java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1144)
 	at java.base/java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:642)
 	at java.base/java.lang.Thread.run(Thread.java:1583)
-Caused by: org.apache.ibatis.binding.BindingException: Invalid bound statement (not found): com.zj.aiagemt.mapper.entity.AiClientConfigMapper.selectList
+Caused by: org.apache.ibatis.binding.BindingException: Invalid bound statement (not found): com.zj.aiagemt.Repository.entity.AiClientConfigMapper.selectList
 	at org.apache.ibatis.binding.MapperMethod$SqlCommand.<init>(MapperMethod.java:229)
 	at org.apache.ibatis.binding.MapperMethod.<init>(MapperMethod.java:53)
 	at org.apache.ibatis.binding.MapperProxy.lambda$cachedInvoker$0(MapperProxy.java:96)
@@ -85,7 +85,7 @@ Caused by: org.apache.ibatis.binding.BindingException: Invalid bound statement (
 	at org.apache.ibatis.binding.MapperProxy.cachedInvoker(MapperProxy.java:94)
 	at org.apache.ibatis.binding.MapperProxy.invoke(MapperProxy.java:86)
 	at jdk.proxy2/jdk.proxy2.$Proxy82.selectList(Unknown Source)
-	at com.zj.aiagemt.mapper.impl.AgentRepository.queryApiByClientIdS(AgentRepository.java:65)
+	at com.zj.aiagemt.Repository.AgentRepository.queryApiByClientIdS(AgentRepository.java:65)
 	at java.base/jdk.internal.reflect.DirectMethodHandleAccessor.invoke(DirectMethodHandleAccessor.java:103)
 	at java.base/java.lang.reflect.Method.invoke(Method.java:580)
 	at org.springframework.aop.support.AopUtils.invokeJoinpointUsingReflection(AopUtils.java:360)
@@ -94,7 +94,7 @@ Caused by: org.apache.ibatis.binding.BindingException: Invalid bound statement (
 	at org.springframework.dao.support.PersistenceExceptionTranslationInterceptor.invoke(PersistenceExceptionTranslationInterceptor.java:138)
 	at org.springframework.aop.framework.ReflectiveMethodInvocation.proceed(ReflectiveMethodInvocation.java:184)
 	at org.springframework.aop.framework.CglibAopProxy$DynamicAdvisedInterceptor.intercept(CglibAopProxy.java:728)
-	at com.zj.aiagemt.mapper.impl.AgentRepository$$SpringCGLIB$$0.queryApiByClientIdS(<generated>)
+	at com.zj.aiagemt.Repository.AgentRepository$$SpringCGLIB$$0.queryApiByClientIdS(<generated>)
 	at com.zj.aiagemt.service.agent.armory.strategy.ClientLoadDataStrategy.lambda$loadData$0(ClientLoadDataStrategy.java:26)
 	at java.base/java.util.concurrent.CompletableFuture$AsyncRun.run(CompletableFuture.java:1804)
 	... 3 common frames omitted
@@ -120,14 +120,14 @@ Caused by: org.apache.ibatis.binding.BindingException: Invalid bound statement (
 25-09-10.21:01:30.761 [main            ] INFO  RootNode               - 开始加载数据 commandTypeaiClientLoadDataStrategy
 25-09-10.21:01:30.762 [main            ] INFO  ClientLoadDataStrategy - 开始异步加载数据
 25-09-10.21:01:30.789 [main            ] ERROR AiAgentAutoConfiguration - AI Agent 自动装配失败
-java.util.concurrent.CompletionException: org.apache.ibatis.binding.BindingException: Invalid bound statement (not found): com.zj.aiagemt.mapper.entity.AiClientConfigMapper.selectList
+java.util.concurrent.CompletionException: org.apache.ibatis.binding.BindingException: Invalid bound statement (not found): com.zj.aiagemt.Repository.entity.AiClientConfigMapper.selectList
 	at java.base/java.util.concurrent.CompletableFuture.encodeThrowable(CompletableFuture.java:315)
 	at java.base/java.util.concurrent.CompletableFuture.completeThrowable(CompletableFuture.java:320)
 	at java.base/java.util.concurrent.CompletableFuture$AsyncRun.run(CompletableFuture.java:1807)
 	at java.base/java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1144)
 	at java.base/java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:642)
 	at java.base/java.lang.Thread.run(Thread.java:1583)
-Caused by: org.apache.ibatis.binding.BindingException: Invalid bound statement (not found): com.zj.aiagemt.mapper.entity.AiClientConfigMapper.selectList
+Caused by: org.apache.ibatis.binding.BindingException: Invalid bound statement (not found): com.zj.aiagemt.Repository.entity.AiClientConfigMapper.selectList
 	at org.apache.ibatis.binding.MapperMethod$SqlCommand.<init>(MapperMethod.java:229)
 	at org.apache.ibatis.binding.MapperMethod.<init>(MapperMethod.java:53)
 	at org.apache.ibatis.binding.MapperProxy.lambda$cachedInvoker$0(MapperProxy.java:96)
@@ -136,7 +136,7 @@ Caused by: org.apache.ibatis.binding.BindingException: Invalid bound statement (
 	at org.apache.ibatis.binding.MapperProxy.cachedInvoker(MapperProxy.java:94)
 	at org.apache.ibatis.binding.MapperProxy.invoke(MapperProxy.java:86)
 	at jdk.proxy2/jdk.proxy2.$Proxy82.selectList(Unknown Source)
-	at com.zj.aiagemt.mapper.impl.AgentRepository.queryApiByClientIdS(AgentRepository.java:65)
+	at com.zj.aiagemt.Repository.AgentRepository.queryApiByClientIdS(AgentRepository.java:65)
 	at java.base/jdk.internal.reflect.DirectMethodHandleAccessor.invoke(DirectMethodHandleAccessor.java:103)
 	at java.base/java.lang.reflect.Method.invoke(Method.java:580)
 	at org.springframework.aop.support.AopUtils.invokeJoinpointUsingReflection(AopUtils.java:360)
@@ -145,7 +145,7 @@ Caused by: org.apache.ibatis.binding.BindingException: Invalid bound statement (
 	at org.springframework.dao.support.PersistenceExceptionTranslationInterceptor.invoke(PersistenceExceptionTranslationInterceptor.java:138)
 	at org.springframework.aop.framework.ReflectiveMethodInvocation.proceed(ReflectiveMethodInvocation.java:184)
 	at org.springframework.aop.framework.CglibAopProxy$DynamicAdvisedInterceptor.intercept(CglibAopProxy.java:728)
-	at com.zj.aiagemt.mapper.impl.AgentRepository$$SpringCGLIB$$0.queryApiByClientIdS(<generated>)
+	at com.zj.aiagemt.Repository.AgentRepository$$SpringCGLIB$$0.queryApiByClientIdS(<generated>)
 	at com.zj.aiagemt.service.agent.armory.strategy.ClientLoadDataStrategy.lambda$loadData$0(ClientLoadDataStrategy.java:26)
 	at java.base/java.util.concurrent.CompletableFuture$AsyncRun.run(CompletableFuture.java:1804)
 	... 3 common frames omitted
@@ -154,18 +154,18 @@ Caused by: org.apache.ibatis.binding.BindingException: Invalid bound statement (
 25-09-10.21:02:35.876 [background-preinit] INFO  Version                - HV000001: Hibernate Validator 8.0.3.Final
 25-09-10.21:02:35.953 [main            ] INFO  AiagemtApplication     - Starting AiagemtApplication using Java 21.0.6 with PID 10336 (D:\java\ai-agent\ai-agent\aiagemt\target\classes started by 32183 in D:\java\ai-agent\ai-agent)
 25-09-10.21:02:35.954 [main            ] INFO  AiagemtApplication     - The following 1 profile is active: "dev"
-25-09-10.21:02:37.073 [main            ] WARN  ClassPathMapperScanner - Skipping MapperFactoryBean with name 'aiAgentFlowConfigMapper' and 'com.zj.aiagemt.mapper.entity.AiAgentFlowConfigMapper' mapperInterface. Bean already defined with the same name!
-25-09-10.21:02:37.073 [main            ] WARN  ClassPathMapperScanner - Skipping MapperFactoryBean with name 'aiAgentMapper' and 'com.zj.aiagemt.mapper.entity.AiAgentMapper' mapperInterface. Bean already defined with the same name!
-25-09-10.21:02:37.073 [main            ] WARN  ClassPathMapperScanner - Skipping MapperFactoryBean with name 'aiAgentTaskScheduleMapper' and 'com.zj.aiagemt.mapper.entity.AiAgentTaskScheduleMapper' mapperInterface. Bean already defined with the same name!
-25-09-10.21:02:37.073 [main            ] WARN  ClassPathMapperScanner - Skipping MapperFactoryBean with name 'aiClientAdvisorMapper' and 'com.zj.aiagemt.mapper.entity.AiClientAdvisorMapper' mapperInterface. Bean already defined with the same name!
-25-09-10.21:02:37.073 [main            ] WARN  ClassPathMapperScanner - Skipping MapperFactoryBean with name 'aiClientApiMapper' and 'com.zj.aiagemt.mapper.entity.AiClientApiMapper' mapperInterface. Bean already defined with the same name!
-25-09-10.21:02:37.073 [main            ] WARN  ClassPathMapperScanner - Skipping MapperFactoryBean with name 'aiClientConfigMapper' and 'com.zj.aiagemt.mapper.entity.AiClientConfigMapper' mapperInterface. Bean already defined with the same name!
-25-09-10.21:02:37.073 [main            ] WARN  ClassPathMapperScanner - Skipping MapperFactoryBean with name 'aiClientMapper' and 'com.zj.aiagemt.mapper.entity.AiClientMapper' mapperInterface. Bean already defined with the same name!
-25-09-10.21:02:37.073 [main            ] WARN  ClassPathMapperScanner - Skipping MapperFactoryBean with name 'aiClientModelMapper' and 'com.zj.aiagemt.mapper.entity.AiClientModelMapper' mapperInterface. Bean already defined with the same name!
-25-09-10.21:02:37.073 [main            ] WARN  ClassPathMapperScanner - Skipping MapperFactoryBean with name 'aiClientRagOrderMapper' and 'com.zj.aiagemt.mapper.entity.AiClientRagOrderMapper' mapperInterface. Bean already defined with the same name!
-25-09-10.21:02:37.073 [main            ] WARN  ClassPathMapperScanner - Skipping MapperFactoryBean with name 'aiClientSystemPromptMapper' and 'com.zj.aiagemt.mapper.entity.AiClientSystemPromptMapper' mapperInterface. Bean already defined with the same name!
-25-09-10.21:02:37.074 [main            ] WARN  ClassPathMapperScanner - Skipping MapperFactoryBean with name 'aiClientToolMcpMapper' and 'com.zj.aiagemt.mapper.entity.AiClientToolMcpMapper' mapperInterface. Bean already defined with the same name!
-25-09-10.21:02:37.074 [main            ] WARN  ClassPathMapperScanner - No MyBatis mapper was found in '[com.zj.aiagemt.mapper.entity]' package. Please check your configuration.
+25-09-10.21:02:37.073 [main            ] WARN  ClassPathMapperScanner - Skipping MapperFactoryBean with name 'aiAgentFlowConfigMapper' and 'com.zj.aiagemt.Repository.entity.AiAgentFlowConfigMapper' mapperInterface. Bean already defined with the same name!
+25-09-10.21:02:37.073 [main            ] WARN  ClassPathMapperScanner - Skipping MapperFactoryBean with name 'aiAgentMapper' and 'com.zj.aiagemt.Repository.entity.AiAgentMapper' mapperInterface. Bean already defined with the same name!
+25-09-10.21:02:37.073 [main            ] WARN  ClassPathMapperScanner - Skipping MapperFactoryBean with name 'aiAgentTaskScheduleMapper' and 'com.zj.aiagemt.Repository.entity.AiAgentTaskScheduleMapper' mapperInterface. Bean already defined with the same name!
+25-09-10.21:02:37.073 [main            ] WARN  ClassPathMapperScanner - Skipping MapperFactoryBean with name 'aiClientAdvisorMapper' and 'com.zj.aiagemt.Repository.entity.AiClientAdvisorMapper' mapperInterface. Bean already defined with the same name!
+25-09-10.21:02:37.073 [main            ] WARN  ClassPathMapperScanner - Skipping MapperFactoryBean with name 'aiClientApiMapper' and 'com.zj.aiagemt.Repository.entity.AiClientApiMapper' mapperInterface. Bean already defined with the same name!
+25-09-10.21:02:37.073 [main            ] WARN  ClassPathMapperScanner - Skipping MapperFactoryBean with name 'aiClientConfigMapper' and 'com.zj.aiagemt.Repository.entity.AiClientConfigMapper' mapperInterface. Bean already defined with the same name!
+25-09-10.21:02:37.073 [main            ] WARN  ClassPathMapperScanner - Skipping MapperFactoryBean with name 'aiClientMapper' and 'com.zj.aiagemt.Repository.entity.AiClientMapper' mapperInterface. Bean already defined with the same name!
+25-09-10.21:02:37.073 [main            ] WARN  ClassPathMapperScanner - Skipping MapperFactoryBean with name 'aiClientModelMapper' and 'com.zj.aiagemt.Repository.entity.AiClientModelMapper' mapperInterface. Bean already defined with the same name!
+25-09-10.21:02:37.073 [main            ] WARN  ClassPathMapperScanner - Skipping MapperFactoryBean with name 'aiClientRagOrderMapper' and 'com.zj.aiagemt.Repository.entity.AiClientRagOrderMapper' mapperInterface. Bean already defined with the same name!
+25-09-10.21:02:37.073 [main            ] WARN  ClassPathMapperScanner - Skipping MapperFactoryBean with name 'aiClientSystemPromptMapper' and 'com.zj.aiagemt.Repository.entity.AiClientSystemPromptMapper' mapperInterface. Bean already defined with the same name!
+25-09-10.21:02:37.074 [main            ] WARN  ClassPathMapperScanner - Skipping MapperFactoryBean with name 'aiClientToolMcpMapper' and 'com.zj.aiagemt.Repository.entity.AiClientToolMcpMapper' mapperInterface. Bean already defined with the same name!
+25-09-10.21:02:37.074 [main            ] WARN  ClassPathMapperScanner - No MyBatis mapper was found in '[com.zj.aiagemt.Repository.entity]' package. Please check your configuration.
 25-09-10.21:02:37.645 [main            ] INFO  TomcatWebServer        - Tomcat initialized with port 8091 (http)
 25-09-10.21:02:37.659 [main            ] INFO  Http11NioProtocol      - Initializing ProtocolHandler ["http-nio-8091"]
 25-09-10.21:02:37.661 [main            ] INFO  StandardService        - Starting service [Tomcat]
@@ -183,14 +183,14 @@ Caused by: org.apache.ibatis.binding.BindingException: Invalid bound statement (
 25-09-10.21:02:39.609 [main            ] INFO  RootNode               - 开始加载数据 commandTypeaiClientLoadDataStrategy
 25-09-10.21:02:39.610 [main            ] INFO  ClientLoadDataStrategy - 开始异步加载数据
 25-09-10.21:02:39.633 [main            ] ERROR AiAgentAutoConfiguration - AI Agent 自动装配失败
-java.util.concurrent.CompletionException: org.apache.ibatis.binding.BindingException: Invalid bound statement (not found): com.zj.aiagemt.mapper.entity.AiClientConfigMapper.selectList
+java.util.concurrent.CompletionException: org.apache.ibatis.binding.BindingException: Invalid bound statement (not found): com.zj.aiagemt.Repository.entity.AiClientConfigMapper.selectList
 	at java.base/java.util.concurrent.CompletableFuture.encodeThrowable(CompletableFuture.java:315)
 	at java.base/java.util.concurrent.CompletableFuture.completeThrowable(CompletableFuture.java:320)
 	at java.base/java.util.concurrent.CompletableFuture$AsyncRun.run(CompletableFuture.java:1807)
 	at java.base/java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1144)
 	at java.base/java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:642)
 	at java.base/java.lang.Thread.run(Thread.java:1583)
-Caused by: org.apache.ibatis.binding.BindingException: Invalid bound statement (not found): com.zj.aiagemt.mapper.entity.AiClientConfigMapper.selectList
+Caused by: org.apache.ibatis.binding.BindingException: Invalid bound statement (not found): com.zj.aiagemt.Repository.entity.AiClientConfigMapper.selectList
 	at org.apache.ibatis.binding.MapperMethod$SqlCommand.<init>(MapperMethod.java:229)
 	at org.apache.ibatis.binding.MapperMethod.<init>(MapperMethod.java:53)
 	at org.apache.ibatis.binding.MapperProxy.lambda$cachedInvoker$0(MapperProxy.java:96)
@@ -199,7 +199,7 @@ Caused by: org.apache.ibatis.binding.BindingException: Invalid bound statement (
 	at org.apache.ibatis.binding.MapperProxy.cachedInvoker(MapperProxy.java:94)
 	at org.apache.ibatis.binding.MapperProxy.invoke(MapperProxy.java:86)
 	at jdk.proxy2/jdk.proxy2.$Proxy82.selectList(Unknown Source)
-	at com.zj.aiagemt.mapper.impl.AgentRepository.queryApiByClientIdS(AgentRepository.java:65)
+	at com.zj.aiagemt.Repository.AgentRepository.queryApiByClientIdS(AgentRepository.java:65)
 	at java.base/jdk.internal.reflect.DirectMethodHandleAccessor.invoke(DirectMethodHandleAccessor.java:103)
 	at java.base/java.lang.reflect.Method.invoke(Method.java:580)
 	at org.springframework.aop.support.AopUtils.invokeJoinpointUsingReflection(AopUtils.java:360)
@@ -208,7 +208,7 @@ Caused by: org.apache.ibatis.binding.BindingException: Invalid bound statement (
 	at org.springframework.dao.support.PersistenceExceptionTranslationInterceptor.invoke(PersistenceExceptionTranslationInterceptor.java:138)
 	at org.springframework.aop.framework.ReflectiveMethodInvocation.proceed(ReflectiveMethodInvocation.java:184)
 	at org.springframework.aop.framework.CglibAopProxy$DynamicAdvisedInterceptor.intercept(CglibAopProxy.java:728)
-	at com.zj.aiagemt.mapper.impl.AgentRepository$$SpringCGLIB$$0.queryApiByClientIdS(<generated>)
+	at com.zj.aiagemt.Repository.AgentRepository$$SpringCGLIB$$0.queryApiByClientIdS(<generated>)
 	at com.zj.aiagemt.service.agent.armory.strategy.ClientLoadDataStrategy.lambda$loadData$0(ClientLoadDataStrategy.java:26)
 	at java.base/java.util.concurrent.CompletableFuture$AsyncRun.run(CompletableFuture.java:1804)
 	... 3 common frames omitted
@@ -217,18 +217,18 @@ Caused by: org.apache.ibatis.binding.BindingException: Invalid bound statement (
 25-09-10.21:03:50.995 [background-preinit] INFO  Version                - HV000001: Hibernate Validator 8.0.3.Final
 25-09-10.21:03:51.056 [main            ] INFO  AiagemtApplication     - Starting AiagemtApplication using Java 21.0.6 with PID 81412 (D:\java\ai-agent\ai-agent\aiagemt\target\classes started by 32183 in D:\java\ai-agent\ai-agent)
 25-09-10.21:03:51.056 [main            ] INFO  AiagemtApplication     - The following 1 profile is active: "dev"
-25-09-10.21:03:51.958 [main            ] WARN  ClassPathMapperScanner - Skipping MapperFactoryBean with name 'aiAgentFlowConfigMapper' and 'com.zj.aiagemt.mapper.entity.AiAgentFlowConfigMapper' mapperInterface. Bean already defined with the same name!
-25-09-10.21:03:51.958 [main            ] WARN  ClassPathMapperScanner - Skipping MapperFactoryBean with name 'aiAgentMapper' and 'com.zj.aiagemt.mapper.entity.AiAgentMapper' mapperInterface. Bean already defined with the same name!
-25-09-10.21:03:51.958 [main            ] WARN  ClassPathMapperScanner - Skipping MapperFactoryBean with name 'aiAgentTaskScheduleMapper' and 'com.zj.aiagemt.mapper.entity.AiAgentTaskScheduleMapper' mapperInterface. Bean already defined with the same name!
-25-09-10.21:03:51.959 [main            ] WARN  ClassPathMapperScanner - Skipping MapperFactoryBean with name 'aiClientAdvisorMapper' and 'com.zj.aiagemt.mapper.entity.AiClientAdvisorMapper' mapperInterface. Bean already defined with the same name!
-25-09-10.21:03:51.959 [main            ] WARN  ClassPathMapperScanner - Skipping MapperFactoryBean with name 'aiClientApiMapper' and 'com.zj.aiagemt.mapper.entity.AiClientApiMapper' mapperInterface. Bean already defined with the same name!
-25-09-10.21:03:51.959 [main            ] WARN  ClassPathMapperScanner - Skipping MapperFactoryBean with name 'aiClientConfigMapper' and 'com.zj.aiagemt.mapper.entity.AiClientConfigMapper' mapperInterface. Bean already defined with the same name!
-25-09-10.21:03:51.959 [main            ] WARN  ClassPathMapperScanner - Skipping MapperFactoryBean with name 'aiClientMapper' and 'com.zj.aiagemt.mapper.entity.AiClientMapper' mapperInterface. Bean already defined with the same name!
-25-09-10.21:03:51.959 [main            ] WARN  ClassPathMapperScanner - Skipping MapperFactoryBean with name 'aiClientModelMapper' and 'com.zj.aiagemt.mapper.entity.AiClientModelMapper' mapperInterface. Bean already defined with the same name!
-25-09-10.21:03:51.959 [main            ] WARN  ClassPathMapperScanner - Skipping MapperFactoryBean with name 'aiClientRagOrderMapper' and 'com.zj.aiagemt.mapper.entity.AiClientRagOrderMapper' mapperInterface. Bean already defined with the same name!
-25-09-10.21:03:51.959 [main            ] WARN  ClassPathMapperScanner - Skipping MapperFactoryBean with name 'aiClientSystemPromptMapper' and 'com.zj.aiagemt.mapper.entity.AiClientSystemPromptMapper' mapperInterface. Bean already defined with the same name!
-25-09-10.21:03:51.959 [main            ] WARN  ClassPathMapperScanner - Skipping MapperFactoryBean with name 'aiClientToolMcpMapper' and 'com.zj.aiagemt.mapper.entity.AiClientToolMcpMapper' mapperInterface. Bean already defined with the same name!
-25-09-10.21:03:51.960 [main            ] WARN  ClassPathMapperScanner - No MyBatis mapper was found in '[com.zj.aiagemt.mapper.entity]' package. Please check your configuration.
+25-09-10.21:03:51.958 [main            ] WARN  ClassPathMapperScanner - Skipping MapperFactoryBean with name 'aiAgentFlowConfigMapper' and 'com.zj.aiagemt.Repository.entity.AiAgentFlowConfigMapper' mapperInterface. Bean already defined with the same name!
+25-09-10.21:03:51.958 [main            ] WARN  ClassPathMapperScanner - Skipping MapperFactoryBean with name 'aiAgentMapper' and 'com.zj.aiagemt.Repository.entity.AiAgentMapper' mapperInterface. Bean already defined with the same name!
+25-09-10.21:03:51.958 [main            ] WARN  ClassPathMapperScanner - Skipping MapperFactoryBean with name 'aiAgentTaskScheduleMapper' and 'com.zj.aiagemt.Repository.entity.AiAgentTaskScheduleMapper' mapperInterface. Bean already defined with the same name!
+25-09-10.21:03:51.959 [main            ] WARN  ClassPathMapperScanner - Skipping MapperFactoryBean with name 'aiClientAdvisorMapper' and 'com.zj.aiagemt.Repository.entity.AiClientAdvisorMapper' mapperInterface. Bean already defined with the same name!
+25-09-10.21:03:51.959 [main            ] WARN  ClassPathMapperScanner - Skipping MapperFactoryBean with name 'aiClientApiMapper' and 'com.zj.aiagemt.Repository.entity.AiClientApiMapper' mapperInterface. Bean already defined with the same name!
+25-09-10.21:03:51.959 [main            ] WARN  ClassPathMapperScanner - Skipping MapperFactoryBean with name 'aiClientConfigMapper' and 'com.zj.aiagemt.Repository.entity.AiClientConfigMapper' mapperInterface. Bean already defined with the same name!
+25-09-10.21:03:51.959 [main            ] WARN  ClassPathMapperScanner - Skipping MapperFactoryBean with name 'aiClientMapper' and 'com.zj.aiagemt.Repository.entity.AiClientMapper' mapperInterface. Bean already defined with the same name!
+25-09-10.21:03:51.959 [main            ] WARN  ClassPathMapperScanner - Skipping MapperFactoryBean with name 'aiClientModelMapper' and 'com.zj.aiagemt.Repository.entity.AiClientModelMapper' mapperInterface. Bean already defined with the same name!
+25-09-10.21:03:51.959 [main            ] WARN  ClassPathMapperScanner - Skipping MapperFactoryBean with name 'aiClientRagOrderMapper' and 'com.zj.aiagemt.Repository.entity.AiClientRagOrderMapper' mapperInterface. Bean already defined with the same name!
+25-09-10.21:03:51.959 [main            ] WARN  ClassPathMapperScanner - Skipping MapperFactoryBean with name 'aiClientSystemPromptMapper' and 'com.zj.aiagemt.Repository.entity.AiClientSystemPromptMapper' mapperInterface. Bean already defined with the same name!
+25-09-10.21:03:51.959 [main            ] WARN  ClassPathMapperScanner - Skipping MapperFactoryBean with name 'aiClientToolMcpMapper' and 'com.zj.aiagemt.Repository.entity.AiClientToolMcpMapper' mapperInterface. Bean already defined with the same name!
+25-09-10.21:03:51.960 [main            ] WARN  ClassPathMapperScanner - No MyBatis mapper was found in '[com.zj.aiagemt.Repository.entity]' package. Please check your configuration.
 25-09-10.21:03:52.510 [main            ] INFO  TomcatWebServer        - Tomcat initialized with port 8091 (http)
 25-09-10.21:03:52.525 [main            ] INFO  Http11NioProtocol      - Initializing ProtocolHandler ["http-nio-8091"]
 25-09-10.21:03:52.527 [main            ] INFO  StandardService        - Starting service [Tomcat]
@@ -246,14 +246,14 @@ Caused by: org.apache.ibatis.binding.BindingException: Invalid bound statement (
 25-09-10.21:03:54.630 [main            ] INFO  RootNode               - 开始加载数据 commandTypeaiClientLoadDataStrategy
 25-09-10.21:03:54.630 [main            ] INFO  ClientLoadDataStrategy - 开始异步加载数据
 25-09-10.21:03:54.654 [main            ] ERROR AiAgentAutoConfiguration - AI Agent 自动装配失败
-java.util.concurrent.CompletionException: org.apache.ibatis.binding.BindingException: Invalid bound statement (not found): com.zj.aiagemt.mapper.entity.AiClientConfigMapper.selectList
+java.util.concurrent.CompletionException: org.apache.ibatis.binding.BindingException: Invalid bound statement (not found): com.zj.aiagemt.Repository.entity.AiClientConfigMapper.selectList
 	at java.base/java.util.concurrent.CompletableFuture.encodeThrowable(CompletableFuture.java:315)
 	at java.base/java.util.concurrent.CompletableFuture.completeThrowable(CompletableFuture.java:320)
 	at java.base/java.util.concurrent.CompletableFuture$AsyncRun.run(CompletableFuture.java:1807)
 	at java.base/java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1144)
 	at java.base/java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:642)
 	at java.base/java.lang.Thread.run(Thread.java:1583)
-Caused by: org.apache.ibatis.binding.BindingException: Invalid bound statement (not found): com.zj.aiagemt.mapper.entity.AiClientConfigMapper.selectList
+Caused by: org.apache.ibatis.binding.BindingException: Invalid bound statement (not found): com.zj.aiagemt.Repository.entity.AiClientConfigMapper.selectList
 	at org.apache.ibatis.binding.MapperMethod$SqlCommand.<init>(MapperMethod.java:229)
 	at org.apache.ibatis.binding.MapperMethod.<init>(MapperMethod.java:53)
 	at org.apache.ibatis.binding.MapperProxy.lambda$cachedInvoker$0(MapperProxy.java:96)
@@ -262,7 +262,7 @@ Caused by: org.apache.ibatis.binding.BindingException: Invalid bound statement (
 	at org.apache.ibatis.binding.MapperProxy.cachedInvoker(MapperProxy.java:94)
 	at org.apache.ibatis.binding.MapperProxy.invoke(MapperProxy.java:86)
 	at jdk.proxy2/jdk.proxy2.$Proxy82.selectList(Unknown Source)
-	at com.zj.aiagemt.mapper.impl.AgentRepository.queryApiByClientIdS(AgentRepository.java:65)
+	at com.zj.aiagemt.Repository.AgentRepository.queryApiByClientIdS(AgentRepository.java:65)
 	at java.base/jdk.internal.reflect.DirectMethodHandleAccessor.invoke(DirectMethodHandleAccessor.java:103)
 	at java.base/java.lang.reflect.Method.invoke(Method.java:580)
 	at org.springframework.aop.support.AopUtils.invokeJoinpointUsingReflection(AopUtils.java:360)
@@ -271,25 +271,25 @@ Caused by: org.apache.ibatis.binding.BindingException: Invalid bound statement (
 	at org.springframework.dao.support.PersistenceExceptionTranslationInterceptor.invoke(PersistenceExceptionTranslationInterceptor.java:138)
 	at org.springframework.aop.framework.ReflectiveMethodInvocation.proceed(ReflectiveMethodInvocation.java:184)
 	at org.springframework.aop.framework.CglibAopProxy$DynamicAdvisedInterceptor.intercept(CglibAopProxy.java:728)
-	at com.zj.aiagemt.mapper.impl.AgentRepository$$SpringCGLIB$$0.queryApiByClientIdS(<generated>)
+	at com.zj.aiagemt.Repository.AgentRepository$$SpringCGLIB$$0.queryApiByClientIdS(<generated>)
 	at com.zj.aiagemt.service.agent.armory.strategy.ClientLoadDataStrategy.lambda$loadData$0(ClientLoadDataStrategy.java:26)
 	at java.base/java.util.concurrent.CompletableFuture$AsyncRun.run(CompletableFuture.java:1804)
 	... 3 common frames omitted
 25-09-10.21:06:32.246 [background-preinit] INFO  Version                - HV000001: Hibernate Validator 8.0.3.Final
 25-09-10.21:06:32.302 [main            ] INFO  AiagemtApplication     - Starting AiagemtApplication using Java 21.0.6 with PID 8048 (D:\java\ai-agent\ai-agent\aiagemt\target\classes started by 32183 in D:\java\ai-agent\ai-agent)
 25-09-10.21:06:32.303 [main            ] INFO  AiagemtApplication     - The following 1 profile is active: "dev"
-25-09-10.21:06:33.361 [main            ] WARN  ClassPathMapperScanner - Skipping MapperFactoryBean with name 'aiAgentFlowConfigMapper' and 'com.zj.aiagemt.mapper.entity.AiAgentFlowConfigMapper' mapperInterface. Bean already defined with the same name!
-25-09-10.21:06:33.361 [main            ] WARN  ClassPathMapperScanner - Skipping MapperFactoryBean with name 'aiAgentMapper' and 'com.zj.aiagemt.mapper.entity.AiAgentMapper' mapperInterface. Bean already defined with the same name!
-25-09-10.21:06:33.361 [main            ] WARN  ClassPathMapperScanner - Skipping MapperFactoryBean with name 'aiAgentTaskScheduleMapper' and 'com.zj.aiagemt.mapper.entity.AiAgentTaskScheduleMapper' mapperInterface. Bean already defined with the same name!
-25-09-10.21:06:33.361 [main            ] WARN  ClassPathMapperScanner - Skipping MapperFactoryBean with name 'aiClientAdvisorMapper' and 'com.zj.aiagemt.mapper.entity.AiClientAdvisorMapper' mapperInterface. Bean already defined with the same name!
-25-09-10.21:06:33.361 [main            ] WARN  ClassPathMapperScanner - Skipping MapperFactoryBean with name 'aiClientApiMapper' and 'com.zj.aiagemt.mapper.entity.AiClientApiMapper' mapperInterface. Bean already defined with the same name!
-25-09-10.21:06:33.361 [main            ] WARN  ClassPathMapperScanner - Skipping MapperFactoryBean with name 'aiClientConfigMapper' and 'com.zj.aiagemt.mapper.entity.AiClientConfigMapper' mapperInterface. Bean already defined with the same name!
-25-09-10.21:06:33.361 [main            ] WARN  ClassPathMapperScanner - Skipping MapperFactoryBean with name 'aiClientMapper' and 'com.zj.aiagemt.mapper.entity.AiClientMapper' mapperInterface. Bean already defined with the same name!
-25-09-10.21:06:33.361 [main            ] WARN  ClassPathMapperScanner - Skipping MapperFactoryBean with name 'aiClientModelMapper' and 'com.zj.aiagemt.mapper.entity.AiClientModelMapper' mapperInterface. Bean already defined with the same name!
-25-09-10.21:06:33.361 [main            ] WARN  ClassPathMapperScanner - Skipping MapperFactoryBean with name 'aiClientRagOrderMapper' and 'com.zj.aiagemt.mapper.entity.AiClientRagOrderMapper' mapperInterface. Bean already defined with the same name!
-25-09-10.21:06:33.362 [main            ] WARN  ClassPathMapperScanner - Skipping MapperFactoryBean with name 'aiClientSystemPromptMapper' and 'com.zj.aiagemt.mapper.entity.AiClientSystemPromptMapper' mapperInterface. Bean already defined with the same name!
-25-09-10.21:06:33.362 [main            ] WARN  ClassPathMapperScanner - Skipping MapperFactoryBean with name 'aiClientToolMcpMapper' and 'com.zj.aiagemt.mapper.entity.AiClientToolMcpMapper' mapperInterface. Bean already defined with the same name!
-25-09-10.21:06:33.362 [main            ] WARN  ClassPathMapperScanner - No MyBatis mapper was found in '[com.zj.aiagemt.mapper.entity]' package. Please check your configuration.
+25-09-10.21:06:33.361 [main            ] WARN  ClassPathMapperScanner - Skipping MapperFactoryBean with name 'aiAgentFlowConfigMapper' and 'com.zj.aiagemt.Repository.entity.AiAgentFlowConfigMapper' mapperInterface. Bean already defined with the same name!
+25-09-10.21:06:33.361 [main            ] WARN  ClassPathMapperScanner - Skipping MapperFactoryBean with name 'aiAgentMapper' and 'com.zj.aiagemt.Repository.entity.AiAgentMapper' mapperInterface. Bean already defined with the same name!
+25-09-10.21:06:33.361 [main            ] WARN  ClassPathMapperScanner - Skipping MapperFactoryBean with name 'aiAgentTaskScheduleMapper' and 'com.zj.aiagemt.Repository.entity.AiAgentTaskScheduleMapper' mapperInterface. Bean already defined with the same name!
+25-09-10.21:06:33.361 [main            ] WARN  ClassPathMapperScanner - Skipping MapperFactoryBean with name 'aiClientAdvisorMapper' and 'com.zj.aiagemt.Repository.entity.AiClientAdvisorMapper' mapperInterface. Bean already defined with the same name!
+25-09-10.21:06:33.361 [main            ] WARN  ClassPathMapperScanner - Skipping MapperFactoryBean with name 'aiClientApiMapper' and 'com.zj.aiagemt.Repository.entity.AiClientApiMapper' mapperInterface. Bean already defined with the same name!
+25-09-10.21:06:33.361 [main            ] WARN  ClassPathMapperScanner - Skipping MapperFactoryBean with name 'aiClientConfigMapper' and 'com.zj.aiagemt.Repository.entity.AiClientConfigMapper' mapperInterface. Bean already defined with the same name!
+25-09-10.21:06:33.361 [main            ] WARN  ClassPathMapperScanner - Skipping MapperFactoryBean with name 'aiClientMapper' and 'com.zj.aiagemt.Repository.entity.AiClientMapper' mapperInterface. Bean already defined with the same name!
+25-09-10.21:06:33.361 [main            ] WARN  ClassPathMapperScanner - Skipping MapperFactoryBean with name 'aiClientModelMapper' and 'com.zj.aiagemt.Repository.entity.AiClientModelMapper' mapperInterface. Bean already defined with the same name!
+25-09-10.21:06:33.361 [main            ] WARN  ClassPathMapperScanner - Skipping MapperFactoryBean with name 'aiClientRagOrderMapper' and 'com.zj.aiagemt.Repository.entity.AiClientRagOrderMapper' mapperInterface. Bean already defined with the same name!
+25-09-10.21:06:33.362 [main            ] WARN  ClassPathMapperScanner - Skipping MapperFactoryBean with name 'aiClientSystemPromptMapper' and 'com.zj.aiagemt.Repository.entity.AiClientSystemPromptMapper' mapperInterface. Bean already defined with the same name!
+25-09-10.21:06:33.362 [main            ] WARN  ClassPathMapperScanner - Skipping MapperFactoryBean with name 'aiClientToolMcpMapper' and 'com.zj.aiagemt.Repository.entity.AiClientToolMcpMapper' mapperInterface. Bean already defined with the same name!
+25-09-10.21:06:33.362 [main            ] WARN  ClassPathMapperScanner - No MyBatis mapper was found in '[com.zj.aiagemt.Repository.entity]' package. Please check your configuration.
 25-09-10.21:06:33.910 [main            ] INFO  TomcatWebServer        - Tomcat initialized with port 8091 (http)
 25-09-10.21:06:33.930 [main            ] INFO  Http11NioProtocol      - Initializing ProtocolHandler ["http-nio-8091"]
 25-09-10.21:06:33.932 [main            ] INFO  StandardService        - Starting service [Tomcat]
@@ -307,14 +307,14 @@ Caused by: org.apache.ibatis.binding.BindingException: Invalid bound statement (
 25-09-10.21:06:36.166 [main            ] INFO  RootNode               - 开始加载数据 commandTypeaiClientLoadDataStrategy
 25-09-10.21:06:36.166 [main            ] INFO  ClientLoadDataStrategy - 开始异步加载数据
 25-09-10.21:06:36.190 [main            ] ERROR AiAgentAutoConfiguration - AI Agent 自动装配失败
-java.util.concurrent.CompletionException: org.apache.ibatis.binding.BindingException: Invalid bound statement (not found): com.zj.aiagemt.mapper.entity.AiClientConfigMapper.selectList
+java.util.concurrent.CompletionException: org.apache.ibatis.binding.BindingException: Invalid bound statement (not found): com.zj.aiagemt.Repository.entity.AiClientConfigMapper.selectList
 	at java.base/java.util.concurrent.CompletableFuture.encodeThrowable(CompletableFuture.java:315)
 	at java.base/java.util.concurrent.CompletableFuture.completeThrowable(CompletableFuture.java:320)
 	at java.base/java.util.concurrent.CompletableFuture$AsyncRun.run(CompletableFuture.java:1807)
 	at java.base/java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1144)
 	at java.base/java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:642)
 	at java.base/java.lang.Thread.run(Thread.java:1583)
-Caused by: org.apache.ibatis.binding.BindingException: Invalid bound statement (not found): com.zj.aiagemt.mapper.entity.AiClientConfigMapper.selectList
+Caused by: org.apache.ibatis.binding.BindingException: Invalid bound statement (not found): com.zj.aiagemt.Repository.entity.AiClientConfigMapper.selectList
 	at org.apache.ibatis.binding.MapperMethod$SqlCommand.<init>(MapperMethod.java:229)
 	at org.apache.ibatis.binding.MapperMethod.<init>(MapperMethod.java:53)
 	at org.apache.ibatis.binding.MapperProxy.lambda$cachedInvoker$0(MapperProxy.java:96)
@@ -323,7 +323,7 @@ Caused by: org.apache.ibatis.binding.BindingException: Invalid bound statement (
 	at org.apache.ibatis.binding.MapperProxy.cachedInvoker(MapperProxy.java:94)
 	at org.apache.ibatis.binding.MapperProxy.invoke(MapperProxy.java:86)
 	at jdk.proxy2/jdk.proxy2.$Proxy82.selectList(Unknown Source)
-	at com.zj.aiagemt.mapper.impl.AgentRepository.queryApiByClientIdS(AgentRepository.java:65)
+	at com.zj.aiagemt.Repository.AgentRepository.queryApiByClientIdS(AgentRepository.java:65)
 	at java.base/jdk.internal.reflect.DirectMethodHandleAccessor.invoke(DirectMethodHandleAccessor.java:103)
 	at java.base/java.lang.reflect.Method.invoke(Method.java:580)
 	at org.springframework.aop.support.AopUtils.invokeJoinpointUsingReflection(AopUtils.java:360)
@@ -332,7 +332,7 @@ Caused by: org.apache.ibatis.binding.BindingException: Invalid bound statement (
 	at org.springframework.dao.support.PersistenceExceptionTranslationInterceptor.invoke(PersistenceExceptionTranslationInterceptor.java:138)
 	at org.springframework.aop.framework.ReflectiveMethodInvocation.proceed(ReflectiveMethodInvocation.java:184)
 	at org.springframework.aop.framework.CglibAopProxy$DynamicAdvisedInterceptor.intercept(CglibAopProxy.java:728)
-	at com.zj.aiagemt.mapper.impl.AgentRepository$$SpringCGLIB$$0.queryApiByClientIdS(<generated>)
+	at com.zj.aiagemt.Repository.AgentRepository$$SpringCGLIB$$0.queryApiByClientIdS(<generated>)
 	at com.zj.aiagemt.service.agent.armory.strategy.ClientLoadDataStrategy.lambda$loadData$0(ClientLoadDataStrategy.java:26)
 	at java.base/java.util.concurrent.CompletableFuture$AsyncRun.run(CompletableFuture.java:1804)
 	... 3 common frames omitted
@@ -341,8 +341,8 @@ Caused by: org.apache.ibatis.binding.BindingException: Invalid bound statement (
 25-09-10.21:07:44.939 [background-preinit] INFO  Version                - HV000001: Hibernate Validator 8.0.3.Final
 25-09-10.21:07:44.999 [main            ] INFO  AiagemtApplication     - Starting AiagemtApplication using Java 21.0.6 with PID 23968 (D:\java\ai-agent\ai-agent\aiagemt\target\classes started by 32183 in D:\java\ai-agent\ai-agent)
 25-09-10.21:07:44.999 [main            ] INFO  AiagemtApplication     - The following 1 profile is active: "dev"
-25-09-10.21:07:46.247 [main            ] WARN  ClassPathMapperScanner - No MyBatis mapper was found in '[com.zj.aiagemt.mapper.entity]' package. Please check your configuration.
-25-09-10.21:07:46.250 [main            ] WARN  ClassPathMapperScanner - No MyBatis mapper was found in '[com.zj.aiagemt.mapper.entity]' package. Please check your configuration.
+25-09-10.21:07:46.247 [main            ] WARN  ClassPathMapperScanner - No MyBatis mapper was found in '[com.zj.aiagemt.Repository.entity]' package. Please check your configuration.
+25-09-10.21:07:46.250 [main            ] WARN  ClassPathMapperScanner - No MyBatis mapper was found in '[com.zj.aiagemt.Repository.entity]' package. Please check your configuration.
 25-09-10.21:07:46.858 [main            ] INFO  TomcatWebServer        - Tomcat initialized with port 8091 (http)
 25-09-10.21:07:46.873 [main            ] INFO  Http11NioProtocol      - Initializing ProtocolHandler ["http-nio-8091"]
 25-09-10.21:07:46.875 [main            ] INFO  StandardService        - Starting service [Tomcat]
@@ -365,17 +365,17 @@ APPLICATION FAILED TO START
 
 Description:
 
-Parameter 0 of constructor in com.zj.aiagemt.service.agent.armory.factory.DefaultAgentArmoryFactory required a bean of type 'com.zj.aiagemt.mapper.AiAgentMapper' that could not be found.
+Parameter 0 of constructor in com.zj.aiagemt.service.agent.armory.factory.DefaultAgentArmoryFactory required a bean of type 'com.zj.aiagemt.Repository.base.AiAgentMapper' that could not be found.
 
 
 Action:
 
-Consider defining a bean of type 'com.zj.aiagemt.mapper.AiAgentMapper' in your configuration.
+Consider defining a bean of type 'com.zj.aiagemt.Repository.base.AiAgentMapper' in your configuration.
 
 25-09-10.21:08:12.734 [background-preinit] INFO  Version                - HV000001: Hibernate Validator 8.0.3.Final
 25-09-10.21:08:12.787 [main            ] INFO  AiagemtApplication     - Starting AiagemtApplication using Java 21.0.6 with PID 39568 (D:\java\ai-agent\ai-agent\aiagemt\target\classes started by 32183 in D:\java\ai-agent\ai-agent)
 25-09-10.21:08:12.788 [main            ] INFO  AiagemtApplication     - The following 1 profile is active: "dev"
-25-09-10.21:08:13.776 [main            ] WARN  ClassPathMapperScanner - No MyBatis mapper was found in '[com.zj.aiagemt.mapper.entity]' package. Please check your configuration.
+25-09-10.21:08:13.776 [main            ] WARN  ClassPathMapperScanner - No MyBatis mapper was found in '[com.zj.aiagemt.Repository.entity]' package. Please check your configuration.
 25-09-10.21:08:14.308 [main            ] INFO  TomcatWebServer        - Tomcat initialized with port 8091 (http)
 25-09-10.21:08:14.323 [main            ] INFO  Http11NioProtocol      - Initializing ProtocolHandler ["http-nio-8091"]
 25-09-10.21:08:14.325 [main            ] INFO  StandardService        - Starting service [Tomcat]
@@ -416,7 +416,7 @@ You may need to update both your build tool settings as well as your IDE.
 25-09-10.21:08:45.262 [background-preinit] INFO  Version                - HV000001: Hibernate Validator 8.0.3.Final
 25-09-10.21:08:45.325 [main            ] INFO  AiagemtApplication     - Starting AiagemtApplication using Java 21.0.6 with PID 19812 (D:\java\ai-agent\ai-agent\aiagemt\target\classes started by 32183 in D:\java\ai-agent\ai-agent)
 25-09-10.21:08:45.325 [main            ] INFO  AiagemtApplication     - The following 1 profile is active: "dev"
-25-09-10.21:08:47.989 [main            ] WARN  ClassPathMapperScanner - No MyBatis mapper was found in '[com.zj.aiagemt.mapper.entity]' package. Please check your configuration.
+25-09-10.21:08:47.989 [main            ] WARN  ClassPathMapperScanner - No MyBatis mapper was found in '[com.zj.aiagemt.Repository.entity]' package. Please check your configuration.
 25-09-10.21:08:49.060 [main            ] INFO  TomcatWebServer        - Tomcat initialized with port 8091 (http)
 25-09-10.21:08:49.082 [main            ] INFO  Http11NioProtocol      - Initializing ProtocolHandler ["http-nio-8091"]
 25-09-10.21:08:49.085 [main            ] INFO  StandardService        - Starting service [Tomcat]
@@ -457,7 +457,7 @@ You may need to update both your build tool settings as well as your IDE.
 25-09-10.21:09:18.421 [background-preinit] INFO  Version                - HV000001: Hibernate Validator 8.0.3.Final
 25-09-10.21:09:18.480 [main            ] INFO  AiagemtApplication     - Starting AiagemtApplication using Java 21.0.6 with PID 28140 (D:\java\ai-agent\ai-agent\aiagemt\target\classes started by 32183 in D:\java\ai-agent\ai-agent)
 25-09-10.21:09:18.481 [main            ] INFO  AiagemtApplication     - The following 1 profile is active: "dev"
-25-09-10.21:09:19.422 [main            ] WARN  ClassPathMapperScanner - No MyBatis mapper was found in '[com.zj.aiagemt.mapper.entity]' package. Please check your configuration.
+25-09-10.21:09:19.422 [main            ] WARN  ClassPathMapperScanner - No MyBatis mapper was found in '[com.zj.aiagemt.Repository.entity]' package. Please check your configuration.
 25-09-10.21:09:19.988 [main            ] INFO  TomcatWebServer        - Tomcat initialized with port 8091 (http)
 25-09-10.21:09:20.005 [main            ] INFO  Http11NioProtocol      - Initializing ProtocolHandler ["http-nio-8091"]
 25-09-10.21:09:20.007 [main            ] INFO  StandardService        - Starting service [Tomcat]
@@ -475,14 +475,14 @@ You may need to update both your build tool settings as well as your IDE.
 25-09-10.21:09:21.768 [main            ] INFO  RootNode               - 开始加载数据 commandTypeaiClientLoadDataStrategy
 25-09-10.21:09:21.768 [main            ] INFO  ClientLoadDataStrategy - 开始异步加载数据
 25-09-10.21:09:21.793 [main            ] ERROR AiAgentAutoConfiguration - AI Agent 自动装配失败
-java.util.concurrent.CompletionException: org.apache.ibatis.binding.BindingException: Invalid bound statement (not found): com.zj.aiagemt.mapper.AiClientConfigMapper.selectList
+java.util.concurrent.CompletionException: org.apache.ibatis.binding.BindingException: Invalid bound statement (not found): com.zj.aiagemt.Repository.base.AiClientConfigMapper.selectList
 	at java.base/java.util.concurrent.CompletableFuture.encodeThrowable(CompletableFuture.java:315)
 	at java.base/java.util.concurrent.CompletableFuture.completeThrowable(CompletableFuture.java:320)
 	at java.base/java.util.concurrent.CompletableFuture$AsyncRun.run(CompletableFuture.java:1807)
 	at java.base/java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1144)
 	at java.base/java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:642)
 	at java.base/java.lang.Thread.run(Thread.java:1583)
-Caused by: org.apache.ibatis.binding.BindingException: Invalid bound statement (not found): com.zj.aiagemt.mapper.AiClientConfigMapper.selectList
+Caused by: org.apache.ibatis.binding.BindingException: Invalid bound statement (not found): com.zj.aiagemt.Repository.base.AiClientConfigMapper.selectList
 	at org.apache.ibatis.binding.MapperMethod$SqlCommand.<init>(MapperMethod.java:229)
 	at org.apache.ibatis.binding.MapperMethod.<init>(MapperMethod.java:53)
 	at org.apache.ibatis.binding.MapperProxy.lambda$cachedInvoker$0(MapperProxy.java:96)
@@ -491,7 +491,7 @@ Caused by: org.apache.ibatis.binding.BindingException: Invalid bound statement (
 	at org.apache.ibatis.binding.MapperProxy.cachedInvoker(MapperProxy.java:94)
 	at org.apache.ibatis.binding.MapperProxy.invoke(MapperProxy.java:86)
 	at jdk.proxy2/jdk.proxy2.$Proxy82.selectList(Unknown Source)
-	at com.zj.aiagemt.mapper.impl.AgentRepository.queryApiByClientIdS(AgentRepository.java:66)
+	at com.zj.aiagemt.Repository.AgentRepository.queryApiByClientIdS(AgentRepository.java:66)
 	at java.base/jdk.internal.reflect.DirectMethodHandleAccessor.invoke(DirectMethodHandleAccessor.java:103)
 	at java.base/java.lang.reflect.Method.invoke(Method.java:580)
 	at org.springframework.aop.support.AopUtils.invokeJoinpointUsingReflection(AopUtils.java:360)
@@ -500,7 +500,7 @@ Caused by: org.apache.ibatis.binding.BindingException: Invalid bound statement (
 	at org.springframework.dao.support.PersistenceExceptionTranslationInterceptor.invoke(PersistenceExceptionTranslationInterceptor.java:138)
 	at org.springframework.aop.framework.ReflectiveMethodInvocation.proceed(ReflectiveMethodInvocation.java:184)
 	at org.springframework.aop.framework.CglibAopProxy$DynamicAdvisedInterceptor.intercept(CglibAopProxy.java:728)
-	at com.zj.aiagemt.mapper.impl.AgentRepository$$SpringCGLIB$$0.queryApiByClientIdS(<generated>)
+	at com.zj.aiagemt.Repository.AgentRepository$$SpringCGLIB$$0.queryApiByClientIdS(<generated>)
 	at com.zj.aiagemt.service.agent.armory.strategy.ClientLoadDataStrategy.lambda$0(ClientLoadDataStrategy.java:26)
 	at java.base/java.util.concurrent.CompletableFuture$AsyncRun.run(CompletableFuture.java:1804)
 	... 3 common frames omitted
@@ -509,7 +509,7 @@ Caused by: org.apache.ibatis.binding.BindingException: Invalid bound statement (
 25-09-10.21:09:48.505 [background-preinit] INFO  Version                - HV000001: Hibernate Validator 8.0.3.Final
 25-09-10.21:09:48.560 [main            ] INFO  AiagemtApplication     - Starting AiagemtApplication using Java 21.0.6 with PID 17692 (D:\java\ai-agent\ai-agent\aiagemt\target\classes started by 32183 in D:\java\ai-agent\ai-agent)
 25-09-10.21:09:48.562 [main            ] INFO  AiagemtApplication     - The following 1 profile is active: "dev"
-25-09-10.21:09:49.491 [main            ] WARN  ClassPathMapperScanner - No MyBatis mapper was found in '[com.zj.aiagemt.mapper.entity]' package. Please check your configuration.
+25-09-10.21:09:49.491 [main            ] WARN  ClassPathMapperScanner - No MyBatis mapper was found in '[com.zj.aiagemt.Repository.entity]' package. Please check your configuration.
 25-09-10.21:09:50.030 [main            ] INFO  TomcatWebServer        - Tomcat initialized with port 8091 (http)
 25-09-10.21:09:50.045 [main            ] INFO  Http11NioProtocol      - Initializing ProtocolHandler ["http-nio-8091"]
 25-09-10.21:09:50.047 [main            ] INFO  StandardService        - Starting service [Tomcat]
@@ -527,14 +527,14 @@ Caused by: org.apache.ibatis.binding.BindingException: Invalid bound statement (
 25-09-10.21:09:51.808 [main            ] INFO  RootNode               - 开始加载数据 commandTypeaiClientLoadDataStrategy
 25-09-10.21:09:51.808 [main            ] INFO  ClientLoadDataStrategy - 开始异步加载数据
 25-09-10.21:09:51.834 [main            ] ERROR AiAgentAutoConfiguration - AI Agent 自动装配失败
-java.util.concurrent.CompletionException: org.apache.ibatis.binding.BindingException: Invalid bound statement (not found): com.zj.aiagemt.mapper.AiClientConfigMapper.selectList
+java.util.concurrent.CompletionException: org.apache.ibatis.binding.BindingException: Invalid bound statement (not found): com.zj.aiagemt.Repository.base.AiClientConfigMapper.selectList
 	at java.base/java.util.concurrent.CompletableFuture.encodeThrowable(CompletableFuture.java:315)
 	at java.base/java.util.concurrent.CompletableFuture.completeThrowable(CompletableFuture.java:320)
 	at java.base/java.util.concurrent.CompletableFuture$AsyncRun.run(CompletableFuture.java:1807)
 	at java.base/java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1144)
 	at java.base/java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:642)
 	at java.base/java.lang.Thread.run(Thread.java:1583)
-Caused by: org.apache.ibatis.binding.BindingException: Invalid bound statement (not found): com.zj.aiagemt.mapper.AiClientConfigMapper.selectList
+Caused by: org.apache.ibatis.binding.BindingException: Invalid bound statement (not found): com.zj.aiagemt.Repository.base.AiClientConfigMapper.selectList
 	at org.apache.ibatis.binding.MapperMethod$SqlCommand.<init>(MapperMethod.java:229)
 	at org.apache.ibatis.binding.MapperMethod.<init>(MapperMethod.java:53)
 	at org.apache.ibatis.binding.MapperProxy.lambda$cachedInvoker$0(MapperProxy.java:96)
@@ -543,7 +543,7 @@ Caused by: org.apache.ibatis.binding.BindingException: Invalid bound statement (
 	at org.apache.ibatis.binding.MapperProxy.cachedInvoker(MapperProxy.java:94)
 	at org.apache.ibatis.binding.MapperProxy.invoke(MapperProxy.java:86)
 	at jdk.proxy2/jdk.proxy2.$Proxy82.selectList(Unknown Source)
-	at com.zj.aiagemt.mapper.impl.AgentRepository.queryApiByClientIdS(AgentRepository.java:66)
+	at com.zj.aiagemt.Repository.AgentRepository.queryApiByClientIdS(AgentRepository.java:66)
 	at java.base/jdk.internal.reflect.DirectMethodHandleAccessor.invoke(DirectMethodHandleAccessor.java:103)
 	at java.base/java.lang.reflect.Method.invoke(Method.java:580)
 	at org.springframework.aop.support.AopUtils.invokeJoinpointUsingReflection(AopUtils.java:360)
@@ -552,14 +552,14 @@ Caused by: org.apache.ibatis.binding.BindingException: Invalid bound statement (
 	at org.springframework.dao.support.PersistenceExceptionTranslationInterceptor.invoke(PersistenceExceptionTranslationInterceptor.java:138)
 	at org.springframework.aop.framework.ReflectiveMethodInvocation.proceed(ReflectiveMethodInvocation.java:184)
 	at org.springframework.aop.framework.CglibAopProxy$DynamicAdvisedInterceptor.intercept(CglibAopProxy.java:728)
-	at com.zj.aiagemt.mapper.impl.AgentRepository$$SpringCGLIB$$0.queryApiByClientIdS(<generated>)
+	at com.zj.aiagemt.Repository.AgentRepository$$SpringCGLIB$$0.queryApiByClientIdS(<generated>)
 	at com.zj.aiagemt.service.agent.armory.strategy.ClientLoadDataStrategy.lambda$0(ClientLoadDataStrategy.java:26)
 	at java.base/java.util.concurrent.CompletableFuture$AsyncRun.run(CompletableFuture.java:1804)
 	... 3 common frames omitted
 25-09-10.21:10:28.897 [background-preinit] INFO  Version                - HV000001: Hibernate Validator 8.0.3.Final
 25-09-10.21:10:28.984 [main            ] INFO  AiagemtApplication     - Starting AiagemtApplication using Java 21.0.6 with PID 60160 (D:\java\ai-agent\ai-agent\aiagemt\target\classes started by 32183 in d:\java\ai-agent\ai-agent)
 25-09-10.21:10:28.985 [main            ] INFO  AiagemtApplication     - The following 1 profile is active: "dev"
-25-09-10.21:10:30.277 [main            ] WARN  ClassPathMapperScanner - No MyBatis mapper was found in '[com.zj.aiagemt.mapper.entity]' package. Please check your configuration.
+25-09-10.21:10:30.277 [main            ] WARN  ClassPathMapperScanner - No MyBatis mapper was found in '[com.zj.aiagemt.Repository.entity]' package. Please check your configuration.
 25-09-10.21:10:31.070 [main            ] INFO  TomcatWebServer        - Tomcat initialized with port 8091 (http)
 25-09-10.21:10:31.097 [main            ] INFO  Http11NioProtocol      - Initializing ProtocolHandler ["http-nio-8091"]
 25-09-10.21:10:31.100 [main            ] INFO  StandardService        - Starting service [Tomcat]
@@ -593,7 +593,7 @@ Identify and stop the process that's listening on port 8091 or configure this ap
 25-09-10.21:10:55.283 [background-preinit] INFO  Version                - HV000001: Hibernate Validator 8.0.3.Final
 25-09-10.21:10:55.367 [main            ] INFO  AiagemtApplication     - Starting AiagemtApplication using Java 21.0.6 with PID 81360 (D:\java\ai-agent\ai-agent\aiagemt\target\classes started by 32183 in d:\java\ai-agent\ai-agent)
 25-09-10.21:10:55.368 [main            ] INFO  AiagemtApplication     - The following 1 profile is active: "dev"
-25-09-10.21:10:56.617 [main            ] WARN  ClassPathMapperScanner - No MyBatis mapper was found in '[com.zj.aiagemt.mapper.entity]' package. Please check your configuration.
+25-09-10.21:10:56.617 [main            ] WARN  ClassPathMapperScanner - No MyBatis mapper was found in '[com.zj.aiagemt.Repository.entity]' package. Please check your configuration.
 25-09-10.21:10:57.343 [main            ] INFO  TomcatWebServer        - Tomcat initialized with port 8091 (http)
 25-09-10.21:10:57.359 [main            ] INFO  Http11NioProtocol      - Initializing ProtocolHandler ["http-nio-8091"]
 25-09-10.21:10:57.360 [main            ] INFO  StandardService        - Starting service [Tomcat]
@@ -611,14 +611,14 @@ Identify and stop the process that's listening on port 8091 or configure this ap
 25-09-10.21:10:59.545 [main            ] INFO  RootNode               - 开始加载数据 commandTypeaiClientLoadDataStrategy
 25-09-10.21:10:59.546 [main            ] INFO  ClientLoadDataStrategy - 开始异步加载数据
 25-09-10.21:10:59.586 [main            ] ERROR AiAgentAutoConfiguration - AI Agent 自动装配失败
-java.util.concurrent.CompletionException: org.apache.ibatis.binding.BindingException: Invalid bound statement (not found): com.zj.aiagemt.mapper.AiClientConfigMapper.selectList
+java.util.concurrent.CompletionException: org.apache.ibatis.binding.BindingException: Invalid bound statement (not found): com.zj.aiagemt.Repository.base.AiClientConfigMapper.selectList
 	at java.base/java.util.concurrent.CompletableFuture.encodeThrowable(CompletableFuture.java:315)
 	at java.base/java.util.concurrent.CompletableFuture.completeThrowable(CompletableFuture.java:320)
 	at java.base/java.util.concurrent.CompletableFuture$AsyncRun.run(CompletableFuture.java:1807)
 	at java.base/java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1144)
 	at java.base/java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:642)
 	at java.base/java.lang.Thread.run(Thread.java:1583)
-Caused by: org.apache.ibatis.binding.BindingException: Invalid bound statement (not found): com.zj.aiagemt.mapper.AiClientConfigMapper.selectList
+Caused by: org.apache.ibatis.binding.BindingException: Invalid bound statement (not found): com.zj.aiagemt.Repository.base.AiClientConfigMapper.selectList
 	at org.apache.ibatis.binding.MapperMethod$SqlCommand.<init>(MapperMethod.java:229)
 	at org.apache.ibatis.binding.MapperMethod.<init>(MapperMethod.java:53)
 	at org.apache.ibatis.binding.MapperProxy.lambda$cachedInvoker$0(MapperProxy.java:96)
@@ -627,7 +627,7 @@ Caused by: org.apache.ibatis.binding.BindingException: Invalid bound statement (
 	at org.apache.ibatis.binding.MapperProxy.cachedInvoker(MapperProxy.java:94)
 	at org.apache.ibatis.binding.MapperProxy.invoke(MapperProxy.java:86)
 	at jdk.proxy2/jdk.proxy2.$Proxy82.selectList(Unknown Source)
-	at com.zj.aiagemt.mapper.impl.AgentRepository.queryApiByClientIdS(AgentRepository.java:66)
+	at com.zj.aiagemt.Repository.AgentRepository.queryApiByClientIdS(AgentRepository.java:66)
 	at java.base/jdk.internal.reflect.DirectMethodHandleAccessor.invoke(DirectMethodHandleAccessor.java:103)
 	at java.base/java.lang.reflect.Method.invoke(Method.java:580)
 	at org.springframework.aop.support.AopUtils.invokeJoinpointUsingReflection(AopUtils.java:360)
@@ -636,7 +636,7 @@ Caused by: org.apache.ibatis.binding.BindingException: Invalid bound statement (
 	at org.springframework.dao.support.PersistenceExceptionTranslationInterceptor.invoke(PersistenceExceptionTranslationInterceptor.java:138)
 	at org.springframework.aop.framework.ReflectiveMethodInvocation.proceed(ReflectiveMethodInvocation.java:184)
 	at org.springframework.aop.framework.CglibAopProxy$DynamicAdvisedInterceptor.intercept(CglibAopProxy.java:728)
-	at com.zj.aiagemt.mapper.impl.AgentRepository$$SpringCGLIB$$0.queryApiByClientIdS(<generated>)
+	at com.zj.aiagemt.Repository.AgentRepository$$SpringCGLIB$$0.queryApiByClientIdS(<generated>)
 	at com.zj.aiagemt.service.agent.armory.strategy.ClientLoadDataStrategy.lambda$0(ClientLoadDataStrategy.java:26)
 	at java.base/java.util.concurrent.CompletableFuture$AsyncRun.run(CompletableFuture.java:1804)
 	... 3 common frames omitted
@@ -691,14 +691,14 @@ Identify and stop the process that's listening on port 8091 or configure this ap
 25-09-10.21:13:49.515 [main            ] INFO  RootNode               - 开始加载数据 commandTypeaiClientLoadDataStrategy
 25-09-10.21:13:49.515 [main            ] INFO  ClientLoadDataStrategy - 开始异步加载数据
 25-09-10.21:13:49.538 [main            ] ERROR AiAgentAutoConfiguration - AI Agent 自动装配失败
-java.util.concurrent.CompletionException: org.apache.ibatis.binding.BindingException: Invalid bound statement (not found): com.zj.aiagemt.mapper.AiClientConfigMapper.selectList
+java.util.concurrent.CompletionException: org.apache.ibatis.binding.BindingException: Invalid bound statement (not found): com.zj.aiagemt.Repository.base.AiClientConfigMapper.selectList
 	at java.base/java.util.concurrent.CompletableFuture.encodeThrowable(CompletableFuture.java:315)
 	at java.base/java.util.concurrent.CompletableFuture.completeThrowable(CompletableFuture.java:320)
 	at java.base/java.util.concurrent.CompletableFuture$AsyncRun.run(CompletableFuture.java:1807)
 	at java.base/java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1144)
 	at java.base/java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:642)
 	at java.base/java.lang.Thread.run(Thread.java:1583)
-Caused by: org.apache.ibatis.binding.BindingException: Invalid bound statement (not found): com.zj.aiagemt.mapper.AiClientConfigMapper.selectList
+Caused by: org.apache.ibatis.binding.BindingException: Invalid bound statement (not found): com.zj.aiagemt.Repository.base.AiClientConfigMapper.selectList
 	at org.apache.ibatis.binding.MapperMethod$SqlCommand.<init>(MapperMethod.java:229)
 	at org.apache.ibatis.binding.MapperMethod.<init>(MapperMethod.java:53)
 	at org.apache.ibatis.binding.MapperProxy.lambda$cachedInvoker$0(MapperProxy.java:96)
@@ -707,7 +707,7 @@ Caused by: org.apache.ibatis.binding.BindingException: Invalid bound statement (
 	at org.apache.ibatis.binding.MapperProxy.cachedInvoker(MapperProxy.java:94)
 	at org.apache.ibatis.binding.MapperProxy.invoke(MapperProxy.java:86)
 	at jdk.proxy2/jdk.proxy2.$Proxy82.selectList(Unknown Source)
-	at com.zj.aiagemt.mapper.impl.AgentRepository.queryApiByClientIdS(AgentRepository.java:66)
+	at com.zj.aiagemt.Repository.AgentRepository.queryApiByClientIdS(AgentRepository.java:66)
 	at java.base/jdk.internal.reflect.DirectMethodHandleAccessor.invoke(DirectMethodHandleAccessor.java:103)
 	at java.base/java.lang.reflect.Method.invoke(Method.java:580)
 	at org.springframework.aop.support.AopUtils.invokeJoinpointUsingReflection(AopUtils.java:360)
@@ -716,7 +716,7 @@ Caused by: org.apache.ibatis.binding.BindingException: Invalid bound statement (
 	at org.springframework.dao.support.PersistenceExceptionTranslationInterceptor.invoke(PersistenceExceptionTranslationInterceptor.java:138)
 	at org.springframework.aop.framework.ReflectiveMethodInvocation.proceed(ReflectiveMethodInvocation.java:184)
 	at org.springframework.aop.framework.CglibAopProxy$DynamicAdvisedInterceptor.intercept(CglibAopProxy.java:728)
-	at com.zj.aiagemt.mapper.impl.AgentRepository$$SpringCGLIB$$0.queryApiByClientIdS(<generated>)
+	at com.zj.aiagemt.Repository.AgentRepository$$SpringCGLIB$$0.queryApiByClientIdS(<generated>)
 	at com.zj.aiagemt.service.agent.armory.strategy.ClientLoadDataStrategy.lambda$0(ClientLoadDataStrategy.java:26)
 	at java.base/java.util.concurrent.CompletableFuture$AsyncRun.run(CompletableFuture.java:1804)
 	... 3 common frames omitted
@@ -742,14 +742,14 @@ Caused by: org.apache.ibatis.binding.BindingException: Invalid bound statement (
 25-09-10.21:14:33.386 [main            ] INFO  RootNode               - 开始加载数据 commandTypeaiClientLoadDataStrategy
 25-09-10.21:14:33.386 [main            ] INFO  ClientLoadDataStrategy - 开始异步加载数据
 25-09-10.21:14:33.406 [main            ] ERROR AiAgentAutoConfiguration - AI Agent 自动装配失败
-java.util.concurrent.CompletionException: org.apache.ibatis.binding.BindingException: Invalid bound statement (not found): com.zj.aiagemt.mapper.AiClientConfigMapper.selectList
+java.util.concurrent.CompletionException: org.apache.ibatis.binding.BindingException: Invalid bound statement (not found): com.zj.aiagemt.Repository.base.AiClientConfigMapper.selectList
 	at java.base/java.util.concurrent.CompletableFuture.encodeThrowable(CompletableFuture.java:315)
 	at java.base/java.util.concurrent.CompletableFuture.completeThrowable(CompletableFuture.java:320)
 	at java.base/java.util.concurrent.CompletableFuture$AsyncRun.run(CompletableFuture.java:1807)
 	at java.base/java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1144)
 	at java.base/java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:642)
 	at java.base/java.lang.Thread.run(Thread.java:1583)
-Caused by: org.apache.ibatis.binding.BindingException: Invalid bound statement (not found): com.zj.aiagemt.mapper.AiClientConfigMapper.selectList
+Caused by: org.apache.ibatis.binding.BindingException: Invalid bound statement (not found): com.zj.aiagemt.Repository.base.AiClientConfigMapper.selectList
 	at org.apache.ibatis.binding.MapperMethod$SqlCommand.<init>(MapperMethod.java:229)
 	at org.apache.ibatis.binding.MapperMethod.<init>(MapperMethod.java:53)
 	at org.apache.ibatis.binding.MapperProxy.lambda$cachedInvoker$0(MapperProxy.java:96)
@@ -758,7 +758,7 @@ Caused by: org.apache.ibatis.binding.BindingException: Invalid bound statement (
 	at org.apache.ibatis.binding.MapperProxy.cachedInvoker(MapperProxy.java:94)
 	at org.apache.ibatis.binding.MapperProxy.invoke(MapperProxy.java:86)
 	at jdk.proxy2/jdk.proxy2.$Proxy82.selectList(Unknown Source)
-	at com.zj.aiagemt.mapper.impl.AgentRepository.queryApiByClientIdS(AgentRepository.java:66)
+	at com.zj.aiagemt.Repository.AgentRepository.queryApiByClientIdS(AgentRepository.java:66)
 	at java.base/jdk.internal.reflect.DirectMethodHandleAccessor.invoke(DirectMethodHandleAccessor.java:103)
 	at java.base/java.lang.reflect.Method.invoke(Method.java:580)
 	at org.springframework.aop.support.AopUtils.invokeJoinpointUsingReflection(AopUtils.java:360)
@@ -767,7 +767,7 @@ Caused by: org.apache.ibatis.binding.BindingException: Invalid bound statement (
 	at org.springframework.dao.support.PersistenceExceptionTranslationInterceptor.invoke(PersistenceExceptionTranslationInterceptor.java:138)
 	at org.springframework.aop.framework.ReflectiveMethodInvocation.proceed(ReflectiveMethodInvocation.java:184)
 	at org.springframework.aop.framework.CglibAopProxy$DynamicAdvisedInterceptor.intercept(CglibAopProxy.java:728)
-	at com.zj.aiagemt.mapper.impl.AgentRepository$$SpringCGLIB$$0.queryApiByClientIdS(<generated>)
+	at com.zj.aiagemt.Repository.AgentRepository$$SpringCGLIB$$0.queryApiByClientIdS(<generated>)
 	at com.zj.aiagemt.service.agent.armory.strategy.ClientLoadDataStrategy.lambda$0(ClientLoadDataStrategy.java:26)
 	at java.base/java.util.concurrent.CompletableFuture$AsyncRun.run(CompletableFuture.java:1804)
 	... 3 common frames omitted
@@ -1912,7 +1912,7 @@ The last packet successfully received from the server was 32,828 milliseconds ag
 	at com.baomidou.mybatisplus.core.override.MybatisMapperProxy$DefaultMethodInvoker.invoke(MybatisMapperProxy.java:166)
 	at com.baomidou.mybatisplus.core.override.MybatisMapperProxy.invoke(MybatisMapperProxy.java:89)
 	at jdk.proxy2/jdk.proxy2.$Proxy94.selectOne(Unknown Source)
-	at com.zj.aiagemt.mapper.impl.AgentRepository.queryPromptByClientIdS(AgentRepository.java:341)
+	at com.zj.aiagemt.Repository.AgentRepository.queryPromptByClientIdS(AgentRepository.java:341)
 	at java.base/jdk.internal.reflect.DirectMethodHandleAccessor.invoke(DirectMethodHandleAccessor.java:103)
 	at java.base/java.lang.reflect.Method.invoke(Method.java:580)
 	at org.springframework.aop.support.AopUtils.invokeJoinpointUsingReflection(AopUtils.java:360)
@@ -1921,7 +1921,7 @@ The last packet successfully received from the server was 32,828 milliseconds ag
 	at org.springframework.dao.support.PersistenceExceptionTranslationInterceptor.invoke(PersistenceExceptionTranslationInterceptor.java:138)
 	at org.springframework.aop.framework.ReflectiveMethodInvocation.proceed(ReflectiveMethodInvocation.java:184)
 	at org.springframework.aop.framework.CglibAopProxy$DynamicAdvisedInterceptor.intercept(CglibAopProxy.java:728)
-	at com.zj.aiagemt.mapper.impl.AgentRepository$$SpringCGLIB$$0.queryPromptByClientIdS(<generated>)
+	at com.zj.aiagemt.Repository.AgentRepository$$SpringCGLIB$$0.queryPromptByClientIdS(<generated>)
 	at com.zj.aiagemt.service.agent.armory.strategy.ClientLoadDataStrategy.lambda$4(ClientLoadDataStrategy.java:42)
 	at java.base/java.util.concurrent.CompletableFuture$AsyncRun.run$$$capture(CompletableFuture.java:1804)
 	at java.base/java.util.concurrent.CompletableFuture$AsyncRun.run(CompletableFuture.java)
