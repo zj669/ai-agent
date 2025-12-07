@@ -33,6 +33,8 @@ public class AiClientAdvisorVO {
      */
     private String advisorType;
 
+    private String advisorParam;
+
     /**
      * 顺序号
      */

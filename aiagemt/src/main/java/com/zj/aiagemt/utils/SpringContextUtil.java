@@ -46,4 +46,8 @@ public class SpringContextUtil {
     public <T> T getBean(String beanName) {
         return (T) applicationContext.getBean(beanName);
     }
+
+    public <T> T getBean(Class<T> beanName) {
+        return (T) applicationContext.getBean(beanName);
+    }
 }

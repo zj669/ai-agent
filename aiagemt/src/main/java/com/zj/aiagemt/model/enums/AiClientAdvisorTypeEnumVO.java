@@ -1,14 +1,18 @@
 package com.zj.aiagemt.model.enums;
 
 
+import com.alibaba.fastjson2.JSON;
+import com.zj.aiagemt.Repository.base.TodoListMapper;
 import com.zj.aiagemt.model.vo.AiClientAdvisorVO;
 import com.zj.aiagemt.service.memory.ConversationSummaryMemoryAdvisor;
 import com.zj.aiagemt.service.memory.VectorStoreRetrieverMemoryAdvisor;
 import com.zj.aiagemt.service.memory.chatmemory.ConversationSummaryMemory;
 import com.zj.aiagemt.service.memory.chatmemory.VectorStoreRetrieverMemory;
 import com.zj.aiagemt.service.rag.RagAnswerAdvisor;
+import com.zj.aiagemt.service.tool.TodoListExecuteAdvisor;
+import com.zj.aiagemt.service.tool.TodoListPlanAdvisor;
+import com.zj.aiagemt.service.todo.TodoListService;
 import com.zj.aiagemt.utils.SpringContextUtil;
-import jakarta.annotation.Resource;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -24,9 +28,6 @@ import java.util.Map;
 
 /**
  * 顾问类型枚举
- *
- * @author xiaofuge bugstack.cn @小傅哥
- * 2025/7/19 09:02
  */
 @Getter
 @AllArgsConstructor
@@ -36,7 +37,8 @@ public enum AiClientAdvisorTypeEnumVO {
     CHAT_MEMORY("ChatMemory", "上下文记忆（内存模式）") {
         @Override
         public Advisor createAdvisor(AiClientAdvisorVO aiClientAdvisorVO, VectorStore vectorStore) {
-            AiClientAdvisorVO.ChatMemory chatMemory = aiClientAdvisorVO.getChatMemory();
+            String advisorParam = aiClientAdvisorVO.getAdvisorParam();
+            AiClientAdvisorVO.ChatMemory chatMemory = JSON.parseObject(advisorParam, AiClientAdvisorVO.ChatMemory.class);
             return PromptChatMemoryAdvisor.builder(
                     MessageWindowChatMemory.builder()
                             .maxMessages(chatMemory.getMaxMessages())
@@ -44,11 +46,34 @@ public enum AiClientAdvisorTypeEnumVO {
             ).build();
         }
     },
-    
-    RAG_ANSWER("RagAnswer", "知识库") {
+
+    CONVERSATION_SUMMARY_MEMORY("ConversationSummaryMemory", "上下文记忆（摘要模式）") {
         @Override
         public Advisor createAdvisor(AiClientAdvisorVO aiClientAdvisorVO, VectorStore vectorStore) {
-            AiClientAdvisorVO.RagAnswer ragAnswer = aiClientAdvisorVO.getRagAnswer();
+            return new ConversationSummaryMemoryAdvisor(new ConversationSummaryMemory(aiClientAdvisorVO.getSpringContextUtil()));
+        }
+    },
+
+    VECTOR_STORE_RETRIEVER_MEMORY("VectorStoreRetrieverMemory", "向量存储检索记忆") {
+        @Override
+        public Advisor createAdvisor(AiClientAdvisorVO aiClientAdvisorVO, VectorStore vectorStore) {
+            String advisorParam = aiClientAdvisorVO.getAdvisorParam();
+            AiClientAdvisorVO.VectorStoreRetriever config = JSON.parseObject(advisorParam,
+                    AiClientAdvisorVO.VectorStoreRetriever.class);
+            // 使用配置参数创建向量存储检索记忆管理器
+            int topK = config != null ? config.getTopK() : VectorStoreRetrieverMemory.DEFAULT_TOP_K;
+            float similarityThreshold = config != null ? config.getSimilarityThreshold() : VectorStoreRetrieverMemory.DEFAULT_SIMILARITY_THRESHOLD;
+
+            VectorStoreRetrieverMemory memory = new VectorStoreRetrieverMemory(vectorStore, topK, similarityThreshold);
+            return new VectorStoreRetrieverMemoryAdvisor(memory);
+        }
+    },
+    
+    RAG_ANSWER_ADVISOR("RagAnswerAdvisor", "RAG问答"){
+        @Override
+        public Advisor createAdvisor(AiClientAdvisorVO aiClientAdvisorVO, VectorStore vectorStore) {
+            String advisorParam = aiClientAdvisorVO.getAdvisorParam();
+            AiClientAdvisorVO.RagAnswer ragAnswer = JSON.parseObject(advisorParam, AiClientAdvisorVO.RagAnswer.class);
             return new RagAnswerAdvisor(vectorStore, SearchRequest.builder()
                     .topK(ragAnswer.getTopK())
                     .filterExpression(ragAnswer.getFilterExpression())
@@ -56,36 +81,33 @@ public enum AiClientAdvisorTypeEnumVO {
         }
     },
 
-    CONVERSATION_SUMMARY_MEMORY("ConversationSummaryMemoryAdvisor", "对话总结") {
-        @Override
-        public Advisor createAdvisor(AiClientAdvisorVO aiClientAdvisorVO, VectorStore vectorStore) {
-            SpringContextUtil springContextUtil = aiClientAdvisorVO.getSpringContextUtil();
-            // 创建记忆管理器（负责智能摘要和历史管理）
-            ConversationSummaryMemory memory = new ConversationSummaryMemory(springContextUtil);
-
-            return new ConversationSummaryMemoryAdvisor(memory);
-        }
-    },
-    
-    VECTOR_STORE_RETRIEVER_MEMORY("VectorStoreRetrieverMemoryAdvisor", "向量存储检索记忆") {
-        @Override
-        public Advisor createAdvisor(AiClientAdvisorVO aiClientAdvisorVO, VectorStore vectorStore) {
-            AiClientAdvisorVO.VectorStoreRetriever config = aiClientAdvisorVO.getVectorStoreRetriever();
-            
-            // 使用配置参数创建向量存储检索记忆管理器
-            int topK = config != null ? config.getTopK() : VectorStoreRetrieverMemory.DEFAULT_TOP_K;
-            float similarityThreshold = config != null ? config.getSimilarityThreshold() : VectorStoreRetrieverMemory.DEFAULT_SIMILARITY_THRESHOLD;
-            
-            VectorStoreRetrieverMemory memory = new VectorStoreRetrieverMemory(vectorStore, topK, similarityThreshold);
-            return new VectorStoreRetrieverMemoryAdvisor(memory);
-        }
-    },
-
-    SimpleLoggerAdvisor("SimpleLoggerAdvisor", "日志"){
+    SIMPLE_LOGGER_ADVISOR("SimpleLoggerAdvisor", "日志"){
         @Override
         public Advisor createAdvisor(AiClientAdvisorVO aiClientAdvisorVO, VectorStore vectorStore) {
 
             return new SimpleLoggerAdvisor();
+        }
+    },
+
+    TODOLIST_PLAN_ADVISOR("TodoListPlanAdvisor", "规划节点"){
+        @Override
+        public Advisor createAdvisor(AiClientAdvisorVO aiClientAdvisorVO, VectorStore vectorStore) {
+            SpringContextUtil springContextUtil = aiClientAdvisorVO.getSpringContextUtil();
+            // 获取TodoListMapper bean
+            TodoListMapper todoListMapper = springContextUtil.getBean(TodoListMapper.class);
+            TodoListService todoListService = springContextUtil.getBean(TodoListService.class);
+            return new TodoListPlanAdvisor(todoListMapper, todoListService);
+        }
+    },
+
+    TODOLIST_EXECUTE_ADVISOR("TodoListExecuteAdvisor", "规划执行节点"){
+        @Override
+        public Advisor createAdvisor(AiClientAdvisorVO aiClientAdvisorVO, VectorStore vectorStore) {
+            SpringContextUtil springContextUtil = aiClientAdvisorVO.getSpringContextUtil();
+            // 获取TodoListMapper bean
+            TodoListMapper todoListMapper = springContextUtil.getBean(TodoListMapper.class);
+            TodoListService todoListService = springContextUtil.getBean(TodoListService.class);
+            return new TodoListExecuteAdvisor(todoListMapper, todoListService);
         }
     },
     ;
@@ -111,17 +133,7 @@ public enum AiClientAdvisorTypeEnumVO {
      */
     public abstract Advisor createAdvisor(AiClientAdvisorVO aiClientAdvisorVO, VectorStore vectorStore);
     
-    /**
-     * 根据code获取枚举
-     * @param code 编码
-     * @return 枚举对象
-     */
     public static AiClientAdvisorTypeEnumVO getByCode(String code) {
-        AiClientAdvisorTypeEnumVO enumVO = CODE_MAP.get(code);
-        if (enumVO == null) {
-            throw new RuntimeException("err! advisorType " + code + " not exist!");
-        }
-        return enumVO;
+        return CODE_MAP.get(code);
     }
-
 }

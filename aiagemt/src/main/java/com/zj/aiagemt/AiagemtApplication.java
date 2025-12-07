@@ -9,6 +9,7 @@ import org.springframework.scheduling.annotation.EnableScheduling;
 
 @SpringBootApplication(exclude = {DataSourceAutoConfiguration.class})
 @EnableScheduling
+@MapperScan("com.zj.aiagemt.Repository.base")
 public class AiagemtApplication {
 	
 	public static void main(String[] args) {
