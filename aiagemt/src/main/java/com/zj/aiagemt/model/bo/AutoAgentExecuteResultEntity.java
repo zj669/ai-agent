@@ -25,11 +25,6 @@ public class AutoAgentExecuteResultEntity {
     private String type;
 
     /**
-     * 子类型标识，用于前端细粒度展示
-     */
-    private String subType;
-
-    /**
      * 当前步骤
      */
     private Integer step;
@@ -71,10 +66,9 @@ public class AutoAgentExecuteResultEntity {
     /**
      * 创建分析阶段细分结果
      */
-    public static AutoAgentExecuteResultEntity createAnalysisSubResult(Integer step, String subType, String content, String sessionId) {
+    public static AutoAgentExecuteResultEntity createAnalysisSubResult(Integer step, String content, String sessionId) {
         return AutoAgentExecuteResultEntity.builder()
                 .type("analysis")
-                .subType(subType)
                 .step(step)
                 .content(content)
                 .completed(false)
@@ -100,10 +94,9 @@ public class AutoAgentExecuteResultEntity {
     /**
      * 创建执行阶段细分结果
      */
-    public static AutoAgentExecuteResultEntity createExecutionSubResult(Integer step, String subType, String content, String sessionId) {
+    public static AutoAgentExecuteResultEntity createExecutionSubResult(Integer step,  String content, String sessionId) {
         return AutoAgentExecuteResultEntity.builder()
                 .type("execution")
-                .subType(subType)
                 .step(step)
                 .content(content)
                 .completed(false)
@@ -132,7 +125,6 @@ public class AutoAgentExecuteResultEntity {
     public static AutoAgentExecuteResultEntity createSupervisionSubResult(Integer step, String subType, String content, String sessionId) {
         return AutoAgentExecuteResultEntity.builder()
                 .type("supervision")
-                .subType(subType)
                 .step(step)
                 .content(content)
                 .completed(false)
@@ -147,7 +139,6 @@ public class AutoAgentExecuteResultEntity {
     public static AutoAgentExecuteResultEntity createSummarySubResult(String subType, String content, String sessionId) {
         return AutoAgentExecuteResultEntity.builder()
                 .type("summary")
-                .subType(subType)
                 .step(4)
                 .content(content)
                 .completed(false)

@@ -134,50 +134,6 @@ public class Step4LogExecutionSummaryNode extends AbstractExecuteSupport {
         boolean isCompleted = dynamicContext.isCompleted();
         log.info("\n📋 === {}任务最终总结报告 ===", isCompleted ? "已完成" : "未完成");
 
-        String[] lines = summaryResult.split("\n");
-        String currentSection = "summary_overview";
-        StringBuilder sectionContent = new StringBuilder();
-
-        for (String line : lines) {
-            line = line.trim();
-            if (line.isEmpty()) continue;
-
-            // 检测是否开始新的总结部分
-            String newSection = detectSummarySection(line);
-            if (newSection != null && !newSection.equals(currentSection)) {
-                // 发送前一个部分的内容
-                if (!sectionContent.isEmpty()) {
-                    sendSummarySubResult(dynamicContext, currentSection, sectionContent.toString(), sessionId);
-                }
-                currentSection = newSection;
-                sectionContent.setLength(0);
-            }
-
-            // 收集当前部分的内容
-            if (!sectionContent.isEmpty()) {
-                sectionContent.append("\n");
-            }
-            sectionContent.append(line);
-
-            // 根据内容类型添加不同图标
-            if (line.contains("已完成") || line.contains("完成的工作")) {
-                log.info("✅ {}", line);
-            } else if (line.contains("未完成") || line.contains("原因")) {
-                log.info("❌ {}", line);
-            } else if (line.contains("建议") || line.contains("推荐")) {
-                log.info("💡 {}", line);
-            } else if (line.contains("评估") || line.contains("效果")) {
-                log.info("📊 {}", line);
-            } else {
-                log.info("📝 {}", line);
-            }
-        }
-
-        // 发送最后一个部分的内容
-        if (!sectionContent.isEmpty()) {
-            sendSummarySubResult(dynamicContext, currentSection, sectionContent.toString(), sessionId);
-        }
-
         // 发送完整的总结结果
         sendSummaryResult(dynamicContext, summaryResult, sessionId);
 
@@ -190,27 +146,14 @@ public class Step4LogExecutionSummaryNode extends AbstractExecuteSupport {
      */
     private void sendSummaryResult(DefaultAutoAgentExecuteStrategyFactory.DynamicContext dynamicContext,
                                    String summaryResult, String sessionId) {
-        AutoAgentExecuteResultEntity result = AutoAgentExecuteResultEntity.createSummaryResult(
-                summaryResult, sessionId);
-        sendSseResult(dynamicContext, result);
+        sendSseResult(dynamicContext, dynamicContext.getStep(), summaryResult, sessionId, false);
     }
-
-    /**
-     * 发送总结阶段细分结果到流式输出
-     */
-    private void sendSummarySubResult(DefaultAutoAgentExecuteStrategyFactory.DynamicContext dynamicContext,
-                                      String subType, String content, String sessionId) {
-        AutoAgentExecuteResultEntity result = AutoAgentExecuteResultEntity.createSummarySubResult(
-                subType, content, sessionId);
-        sendSseResult(dynamicContext, result);
-    }
-
     /**
      * 发送完成标识到流式输出
      */
     private void sendCompleteResult(DefaultAutoAgentExecuteStrategyFactory.DynamicContext dynamicContext, String sessionId) {
         AutoAgentExecuteResultEntity result = AutoAgentExecuteResultEntity.createCompleteResult(sessionId);
-        sendSseResult(dynamicContext, result);
+        sendSseResult(dynamicContext, null,"执行完成", sessionId , true);
         log.info("✅ 已发送完成标识");
     }
 
@@ -234,4 +177,8 @@ public class Step4LogExecutionSummaryNode extends AbstractExecuteSupport {
         return null;
     }
 
+    @Override
+    protected AiClientTypeEnumVO getType() {
+        return AiClientTypeEnumVO.SUMMARY_ASSISTANT;
+    }
 }

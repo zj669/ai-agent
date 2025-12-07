@@ -4,6 +4,7 @@ package com.zj.aiagemt.service.agent.impl.execute.auto.step;
 import com.alibaba.fastjson.JSON;
 
 import com.zj.aiagemt.common.design.ruletree.AbstractMultiThreadStrategyRouter;
+import com.zj.aiagemt.model.enums.AiClientTypeEnumVO;
 import com.zj.aiagemt.service.agent.IAgentRepository;
 import com.zj.aiagemt.model.bo.AutoAgentExecuteResultEntity;
 import com.zj.aiagemt.model.bo.ExecuteCommandEntity;
@@ -52,11 +53,18 @@ public abstract class AbstractExecuteSupport extends AbstractMultiThreadStrategy
     /**
      * 通用的SSE结果发送方法
      * @param dynamicContext 动态上下文
-     * @param result 要发送的结果实体
      */
     protected void sendSseResult(DefaultAutoAgentExecuteStrategyFactory.DynamicContext dynamicContext,
-                                 AutoAgentExecuteResultEntity result) {
+                                 Integer step, String content, String sessionId, Boolean completed) {
         try {
+            AutoAgentExecuteResultEntity result = AutoAgentExecuteResultEntity.builder()
+                    .type(getType().getCode())
+                    .step(step)
+                    .content(content)
+                    .completed(completed)
+                    .timestamp(System.currentTimeMillis())
+                    .sessionId(sessionId)
+                    .build();
             ResponseBodyEmitter emitter = dynamicContext.getValue("emitter");
             if (emitter != null) {
                 // 发送SSE格式的数据
@@ -67,5 +75,7 @@ public abstract class AbstractExecuteSupport extends AbstractMultiThreadStrategy
             log.error("发送SSE结果失败：{}", e.getMessage(), e);
         }
     }
+
+    protected abstract AiClientTypeEnumVO getType();
 
 }

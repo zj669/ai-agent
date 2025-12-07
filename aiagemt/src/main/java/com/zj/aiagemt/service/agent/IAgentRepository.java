@@ -1,5 +1,7 @@
 package com.zj.aiagemt.service.agent;
 
+import com.zj.aiagemt.model.dto.AgentInfoDTO;
+import com.zj.aiagemt.model.entity.AiAgent;
 import com.zj.aiagemt.model.vo.AiAgentClientFlowConfigVO;
 import com.zj.aiagemt.service.agent.impl.armory.factory.DefaultAgentArmoryFactory;
 
@@ -24,4 +26,6 @@ public interface IAgentRepository {
     Map<String, AiAgentClientFlowConfigVO> queryAiAgentClientFlowConfig(String aiAgentId);
 
     List<String> queryClientIdsByAgentId(String aiAgentId);
+
+    List<AiAgent> queryAgentDtoList();
 }

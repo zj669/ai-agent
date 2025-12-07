@@ -8,4 +8,6 @@ public interface IExecuteStrategy {
 
     void execute(ExecuteCommandEntity requestParameter, ResponseBodyEmitter emitter) throws Exception;
 
+
+
 }

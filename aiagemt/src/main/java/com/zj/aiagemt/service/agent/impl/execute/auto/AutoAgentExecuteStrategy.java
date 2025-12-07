@@ -40,15 +40,15 @@ public class AutoAgentExecuteStrategy implements IExecuteStrategy {
         String apply = executeHandler.apply(executeCommandEntity, dynamicContext);
         log.info("测试结果:{}", apply);
 
-        // 发送完成标识
-        try {
-            AutoAgentExecuteResultEntity completeResult = AutoAgentExecuteResultEntity.createCompleteResult(executeCommandEntity.getSessionId());
-            // 发送SSE格式的数据
-            String sseData = "data: " + JSON.toJSONString(completeResult) + "\n\n";
-            emitter.send(sseData);
-        } catch (Exception e) {
-            log.error("发送完成标识失败：{}", e.getMessage(), e);
-        }
+//        // 发送完成标识
+//        try {
+//            AutoAgentExecuteResultEntity completeResult = AutoAgentExecuteResultEntity.createCompleteResult(executeCommandEntity.getSessionId());
+//            // 发送SSE格式的数据
+//            String sseData = "data: " + JSON.toJSONString(completeResult) + "\n\n";
+//            emitter.send(sseData);
+//        } catch (Exception e) {
+//            log.error("发送完成标识失败：{}", e.getMessage(), e);
+//        }
     }
 
 }

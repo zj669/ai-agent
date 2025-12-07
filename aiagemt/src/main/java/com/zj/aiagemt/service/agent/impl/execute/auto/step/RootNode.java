@@ -4,6 +4,7 @@ package com.zj.aiagemt.service.agent.impl.execute.auto.step;
 
 import com.zj.aiagemt.common.design.ruletree.StrategyHandler;
 import com.zj.aiagemt.model.bo.ExecuteCommandEntity;
+import com.zj.aiagemt.model.enums.AiClientTypeEnumVO;
 import com.zj.aiagemt.model.vo.AiAgentClientFlowConfigVO;
 import com.zj.aiagemt.service.agent.impl.execute.auto.factory.DefaultAutoAgentExecuteStrategyFactory;
 import jakarta.annotation.Resource;
@@ -50,5 +51,10 @@ public class RootNode extends AbstractExecuteSupport {
     @Override
     public StrategyHandler<ExecuteCommandEntity, DefaultAutoAgentExecuteStrategyFactory.DynamicContext, String> get(ExecuteCommandEntity requestParams, DefaultAutoAgentExecuteStrategyFactory.DynamicContext context) {
         return step1AnalyzerNode;
+    }
+
+    @Override
+    protected AiClientTypeEnumVO getType() {
+        return null;
     }
 }

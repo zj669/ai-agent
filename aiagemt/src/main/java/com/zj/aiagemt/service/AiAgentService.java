@@ -3,8 +3,11 @@ package com.zj.aiagemt.service;
 import com.zj.aiagemt.common.design.ruletree.StrategyHandler;
 import com.zj.aiagemt.model.bo.ArmoryCommandEntity;
 import com.zj.aiagemt.model.bo.ExecuteCommandEntity;
+import com.zj.aiagemt.model.dto.AgentInfoDTO;
 import com.zj.aiagemt.model.dto.AutoAgentRequestDTO;
+import com.zj.aiagemt.model.entity.AiAgent;
 import com.zj.aiagemt.model.enums.AiAgentEnumVO;
+import com.zj.aiagemt.service.agent.IAgentRepository;
 import com.zj.aiagemt.service.agent.impl.armory.factory.DefaultAgentArmoryFactory;
 import com.zj.aiagemt.service.agent.impl.armory.model.AgentArmoryVO;
 import com.zj.aiagemt.service.agent.factory.IExecuteStrategy;
@@ -27,6 +30,8 @@ public class AiAgentService {
     private IExecuteStrategy autoAgentExecuteStrategy;
     @Resource
     private DefaultAgentArmoryFactory defaultArmoryStrategyFactory;
+    @Resource
+    private IAgentRepository agentRepository;
     @Resource
     private SpringContextUtil springContextUtil;
 
@@ -96,5 +101,9 @@ public class AiAgentService {
         return chatClient.prompt()
                 .messages(new UserMessage(request.getMessage()))
                 .stream().content();
+    }
+
+    public List<AiAgent> queryAgentDtoList() {
+        return agentRepository.queryAgentDtoList();
     }
 }

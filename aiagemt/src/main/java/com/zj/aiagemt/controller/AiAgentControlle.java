@@ -1,22 +1,19 @@
 package com.zj.aiagemt.controller;
 
 
+import cn.hutool.core.util.IdUtil;
 import com.alibaba.fastjson.JSON;
 
 import com.zj.aiagemt.model.common.Response;
 import com.zj.aiagemt.model.dto.AgentInfoDTO;
 import com.zj.aiagemt.model.dto.AutoAgentRequestDTO;
+import com.zj.aiagemt.model.entity.AiAgent;
 import com.zj.aiagemt.service.AiAgentService;
+import io.swagger.v3.oas.annotations.Operation;
 import jakarta.annotation.Resource;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.web.bind.annotation.CrossOrigin;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestMethod;
-import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.mvc.method.annotation.ResponseBodyEmitter;
 import reactor.core.publisher.Flux;
 
@@ -25,6 +22,7 @@ import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.ThreadPoolExecutor;
 
 /**
  * AutoAgent 自动智能对话体
@@ -38,6 +36,9 @@ import java.util.Map;
 public class AiAgentControlle {
     @Resource
     private AiAgentService aiAgentService;
+    
+    @Resource
+    private ThreadPoolExecutor threadPoolExecutor;
 
     @RequestMapping(value = "auto_agent", method = RequestMethod.POST)
     public ResponseBodyEmitter autoAgent(@RequestBody AutoAgentRequestDTO request, HttpServletResponse response) {
@@ -53,17 +54,6 @@ public class AiAgentControlle {
         return  aiAgentService.autoAgent(request, emitter);
     }
 
-    @RequestMapping(value = "model_chat_stream", method = RequestMethod.POST)
-    public Flux<String> modelChat(@RequestBody AutoAgentRequestDTO request, HttpServletResponse response) {
-        // 设置SSE响应头
-        response.setContentType("text/event-stream");
-        response.setCharacterEncoding("UTF-8");
-        response.setHeader("Cache-Control", "no-cache");
-        response.setHeader("Connection", "keep-alive");
-        // 1. 创建流式输出对象
-        return  aiAgentService.modelChat(request);
-    }
-
     @RequestMapping(value = "reload_client", method = RequestMethod.POST)
     public Response<String> reload(@RequestBody List<String> request) {
         try {
@@ -75,36 +65,13 @@ public class AiAgentControlle {
     }
 
     @RequestMapping(value = "list", method = RequestMethod.GET)
-    public Response<List<AgentInfoDTO>> getAvailableAgents() {
+    public Response<List<AiAgent>> getAvailableAgents() {
         log.info("获取可用智能体列表请求");
         
         try {
-            // 目前返回固定的智能体列表，后续可以从数据库查询
-            List<AgentInfoDTO> agents = new ArrayList<>();
-            
-            AgentInfoDTO agent3001 = AgentInfoDTO.builder()
-                    .id("3")
-                    .name("默认智能体")
-                    .description("支持多轮对话的通用AI智能体")
-                    .available(true)
-                    .type("GENERAL")
-                    .createTime("2024-01-01 00:00:00")
-                    .updateTime("2024-01-01 00:00:00")
-                    .build();
-            
-            agents.add(agent3001);
-            
-            // 可以添加更多智能体
-            // agents.add(AgentInfoDTO.builder()
-            //         .id("3002")
-            //         .name("编程助手")
-            //         .description("专门用于编程问答的智能体")
-            //         .available(false)
-            //         .type("CODING")
-            //         .build());
-            
+            List<AiAgent> agents = aiAgentService.queryAgentDtoList();
             log.info("成功获取到{}个智能体", agents.size());
-            return Response.<List<AgentInfoDTO>>builder()
+            return Response.<List<AiAgent>>builder()
                     .code("0000")
                     .info("成功")
                     .data(agents)
@@ -112,42 +79,9 @@ public class AiAgentControlle {
                     
         } catch (Exception e) {
             log.error("获取智能体列表异常：{}", e.getMessage(), e);
-            return Response.<List<AgentInfoDTO>>builder()
+            return Response.<List<AiAgent>>builder()
                     .code("0001")
                     .info("获取智能体列表失败：" + e.getMessage())
-                    .build();
-        }
-    }
-
-    @RequestMapping(value = "detail/{agentId}", method = RequestMethod.GET)
-    public Response<AgentInfoDTO> getAgentDetail(@PathVariable String agentId) {
-        log.info("获取智能体详情请求, agentId: {}", agentId);
-        
-        try {
-            // TODO: 实现智能体详情查询逻辑
-            // 这里可以调用相应的服务方法获取智能体详细信息
-            
-            AgentInfoDTO agentDetail = AgentInfoDTO.builder()
-                    .id(agentId)
-                    .name("智能体 " + agentId)
-                    .description("这是智能体 " + agentId + " 的详细描述")
-                    .available(true)
-                    .type("GENERAL")
-                    .createTime("2024-01-01 00:00:00")
-                    .updateTime("2024-01-01 00:00:00")
-                    .build();
-            
-            return Response.<AgentInfoDTO>builder()
-                    .code("0000")
-                    .info("成功")
-                    .data(agentDetail)
-                    .build();
-                    
-        } catch (Exception e) {
-            log.error("获取智能体详情异常：{}", e.getMessage(), e);
-            return Response.<AgentInfoDTO>builder()
-                    .code("0001")
-                    .info("获取智能体详情失败：" + e.getMessage())
                     .build();
         }
     }
@@ -186,36 +120,24 @@ public class AiAgentControlle {
         }
     }
 
-    @RequestMapping(value = "export", method = RequestMethod.GET)
-    public Response<Object> exportChat(
-            @RequestParam String sessionId,
-            @RequestParam(defaultValue = "json") String format) {
-        log.info("导出聊天记录请求, sessionId: {}, format: {}", sessionId, format);
-        
-        try {
-            // TODO: 实现聊天记录导出逻辑
-            // 这里可以调用相应的服务方法导出聊天记录
-            
-            // 示例返回数据结构
-            Map<String, Object> result = new HashMap<>();
-            result.put("sessionId", sessionId);
-            result.put("format", format);
-            result.put("downloadUrl", "/api/v1/agent/download/" + sessionId + "." + format);
-            result.put("exportTime", new Date());
-            
-            return Response.<Object>builder()
-                    .code("0000")
-                    .info("成功")
-                    .data(result)
-                    .build();
-                    
-        } catch (Exception e) {
-            log.error("导出聊天记录异常：{}", e.getMessage(), e);
-            return Response.<Object>builder()
-                    .code("0001")
-                    .info("导出聊天记录失败：" + e.getMessage())
-                    .build();
-        }
+    @GetMapping("newChat")
+    @Operation(summary = "发起流式问答前生成会话ID")
+    public Response<String> newChat(){
+        return Response.<String>builder()
+                .code("0000")
+                .info("成功")
+                .data(String.valueOf(IdUtil.getSnowflake(1, 1).nextId()))
+                .build();
+    }
+
+    @GetMapping("oldChat")
+    @Operation(summary = "历史会话ID")
+    public Response<List<String>> oldChat(){
+        return Response.<List<String>>builder()
+                .code("0000")
+                .info("成功")
+                .data(List.of("1", "2", "3"))
+                .build();
     }
 
 }

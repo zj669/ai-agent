@@ -16,6 +16,7 @@ import com.zj.aiagemt.Repository.base.AiClientModelMapper;
 import com.zj.aiagemt.Repository.base.AiClientRagOrderMapper;
 import com.zj.aiagemt.Repository.base.AiClientSystemPromptMapper;
 import com.zj.aiagemt.Repository.base.AiClientToolMcpMapper;
+import com.zj.aiagemt.model.dto.AgentInfoDTO;
 import com.zj.aiagemt.model.entity.*;
 import com.zj.aiagemt.model.enums.AiAgentEnumVO;
 import com.zj.aiagemt.model.vo.*;
@@ -305,6 +306,7 @@ public class AgentRepository implements IAgentRepository {
                         .advisorName(aiClientAdvisor.getAdvisorName())
                         .advisorType(aiClientAdvisor.getAdvisorType())
                         .orderNum(aiClientAdvisor.getOrderNum())
+                        .advisorParam(extParam)
                         .chatMemory(chatMemory)
                         .ragAnswer(ragAnswer)
                         .vectorStoreRetriever(vectorStoreRetriever)
@@ -483,5 +485,12 @@ public class AgentRepository implements IAgentRepository {
                 .eq(AiAgentFlowConfig::getAgentId, aiAgentId)
         );
         return aiAgentFlowConfigs.stream().map(AiAgentFlowConfig::getClientId).toList();
+    }
+
+    @Override
+    public List<AiAgent> queryAgentDtoList() {
+        List<AiAgent> aiAgents = aiAgentMapper.selectList(new LambdaQueryWrapper<AiAgent>());
+
+        return aiAgents;
     }
 }
