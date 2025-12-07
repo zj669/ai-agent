@@ -27,7 +27,6 @@ import java.util.concurrent.ThreadPoolExecutor;
 /**
  * AutoAgent 自动智能对话体
  *
- * @author xiaofuge bugstack.cn @小傅哥
  */
 @Slf4j
 @RestController
