@@ -1,2 +1,0 @@
-25-09-10.21:05:24.761 [SpringApplicationShutdownHook] INFO  GracefulShutdown       - Commencing graceful shutdown. Waiting for active requests to complete
-25-09-10.21:05:24.800 [tomcat-shutdown ] INFO  GracefulShutdown       - Graceful shutdown complete

@@ -1,6 +1,16 @@
+# ===== 项目根目录排除规则 =====
+# 排除根目录下的这些文件夹（只保留 aiagemt 项目）
+/data/
+/docs/
+/.idea/
+/.vscode/
+/.qoder/
+/.mvn/
+
+# ===== Java 项目通用规则 =====
 HELP.md
 target/
-.mvn/wrapper/maven-wrapper.jar
+!.mvn/wrapper/maven-wrapper.jar
 !**/src/main/**/target/
 !**/src/test/**/target/
 
@@ -14,7 +24,6 @@ target/
 .sts4-cache
 
 ### IntelliJ IDEA ###
-.idea
 *.iws
 *.iml
 *.ipr
@@ -30,4 +39,15 @@ build/
 !**/src/test/**/build/
 
 ### VS Code ###
-.vscode/
+
+### 日志文件 ###
+*.log
+log/
+logs/
+
+### 临时文件 ###
+*.tmp
+*.temp
+*~
+.DS_Store
+Thumbs.db
