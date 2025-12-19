@@ -1,21 +1,21 @@
-package com.zj.aiagemt.Repository;
+package com.zj.aiagemt.repository;
 
 import com.alibaba.fastjson2.JSON;
 import com.alibaba.fastjson2.TypeReference;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
-import com.zj.aiagemt.Repository.base.AiAgentFlowConfigMapper;
-import com.zj.aiagemt.Repository.base.AiAgentMapper;
-import com.zj.aiagemt.Repository.base.AiAgentTaskScheduleMapper;
-import com.zj.aiagemt.Repository.base.AiClientAdvisorMapper;
-import com.zj.aiagemt.Repository.base.AiClientApiMapper;
-import com.zj.aiagemt.Repository.base.AiClientConfigMapper;
-import com.zj.aiagemt.Repository.base.AiClientMapper;
-import com.zj.aiagemt.Repository.base.AiClientModelMapper;
-import com.zj.aiagemt.Repository.base.AiClientRagOrderMapper;
-import com.zj.aiagemt.Repository.base.AiClientSystemPromptMapper;
-import com.zj.aiagemt.Repository.base.AiClientToolMcpMapper;
+import com.zj.aiagemt.repository.base.AiAgentFlowConfigMapper;
+import com.zj.aiagemt.repository.base.AiAgentMapper;
+import com.zj.aiagemt.repository.base.AiAgentTaskScheduleMapper;
+import com.zj.aiagemt.repository.base.AiClientAdvisorMapper;
+import com.zj.aiagemt.repository.base.AiClientApiMapper;
+import com.zj.aiagemt.repository.base.AiClientConfigMapper;
+import com.zj.aiagemt.repository.base.AiClientMapper;
+import com.zj.aiagemt.repository.base.AiClientModelMapper;
+import com.zj.aiagemt.repository.base.AiClientRagOrderMapper;
+import com.zj.aiagemt.repository.base.AiClientSystemPromptMapper;
+import com.zj.aiagemt.repository.base.AiClientToolMcpMapper;
 import com.zj.aiagemt.model.dto.AgentInfoDTO;
 import com.zj.aiagemt.model.entity.*;
 import com.zj.aiagemt.model.enums.AiAgentEnumVO;
