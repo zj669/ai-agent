@@ -7,11 +7,7 @@ import lombok.NoArgsConstructor;
 
 import java.util.List;
 
-/**
- * 聊天模型配置，值对象
- * @author xiaofuge bugstack.cn @小傅哥
- * 2025/6/27 17:43
- */
+
 @Data
 @Builder
 @AllArgsConstructor

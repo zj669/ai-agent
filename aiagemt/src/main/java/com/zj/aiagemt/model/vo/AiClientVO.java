@@ -10,12 +10,7 @@ import lombok.NoArgsConstructor;
 import java.util.ArrayList;
 import java.util.List;
 
-/**
- * AI客户端配置，值对象
- *
- * @author xiaofuge bugstack.cn @小傅哥
- * 2025/6/27 18:51
- */
+
 @Data
 @Builder
 @AllArgsConstructor

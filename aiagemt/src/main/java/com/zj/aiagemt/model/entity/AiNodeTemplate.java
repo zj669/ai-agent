@@ -16,8 +16,8 @@ import java.time.LocalDateTime;
 @Builder
 @AllArgsConstructor
 @NoArgsConstructor
-@TableName("ai_agent")
-public class AiAgent {
+@TableName("ai_node_template")
+public class AiNodeTemplate {
 
     /**
      * 主键ID
@@ -27,34 +27,34 @@ public class AiAgent {
     private Long id;
 
     /**
-     * 智能体ID
+     * 节点类型 (PLAN, ACT, REFLECT, HUMAN, ROUTER, END)
      */
-    @Schema(description = "智能体ID")
-    private String agentId;
+    @Schema(description = "节点类型")
+    private String nodeType;
 
     /**
-     * 智能体名称
+     * 节点展示名称
      */
-    @Schema(description = "智能体名称")
-    private String agentName;
+    @Schema(description = "节点展示名称")
+    private String nodeName;
 
     /**
-     * 描述
+     * 前端图标标识
      */
-    @Schema(description = "描述")
-    private String description;
+    @Schema(description = "前端图标标识")
+    private String icon;
 
     /**
-     * 当前发布的版本号
+     * 默认系统提示词 (用于初始化)
      */
-    @Schema(description = "当前发布的版本号")
-    private String activeVersionId;
+    @Schema(description = "默认系统提示词")
+    private String defaultSystemPrompt;
 
     /**
-     * 状态(0:禁用,1:启用)
+     * 前端表单配置Schema (JSON格式)
      */
-    @Schema(description = "状态")
-    private Integer status;
+    @Schema(description = "前端表单配置Schema")
+    private String configSchema;
 
     /**
      * 创建时间

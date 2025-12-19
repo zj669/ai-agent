@@ -16,8 +16,8 @@ import java.time.LocalDateTime;
 @Builder
 @AllArgsConstructor
 @NoArgsConstructor
-@TableName("ai_agent")
-public class AiAgent {
+@TableName("ai_agent_version")
+public class AiAgentVersion {
 
     /**
      * 主键ID
@@ -27,31 +27,25 @@ public class AiAgent {
     private Long id;
 
     /**
-     * 智能体ID
+     * 关联的工作流ID
      */
-    @Schema(description = "智能体ID")
-    private String agentId;
+    @Schema(description = "关联的工作流ID")
+    private Long agentId;
 
     /**
-     * 智能体名称
+     * 版本号 (如: v1.0.1)
      */
-    @Schema(description = "智能体名称")
-    private String agentName;
+    @Schema(description = "版本号")
+    private String version;
 
     /**
-     * 描述
+     * 核心编排规则 (节点、连线、DSL配置)
      */
-    @Schema(description = "描述")
-    private String description;
+    @Schema(description = "核心编排规则")
+    private String graphJson;
 
     /**
-     * 当前发布的版本号
-     */
-    @Schema(description = "当前发布的版本号")
-    private String activeVersionId;
-
-    /**
-     * 状态(0:禁用,1:启用)
+     * 状态 (0:草稿, 1:已发布, 2:历史版本)
      */
     @Schema(description = "状态")
     private Integer status;

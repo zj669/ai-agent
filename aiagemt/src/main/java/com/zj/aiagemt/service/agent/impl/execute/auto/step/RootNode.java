@@ -13,12 +13,7 @@ import org.springframework.stereotype.Service;
 
 import java.util.Map;
 
-/**
- * 执行根节点
- *
- * @author xiaofuge bugstack.cn @小傅哥
- * 2025/7/27 16:33
- */
+
 @Slf4j
 @Service("executeRootNode")
 public class RootNode extends AbstractExecuteSupport {

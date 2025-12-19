@@ -14,12 +14,7 @@ import jakarta.annotation.PostConstruct;
 import java.util.List;
 import java.util.Objects;
 
-/**
- * 抽象逻辑链工厂
- *
- * @author QingshanWu
- * @date 2025/07/08
- */
+
 @Data
 public abstract class AbstractLogicLinkFactory<REQUEST, CONTEXT, RESULT> {
 

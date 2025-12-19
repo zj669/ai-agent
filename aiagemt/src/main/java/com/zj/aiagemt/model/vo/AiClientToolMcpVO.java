@@ -8,12 +8,7 @@ import lombok.NoArgsConstructor;
 import java.util.List;
 import java.util.Map;
 
-/**
- * MCP客户端配置，值对象
- *
- * @author xiaofuge bugstack.cn @小傅哥
- * 2025/6/27 18:29
- */
+
 @Data
 @Builder
 @AllArgsConstructor

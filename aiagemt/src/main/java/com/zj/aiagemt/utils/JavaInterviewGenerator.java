@@ -4,13 +4,7 @@ import javax.swing.*;
 import java.util.*;
 import java.util.stream.Collectors;
 
-/**
- * Java面试文章生成器工具类
- * 用于随机选择技术栈和业务场景，生成面试文章的提示词
- * 
- * @author JavaInterviewGenerator
- * @version 1.0
- */
+
 public class JavaInterviewGenerator {
     
     /**

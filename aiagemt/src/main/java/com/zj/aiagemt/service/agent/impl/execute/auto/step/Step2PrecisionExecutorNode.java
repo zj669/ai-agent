@@ -10,12 +10,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.ai.chat.client.ChatClient;
 import org.springframework.stereotype.Service;
 
-/**
- * 精准执行节点
- *
- * @author xiaofuge bugstack.cn @小傅哥
- * 2025/7/27 16:42
- */
+
 @Slf4j
 @Service
 public class Step2PrecisionExecutorNode extends AbstractExecuteSupport {

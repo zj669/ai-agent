@@ -1,11 +1,6 @@
 package com.zj.aiagemt.common.design.ruletree;
 
-/**
- * 规则树mapper
- *
- * @author: wuqingshan
- * @since : 2025年6月26日 15:12:12
- */
+
 public interface StrategyMapper<Request, Context, Result> {
 
     /**

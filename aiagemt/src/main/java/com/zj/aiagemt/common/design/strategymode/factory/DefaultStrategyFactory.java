@@ -11,12 +11,7 @@ import com.zj.aiagemt.model.common.IBaseEnum;
 import java.util.List;
 import java.util.Objects;
 
-/**
- * 默认策略路由工厂
- *
- * @author: wuqingshan
- * @since : 2025年6月26日 15:12:12
- */
+
 @Data
 public abstract class DefaultStrategyFactory<Request, Result> {
 

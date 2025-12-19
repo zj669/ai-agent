@@ -8,11 +8,7 @@ import jakarta.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
-/**
- * 自动执行策略
- * @author xiaofuge bugstack.cn @小傅哥
- * 2025/8/5 09:49
- */
+
 @Slf4j
 @Service
 public class AutoCodeReviewExecuteStrategy {

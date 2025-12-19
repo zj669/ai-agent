@@ -14,22 +14,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
-/**
- * 对话摘要记忆顾问
- * 
- * <p>专注于处理ChatClient的请求和响应流程：</p>
- * <ul>
- *   <li><strong>请求增强</strong>：在用户请求前，从记忆中获取历史对话，组合成完整上下文</li>
- *   <li><strong>响应保存</strong>：在AI响应后，将新的对话保存到记忆管理器中</li>
- * </ul>
- * 
- * <p>该类遵循单一职责原则，<strong>不负责</strong>摘要生成等记忆管理逻辑，
- * 这些功能由 {@link ConversationSummaryMemory} 专门处理。</p>
- * 
- * @author AI Agent
- * @since 1.0.0
- * @see ConversationSummaryMemory
- */
+
 @Slf4j
 public class ConversationSummaryMemoryAdvisor implements BaseAdvisor {
 

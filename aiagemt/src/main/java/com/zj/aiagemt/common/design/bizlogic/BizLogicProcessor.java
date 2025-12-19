@@ -1,11 +1,6 @@
 package com.zj.aiagemt.common.design.bizlogic;
 
-/**
- * 业务逻辑抽象模板
- *
- * @author: wuqingshan
- * @since : 2025年6月26日 15:12:12
- */
+
 public interface BizLogicProcessor<CONTEXT> {
 
     void init(CONTEXT context);

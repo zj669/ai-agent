@@ -7,11 +7,7 @@ import lombok.NoArgsConstructor;
 
 import java.time.LocalDateTime;
 
-/**
- * 聊天模型配置表
- * @author bugstack虫洞栈
- * @description 聊天模型配置表 PO 对象
- */
+
 @Data
 @Builder
 @AllArgsConstructor

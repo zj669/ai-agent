@@ -15,36 +15,7 @@ import java.time.Duration;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 
-/**
- * 对话摘要记忆管理器
- * 
- * <p>实现智能对话记忆管理，当对话上下文达到指定阈值时，
- * 自动调用大模型进行对话摘要，压缩历史上下文，在维持对话连贯性的同时控制Token消耗。</p>
- * 
- * <h3>核心功能</h3>
- * <ul>
- *   <li>对话消息存储和检索</li>
- *   <li>智能摘要生成和历史压缩</li>
- *   <li>线程安全的状态管理</li>
- *   <li>异常处理和降级策略</li>
- * </ul>
- * 
- * <h3>使用示例</h3>
- * <pre>{@code
- * ConversationSummaryMemory memory = new ConversationSummaryMemory(
- *     springContextUtil, 15, 500, "3002", Duration.ofSeconds(5)
- * );
- * 
- * // 添加消息
- * memory.add("conversation-1", Arrays.asList(userMessage, assistantMessage));
- * 
- * // 获取历史记录（可能包含自动生成的摘要）
- * List<Message> history = memory.get("conversation-1");
- * }</pre>
- * 
- * @author AI Agent
- * @since 1.0.0
- */
+
 @Slf4j
 public class ConversationSummaryMemory implements ChatMemory {
 

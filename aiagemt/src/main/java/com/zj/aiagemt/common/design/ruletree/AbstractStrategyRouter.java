@@ -3,12 +3,7 @@ package com.zj.aiagemt.common.design.ruletree;
 import lombok.Getter;
 import lombok.Setter;
 
-/**
- * 策略路由抽象类
- *
- * @author: wuqingshan
- * @since : 2025年6月26日 15:12:12
- */
+
 public abstract class AbstractStrategyRouter<Request, Context, Result> implements StrategyMapper<Request, Context, Result>, StrategyHandler<Request, Context, Result> {
 
     @Getter
