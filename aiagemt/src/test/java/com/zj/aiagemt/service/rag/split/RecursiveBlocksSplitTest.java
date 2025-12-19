@@ -44,7 +44,7 @@ class RecursiveBlocksSplitTest {
         assertFalse(result.isEmpty(), "应该成功分割");
         // 由于文本较短，可能会合并段落
         assertTrue(result.size() >= 1, "应该至少有一个块");
-        printSplit( result);
+        printSplit(result);
     }
 
     @Test
@@ -57,7 +57,7 @@ class RecursiveBlocksSplitTest {
         for (String chunk : result) {
             assertTrue(chunk.length() <= 1000, "每个块不应超过1000字符");
         }
-        printSplit( result);
+        printSplit(result);
     }
 
     @Test
@@ -67,7 +67,7 @@ class RecursiveBlocksSplitTest {
         List<String> result = splitter.splitText(text);
 
         assertFalse(result.isEmpty(), "应该成功分割");
-        printSplit( result);
+        printSplit(result);
     }
 
     @Test
@@ -83,7 +83,7 @@ class RecursiveBlocksSplitTest {
         assertTrue(combined.contains("这是中文句子"), "应该保留中文内容");
         assertTrue(combined.contains("This is an English sentence"), "应该保留英文内容");
 
-        printSplit( result);
+        printSplit(result);
     }
 
     @Test
@@ -102,7 +102,7 @@ class RecursiveBlocksSplitTest {
         for (String chunk : result) {
             assertTrue(chunk.length() <= 1000, "每个块不应超过1000字符");
         }
-        printSplit( result);
+        printSplit(result);
     }
 
     @Test
@@ -118,7 +118,7 @@ class RecursiveBlocksSplitTest {
         for (String chunk : result) {
             assertTrue(chunk.length() <= 1000, "每个块不应超过1000字符");
         }
-        printSplit( result);
+        printSplit(result);
     }
 
     @Test
@@ -128,7 +128,7 @@ class RecursiveBlocksSplitTest {
         List<String> result = splitter.splitText(text);
 
         assertFalse(result.isEmpty(), "应该成功分割包含换行符的文本");
-        printSplit( result);
+        printSplit(result);
     }
 
     @Test
@@ -147,7 +147,7 @@ class RecursiveBlocksSplitTest {
         assertTrue(combined.contains("人工智能"), "应该包含原始内容");
         assertTrue(combined.contains("Machine learning"), "应该包含原始内容");
         assertTrue(combined.contains("深度学习"), "应该包含原始内容");
-        printSplit( result);
+        printSplit(result);
     }
 
     @Test
@@ -171,11 +171,10 @@ class RecursiveBlocksSplitTest {
         for (String chunk : result) {
             assertTrue(chunk.length() <= 1000, "每个块不应超过1000字符");
         }
-        printSplit( result);
+        printSplit(result);
     }
 
-
-    private void printSplit(List<String> result){
+    private void printSplit(List<String> result) {
         for (String chunk : result) {
             System.out.println(chunk);
             System.out.println("==================");

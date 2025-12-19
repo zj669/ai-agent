@@ -6,6 +6,8 @@
 /.vscode/
 /.qoder/
 /.mvn/
+/aiagemt/data/
+/aiagemt/.mvn/
 
 # ===== Java 项目通用规则 =====
 HELP.md
