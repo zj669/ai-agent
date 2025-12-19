@@ -1,7 +1,8 @@
 package com.zj.aiagemt.service.tool;
 
-import com.zj.aiagemt.Repository.base.TodoListMapper;
+import com.zj.aiagemt.repository.base.TodoListMapper;
 import com.zj.aiagemt.model.entity.TodoList;
+import com.zj.aiagemt.repository.base.TodoListMapper;
 import com.zj.aiagemt.service.todo.TodoListService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.ai.chat.client.ChatClientRequest;

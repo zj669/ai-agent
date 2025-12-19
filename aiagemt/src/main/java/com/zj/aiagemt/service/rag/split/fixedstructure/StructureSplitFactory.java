@@ -23,6 +23,7 @@ public class StructureSplitFactory {
 
     @PostConstruct
     public void init() {
+        hashMap = new HashMap<>();
         for (AbstracStructureSplit split : splits) {
             hashMap.put(split.getType(),  split);
         }

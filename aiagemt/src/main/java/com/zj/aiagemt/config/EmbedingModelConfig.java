@@ -31,10 +31,20 @@ public class EmbedingModelConfig {
     private String endpoint;
 
     @Bean
-    public PgVectorStore pgVectorStore(@Qualifier("pgVectorJdbcTemplate") JdbcTemplate jdbcTemplate, WebClient.Builder client) {
+    public PgVectorStore pgVectorStore(@Qualifier("pgVectorJdbcTemplate") JdbcTemplate jdbcTemplate ,
+                                       @Qualifier("openAiEmbeddingModel") OpenAiEmbeddingModel openAiEmbeddingModel) {
+        return PgVectorStore.builder(jdbcTemplate, openAiEmbeddingModel).build();
+    }
+    @Bean
+    public TokenTextSplitter tokenTextSplitter() {
+        return new TokenTextSplitter();
+    }
+
+    @Bean
+    public OpenAiEmbeddingModel openAiEmbeddingModel(WebClient.Builder client) {
         OpenAiApi openAiApi = OpenAiApi.builder()
                 .baseUrl(baseUrl)
-                .apiKey("sk-3765ba6955534eeba26b2838cd30a600")
+                .apiKey("sk-950fbd6e45624ec48668a854932f4427")
                 .embeddingsPath( endpoint)
                 .completionsPath( endpoint)
                 .webClientBuilder(client).build();
@@ -43,11 +53,6 @@ public class EmbedingModelConfig {
         RetryTemplate retryTemplate = RetryTemplate.defaultInstance();
 
 
-        OpenAiEmbeddingModel embeddingModel = new OpenAiEmbeddingModel(openAiApi,embed, build, retryTemplate);
-        return PgVectorStore.builder(jdbcTemplate, embeddingModel).build();
-    }
-    @Bean
-    public TokenTextSplitter tokenTextSplitter() {
-        return new TokenTextSplitter();
+        return new OpenAiEmbeddingModel(openAiApi,embed, build, retryTemplate);
     }
 }

@@ -54,7 +54,7 @@ spring:
       base-url: https://globalai.vip
       api-key: sk-igZGYZBslPs4UxqU1r8BuprgCFzD388sk36Mwnp95jxsfgKp
       embedding:
-        base-url: https://dashscope.aliyuncs.com/compatible-mode/v1
+        base-url: https://dashscope.aliyuncs.com/compatible-mode
         endpoint: https://dashscope.aliyuncs.com/compatible-mode/v1/embeddings
         model: text-embedding-v4
         options:

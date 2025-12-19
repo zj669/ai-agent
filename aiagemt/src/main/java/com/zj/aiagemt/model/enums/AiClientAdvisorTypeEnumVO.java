@@ -2,7 +2,7 @@ package com.zj.aiagemt.model.enums;
 
 
 import com.alibaba.fastjson2.JSON;
-import com.zj.aiagemt.Repository.base.TodoListMapper;
+import com.zj.aiagemt.repository.base.TodoListMapper;
 import com.zj.aiagemt.model.vo.AiClientAdvisorVO;
 import com.zj.aiagemt.service.memory.ConversationSummaryMemoryAdvisor;
 import com.zj.aiagemt.service.memory.VectorStoreRetrieverMemoryAdvisor;
