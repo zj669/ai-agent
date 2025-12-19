@@ -53,3 +53,5 @@ logs/
 *~
 .DS_Store
 Thumbs.db
+/aiagemt/data/
+/aiagemt/data/
