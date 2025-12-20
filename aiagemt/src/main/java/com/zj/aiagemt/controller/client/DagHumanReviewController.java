@@ -1,4 +1,4 @@
-package com.zj.aiagemt.controller;
+package com.zj.aiagemt.controller.client;
 
 import com.zj.aiagemt.model.common.Response;
 import com.zj.aiagemt.model.dto.HumanReviewSubmitRequest;
@@ -17,7 +17,7 @@ import org.springframework.web.bind.annotation.*;
  */
 @Slf4j
 @RestController
-@RequestMapping("/api/dag/human")
+@RequestMapping("/client/dag/human")
 @Tag(name = "DAG人工审核", description = "DAG工作流人工审核相关接口")
 public class DagHumanReviewController {
 

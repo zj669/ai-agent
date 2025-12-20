@@ -22,7 +22,7 @@ spring:
         # 主库数据源 - MyBatis Plus
         primary:
           driver-class-name: ${PRIMARY_DB_DRIVER:com.mysql.cj.jdbc.Driver}
-          url: jdbc:mysql://${PRIMARY_DB_HOST:117.72.152.117}:${PRIMARY_DB_PORT:13306}/${PRIMARY_DB_NAME:ai-agent-station-study}?useUnicode=true&characterEncoding=utf8&zeroDateTimeBehavior=convertToNull&useSSL=false&serverTimezone=GMT%2B8
+          url: jdbc:mysql://${PRIMARY_DB_HOST:117.72.152.117}:${PRIMARY_DB_PORT:13306}/${PRIMARY_DB_NAME:ai_agent_station_study}?useUnicode=true&characterEncoding=utf8&zeroDateTimeBehavior=convertToNull&useSSL=false&serverTimezone=GMT%2B8
           username: ${PRIMARY_DB_USER:root}
           password: ${PRIMARY_DB_PASSWORD:123456}
           type: com.zaxxer.hikari.HikariDataSource

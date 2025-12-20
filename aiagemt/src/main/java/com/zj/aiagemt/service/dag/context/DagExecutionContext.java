@@ -1,6 +1,8 @@
 package com.zj.aiagemt.service.dag.context;
 
 import com.zj.aiagemt.common.design.dag.DagContext;
+import lombok.Getter;
+import lombok.Setter;
 import org.springframework.web.servlet.mvc.method.annotation.ResponseBodyEmitter;
 
 import java.util.Map;
@@ -11,6 +13,8 @@ import java.util.concurrent.ConcurrentHashMap;
  * DAG执行上下文实现
  */
 public class DagExecutionContext implements DagContext {
+    @Getter
+    @Setter
     private ResponseBodyEmitter emitter;
     private final String executionId;
     private final String conversationId;
@@ -79,7 +83,4 @@ public class DagExecutionContext implements DagContext {
         return conversationId;
     }
 
-    public ResponseBodyEmitter getEmitter() {
-        return emitter;
-    }
 }

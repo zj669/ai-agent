@@ -19,7 +19,7 @@ public class CSDNPublishTask {
     @Resource
     private SpringContextUtil springContextUtil;
 
-    @Scheduled(cron = "0 0 0/3 * * ?")
+//    @Scheduled(cron = "0 0 0/3 * * ?")
     public void run1() {
         JavaInterviewGenerator.InterviewConfig config = JavaInterviewGenerator.randomSelect();
         JavaInterviewGenerator.printConfigInfo(config);

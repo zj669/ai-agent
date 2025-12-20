@@ -10,7 +10,7 @@ import java.util.Map;
 
 
 public interface IAgentRepository {
-    List<AiAgent> queryAgentDtoList();
+    List<AiAgent> queryAgentDtoList(Long userId);
 
     void queryMcps(DefaultAgentArmoryFactory.DynamicContext context);
 

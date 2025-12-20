@@ -1,10 +1,11 @@
-package com.zj.aiagemt.service;
+package com.zj.aiagemt.service.login;
 
 import com.zj.aiagemt.model.dto.LoginDTO;
 import com.zj.aiagemt.model.dto.RegisterDTO;
 import com.zj.aiagemt.model.entity.User;
 import com.zj.aiagemt.model.vo.UserVO;
 import com.zj.aiagemt.repository.base.UserMapper;
+import com.zj.aiagemt.service.UserService;
 import lombok.extern.slf4j.Slf4j;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;

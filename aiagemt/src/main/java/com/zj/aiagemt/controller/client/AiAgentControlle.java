@@ -1,28 +1,25 @@
-package com.zj.aiagemt.controller;
+package com.zj.aiagemt.controller.client;
 
 
 import cn.hutool.core.util.IdUtil;
 import com.alibaba.fastjson.JSON;
 
 import com.zj.aiagemt.model.common.Response;
-import com.zj.aiagemt.model.dto.AgentInfoDTO;
 import com.zj.aiagemt.model.dto.AutoAgentRequestDTO;
 import com.zj.aiagemt.model.entity.AiAgent;
 import com.zj.aiagemt.service.AiAgentService;
+import com.zj.aiagemt.utils.UserContext;
 import io.swagger.v3.oas.annotations.Operation;
 import jakarta.annotation.Resource;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.mvc.method.annotation.ResponseBodyEmitter;
-import reactor.core.publisher.Flux;
 
 import java.util.ArrayList;
-import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.ThreadPoolExecutor;
 
 /**
  * AutoAgent 自动智能对话体
@@ -30,14 +27,11 @@ import java.util.concurrent.ThreadPoolExecutor;
  */
 @Slf4j
 @RestController
-@RequestMapping("/api/v1/agent")
+@RequestMapping("/client/agent")
 @CrossOrigin(origins = "*", allowedHeaders = "*", methods = {RequestMethod.GET, RequestMethod.POST, RequestMethod.OPTIONS})
 public class AiAgentControlle {
     @Resource
     private AiAgentService aiAgentService;
-    
-    @Resource
-    private ThreadPoolExecutor threadPoolExecutor;
 
     @RequestMapping(value = "auto_agent", method = RequestMethod.POST)
     public ResponseBodyEmitter autoAgent(@RequestBody AutoAgentRequestDTO request, HttpServletResponse response) {
@@ -49,26 +43,17 @@ public class AiAgentControlle {
         response.setHeader("Connection", "keep-alive");
         // 1. 创建流式输出对象
         ResponseBodyEmitter emitter = new ResponseBodyEmitter(Long.MAX_VALUE);
-
-        return  aiAgentService.autoAgent(request, emitter);
+        Long userId = UserContext.getUserId();
+        return  aiAgentService.autoAgent(request, emitter, userId);
     }
 
-    @RequestMapping(value = "reload_client", method = RequestMethod.POST)
-    public Response<String> reload(@RequestBody List<String> request) {
-        try {
-            aiAgentService.reload(request);
-        } catch (Exception e) {
-            throw new RuntimeException(e);
-        }
-        return Response.success("success");
-    }
 
     @RequestMapping(value = "list", method = RequestMethod.GET)
     public Response<List<AiAgent>> getAvailableAgents() {
         log.info("获取可用智能体列表请求");
-        
+        Long userId = UserContext.getUserId();
         try {
-            List<AiAgent> agents = aiAgentService.queryAgentDtoList();
+            List<AiAgent> agents = aiAgentService.queryAgentDtoList(userId);
             log.info("成功获取到{}个智能体", agents.size());
             return Response.<List<AiAgent>>builder()
                     .code("0000")

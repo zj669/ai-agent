@@ -1,4 +1,4 @@
-package com.zj.aiagemt.controller;
+package com.zj.aiagemt.controller.client;
 
 import com.zj.aiagemt.model.common.Response;
 import com.zj.aiagemt.service.dag.logging.DagExecutionLog;
@@ -15,7 +15,7 @@ import java.util.List;
  */
 @Slf4j
 @RestController
-@RequestMapping("/api/dag/logs")
+@RequestMapping("/client/dag/logs")
 @Tag(name = "DAG日志", description = "DAG执行日志查询接口")
 public class DagLoggingController {
 

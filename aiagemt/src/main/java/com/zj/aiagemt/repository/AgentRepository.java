@@ -6,14 +6,8 @@ import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 import com.zj.aiagemt.repository.base.AiAgentMapper;
-import com.zj.aiagemt.repository.base.AiAgentTaskScheduleMapper;
 import com.zj.aiagemt.repository.base.AiAdvisorMapper;
-import com.zj.aiagemt.repository.base.AiApiMapper;
-import com.zj.aiagemt.repository.base.AiModelMapper;
-import com.zj.aiagemt.repository.base.AiRagOrderMapper;
-import com.zj.aiagemt.repository.base.AiSystemPromptMapper;
 import com.zj.aiagemt.repository.base.AiToolMcpMapper;
-import com.zj.aiagemt.model.dto.AgentInfoDTO;
 import com.zj.aiagemt.model.entity.*;
 import com.zj.aiagemt.model.enums.AiAgentEnumVO;
 import com.zj.aiagemt.model.vo.*;
@@ -34,20 +28,25 @@ public class AgentRepository implements IAgentRepository {
     @Resource
     private AiAdvisorMapper aiAdvisorMapper;
     @Resource
+    private AiAgentMapper aiAgentMapper;
+    @Resource
     private AiToolMcpMapper aiToolMcpMapper;
     @Resource
     private SpringContextUtil springContextUtil;
 
     @Override
-    public List<AiAgent> queryAgentDtoList() {
-        return List.of();
+    public List<AiAgent> queryAgentDtoList(Long userId) {
+        if(userId == null){
+            return List.of();
+        }
+        return aiAgentMapper.selectList(new LambdaQueryWrapper<AiAgent>().eq(AiAgent::getUserId, userId));
     }
 
     @Override
     public void queryMcps(DefaultAgentArmoryFactory.DynamicContext context) {
 
         List<AiClientToolMcpVO> result = new ArrayList<>();
-        List<AiToolMcp> toolMcps = aiToolMcpMapper.selectList(new LambdaQueryWrapper<>());
+        List<AiToolMcp> toolMcps = aiToolMcpMapper.selectList(new LambdaQueryWrapper<AiToolMcp>().eq(AiToolMcp::getStatus, 1));
         for (AiToolMcp toolMcp : toolMcps) {
             if (toolMcp != null && toolMcp.getStatus() == 1) {
                 // 4. 转换为VO对象
@@ -66,26 +65,55 @@ public class AgentRepository implements IAgentRepository {
                     if ("sse".equals(transportType)) {
                         // 解析SSE配置
                         ObjectMapper objectMapper = new ObjectMapper();
-                        AiClientToolMcpVO.TransportConfigSse transportConfigSse = objectMapper.readValue(transportConfig, AiClientToolMcpVO.TransportConfigSse.class);
-                        mcpVO.setTransportConfigSse(transportConfigSse);
+                        // 验证JSON格式是否正确
+                        if (isValidJson(transportConfig)) {
+                            AiClientToolMcpVO.TransportConfigSse transportConfigSse = objectMapper.readValue(transportConfig, AiClientToolMcpVO.TransportConfigSse.class);
+                            mcpVO.setTransportConfigSse(transportConfigSse);
+                        } else {
+                            log.warn("SSE传输配置JSON格式无效，MCP ID: {}, 配置内容: {}", toolMcp.getMcpId(), transportConfig);
+                        }
                     } else if ("stdio".equals(transportType)) {
                         // 解析STDIO配置
-                        Map<String, AiClientToolMcpVO.TransportConfigStdio.Stdio> stdio = JSON.parseObject(transportConfig,
-                                new TypeReference<>() {
-                                });
+                        // 验证JSON格式是否正确
+                        if (isValidJson(transportConfig)) {
+                            Map<String, AiClientToolMcpVO.TransportConfigStdio.Stdio> stdio = JSON.parseObject(transportConfig,
+                                    new TypeReference<>() {
+                                    });
 
-                        AiClientToolMcpVO.TransportConfigStdio transportConfigStdio = new AiClientToolMcpVO.TransportConfigStdio();
-                        transportConfigStdio.setStdio(stdio);
+                            AiClientToolMcpVO.TransportConfigStdio transportConfigStdio = new AiClientToolMcpVO.TransportConfigStdio();
+                            transportConfigStdio.setStdio(stdio);
 
-                        mcpVO.setTransportConfigStdio(transportConfigStdio);
+                            mcpVO.setTransportConfigStdio(transportConfigStdio);
+                        } else {
+                            log.warn("STDIO传输配置JSON格式无效，MCP ID: {}, 配置内容: {}", toolMcp.getMcpId(), transportConfig);
+                        }
                     }
                 } catch (Exception e) {
-                    log.error("解析传输配置失败: {}", e.getMessage(), e);
+                    log.error("解析传输配置失败，MCP ID: {}, 配置内容: {}, 错误信息: {}", 
+                             toolMcp.getMcpId(), transportConfig, e.getMessage(), e);
                 }
                 result.add(mcpVO);
             }
         }
-        context.setValue(AiAgentEnumVO.AI_CLIENT_TOOL_MCP.getDataName(), result);
+        context.setValue(AiAgentEnumVO.AI_TOOL_MCP.getDataName(), result);
+    }
+
+    /**
+     * 验证字符串是否为有效的JSON格式
+     * @param jsonStr 待验证的JSON字符串
+     * @return 是否为有效JSON
+     */
+    private boolean isValidJson(String jsonStr) {
+        if (jsonStr == null || jsonStr.trim().isEmpty()) {
+            return false;
+        }
+        try {
+            ObjectMapper objectMapper = new ObjectMapper();
+            objectMapper.readTree(jsonStr);
+            return true;
+        } catch (Exception e) {
+            return false;
+        }
     }
 
     @Override
@@ -113,6 +141,8 @@ public class AgentRepository implements IAgentRepository {
                     }
                 } catch (Exception e) {
                     // 解析失败时忽略，使用默认值null
+                    log.warn("解析Advisor扩展参数失败，Advisor ID: {}, 参数内容: {}, 错误信息: {}", 
+                            aiClientAdvisor.getAdvisorId(), extParam, e.getMessage());
                 }
             }
 
@@ -131,6 +161,6 @@ public class AgentRepository implements IAgentRepository {
             result.add(advisorVO);
         }
 
-        context.setValue(AiAgentEnumVO.AI_CLIENT_ADVISOR.getDataName(), result);
+        context.setValue(AiAgentEnumVO.AI_ADVISOR.getDataName(), result);
     }
 }

@@ -1,4 +1,4 @@
-package com.zj.aiagemt.controller;
+package com.zj.aiagemt.controller.client;
 
 import com.zj.aiagemt.model.common.Response;
 import com.zj.aiagemt.model.entity.TodoList;
@@ -11,7 +11,7 @@ import java.util.List;
 
 @Slf4j
 @RestController
-@RequestMapping("/api/todo")
+@RequestMapping("/client/todo")
 public class TodoListController {
     
     @Resource

@@ -27,12 +27,12 @@ public class AdvisorNode extends AgentAromorSupport{
 
     @Override
     protected String beanName(String beanId) {
-        return AiAgentEnumVO.AI_CLIENT_ADVISOR.getBeanName(beanId);
+        return AiAgentEnumVO.AI_ADVISOR.getBeanName(beanId);
     }
 
     @Override
     protected String dataName() {
-        return AiAgentEnumVO.AI_CLIENT_ADVISOR.getDataName();
+        return AiAgentEnumVO.AI_ADVISOR.getDataName();
     }
 
     @Override
@@ -49,6 +49,10 @@ public class AdvisorNode extends AgentAromorSupport{
         for (AiClientAdvisorVO aiClientAdvisorVO : aiClientAdvisorList) {
             // 构建顾问访问对象
             Advisor advisor = createAdvisor(aiClientAdvisorVO);
+            if(advisor == null){
+                log.error("Advisor 构建失败，Advisor ID: {}", aiClientAdvisorVO.getAdvisorId());
+                continue;
+            }
             // 注册Bean对象
             registerBean(beanName(aiClientAdvisorVO.getAdvisorId()), Advisor.class, advisor);
         }
@@ -65,6 +69,9 @@ public class AdvisorNode extends AgentAromorSupport{
     private Advisor createAdvisor(AiClientAdvisorVO aiClientAdvisorVO) {
         String advisorType = aiClientAdvisorVO.getAdvisorType();
         AiClientAdvisorTypeEnumVO advisorTypeEnum = AiClientAdvisorTypeEnumVO.getByCode(advisorType);
+        if (advisorTypeEnum == null) {
+            return  null;
+        }
         return advisorTypeEnum.createAdvisor(aiClientAdvisorVO, vectorStore);
     }
 }

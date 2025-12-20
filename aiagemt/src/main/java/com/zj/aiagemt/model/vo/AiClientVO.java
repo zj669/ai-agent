@@ -59,7 +59,7 @@ public class AiClientVO {
     public List<String> getMcpBeanNameList() {
         List<String> mcpBeanNameList = new ArrayList<>();
         for (String mcpId : mcpIdList) {
-            mcpBeanNameList.add(AiAgentEnumVO.AI_CLIENT_TOOL_MCP.getBeanName(mcpId));
+            mcpBeanNameList.add(AiAgentEnumVO.AI_TOOL_MCP.getBeanName(mcpId));
         }
         return mcpBeanNameList;
     }
@@ -67,7 +67,7 @@ public class AiClientVO {
     public List<String> getAdvisorBeanNameList() {
         List<String> advisorBeanNameList = new ArrayList<>();
         for (String advisorId : advisorIdList) {
-            advisorBeanNameList.add(AiAgentEnumVO.AI_CLIENT_ADVISOR.getBeanName(advisorId));
+            advisorBeanNameList.add(AiAgentEnumVO.AI_ADVISOR.getBeanName(advisorId));
         }
         return advisorBeanNameList;
     }

@@ -1,4 +1,4 @@
-package com.zj.aiagemt.controller;
+package com.zj.aiagemt.controller.client;
 
 import com.zj.aiagemt.model.common.Response;
 import com.zj.aiagemt.model.dto.LoginDTO;
@@ -19,7 +19,7 @@ import org.springframework.web.bind.annotation.*;
  */
 @Slf4j
 @RestController
-@RequestMapping("/api/v1/user")
+@RequestMapping("/client/user")
 @Tag(name = "用户管理", description = "用户注册、登录等接口")
 @CrossOrigin(origins = "*", allowedHeaders = "*", methods = { RequestMethod.GET, RequestMethod.POST,
         RequestMethod.OPTIONS })

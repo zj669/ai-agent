@@ -44,10 +44,10 @@ public class WebMvcConfig implements WebMvcConfigurer {
     public void addInterceptors(InterceptorRegistry registry) {
         // 注册登录拦截器
         registry.addInterceptor(loginInterceptor)
-                .addPathPatterns("/api/**") // 拦截所有/api/**路径
+                .addPathPatterns("/api/**", "/client/**") // 拦截所有/api/**路径
                 .excludePathPatterns(
-                        "/api/v1/user/register", // 放行注册接口
-                        "/api/v1/user/login" // 放行登录接口
+                        "/client/user/register", // 放行注册接口
+                        "/client/user/login" // 放行登录接口
                 );
     }
 }

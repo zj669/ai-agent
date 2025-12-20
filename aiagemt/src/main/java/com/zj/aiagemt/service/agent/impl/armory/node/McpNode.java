@@ -31,12 +31,12 @@ public class McpNode extends AgentAromorSupport {
     private AdvisorNode advisorNode;
     @Override
     protected String beanName(String beanId) {
-        return AiAgentEnumVO.AI_CLIENT_TOOL_MCP.getBeanName(beanId);
+        return AiAgentEnumVO.AI_TOOL_MCP.getBeanName(beanId);
     }
 
     @Override
     protected String dataName() {
-        return AiAgentEnumVO.AI_CLIENT_TOOL_MCP.getDataName();
+        return AiAgentEnumVO.AI_TOOL_MCP.getDataName();
     }
 
     @Override
@@ -84,13 +84,13 @@ private McpSyncClient createMcpSyncClient(AiClientToolMcpVO aiClientToolMcpVO) {
                         builder.header(HttpHeaders.AUTHORIZATION, transportConfigSse.getHeaders())
                                 .header(HttpHeaders.ACCEPT, "application/json");
             }
-
-            HttpClientSseClientTransport sseClientTransport = HttpClientSseClientTransport
+            HttpClientSseClientTransport.Builder ssedEndpointBuilder = HttpClientSseClientTransport
                     .builder(baseUri) // 使用截取后的 baseUri
-                    .customizeRequest(requestCustomizer)
-                    .sseEndpoint(sseEndpoint) // 使用截取或默认的 sseEndpoint
-                    .build();
-
+                    .sseEndpoint(sseEndpoint);
+            if(requestCustomizer != null){
+                ssedEndpointBuilder.customizeRequest(requestCustomizer);
+            }
+            HttpClientSseClientTransport sseClientTransport = ssedEndpointBuilder.build();
             McpSyncClient mcpSyncClient = McpClient.sync(sseClientTransport).requestTimeout(Duration.ofMinutes(aiClientToolMcpVO.getRequestTimeout())).build();
             var init_sse = mcpSyncClient.initialize();
 

@@ -9,8 +9,6 @@ import java.util.List;
 
 @Data
 @Builder
-@NoArgsConstructor
-@AllArgsConstructor
 public class ArmoryCommandEntity {
     // 带扩展
 }

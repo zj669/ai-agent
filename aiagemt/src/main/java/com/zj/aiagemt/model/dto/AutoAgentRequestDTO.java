@@ -37,10 +37,4 @@ public class AutoAgentRequestDTO implements Serializable {
      * 会话ID
      */
     private String sessionId;
-
-    /**
-     * 最大执行步数
-     */
-    private Integer maxStep;
-
 }

@@ -38,7 +38,7 @@ public enum AiClientAdvisorTypeEnumVO {
         @Override
         public Advisor createAdvisor(AiClientAdvisorVO aiClientAdvisorVO, VectorStore vectorStore) {
             String advisorParam = aiClientAdvisorVO.getAdvisorParam();
-            AiClientAdvisorVO.ChatMemory chatMemory = JSON.parseObject(advisorParam, AiClientAdvisorVO.ChatMemory.class);
+            AiClientAdvisorVO.ChatMemory chatMemory = aiClientAdvisorVO.getChatMemory();
             return PromptChatMemoryAdvisor.builder(
                     MessageWindowChatMemory.builder()
                             .maxMessages(chatMemory.getMaxMessages())
@@ -58,8 +58,7 @@ public enum AiClientAdvisorTypeEnumVO {
         @Override
         public Advisor createAdvisor(AiClientAdvisorVO aiClientAdvisorVO, VectorStore vectorStore) {
             String advisorParam = aiClientAdvisorVO.getAdvisorParam();
-            AiClientAdvisorVO.VectorStoreRetriever config = JSON.parseObject(advisorParam,
-                    AiClientAdvisorVO.VectorStoreRetriever.class);
+            AiClientAdvisorVO.VectorStoreRetriever config = aiClientAdvisorVO.getVectorStoreRetriever();
             // 使用配置参数创建向量存储检索记忆管理器
             int topK = config != null ? config.getTopK() : VectorStoreRetrieverMemory.DEFAULT_TOP_K;
             float similarityThreshold = config != null ? config.getSimilarityThreshold() : VectorStoreRetrieverMemory.DEFAULT_SIMILARITY_THRESHOLD;

@@ -1,13 +1,15 @@
-package com.zj.aiagemt.controller;
+package com.zj.aiagemt.controller.open;
 
 import com.zj.aiagemt.integretion.task.CSDNPublishTask;
 import jakarta.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 @RestController
 @Slf4j
+@RequestMapping("/public")
 public class CommonApiController {
     @Resource
     private CSDNPublishTask mcpServerCSDNJob;
