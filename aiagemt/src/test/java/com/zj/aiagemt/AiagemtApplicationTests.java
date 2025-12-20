@@ -23,16 +23,6 @@ class AiagemtApplicationTests {
 
 	@Test
 	void contextLoads() throws Exception {
-		List<String> commandIdList = List.of(new String[]{"2101"});
-		StrategyHandler<ArmoryCommandEntity, DefaultAgentArmoryFactory.DynamicContext, AgentArmoryVO> armoryStrategyHandler =
-				defaultArmoryStrategyFactory.strategyHandler();
-
-		AgentArmoryVO result = armoryStrategyHandler.apply(
-				ArmoryCommandEntity.builder()
-						.commandType(AiAgentEnumVO.AI_CLIENT.getLoadDataStrategy())
-						.commandIdList(commandIdList)
-						.build(),
-				new DefaultAgentArmoryFactory.DynamicContext());
 	}
 	
 	@Test

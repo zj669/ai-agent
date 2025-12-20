@@ -63,6 +63,22 @@ spring:
       auto-config:
         enabled: true
         client-ids: 6001,3101,3102,3103,3104
+  # 邮件配置
+  mail:
+    host: ${MAIL_HOST:smtp.qq.com}
+    port: ${MAIL_PORT:465}
+    username: ${MAIL_USERNAME:zj-669@qq.com}
+    password: ${MAIL_PASSWORD:romspgyuovtqddgh}
+    properties:
+      mail:
+        smtp:
+          auth: true
+          starttls:
+            enable: true
+            required: true
+          connectiontimeout: 5000
+          timeout: 5000
+          writetimeout: 5000
 
 # MyBatis-Plus配置
 mybatis-plus:

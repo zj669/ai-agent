@@ -1,11 +1,13 @@
 package com.zj.aiagemt.service.impl;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.zj.aiagemt.model.dto.EmailRegisterDTO;
 import com.zj.aiagemt.model.dto.LoginDTO;
 import com.zj.aiagemt.model.dto.RegisterDTO;
 import com.zj.aiagemt.model.entity.User;
 import com.zj.aiagemt.model.vo.UserVO;
 import com.zj.aiagemt.repository.base.UserMapper;
+import com.zj.aiagemt.service.EmailService;
 import com.zj.aiagemt.service.UserService;
 import com.zj.aiagemt.utils.JwtUtil;
 import com.zj.aiagemt.utils.PasswordUtil;
@@ -15,6 +17,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
+import java.util.Random;
 
 /**
  * 用户服务实现类
@@ -28,6 +31,9 @@ public class UserServiceImpl implements UserService {
 
     @Resource
     private JwtUtil jwtUtil;
+
+    @Resource
+    private EmailService emailService;
 
     @Override
     @Transactional(rollbackFor = Exception.class)
@@ -90,6 +96,107 @@ public class UserServiceImpl implements UserService {
                 .phone(user.getPhone())
                 .token(token)
                 .build();
+    }
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public UserVO emailRegister(EmailRegisterDTO dto, String ip) {
+        log.info("邮箱注册请求, email: {}", dto.getEmail());
+
+        // 1. 验证验证码
+        if (!emailService.verifyCode(dto.getEmail(), dto.getCode())) {
+            throw new IllegalArgumentException("验证码错误或已过期");
+        }
+
+        // 2. 检查邮箱是否已被注册
+        LambdaQueryWrapper<User> emailQuery = new LambdaQueryWrapper<>();
+        emailQuery.eq(User::getEmail, dto.getEmail());
+        if (userMapper.selectCount(emailQuery) > 0) {
+            throw new IllegalArgumentException("该邮箱已被注册");
+        }
+
+        // 3. 生成或验证用户名
+        String username = dto.getUsername();
+        if (username == null || username.isEmpty()) {
+            // 根据邮箱自动生成用户名
+            username = generateUsernameFromEmail(dto.getEmail());
+        } else {
+            // 检查用户名是否已存在
+            LambdaQueryWrapper<User> usernameQuery = new LambdaQueryWrapper<>();
+            usernameQuery.eq(User::getUsername, username);
+            if (userMapper.selectCount(usernameQuery) > 0) {
+                throw new IllegalArgumentException("用户名已存在");
+            }
+        }
+
+        // 4. 生成盐值和密码哈希
+        String salt = PasswordUtil.generateSalt();
+        String passwordHash = PasswordUtil.hashPassword(dto.getPassword(), salt);
+
+        // 5. 创建用户实体
+        User user = User.builder()
+                .username(username)
+                .email(dto.getEmail())
+                .passwordHash(passwordHash)
+                .salt(salt)
+                .status(1) // 默认启用
+                .lastLoginIp(ip)
+                .createTime(LocalDateTime.now())
+                .updateTime(LocalDateTime.now())
+                .build();
+
+        // 6. 保存用户
+        userMapper.insert(user);
+        log.info("邮箱注册成功, userId: {}, username: {}, email: {}",
+                user.getId(), user.getUsername(), user.getEmail());
+
+        // 7. 生成JWT Token
+        String token = jwtUtil.generateToken(user.getId());
+
+        // 8. 返回用户信息
+        return UserVO.builder()
+                .id(user.getId())
+                .username(user.getUsername())
+                .email(user.getEmail())
+                .token(token)
+                .build();
+    }
+
+    /**
+     * 根据邮箱生成唯一用户名
+     * 
+     * @param email 邮箱地址
+     * @return 用户名
+     */
+    private String generateUsernameFromEmail(String email) {
+        // 从邮箱中提取前缀
+        String prefix = email.split("@")[0];
+        // 只保留字母和数字
+        prefix = prefix.replaceAll("[^a-zA-Z0-9]", "");
+        // 限制长度
+        if (prefix.length() > 15) {
+            prefix = prefix.substring(0, 15);
+        }
+
+        // 尝试生成唯一用户名
+        String username = prefix;
+        int attempts = 0;
+        Random random = new Random();
+
+        while (attempts < 100) {
+            LambdaQueryWrapper<User> query = new LambdaQueryWrapper<>();
+            query.eq(User::getUsername, username);
+            if (userMapper.selectCount(query) == 0) {
+                return username;
+            }
+
+            // 添加随机后缀
+            username = prefix + "_" + (1000 + random.nextInt(9000));
+            attempts++;
+        }
+
+        // 如果100次都失败,使用时间戳
+        return prefix + "_" + System.currentTimeMillis();
     }
 
     @Override

@@ -1,5 +1,6 @@
 package com.zj.aiagemt.service;
 
+import com.zj.aiagemt.model.dto.EmailRegisterDTO;
 import com.zj.aiagemt.model.dto.LoginDTO;
 import com.zj.aiagemt.model.dto.RegisterDTO;
 import com.zj.aiagemt.model.entity.User;
@@ -17,6 +18,15 @@ public interface UserService {
      * @return 用户信息(包含Token)
      */
     UserVO register(RegisterDTO dto);
+
+    /**
+     * 邮箱注册
+     *
+     * @param dto 邮箱注册信息
+     * @param ip  请求IP
+     * @return 用户信息(包含Token)
+     */
+    UserVO emailRegister(EmailRegisterDTO dto, String ip);
 
     /**
      * 用户登录
