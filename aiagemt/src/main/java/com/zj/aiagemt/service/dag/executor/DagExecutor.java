@@ -215,6 +215,13 @@ public class DagExecutor {
     }
 
     /**
+     * 获取调度器（用于恢复执行）
+     */
+    public DagParallelScheduler getScheduler() {
+        return scheduler;
+    }
+
+    /**
      * DAG执行结果
      */
     public static class DagExecutionResult {
