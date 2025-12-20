@@ -48,6 +48,7 @@ public class NodeFactory {
             case "ACT" -> new ActNode(nodeId, nodeName, config, applicationContext);
             case "HUMAN" -> new HumanNode(nodeId, nodeName, config, applicationContext);
             case "ROUTER" -> new RouterNode(nodeId, nodeName, config, applicationContext);
+            case "REACT" -> new ReactNode(nodeId, nodeName, config, applicationContext);
             case "END" -> new EndNode(nodeId, nodeName);
             default -> throw new NodeConfigException("Unknown node type: " + nodeType);
         };
