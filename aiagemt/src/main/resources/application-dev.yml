@@ -111,6 +111,12 @@ jwt:
   secret: aiagent-your-secret-key-change-in-production-please-make-it-long-enough
   expiration: 604800000  # 7天,单位毫秒
 
+# 认证配置
+auth:
+  debug:
+    enabled: true  # 开发环境启用debug模式
+    header-name: debug-user  # debug模式的header名称
+
 # 日志
 logging:
   level:

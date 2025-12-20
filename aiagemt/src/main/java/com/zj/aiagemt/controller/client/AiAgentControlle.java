@@ -33,7 +33,7 @@ public class AiAgentControlle {
     @Resource
     private AiAgentService aiAgentService;
 
-    @RequestMapping(value = "auto_agent", method = RequestMethod.POST)
+    @PostMapping(value = "/auto_agent")
     public ResponseBodyEmitter autoAgent(@RequestBody AutoAgentRequestDTO request, HttpServletResponse response) {
         log.info("AutoAgent流式执行请求开始，请求信息：{}", JSON.toJSONString(request));
         // 设置SSE响应头
@@ -48,7 +48,7 @@ public class AiAgentControlle {
     }
 
 
-    @RequestMapping(value = "list", method = RequestMethod.GET)
+    @GetMapping(value = "/list")
     public Response<List<AiAgent>> getAvailableAgents() {
         log.info("获取可用智能体列表请求");
         Long userId = UserContext.getUserId();
@@ -70,7 +70,7 @@ public class AiAgentControlle {
         }
     }
 
-    @RequestMapping(value = "session/history", method = RequestMethod.GET)
+    @GetMapping(value = "session/history")
     public Response<Object> getSessionHistory(
             @RequestParam String sessionId,
             @RequestParam(defaultValue = "1") Integer page,
