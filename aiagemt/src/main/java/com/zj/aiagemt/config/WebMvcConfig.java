@@ -1,16 +1,22 @@
 package com.zj.aiagemt.config;
 
+import com.zj.aiagemt.common.interceptor.LoginInterceptor;
+import jakarta.annotation.Resource;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.core.task.AsyncTaskExecutor;
 import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
 import org.springframework.web.servlet.config.annotation.AsyncSupportConfigurer;
+import org.springframework.web.servlet.config.annotation.InterceptorRegistry;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 
 import java.util.concurrent.ThreadPoolExecutor;
 
 @Configuration
 public class WebMvcConfig implements WebMvcConfigurer {
+
+    @Resource
+    private LoginInterceptor loginInterceptor;
 
     @Bean
     public AsyncTaskExecutor asyncTaskExecutor() {
@@ -32,5 +38,16 @@ public class WebMvcConfig implements WebMvcConfigurer {
     @Override
     public void configureAsyncSupport(AsyncSupportConfigurer configurer) {
         configurer.setTaskExecutor(asyncTaskExecutor());
+    }
+
+    @Override
+    public void addInterceptors(InterceptorRegistry registry) {
+        // 注册登录拦截器
+        registry.addInterceptor(loginInterceptor)
+                .addPathPatterns("/api/**") // 拦截所有/api/**路径
+                .excludePathPatterns(
+                        "/api/v1/user/register", // 放行注册接口
+                        "/api/v1/user/login" // 放行登录接口
+                );
     }
 }

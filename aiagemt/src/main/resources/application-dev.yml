@@ -89,6 +89,12 @@ redis:
       retry-interval: 1000
       ping-interval: 60000
       keep-alive: true
+
+# JWT配置
+jwt:
+  secret: aiagent-your-secret-key-change-in-production-please-make-it-long-enough
+  expiration: 604800000  # 7天,单位毫秒
+
 # 日志
 logging:
   level:
