@@ -11,7 +11,7 @@ CREATE TABLE `ai_agent_version` (
                                        KEY `idx_workflow_id` (`agent_id`) USING BTREE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='AI工作流版本配置表';
 
-DROP TABLE IF EXISTS `ai_agent_version`;
+DROP TABLE IF EXISTS `ai_node_template`;
 CREATE TABLE `ai_node_template` (
                                     `id` bigint(20) NOT NULL AUTO_INCREMENT COMMENT '主键ID',
                                     `node_type` varchar(50) NOT NULL COMMENT '节点类型 (PLAN, ACT, REFLECT, HUMAN, ROUTER, END)',

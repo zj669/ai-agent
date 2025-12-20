@@ -27,10 +27,20 @@ public class NodeConfig {
      */
     private ModelConfig model;
 
+//    /**
+//     * 记忆配置
+//     */
+//    private MemoryConfig memory;
+
     /**
-     * 记忆配置
+     * 用户提示词
      */
-    private MemoryConfig memory;
+    private String userPrompt;
+
+    /**
+     * 当前节点功能描述（影响决策节点执行）
+     */
+    private String description;
 
     /**
      * Advisor配置列表

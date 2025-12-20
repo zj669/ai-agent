@@ -36,8 +36,9 @@ public class DagGraph {
 
     /**
      * 节点映射 (nodeId -> node)
+     * 使用Object类型因为RouterNode返回ConditionalDagNode，与其他节点返回类型不同
      */
-    private Map<String, DagNode<DagExecutionContext, String>> nodes;
+    private Map<String, Object> nodes;
 
     /**
      * 边列表
@@ -57,7 +58,7 @@ public class DagGraph {
     /**
      * 获取节点
      */
-    public DagNode<DagExecutionContext, String> getNode(String nodeId) {
+    public Object getNode(String nodeId) {
         return nodes.get(nodeId);
     }
 

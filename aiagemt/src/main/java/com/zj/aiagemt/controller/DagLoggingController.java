@@ -1,6 +1,6 @@
 package com.zj.aiagemt.controller;
 
-import com.zj.aiagemt.common.response.Response;
+import com.zj.aiagemt.model.common.Response;
 import com.zj.aiagemt.service.dag.logging.DagExecutionLog;
 import com.zj.aiagemt.service.dag.logging.DagLoggingService;
 import io.swagger.v3.oas.annotations.Operation;

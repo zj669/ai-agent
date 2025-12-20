@@ -32,8 +32,9 @@ public class NodeFactory {
 
     /**
      * 根据节点定义创建节点实例
+     * 返回 Object 类型因为 RouterNode 实现的是 ConditionalDagNode，不是 DagNode
      */
-    public DagNode<DagExecutionContext, String> createNode(GraphJsonSchema.NodeDefinition nodeDef) {
+    public Object createNode(GraphJsonSchema.NodeDefinition nodeDef) {
         String nodeType = nodeDef.getNodeType();
         String nodeId = nodeDef.getNodeId();
         String nodeName = nodeDef.getNodeName();
@@ -76,10 +77,10 @@ public class NodeFactory {
             builder.model(parseModelConfig(configJson.getJSONObject("model")));
         }
 
-        // 记忆配置
-        if (configJson.containsKey("memory")) {
-            builder.memory(parseMemoryConfig(configJson.getJSONObject("memory")));
-        }
+        // // 记忆配置
+        // if (configJson.containsKey("memory")) {
+        // builder.memory(parseMemoryConfig(configJson.getJSONObject("memory")));
+        // }
 
         // Advisor配置
         if (configJson.containsKey("advisors")) {

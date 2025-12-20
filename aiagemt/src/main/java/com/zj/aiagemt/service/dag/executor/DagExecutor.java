@@ -62,8 +62,8 @@ public class DagExecutor {
                 List<String> levelNodeIds = executionLevels.get(level);
                 log.info("执行第 {} 层，节点数: {}", level + 1, levelNodeIds.size());
 
-                // 获取本层的节点
-                List<DagNode<DagExecutionContext, String>> levelNodes = levelNodeIds.stream()
+                // 获取本层的节点（需要类型转换，因为RouterNode返回ConditionalDagNode）
+                List<Object> levelNodes = levelNodeIds.stream()
                         .map(dagGraph::getNode)
                         .filter(Objects::nonNull)
                         .collect(Collectors.toList());
@@ -102,9 +102,9 @@ public class DagExecutor {
                     }
 
                     // 处理路由节点
-                    DagNode<DagExecutionContext, String> node = dagGraph.getNode(result.getNodeId());
-                    if (node instanceof ConditionalDagNode) {
-                        handleConditionalNode((ConditionalDagNode<DagExecutionContext>) node,
+                    Object nodeObj = dagGraph.getNode(result.getNodeId());
+                    if (nodeObj instanceof ConditionalDagNode) {
+                        handleConditionalNode((ConditionalDagNode<DagExecutionContext>) nodeObj,
                                 context, dagGraph, executionLevels, level);
                     }
                 }
@@ -163,12 +163,15 @@ public class DagExecutor {
      */
     private AiWorkflowInstance createWorkflowInstance(DagGraph dagGraph, DagExecutionContext context) {
         AiWorkflowInstance instance = new AiWorkflowInstance();
+        // TODO
+        instance.setAgentId(1L);
         instance.setConversationId(context.getConversationId());
         instance.setCurrentNodeId(dagGraph.getStartNodeId());
         instance.setStatus("RUNNING");
         instance.setCreateTime(LocalDateTime.now());
         instance.setUpdateTime(LocalDateTime.now());
-
+        instance.setVersionId(1L);
+        instance.setRuntimeContextJson(JSON.toJSONString(context));
         // 保存到数据库
         try {
             workflowInstanceMapper.insert(instance);

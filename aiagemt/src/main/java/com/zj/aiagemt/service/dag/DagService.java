@@ -59,7 +59,19 @@ public class DagService {
             log.info("开始执行DAG，起始节点: {}", startNodeId);
 
             // 4. 执行起始节点(简单示例，只执行第一个节点)
-            String result = startNode.execute(context);
+            String result;
+            if (startNode instanceof com.zj.aiagemt.common.design.dag.DagNode) {
+                @SuppressWarnings("unchecked")
+                com.zj.aiagemt.common.design.dag.DagNode<DagExecutionContext, String> dagNode = (com.zj.aiagemt.common.design.dag.DagNode<DagExecutionContext, String>) startNode;
+                result = dagNode.execute(context);
+            } else if (startNode instanceof com.zj.aiagemt.common.design.dag.ConditionalDagNode) {
+                @SuppressWarnings("unchecked")
+                com.zj.aiagemt.common.design.dag.ConditionalDagNode<DagExecutionContext> conditionalNode = (com.zj.aiagemt.common.design.dag.ConditionalDagNode<DagExecutionContext>) startNode;
+                Object decision = conditionalNode.execute(context);
+                result = decision != null ? decision.toString() : null;
+            } else {
+                throw new RuntimeException("Unknown node type: " + startNode.getClass());
+            }
 
             log.info("DAG执行完成(简单版本)，结果: {}", result);
 

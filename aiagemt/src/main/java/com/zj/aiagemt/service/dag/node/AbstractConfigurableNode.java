@@ -95,11 +95,16 @@ public abstract class AbstractConfigurableNode implements DagNode<DagExecutionCo
             List<McpSyncClient> mcpClients = buildMcpClients();
 
             // 3. 构建Advisors
-            List<Advisor> advisors = buildAdvisors(context);
+            List<Advisor> advisors = buildAdvisors();
 
             // 4. 组装ChatClient
             ChatClient.Builder builder = ChatClient.builder(chatModel)
                     .defaultSystem(config.getSystemPrompt());
+
+            // 获取用户提示词
+            if(config.getUserPrompt() != null){
+                builder.defaultUser(config.getUserPrompt());
+            }
 
             if (!mcpClients.isEmpty()) {
                 builder.defaultToolCallbacks(new SyncMcpToolCallbackProvider(mcpClients.toArray(new McpSyncClient[0])));
@@ -108,7 +113,6 @@ public abstract class AbstractConfigurableNode implements DagNode<DagExecutionCo
             if (!advisors.isEmpty()) {
                 builder.defaultAdvisors(advisors.toArray(new Advisor[0]));
             }
-
             return builder.build();
 
         } catch (Exception e) {
@@ -185,7 +189,7 @@ public abstract class AbstractConfigurableNode implements DagNode<DagExecutionCo
     /**
      * 构建Advisor列表
      */
-    private List<Advisor> buildAdvisors(DagExecutionContext context) {
+    private List<Advisor> buildAdvisors() {
         List<Advisor> advisors = new ArrayList<>();
         if (config.getAdvisors() != null) {
             for (AdvisorConfig advisorConfig : config.getAdvisors()) {
@@ -207,19 +211,23 @@ public abstract class AbstractConfigurableNode implements DagNode<DagExecutionCo
     protected String callAI(String userMessage, DagExecutionContext context) {
         ChatClient chatClient = buildChatClient(context);
 
-        ChatClient.CallResponseSpec spec = chatClient.prompt(userMessage);
+        ChatClient.ChatClientRequestSpec spec = chatClient.prompt(userMessage);
 
-        // 处理记忆配置
-        if (config.getMemory() != null && Boolean.TRUE.equals(config.getMemory().getEnabled())) {
-            String conversationId = resolveConversationId(config.getMemory().getConversationId(), context);
-            Integer retrieveSize = config.getMemory().getRetrieveSize() != null ? config.getMemory().getRetrieveSize()
-                    : 10;
-
-            spec = spec.advisors(a -> a
-                    .param("chat_memory_conversation_id", conversationId)
-                    .param("chat_memory_response_size", retrieveSize));
-        }
-
+//        // 处理记忆配置
+//        if (config.getMemory() != null && Boolean.TRUE.equals(config.getMemory().getEnabled())) {
+//            String conversationId = resolveConversationId(config.getMemory().getConversationId(), context);
+//            Integer retrieveSize = config.getMemory().getRetrieveSize() != null ? config.getMemory().getRetrieveSize()
+//                    : 10;
+//
+//            spec = spec.advisors(a -> a
+//                    .param("chat_memory_conversation_id", conversationId)
+//                    .param("chat_memory_response_size", retrieveSize));
+//        }
+        // todo
+        String conversationId = context.getConversationId();
+        spec = spec.advisors(a -> a
+                .param("chat_memory_conversation_id", conversationId)
+                .param("chat_memory_response_size", 10));
         return spec.call().content();
     }
 
@@ -239,7 +247,7 @@ public abstract class AbstractConfigurableNode implements DagNode<DagExecutionCo
     protected abstract String doExecute(DagExecutionContext context) throws DagNodeExecutionException;
 
     @Override
-    public final String execute(DagExecutionContext context) throws DagNodeExecutionException {
+    public String execute(DagExecutionContext context) throws DagNodeExecutionException {
         return doExecute(context);
     }
 }

@@ -78,10 +78,10 @@ public class DagLoaderService {
                 throw new NodeConfigException("Invalid graph_json: nodes cannot be empty");
             }
 
-            // 构建节点映射
-            Map<String, DagNode<DagExecutionContext, String>> nodeMap = new HashMap<>();
+            // 构建节点映射（使用Object类型支持ConditionalDagNode）
+            Map<String, Object> nodeMap = new HashMap<>();
             for (GraphJsonSchema.NodeDefinition nodeDef : schema.getNodes()) {
-                DagNode<DagExecutionContext, String> node = nodeFactory.createNode(nodeDef);
+                Object node = nodeFactory.createNode(nodeDef);
                 nodeMap.put(nodeDef.getNodeId(), node);
                 log.info("创建节点: {} ({})", nodeDef.getNodeName(), nodeDef.getNodeId());
             }

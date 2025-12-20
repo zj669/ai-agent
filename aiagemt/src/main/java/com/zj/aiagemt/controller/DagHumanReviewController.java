@@ -1,6 +1,6 @@
 package com.zj.aiagemt.controller;
 
-import com.zj.aiagemt.common.response.Response;
+import com.zj.aiagemt.model.common.Response;
 import com.zj.aiagemt.model.dto.HumanReviewSubmitRequest;
 import com.zj.aiagemt.model.dto.HumanReviewTaskResponse;
 import com.zj.aiagemt.model.entity.AiWorkflowInstance;

@@ -5,29 +5,61 @@ import com.zj.aiagemt.common.design.dag.DagNodeExecutionException;
 import com.zj.aiagemt.common.design.dag.NodeRouteDecision;
 import com.zj.aiagemt.service.dag.config.NodeConfig;
 import com.zj.aiagemt.service.dag.context.DagExecutionContext;
+import com.zj.aiagemt.service.dag.exception.NodeConfigException;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.ai.chat.client.ChatClient;
 import org.springframework.context.ApplicationContext;
 
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 
 /**
  * 路由节点 - 条件路由选择下一个节点
  * 根据条件选择下一个节点,支持AI评估条件,支持规则表达式
+ * 
+ * 注意：RouterNode直接实现ConditionalDagNode，不继承AbstractConfigurableNode
+ * 因为返回类型不同（NodeRouteDecision vs String）
  */
 @Slf4j
-public class RouterNode extends AbstractConfigurableNode implements ConditionalDagNode<DagExecutionContext> {
+public class RouterNode implements ConditionalDagNode<DagExecutionContext> {
 
+    protected final String nodeId;
+    protected final String nodeName;
+    protected final NodeConfig config;
+    protected final ApplicationContext applicationContext;
     private final Set<String> candidateNodes;
 
+    // 创建一个helper来复用ChatClient构建逻辑
+    private final NodeConfigHelper configHelper;
+
     public RouterNode(String nodeId, String nodeName, NodeConfig config, ApplicationContext applicationContext) {
-        super(nodeId, nodeName, config, applicationContext);
+        this.nodeId = nodeId;
+        this.nodeName = nodeName;
+        this.config = config;
+        this.applicationContext = applicationContext;
+        this.configHelper = new NodeConfigHelper(config, applicationContext);
+
+        if (config == null) {
+            throw new NodeConfigException("NodeConfig cannot be null for node: " + nodeId);
+        }
 
         // 从配置中获取候选节点列表
         List<String> candidates = (List<String>) config.getCustomConfig().get("candidateNodes");
         this.candidateNodes = candidates != null ? new HashSet<>(candidates) : new HashSet<>();
+    }
+
+    @Override
+    public String getNodeId() {
+        return nodeId;
+    }
+
+    @Override
+    public String getNodeName() {
+        return nodeName;
+    }
+
+    @Override
+    public Set<String> getDependencies() {
+        return Collections.emptySet();
     }
 
     @Override
@@ -36,10 +68,23 @@ public class RouterNode extends AbstractConfigurableNode implements ConditionalD
     }
 
     @Override
-    protected String doExecute(DagExecutionContext context) throws DagNodeExecutionException {
-        // RouterNode returns NodeRouteDecision, not String
-        // This method won't be called directly
-        return null;
+    public void beforeExecute(DagExecutionContext context) {
+        log.info("路由节点 [{}] ({}) 开始执行", nodeName, nodeId);
+    }
+
+    @Override
+    public void afterExecute(DagExecutionContext context, NodeRouteDecision result, Exception exception) {
+        if (exception != null) {
+            log.error("路由节点 [{}] ({}) 执行失败", nodeName, nodeId, exception);
+        } else {
+            log.info("路由节点 [{}] ({}) 执行成功，路由决策: {}", nodeName, nodeId,
+                    result != null ? result.getNextNodeIds() : "STOP");
+        }
+    }
+
+    @Override
+    public long getTimeoutMillis() {
+        return config.getTimeout() != null ? config.getTimeout() : 0;
     }
 
     @Override
@@ -81,11 +126,32 @@ public class RouterNode extends AbstractConfigurableNode implements ConditionalD
         // 构建路由提示词
         String routingPrompt = buildRoutingPrompt(context);
 
-        // 调用AI评估
-        String aiDecision = callAI(routingPrompt, context);
+        // 使用helper调用AI评估
+        String aiDecision = configHelper.callAI(routingPrompt, context);
 
         // 解析AI返回的节点ID
         return parseNodeIdFromAIResponse(aiDecision);
+    }
+
+    /**
+     * NodeConfigHelper - 复用ChatClient构建逻辑
+     */
+    private static class NodeConfigHelper extends AbstractConfigurableNode {
+
+        public NodeConfigHelper(NodeConfig config, ApplicationContext applicationContext) {
+            super("helper", "helper", config, applicationContext);
+        }
+
+        @Override
+        protected String doExecute(DagExecutionContext context) {
+            return null;
+        }
+
+        // 暴露callAI方法供RouterNode使用
+        @Override
+        public String callAI(String userMessage, DagExecutionContext context) {
+            return super.callAI(userMessage, context);
+        }
     }
 
     /**

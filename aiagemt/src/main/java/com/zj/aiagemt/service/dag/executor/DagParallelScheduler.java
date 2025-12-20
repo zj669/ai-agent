@@ -43,9 +43,10 @@ public class DagParallelScheduler {
 
     /**
      * 并行执行一组节点
+     * 注意：使用Object类型因为RouterNode是ConditionalDagNode
      */
     public List<NodeExecutionResult> executeParallel(
-            List<DagNode<DagExecutionContext, String>> nodes,
+            List<Object> nodes,
             DagExecutionContext context) {
 
         if (nodes == null || nodes.isEmpty()) {
@@ -56,9 +57,9 @@ public class DagParallelScheduler {
 
         List<CompletableFuture<NodeExecutionResult>> futures = new ArrayList<>();
 
-        for (DagNode<DagExecutionContext, String> node : nodes) {
+        for (Object nodeObj : nodes) {
             CompletableFuture<NodeExecutionResult> future = CompletableFuture.supplyAsync(() -> {
-                return executeNode(node, context);
+                return executeNode(nodeObj, context);
             }, executorService);
 
             futures.add(future);
@@ -86,26 +87,57 @@ public class DagParallelScheduler {
 
     /**
      * 执行单个节点
+     * 注意：nodeObj可能是DagNode或ConditionalDagNode
      */
-    private NodeExecutionResult executeNode(DagNode<DagExecutionContext, String> node,
+    private NodeExecutionResult executeNode(Object nodeObj,
             DagExecutionContext context) {
-        String nodeId = node.getNodeId();
+        // 获取节点基本信息
+        String nodeId;
+        String nodeName;
+
+        if (nodeObj instanceof DagNode) {
+            DagNode<?, ?> node = (DagNode<?, ?>) nodeObj;
+            nodeId = node.getNodeId();
+            nodeName = node.getNodeName();
+        } else {
+            throw new RuntimeException("Unknown node type: " + nodeObj.getClass());
+        }
+
         long startTime = System.currentTimeMillis();
 
         try {
             log.info("开始执行节点: {}", nodeId);
 
-            // 执行前回调
-            node.beforeExecute(context);
+            String result;
 
-            // 执行节点
-            String result = node.execute(context);
+            // 判断节点类型并执行
+            if (nodeObj instanceof com.zj.aiagemt.common.design.dag.ConditionalDagNode) {
+                // ConditionalDagNode（如RouterNode）
+                @SuppressWarnings("unchecked")
+                com.zj.aiagemt.common.design.dag.ConditionalDagNode<DagExecutionContext> conditionalNode = (com.zj.aiagemt.common.design.dag.ConditionalDagNode<DagExecutionContext>) nodeObj;
+
+                conditionalNode.beforeExecute(context);
+
+                // ConditionalDagNode返回NodeRouteDecision，转换为String存储
+                Object decision = conditionalNode.execute(context);
+                result = decision != null ? decision.toString() : null;
+
+                conditionalNode.afterExecute(context, (com.zj.aiagemt.common.design.dag.NodeRouteDecision) decision,
+                        null);
+            } else if (nodeObj instanceof DagNode) {
+                // 普通DagNode
+                @SuppressWarnings("unchecked")
+                DagNode<DagExecutionContext, String> dagNode = (DagNode<DagExecutionContext, String>) nodeObj;
+
+                dagNode.beforeExecute(context);
+                result = dagNode.execute(context);
+                dagNode.afterExecute(context, result, null);
+            } else {
+                throw new RuntimeException("Unknown node type: " + nodeObj.getClass());
+            }
 
             // 存储结果
             context.setNodeResult(nodeId, result);
-
-            // 执行后回调
-            node.afterExecute(context, result, null);
 
             long duration = System.currentTimeMillis() - startTime;
             log.info("节点执行成功: {}, 耗时: {}ms", nodeId, duration);
@@ -116,9 +148,6 @@ public class DagParallelScheduler {
             long duration = System.currentTimeMillis() - startTime;
             log.error("节点执行失败: {}, 耗时: {}ms", nodeId, duration, e);
 
-            // 执行后回调（传递异常）
-            node.afterExecute(context, null, e);
-
             return new NodeExecutionResult(nodeId, false, null, e, duration);
         } catch (Exception e) {
             long duration = System.currentTimeMillis() - startTime;
@@ -126,8 +155,6 @@ public class DagParallelScheduler {
 
             DagNodeExecutionException wrappedException = new DagNodeExecutionException(
                     "Node execution failed: " + e.getMessage(), e, nodeId, true);
-
-            node.afterExecute(context, null, wrappedException);
 
             return new NodeExecutionResult(nodeId, false, null, wrappedException, duration);
         }
