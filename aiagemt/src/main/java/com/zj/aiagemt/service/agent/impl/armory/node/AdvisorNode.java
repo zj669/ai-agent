@@ -23,7 +23,7 @@ public class AdvisorNode extends AgentAromorSupport{
     private VectorStore vectorStore;
 
     @Resource
-    private ClientNode aiClientNode;
+    private EndNode endNode;
 
     @Override
     protected String beanName(String beanId) {
@@ -59,7 +59,7 @@ public class AdvisorNode extends AgentAromorSupport{
 
     @Override
     public StrategyHandler<ArmoryCommandEntity, DefaultAgentArmoryFactory.DynamicContext, AgentArmoryVO> get(ArmoryCommandEntity requestParams, DefaultAgentArmoryFactory.DynamicContext context) {
-        return aiClientNode;
+        return endNode;
     }
 
     private Advisor createAdvisor(AiClientAdvisorVO aiClientAdvisorVO) {

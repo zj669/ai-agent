@@ -21,7 +21,6 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
-@Component
 @Slf4j
 public class ClientNode extends AgentAromorSupport {
     @Resource

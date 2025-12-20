@@ -16,9 +16,9 @@ import java.util.Map;
 @Slf4j
 public class RootNode extends AgentAromorSupport{
     @Resource
-    private ApiNode apiNode;
+    private McpNode mcpNode;
     @Resource
-    private Map<String, ILoadDataStrategy> loadDataStrategyMap;
+    private ILoadDataStrategy loadDataStrategy;
 
     @Override
     protected AgentArmoryVO doApply(ArmoryCommandEntity requestParams, DefaultAgentArmoryFactory.DynamicContext context) throws Exception {
@@ -27,15 +27,13 @@ public class RootNode extends AgentAromorSupport{
 
     @Override
     public StrategyHandler<ArmoryCommandEntity, DefaultAgentArmoryFactory.DynamicContext, AgentArmoryVO> get(ArmoryCommandEntity requestParams, DefaultAgentArmoryFactory.DynamicContext context) {
-        return apiNode;
+        return mcpNode;
     }
 
     @Override
     protected void multiThread(ArmoryCommandEntity requestParams, DefaultAgentArmoryFactory.DynamicContext context) {
         // 策略加载数据
-        String commandType = requestParams.getCommandType();
-        log.info("开始加载数据 commandType{}", commandType);
-        ILoadDataStrategy loadDataStrategy = loadDataStrategyMap.get(commandType);
+        log.info("开始加载数据");
         if (loadDataStrategy == null) {
             log.error("未找到对应的策略");
         }

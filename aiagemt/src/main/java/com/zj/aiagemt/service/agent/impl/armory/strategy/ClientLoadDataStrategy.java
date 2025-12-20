@@ -21,33 +21,33 @@ public class ClientLoadDataStrategy implements ILoadDataStrategy{
     @Override
     public void loadData(ArmoryCommandEntity requestParams, DefaultAgentArmoryFactory.DynamicContext context) {
         log.info("开始异步加载数据");
-        // api
-        CompletableFuture<Void> futureApi = CompletableFuture.runAsync(() -> {
-            agentRepository.queryApiByClientIdS(requestParams.getCommandIdList(), context);
-        }, threadPoolExecutor);
-        // model
-        CompletableFuture<Void> futureModel = CompletableFuture.runAsync(() -> {
-            agentRepository.queryModelByClientIdS(requestParams.getCommandIdList(), context);
-        }, threadPoolExecutor);
+//        // api
+//        CompletableFuture<Void> futureApi = CompletableFuture.runAsync(() -> {
+//            agentRepository.queryApiByClientIdS(requestParams.getCommandIdList(), context);
+//        }, threadPoolExecutor);
+//        // model
+//        CompletableFuture<Void> futureModel = CompletableFuture.runAsync(() -> {
+//            agentRepository.queryModelByClientIdS(requestParams.getCommandIdList(), context);
+//        }, threadPoolExecutor);
         // mcp
         CompletableFuture<Void> futureMcp = CompletableFuture.runAsync(() -> {
-            agentRepository.queryMcpByClientIdS(requestParams.getCommandIdList(), context);
+            agentRepository.queryMcps(context);
         }, threadPoolExecutor);
         // advisor
         CompletableFuture<Void> futureAdvisor = CompletableFuture.runAsync(() -> {
-            agentRepository.queryAdvisorByClientIdS(requestParams.getCommandIdList(), context);
+            agentRepository.queryAdvisors(context);
         }, threadPoolExecutor);
-        // prompt
-        CompletableFuture<Void> futurePrompt = CompletableFuture.runAsync(() -> {
-            agentRepository.queryPromptByClientIdS(requestParams.getCommandIdList(), context);
-        }, threadPoolExecutor);
+//        // prompt
+//        CompletableFuture<Void> futurePrompt = CompletableFuture.runAsync(() -> {
+//            agentRepository.queryPromptByClientIdS(requestParams.getCommandIdList(), context);
+//        }, threadPoolExecutor);
 
-        CompletableFuture<Void> futureClient = CompletableFuture.runAsync(() -> {
-            agentRepository.queryAiClientVOByClientIds(requestParams.getCommandIdList(), context);
-        }, threadPoolExecutor);
+//        CompletableFuture<Void> futureClient = CompletableFuture.runAsync(() -> {
+//            agentRepository.queryAiClientVOByClientIds(requestParams.getCommandIdList(), context);
+//        }, threadPoolExecutor);
 
 
-        CompletableFuture<Void> future = CompletableFuture.allOf(futureApi, futureModel, futureMcp, futureAdvisor, futurePrompt, futureClient);
+        CompletableFuture<Void> future = CompletableFuture.allOf(futureMcp, futureAdvisor);
         future.join();
         log.info("结束异步加载数据");
     }

@@ -15,7 +15,6 @@ import org.springframework.stereotype.Component;
 
 import java.util.List;
 
-@Component
 @Slf4j
 public class ModelNode extends  AgentAromorSupport{
     @Resource

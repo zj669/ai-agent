@@ -23,7 +23,7 @@ import java.util.stream.Collectors;
 @Slf4j
 @Configuration
 @EnableConfigurationProperties(AiAgentAutoConfigProperties.class)
-@ConditionalOnProperty(prefix = "spring.ai.agent.auto-config", name = "enabled", havingValue = "true")
+//@ConditionalOnProperty(prefix = "spring.ai.agent.auto-config", name = "enabled", havingValue = "true")
 public class AiAgentAutoConfiguration implements ApplicationListener<ApplicationReadyEvent> {
 
     @Resource
@@ -36,41 +36,17 @@ public class AiAgentAutoConfiguration implements ApplicationListener<Application
     public void onApplicationEvent(ApplicationReadyEvent event) {
         try {
             log.info("AI Agent 自动装配开始，配置: {}", aiAgentAutoConfigProperties);
-
             // 检查配置是否有效
             if (!aiAgentAutoConfigProperties.isEnabled()) {
                 log.info("AI Agent 自动装配未启用");
                 return;
             }
-
-            List<String> clientIds = aiAgentAutoConfigProperties.getClientIds();
-            if (CollectionUtils.isEmpty(clientIds)) {
-                log.warn("AI Agent 自动装配配置的客户端ID列表为空");
-                return;
-            }
-
-            // 解析客户端ID列表（支持逗号分隔的字符串）
-            List<String> commandIdList;
-            if (clientIds.size() == 1 && clientIds.get(0).contains(Constants.SPLIT)) {
-                // 处理逗号分隔的字符串
-                commandIdList = Arrays.stream(clientIds.get(0).split(Constants.SPLIT))
-                        .map(String::trim)
-                        .filter(id -> !id.isEmpty())
-                        .collect(Collectors.toList());
-            } else {
-                commandIdList = clientIds;
-            }
-
-            log.info("开始自动装配AI客户端，客户端ID列表: {}", commandIdList);
-
             // 执行自动装配
             StrategyHandler<ArmoryCommandEntity, DefaultAgentArmoryFactory.DynamicContext, AgentArmoryVO> armoryStrategyHandler =
                     defaultArmoryStrategyFactory.strategyHandler();
 
             AgentArmoryVO result = armoryStrategyHandler.apply(
                     ArmoryCommandEntity.builder()
-                            .commandType(AiAgentEnumVO.AI_CLIENT.getLoadDataStrategy())
-                            .commandIdList(commandIdList)
                             .build(),
                     new DefaultAgentArmoryFactory.DynamicContext());
 

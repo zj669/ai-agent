@@ -31,49 +31,106 @@ import java.util.*;
 @Repository
 @Primary
 public class AgentRepository implements IAgentRepository {
-
-    @Override
-    public void queryApiByClientIdS(List<String> commandIdList, DefaultAgentArmoryFactory.DynamicContext context) {
-
-    }
-
-    @Override
-    public void queryModelByClientIdS(List<String> commandIdList, DefaultAgentArmoryFactory.DynamicContext context) {
-
-    }
-
-    @Override
-    public void queryMcpByClientIdS(List<String> commandIdList, DefaultAgentArmoryFactory.DynamicContext context) {
-
-    }
-
-    @Override
-    public void queryAdvisorByClientIdS(List<String> commandIdList, DefaultAgentArmoryFactory.DynamicContext context) {
-
-    }
-
-    @Override
-    public void queryPromptByClientIdS(List<String> commandIdList, DefaultAgentArmoryFactory.DynamicContext context) {
-
-    }
-
-    @Override
-    public void queryAiClientVOByClientIds(List<String> commandIdList, DefaultAgentArmoryFactory.DynamicContext context) {
-
-    }
-
-    @Override
-    public Map<String, AiAgentClientFlowConfigVO> queryAiAgentClientFlowConfig(String aiAgentId) {
-        return Map.of();
-    }
-
-    @Override
-    public List<String> queryClientIdsByAgentId(String aiAgentId) {
-        return List.of();
-    }
+    @Resource
+    private AiAdvisorMapper aiAdvisorMapper;
+    @Resource
+    private AiToolMcpMapper aiToolMcpMapper;
+    @Resource
+    private SpringContextUtil springContextUtil;
 
     @Override
     public List<AiAgent> queryAgentDtoList() {
         return List.of();
+    }
+
+    @Override
+    public void queryMcps(DefaultAgentArmoryFactory.DynamicContext context) {
+
+        List<AiClientToolMcpVO> result = new ArrayList<>();
+        List<AiToolMcp> toolMcps = aiToolMcpMapper.selectList(new LambdaQueryWrapper<>());
+        for (AiToolMcp toolMcp : toolMcps) {
+            if (toolMcp != null && toolMcp.getStatus() == 1) {
+                // 4. 转换为VO对象
+                AiClientToolMcpVO mcpVO = AiClientToolMcpVO.builder()
+                        .mcpId(toolMcp.getMcpId())
+                        .mcpName(toolMcp.getMcpName())
+                        .transportType(toolMcp.getTransportType())
+                        .transportConfig(toolMcp.getTransportConfig())
+                        .requestTimeout(toolMcp.getRequestTimeout())
+                        .build();
+
+                String transportConfig = toolMcp.getTransportConfig();
+                String transportType = toolMcp.getTransportType();
+
+                try {
+                    if ("sse".equals(transportType)) {
+                        // 解析SSE配置
+                        ObjectMapper objectMapper = new ObjectMapper();
+                        AiClientToolMcpVO.TransportConfigSse transportConfigSse = objectMapper.readValue(transportConfig, AiClientToolMcpVO.TransportConfigSse.class);
+                        mcpVO.setTransportConfigSse(transportConfigSse);
+                    } else if ("stdio".equals(transportType)) {
+                        // 解析STDIO配置
+                        Map<String, AiClientToolMcpVO.TransportConfigStdio.Stdio> stdio = JSON.parseObject(transportConfig,
+                                new TypeReference<>() {
+                                });
+
+                        AiClientToolMcpVO.TransportConfigStdio transportConfigStdio = new AiClientToolMcpVO.TransportConfigStdio();
+                        transportConfigStdio.setStdio(stdio);
+
+                        mcpVO.setTransportConfigStdio(transportConfigStdio);
+                    }
+                } catch (Exception e) {
+                    log.error("解析传输配置失败: {}", e.getMessage(), e);
+                }
+                result.add(mcpVO);
+            }
+        }
+        context.setValue(AiAgentEnumVO.AI_CLIENT_TOOL_MCP.getDataName(), result);
+    }
+
+    @Override
+    public void queryAdvisors(DefaultAgentArmoryFactory.DynamicContext context) {
+        List<AiClientAdvisorVO> result = new ArrayList<>();
+        List<AiAdvisor> aiAdvisors = aiAdvisorMapper.selectList(new LambdaQueryWrapper<>());
+        for (AiAdvisor aiClientAdvisor : aiAdvisors) {
+            // 3. 解析extParam中的配置
+            AiClientAdvisorVO.ChatMemory chatMemory = null;
+            AiClientAdvisorVO.RagAnswer ragAnswer = null;
+            AiClientAdvisorVO.VectorStoreRetriever vectorStoreRetriever = null;
+
+            String extParam = aiClientAdvisor.getExtParam();
+            if (extParam != null && !extParam.trim().isEmpty()) {
+                try {
+                    if ("ChatMemory".equals(aiClientAdvisor.getAdvisorType())) {
+                        // 解析chatMemory配置
+                        chatMemory = JSON.parseObject(extParam, AiClientAdvisorVO.ChatMemory.class);
+                    } else if ("RagAnswer".equals(aiClientAdvisor.getAdvisorType())) {
+                        // 解析ragAnswer配置
+                        ragAnswer = JSON.parseObject(extParam, AiClientAdvisorVO.RagAnswer.class);
+                    } else if ("VectorStoreRetrieverMemoryAdvisor".equals(aiClientAdvisor.getAdvisorType())) {
+                        // 解析vectorStoreRetriever配置
+                        vectorStoreRetriever = JSON.parseObject(extParam, AiClientAdvisorVO.VectorStoreRetriever.class);
+                    }
+                } catch (Exception e) {
+                    // 解析失败时忽略，使用默认值null
+                }
+            }
+
+            // 4. 构建AiClientAdvisorVO对象
+            AiClientAdvisorVO advisorVO = AiClientAdvisorVO.builder()
+                    .advisorId(aiClientAdvisor.getAdvisorId())
+                    .advisorName(aiClientAdvisor.getAdvisorName())
+                    .advisorType(aiClientAdvisor.getAdvisorType())
+                    .orderNum(aiClientAdvisor.getOrderNum())
+                    .chatMemory(chatMemory)
+                    .ragAnswer(ragAnswer)
+                    .vectorStoreRetriever(vectorStoreRetriever)
+                    .springContextUtil(springContextUtil)
+                    .build();
+
+            result.add(advisorVO);
+        }
+
+        context.setValue(AiAgentEnumVO.AI_CLIENT_ADVISOR.getDataName(), result);
     }
 }
