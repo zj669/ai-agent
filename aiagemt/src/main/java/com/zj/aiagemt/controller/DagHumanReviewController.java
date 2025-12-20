@@ -3,8 +3,8 @@ package com.zj.aiagemt.controller;
 import com.zj.aiagemt.model.common.Response;
 import com.zj.aiagemt.model.dto.HumanReviewSubmitRequest;
 import com.zj.aiagemt.model.dto.HumanReviewTaskResponse;
-import com.zj.aiagemt.model.entity.AiWorkflowInstance;
-import com.zj.aiagemt.repository.base.AiWorkflowInstanceMapper;
+import com.zj.aiagemt.model.entity.AiAgentInstance;
+import com.zj.aiagemt.repository.base.AiAgentInstanceMapper;
 import com.zj.aiagemt.service.dag.DagResumeService;
 import com.zj.aiagemt.service.dag.executor.DagExecutor;
 import io.swagger.v3.oas.annotations.Operation;
@@ -21,12 +21,12 @@ import org.springframework.web.bind.annotation.*;
 @Tag(name = "DAG人工审核", description = "DAG工作流人工审核相关接口")
 public class DagHumanReviewController {
 
-    private final AiWorkflowInstanceMapper workflowInstanceMapper;
+    private final AiAgentInstanceMapper agentInstanceMapper;
     private final DagResumeService dagResumeService;
 
-    public DagHumanReviewController(AiWorkflowInstanceMapper workflowInstanceMapper,
+    public DagHumanReviewController(AiAgentInstanceMapper agentInstanceMapper,
             DagResumeService dagResumeService) {
-        this.workflowInstanceMapper = workflowInstanceMapper;
+        this.agentInstanceMapper = agentInstanceMapper;
         this.dagResumeService = dagResumeService;
     }
 
@@ -40,11 +40,11 @@ public class DagHumanReviewController {
             log.info("查询人工审核任务: conversationId={}", conversationId);
 
             // 查询暂停的工作流实例
-            AiWorkflowInstance instance = workflowInstanceMapper.selectOne(
-                    new com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper<AiWorkflowInstance>()
-                            .eq(AiWorkflowInstance::getConversationId, conversationId)
-                            .eq(AiWorkflowInstance::getStatus, "PAUSED")
-                            .orderByDesc(AiWorkflowInstance::getCreateTime)
+            AiAgentInstance instance = agentInstanceMapper.selectOne(
+                    new com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper<AiAgentInstance>()
+                            .eq(AiAgentInstance::getConversationId, conversationId)
+                            .eq(AiAgentInstance::getStatus, "PAUSED")
+                            .orderByDesc(AiAgentInstance::getCreateTime)
                             .last("LIMIT 1"));
 
             if (instance == null) {
@@ -109,12 +109,12 @@ public class DagHumanReviewController {
      */
     @GetMapping("/status/{conversationId}")
     @Operation(summary = "获取工作流实例状态")
-    public Response<AiWorkflowInstance> getWorkflowStatus(@PathVariable String conversationId) {
+    public Response<AiAgentInstance> getWorkflowStatus(@PathVariable String conversationId) {
         try {
-            AiWorkflowInstance instance = workflowInstanceMapper.selectOne(
-                    new com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper<AiWorkflowInstance>()
-                            .eq(AiWorkflowInstance::getConversationId, conversationId)
-                            .orderByDesc(AiWorkflowInstance::getCreateTime)
+            AiAgentInstance instance = agentInstanceMapper.selectOne(
+                    new com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper<AiAgentInstance>()
+                            .eq(AiAgentInstance::getConversationId, conversationId)
+                            .orderByDesc(AiAgentInstance::getCreateTime)
                             .last("LIMIT 1"));
 
             if (instance == null) {

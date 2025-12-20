@@ -1,7 +1,6 @@
 package com.zj.aiagemt.service.dag;
 
-import com.zj.aiagemt.model.entity.AiAgentVersion;
-import com.zj.aiagemt.repository.base.AiAgentVersionMapper;
+
 import com.zj.aiagemt.service.dag.context.DagExecutionContext;
 import com.zj.aiagemt.service.dag.executor.DagExecutor;
 import com.zj.aiagemt.service.dag.loader.DagLoaderService;
@@ -31,10 +30,8 @@ public class DagIntegrationTest {
   @Autowired
   private DagExecutor dagExecutor;
 
-  @Autowired
-  private AiAgentVersionMapper agentVersionMapper;
 
-  private Long testVersionId;
+  private String testVersionId;
 
   /**
    * 准备测试数据
@@ -44,17 +41,7 @@ public class DagIntegrationTest {
     // 创建测试用的graph_json
     String graphJson = createRouterTestGraphJson();
 
-    // 插入测试数据到数据库
-    AiAgentVersion version = new AiAgentVersion();
-    version.setAgentId(1L);
-    version.setVersion("test-1.0");
-    version.setGraphJson(graphJson);
-    version.setStatus(1); // 已发布
-    version.setCreateTime(LocalDateTime.now());
-    version.setUpdateTime(LocalDateTime.now());
-
-    agentVersionMapper.insert(version);
-    testVersionId = version.getId();
+    testVersionId = "1";
 
     log.info("测试数据准备完成，versionId: {}", testVersionId);
   }
@@ -65,11 +52,11 @@ public class DagIntegrationTest {
   @Test
   void testFullDagExecution() {
     // 1. 加载DAG
-    DagGraph dagGraph = dagLoaderService.loadDagByVersionId(testVersionId);
+    DagGraph dagGraph = dagLoaderService.loadDagByAgentId(testVersionId);
 
     assertNotNull(dagGraph, "DAG图不应为null");
-//    assertEquals("test-dag", dagGraph.getDagId());
-//    assertEquals(2, dagGraph.getNodes().size(), "应该有3个节点");
+    // assertEquals("test-dag", dagGraph.getDagId());
+    // assertEquals(2, dagGraph.getNodes().size(), "应该有3个节点");
 
     log.info("DAG加载成功: {}", dagGraph.getDagId());
 
@@ -83,24 +70,24 @@ public class DagIntegrationTest {
     DagExecutor.DagExecutionResult result = dagExecutor.execute(dagGraph, context);
     System.out.println(result);
     System.out.println(context);
-//    // 4. 验证结果
-//    assertNotNull(result, "执行结果不应为null");
-//    assertEquals("SUCCESS", result.getStatus(), "执行应该成功");
-//    assertTrue(result.getDurationMs() > 0, "执行耗时应该大于0");
-//
-//    log.info("DAG执行完成: status={}, duration={}ms",
-//        result.getStatus(), result.getDurationMs());
-//
-//    // 5. 验证节点执行结果
-//    Object planResult = context.getNodeResult("plan-node-1");
-//    assertNotNull(planResult, "规划节点应该有执行结果");
-//
-//    Object actResult = context.getNodeResult("act-node-1");
-//    assertNotNull(actResult, "执行节点应该有执行结果");
-//
-//    // 6. 验证context数据
-//    assertTrue(context.isNodeExecuted("plan-node-1"), "规划节点应该已执行");
-//    assertTrue(context.isNodeExecuted("act-node-1"), "执行节点应该已执行");
+    // // 4. 验证结果
+    // assertNotNull(result, "执行结果不应为null");
+    // assertEquals("SUCCESS", result.getStatus(), "执行应该成功");
+    // assertTrue(result.getDurationMs() > 0, "执行耗时应该大于0");
+    //
+    // log.info("DAG执行完成: status={}, duration={}ms",
+    // result.getStatus(), result.getDurationMs());
+    //
+    // // 5. 验证节点执行结果
+    // Object planResult = context.getNodeResult("plan-node-1");
+    // assertNotNull(planResult, "规划节点应该有执行结果");
+    //
+    // Object actResult = context.getNodeResult("act-node-1");
+    // assertNotNull(actResult, "执行节点应该有执行结果");
+    //
+    // // 6. 验证context数据
+    // assertTrue(context.isNodeExecuted("plan-node-1"), "规划节点应该已执行");
+    // assertTrue(context.isNodeExecuted("act-node-1"), "执行节点应该已执行");
 
     log.info("所有验证通过！");
   }
@@ -110,7 +97,7 @@ public class DagIntegrationTest {
    */
   @Test
   void testDagLoading() {
-    DagGraph dagGraph = dagLoaderService.loadDagByVersionId(testVersionId);
+    DagGraph dagGraph = dagLoaderService.loadDagByAgentId(testVersionId);
 
     assertNotNull(dagGraph);
     assertEquals("test-dag", dagGraph.getDagId());
@@ -135,7 +122,7 @@ public class DagIntegrationTest {
    */
   @Test
   void testTopologicalSort() {
-    DagGraph dagGraph = dagLoaderService.loadDagByVersionId(testVersionId);
+    DagGraph dagGraph = dagLoaderService.loadDagByAgentId(testVersionId);
 
     var sortedNodes = com.zj.aiagemt.service.dag.executor.DagTopologicalSorter.sort(dagGraph);
 
@@ -356,21 +343,13 @@ public class DagIntegrationTest {
     // 1. 准备包含路由节点的测试数据
     String routerGraphJson = createRouterTestGraphJson();
 
-    AiAgentVersion routerVersion = new AiAgentVersion();
-    routerVersion.setAgentId(2L);
-    routerVersion.setVersion("test-router-1.0");
-    routerVersion.setGraphJson(routerGraphJson);
-    routerVersion.setStatus(1);
-    routerVersion.setCreateTime(LocalDateTime.now());
-    routerVersion.setUpdateTime(LocalDateTime.now());
 
-    agentVersionMapper.insert(routerVersion);
-    Long routerVersionId = routerVersion.getId();
+    String routerVersionId = "1";
 
     log.info("路由DAG测试数据准备完成，versionId: {}", routerVersionId);
 
     // 2. 加载DAG
-    DagGraph dagGraph = dagLoaderService.loadDagByVersionId(routerVersionId);
+    DagGraph dagGraph = dagLoaderService.loadDagByAgentId(routerVersionId);
 
     assertNotNull(dagGraph, "DAG图不应为null");
     assertEquals("test-router-dag", dagGraph.getDagId());
@@ -416,21 +395,12 @@ public class DagIntegrationTest {
     // 1. 准备包含路由节点的测试数据
     String routerGraphJson = createRouterTestGraphJson();
 
-    AiAgentVersion routerVersion = new AiAgentVersion();
-    routerVersion.setAgentId(3L);
-    routerVersion.setVersion("test-router-complex-1.0");
-    routerVersion.setGraphJson(routerGraphJson);
-    routerVersion.setStatus(1);
-    routerVersion.setCreateTime(LocalDateTime.now());
-    routerVersion.setUpdateTime(LocalDateTime.now());
-
-    agentVersionMapper.insert(routerVersion);
-    Long routerVersionId = routerVersion.getId();
+    String routerVersionId = "1";
 
     log.info("路由DAG（复杂任务）测试数据准备完成，versionId: {}", routerVersionId);
 
     // 2. 加载DAG
-    DagGraph dagGraph = dagLoaderService.loadDagByVersionId(routerVersionId);
+    DagGraph dagGraph = dagLoaderService.loadDagByAgentId(routerVersionId);
 
     assertNotNull(dagGraph);
     assertEquals(4, dagGraph.getNodes().size());

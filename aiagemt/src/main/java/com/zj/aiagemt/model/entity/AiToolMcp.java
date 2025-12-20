@@ -11,13 +11,15 @@ import lombok.NoArgsConstructor;
 
 import java.time.LocalDateTime;
 
-
+/**
+ * AI工具MCP配置实体
+ */
 @Data
 @Builder
 @AllArgsConstructor
 @NoArgsConstructor
-@TableName("ai_agent_version")
-public class AiAgentVersion {
+@TableName("ai_tool_mcp")
+public class AiToolMcp {
 
     /**
      * 主键ID
@@ -27,25 +29,37 @@ public class AiAgentVersion {
     private Long id;
 
     /**
-     * 关联的工作流ID
+     * MCP ID
      */
-    @Schema(description = "关联的工作流ID")
-    private Long agentId;
+    @Schema(description = "MCP ID")
+    private String mcpId;
 
     /**
-     * 版本号 (如: v1.0.1)
+     * MCP名称
      */
-    @Schema(description = "版本号")
-    private String version;
+    @Schema(description = "MCP名称")
+    private String mcpName;
 
     /**
-     * 核心编排规则 (节点、连线、DSL配置)
+     * 传输类型(sse/stdio)
      */
-    @Schema(description = "核心编排规则")
-    private String graphJson;
+    @Schema(description = "传输类型")
+    private String transportType;
 
     /**
-     * 状态 (0:草稿, 1:已发布, 2:历史版本)
+     * 传输配置(sse/stdio)
+     */
+    @Schema(description = "传输配置")
+    private String transportConfig;
+
+    /**
+     * 请求超时时间(分钟)
+     */
+    @Schema(description = "请求超时时间")
+    private Integer requestTimeout;
+
+    /**
+     * 状态(0:禁用,1:启用)
      */
     @Schema(description = "状态")
     private Integer status;

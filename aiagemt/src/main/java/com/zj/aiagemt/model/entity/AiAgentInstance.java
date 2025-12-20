@@ -11,13 +11,15 @@ import lombok.NoArgsConstructor;
 
 import java.time.LocalDateTime;
 
-
+/**
+ * AI智能体运行实例
+ */
 @Data
 @Builder
 @AllArgsConstructor
 @NoArgsConstructor
-@TableName("ai_workflow_instance")
-public class AiWorkflowInstance {
+@TableName("ai_agent_instance")
+public class AiAgentInstance {
 
     /**
      * 主键ID
@@ -31,12 +33,6 @@ public class AiWorkflowInstance {
      */
     @Schema(description = "关联的agentID")
     private Long agentId;
-
-    /**
-     * 关联的工作流版本ID
-     */
-    @Schema(description = "关联的工作流版本ID")
-    private Long versionId;
 
     /**
      * 会话/任务ID

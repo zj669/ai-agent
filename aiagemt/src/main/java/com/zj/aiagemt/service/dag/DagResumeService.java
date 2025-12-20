@@ -2,8 +2,8 @@ package com.zj.aiagemt.service.dag;
 
 import com.alibaba.fastjson2.JSON;
 import com.alibaba.fastjson2.TypeReference;
-import com.zj.aiagemt.model.entity.AiWorkflowInstance;
-import com.zj.aiagemt.repository.base.AiWorkflowInstanceMapper;
+import com.zj.aiagemt.model.entity.AiAgentInstance;
+import com.zj.aiagemt.repository.base.AiAgentInstanceMapper;
 import com.zj.aiagemt.service.dag.context.DagExecutionContext;
 import com.zj.aiagemt.service.dag.executor.DagExecutor;
 import com.zj.aiagemt.service.dag.executor.DagParallelScheduler;
@@ -24,14 +24,14 @@ import java.util.Map;
 @Service
 public class DagResumeService {
 
-    private final AiWorkflowInstanceMapper workflowInstanceMapper;
+    private final AiAgentInstanceMapper agentInstanceMapper;
     private final DagLoaderService dagLoaderService;
     private final DagExecutor dagExecutor;
 
-    public DagResumeService(AiWorkflowInstanceMapper workflowInstanceMapper,
+    public DagResumeService(AiAgentInstanceMapper agentInstanceMapper,
             DagLoaderService dagLoaderService,
             DagExecutor dagExecutor) {
-        this.workflowInstanceMapper = workflowInstanceMapper;
+        this.agentInstanceMapper = agentInstanceMapper;
         this.dagLoaderService = dagLoaderService;
         this.dagExecutor = dagExecutor;
     }
@@ -54,11 +54,11 @@ public class DagResumeService {
         log.info("恢复DAG执行: conversationId={}, approved={}", conversationId, approved);
 
         // 1. 查询工作流实例
-        AiWorkflowInstance instance = workflowInstanceMapper.selectOne(
-                new com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper<AiWorkflowInstance>()
-                        .eq(AiWorkflowInstance::getConversationId, conversationId)
-                        .eq(AiWorkflowInstance::getStatus, "PAUSED")
-                        .orderByDesc(AiWorkflowInstance::getCreateTime)
+        AiAgentInstance instance = agentInstanceMapper.selectOne(
+                new com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper<AiAgentInstance>()
+                        .eq(AiAgentInstance::getConversationId, conversationId)
+                        .eq(AiAgentInstance::getStatus, "PAUSED")
+                        .orderByDesc(AiAgentInstance::getCreateTime)
                         .last("LIMIT 1"));
 
         if (instance == null) {
@@ -74,10 +74,10 @@ public class DagResumeService {
         // 4. 更新工作流实例状态
         instance.setStatus("RUNNING");
         instance.setUpdateTime(LocalDateTime.now());
-        workflowInstanceMapper.updateById(instance);
+        agentInstanceMapper.updateById(instance);
 
-        // 5. 重新加载DAG
-        DagGraph dagGraph = dagLoaderService.loadDagByVersionId(instance.getVersionId());
+        // 5. 重新加载DAG（通过agentId）
+        DagGraph dagGraph = dagLoaderService.loadDagById(instance.getAgentId());
 
         // 6. 继续执行DAG（从当前节点的下一个节点开始）
         String pausedNodeId = instance.getCurrentNodeId();
@@ -90,7 +90,7 @@ public class DagResumeService {
             log.info("用户拒绝继续执行，DAG终止");
             instance.setStatus("REJECTED");
             instance.setUpdateTime(LocalDateTime.now());
-            workflowInstanceMapper.updateById(instance);
+            agentInstanceMapper.updateById(instance);
 
             result = DagExecutor.DagExecutionResult.failed(
                     context.getExecutionId(),
@@ -105,7 +105,7 @@ public class DagResumeService {
                 log.error("恢复执行失败", e);
                 instance.setStatus("FAILED");
                 instance.setUpdateTime(LocalDateTime.now());
-                workflowInstanceMapper.updateById(instance);
+                agentInstanceMapper.updateById(instance);
 
                 result = DagExecutor.DagExecutionResult.failed(
                         context.getExecutionId(),
@@ -127,7 +127,7 @@ public class DagResumeService {
             DagGraph dagGraph,
             DagExecutionContext context,
             String pausedNodeId,
-            AiWorkflowInstance instance) {
+            AiAgentInstance instance) {
 
         long startTime = System.currentTimeMillis();
 
@@ -177,7 +177,7 @@ public class DagResumeService {
                         instance.setRuntimeContextJson(
                                 com.alibaba.fastjson2.JSON.toJSONString(context.getAllNodeResults()));
                         instance.setUpdateTime(java.time.LocalDateTime.now());
-                        workflowInstanceMapper.updateById(instance);
+                        agentInstanceMapper.updateById(instance);
 
                         long totalDuration = System.currentTimeMillis() - startTime;
                         return DagExecutor.DagExecutionResult.failed(
@@ -197,7 +197,7 @@ public class DagResumeService {
                         instance.setRuntimeContextJson(
                                 com.alibaba.fastjson2.JSON.toJSONString(context.getAllNodeResults()));
                         instance.setUpdateTime(java.time.LocalDateTime.now());
-                        workflowInstanceMapper.updateById(instance);
+                        agentInstanceMapper.updateById(instance);
 
                         long totalDuration = System.currentTimeMillis() - startTime;
                         return DagExecutor.DagExecutionResult.paused(
@@ -213,7 +213,7 @@ public class DagResumeService {
                     instance.setRuntimeContextJson(
                             com.alibaba.fastjson2.JSON.toJSONString(context.getAllNodeResults()));
                     instance.setUpdateTime(java.time.LocalDateTime.now());
-                    workflowInstanceMapper.updateById(instance);
+                    agentInstanceMapper.updateById(instance);
                 }
             }
 
@@ -221,7 +221,7 @@ public class DagResumeService {
             instance.setStatus("COMPLETED");
             instance.setRuntimeContextJson(com.alibaba.fastjson2.JSON.toJSONString(context.getAllNodeResults()));
             instance.setUpdateTime(java.time.LocalDateTime.now());
-            workflowInstanceMapper.updateById(instance);
+            agentInstanceMapper.updateById(instance);
 
             long totalDuration = System.currentTimeMillis() - startTime;
             log.info("DAG恢复执行完成，总耗时: {}ms", totalDuration);
@@ -237,7 +237,7 @@ public class DagResumeService {
     /**
      * 恢复执行上下文
      */
-    private DagExecutionContext restoreContext(AiWorkflowInstance instance, String conversationId) {
+    private DagExecutionContext restoreContext(AiAgentInstance instance, String conversationId) {
         DagExecutionContext context = new DagExecutionContext(conversationId);
 
         // 恢复运行时上下文

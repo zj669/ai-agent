@@ -23,11 +23,11 @@ public class DagService {
     /**
      * 加载DAG示例
      */
-    public DagGraph loadDag(Long agentId, String version) {
-        log.info("加载DAG: agentId={}, version={}", agentId, version);
+    public DagGraph loadDag(String agentId) {
+        log.info("加载DAG: agentId={}", agentId);
 
         // 使用DagLoaderService加载DAG
-        DagGraph dagGraph = dagLoaderService.loadDagByAgentIdAndVersion(agentId, version);
+        DagGraph dagGraph = dagLoaderService.loadDagByAgentId(agentId);
 
         log.info("DAG加载成功: dagId={}, 节点数={}",
                 dagGraph.getDagId(), dagGraph.getNodes().size());
@@ -38,10 +38,10 @@ public class DagService {
     /**
      * 执行DAG示例(简单版本，完整版本需要DAG执行引擎)
      */
-    public String executeDagSimple(Long versionId, String conversationId, String userInput) {
+    public String executeDagSimple(Long agentId, String conversationId, String userInput) {
         try {
             // 1. 加载DAG
-            DagGraph dagGraph = dagLoaderService.loadDagByVersionId(versionId);
+            DagGraph dagGraph = dagLoaderService.loadDagById(agentId);
 
             // 2. 创建执行上下文
             DagExecutionContext context = new DagExecutionContext(conversationId);

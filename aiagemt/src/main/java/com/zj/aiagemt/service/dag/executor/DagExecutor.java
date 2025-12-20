@@ -3,8 +3,8 @@ package com.zj.aiagemt.service.dag.executor;
 import com.zj.aiagemt.common.design.dag.ConditionalDagNode;
 import com.zj.aiagemt.common.design.dag.DagNode;
 import com.zj.aiagemt.common.design.dag.NodeRouteDecision;
-import com.zj.aiagemt.model.entity.AiWorkflowInstance;
-import com.zj.aiagemt.repository.base.AiWorkflowInstanceMapper;
+import com.zj.aiagemt.model.entity.AiAgentInstance;
+import com.zj.aiagemt.repository.base.AiAgentInstanceMapper;
 import com.zj.aiagemt.service.dag.context.DagExecutionContext;
 import com.zj.aiagemt.service.dag.exception.NodeConfigException;
 import com.zj.aiagemt.service.dag.model.DagGraph;
@@ -26,12 +26,12 @@ import java.util.stream.Collectors;
 public class DagExecutor {
 
     private final DagParallelScheduler scheduler;
-    private final AiWorkflowInstanceMapper workflowInstanceMapper;
+    private final AiAgentInstanceMapper agentInstanceMapper;
     private final DagLoggingService loggingService;
 
-    public DagExecutor(AiWorkflowInstanceMapper workflowInstanceMapper,
+    public DagExecutor(AiAgentInstanceMapper agentInstanceMapper,
             DagLoggingService loggingService) {
-        this.workflowInstanceMapper = workflowInstanceMapper;
+        this.agentInstanceMapper = agentInstanceMapper;
         this.loggingService = loggingService;
         this.scheduler = new DagParallelScheduler(4, loggingService); // 最多4个并行任务
     }
@@ -55,7 +55,7 @@ public class DagExecutor {
             List<List<String>> executionLevels = DagTopologicalSorter.getExecutionLevels(dagGraph);
 
             // 3. 创建工作流实例
-            AiWorkflowInstance workflowInstance = createWorkflowInstance(dagGraph, context);
+            AiAgentInstance agentInstance = createAgentInstance(dagGraph, context);
 
             // 4. 将 DagGraph 存入 context，供 RouterNode 等节点使用
             context.setValue("__DAG_GRAPH__", dagGraph);
@@ -95,7 +95,7 @@ public class DagExecutor {
                         log.error("节点执行失败: {}", result.getNodeId());
 
                         // 更新工作流实例状态
-                        updateWorkflowInstance(workflowInstance, "FAILED", result.getNodeId(), context);
+                        updateAgentInstance(agentInstance, "FAILED", result.getNodeId(), context);
 
                         long totalDuration = System.currentTimeMillis() - startTime;
                         return DagExecutionResult.failed(
@@ -110,7 +110,7 @@ public class DagExecutor {
                         log.info("节点等待人工介入: {}", result.getNodeId());
 
                         // 更新工作流实例为暂停状态
-                        updateWorkflowInstance(workflowInstance, "PAUSED", result.getNodeId(), context);
+                        updateAgentInstance(agentInstance, "PAUSED", result.getNodeId(), context);
 
                         long totalDuration = System.currentTimeMillis() - startTime;
                         return DagExecutionResult.paused(
@@ -129,12 +129,12 @@ public class DagExecutor {
 
                 // 更新工作流实例当前节点
                 if (!filteredNodeIds.isEmpty()) {
-                    updateWorkflowInstance(workflowInstance, "RUNNING", filteredNodeIds.get(0), context);
+                    updateAgentInstance(agentInstance, "RUNNING", filteredNodeIds.get(0), context);
                 }
             }
 
             // 6. 执行完成
-            updateWorkflowInstance(workflowInstance, "COMPLETED", null, context);
+            updateAgentInstance(agentInstance, "COMPLETED", null, context);
 
             long totalDuration = System.currentTimeMillis() - startTime;
 
@@ -250,8 +250,8 @@ public class DagExecutor {
     /**
      * 创建工作流实例
      */
-    private AiWorkflowInstance createWorkflowInstance(DagGraph dagGraph, DagExecutionContext context) {
-        AiWorkflowInstance instance = new AiWorkflowInstance();
+    private AiAgentInstance createAgentInstance(DagGraph dagGraph, DagExecutionContext context) {
+        AiAgentInstance instance = new AiAgentInstance();
         // TODO
         instance.setAgentId(1L);
         instance.setConversationId(context.getConversationId());
@@ -259,12 +259,11 @@ public class DagExecutor {
         instance.setStatus("RUNNING");
         instance.setCreateTime(LocalDateTime.now());
         instance.setUpdateTime(LocalDateTime.now());
-        instance.setVersionId(1L);
         instance.setRuntimeContextJson(JSON.toJSONString(context));
         // 保存到数据库
         try {
-            workflowInstanceMapper.insert(instance);
-            log.info("创建工作流实例: id={}, conversationId={}", instance.getId(), instance.getConversationId());
+            agentInstanceMapper.insert(instance);
+            log.info("创建智能体实例: id={}, conversationId={}", instance.getId(), instance.getConversationId());
         } catch (Exception e) {
             log.error("创建工作流实例失败", e);
         }
@@ -275,7 +274,7 @@ public class DagExecutor {
     /**
      * 更新工作流实例
      */
-    private void updateWorkflowInstance(AiWorkflowInstance instance, String status,
+    private void updateAgentInstance(AiAgentInstance instance, String status,
             String currentNodeId, DagExecutionContext context) {
         if (instance == null || instance.getId() == null) {
             return;
@@ -289,8 +288,8 @@ public class DagExecutor {
         instance.setUpdateTime(LocalDateTime.now());
 
         try {
-            workflowInstanceMapper.updateById(instance);
-            log.debug("更新工作流实例: status={}, currentNodeId={}", status, currentNodeId);
+            agentInstanceMapper.updateById(instance);
+            log.debug("更新智能体实例: status={}, currentNodeId={}", status, currentNodeId);
         } catch (Exception e) {
             log.error("更新工作流实例失败", e);
         }

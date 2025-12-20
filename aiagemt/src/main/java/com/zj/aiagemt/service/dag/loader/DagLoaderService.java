@@ -1,10 +1,8 @@
 package com.zj.aiagemt.service.dag.loader;
 
 import com.alibaba.fastjson2.JSON;
-import com.zj.aiagemt.common.design.dag.DagNode;
-import com.zj.aiagemt.model.entity.AiAgentVersion;
-import com.zj.aiagemt.repository.base.AiAgentVersionMapper;
-import com.zj.aiagemt.service.dag.context.DagExecutionContext;
+import com.zj.aiagemt.model.entity.AiAgent;
+import com.zj.aiagemt.repository.base.AiAgentMapper;
 import com.zj.aiagemt.service.dag.exception.NodeConfigException;
 import com.zj.aiagemt.service.dag.factory.NodeFactory;
 import com.zj.aiagemt.service.dag.model.DagGraph;
@@ -24,44 +22,49 @@ import java.util.Map;
 @Service
 public class DagLoaderService {
 
-    private final AiAgentVersionMapper agentVersionMapper;
+    private final AiAgentMapper aiAgentMapper;
     private final NodeFactory nodeFactory;
 
-    public DagLoaderService(AiAgentVersionMapper agentVersionMapper, NodeFactory nodeFactory) {
-        this.agentVersionMapper = agentVersionMapper;
+    public DagLoaderService(AiAgentMapper aiAgentMapper, NodeFactory nodeFactory) {
+        this.aiAgentMapper = aiAgentMapper;
         this.nodeFactory = nodeFactory;
     }
 
     /**
-     * 根据agentId和version加载DAG
+     * 根据agentId加载DAG（新版：直接从ai_agent表加载）
      */
-    public DagGraph loadDagByAgentIdAndVersion(Long agentId, String version) {
+    public DagGraph loadDagByAgentId(String agentId) {
         // 从数据库查询
-        AiAgentVersion agentVersion = agentVersionMapper.selectOne(
-                new com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper<AiAgentVersion>()
-                        .eq(AiAgentVersion::getAgentId, agentId)
-                        .eq(AiAgentVersion::getVersion, version)
-                        .eq(AiAgentVersion::getStatus, 1) // 已发布状态
-        );
+        AiAgent aiAgent = aiAgentMapper.selectOne(
+                new com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper<AiAgent>()
+                        .eq(AiAgent::getAgentId, agentId));
 
-        if (agentVersion == null) {
-            throw new NodeConfigException("Agent version not found: agentId=" + agentId + ", version=" + version);
+        if (aiAgent == null) {
+            throw new NodeConfigException("Agent not found: agentId=" + agentId);
         }
 
-        return loadDagFromJson(agentVersion.getGraphJson());
+        if (aiAgent.getGraphJson() == null || aiAgent.getGraphJson().isEmpty()) {
+            throw new NodeConfigException("Agent graph_json is empty: agentId=" + agentId);
+        }
+
+        return loadDagFromJson(aiAgent.getGraphJson());
     }
 
     /**
-     * 根据versionId加载DAG
+     * 根据主键ID加载DAG
      */
-    public DagGraph loadDagByVersionId(Long versionId) {
-        AiAgentVersion agentVersion = agentVersionMapper.selectById(versionId);
+    public DagGraph loadDagById(Long id) {
+        AiAgent aiAgent = aiAgentMapper.selectById(id);
 
-        if (agentVersion == null) {
-            throw new NodeConfigException("Agent version not found: versionId=" + versionId);
+        if (aiAgent == null) {
+            throw new NodeConfigException("Agent not found: id=" + id);
         }
 
-        return loadDagFromJson(agentVersion.getGraphJson());
+        if (aiAgent.getGraphJson() == null || aiAgent.getGraphJson().isEmpty()) {
+            throw new NodeConfigException("Agent graph_json is empty: id=" + id);
+        }
+
+        return loadDagFromJson(aiAgent.getGraphJson());
     }
 
     /**
