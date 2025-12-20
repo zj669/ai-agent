@@ -6,6 +6,7 @@ import com.zj.aiagemt.common.design.dag.NodeRouteDecision;
 import com.zj.aiagemt.service.dag.config.NodeConfig;
 import com.zj.aiagemt.service.dag.context.DagExecutionContext;
 import com.zj.aiagemt.service.dag.exception.NodeConfigException;
+import com.zj.aiagemt.service.dag.model.NodeType;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.ai.chat.client.ChatClient;
 import org.springframework.context.ApplicationContext;
@@ -144,6 +145,11 @@ public class RouterNode implements ConditionalDagNode<DagExecutionContext> {
 
         @Override
         protected String doExecute(DagExecutionContext context) {
+            return null;
+        }
+
+        @Override
+        public NodeType getNodeType() {
             return null;
         }
 

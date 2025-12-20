@@ -5,6 +5,7 @@ import com.zj.aiagemt.service.dag.config.NodeConfig;
 import com.zj.aiagemt.service.dag.context.DagExecutionContext;
 import com.zj.aiagemt.service.dag.context.HumanInterventionRequest;
 import com.zj.aiagemt.service.dag.context.HumanNodeResult;
+import com.zj.aiagemt.service.dag.model.NodeType;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.ApplicationContext;
 
@@ -62,5 +63,10 @@ public class HumanNode extends AbstractConfigurableNode {
         } catch (Exception e) {
             throw new DagNodeExecutionException("人工检查节点执行失败: " + e.getMessage(), e, nodeId, false);
         }
+    }
+
+    @Override
+    public NodeType getNodeType() {
+        return NodeType.HUMAN_NODE;
     }
 }

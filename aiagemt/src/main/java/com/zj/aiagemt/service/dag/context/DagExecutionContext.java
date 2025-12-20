@@ -1,6 +1,7 @@
 package com.zj.aiagemt.service.dag.context;
 
 import com.zj.aiagemt.common.design.dag.DagContext;
+import org.springframework.web.servlet.mvc.method.annotation.ResponseBodyEmitter;
 
 import java.util.Map;
 import java.util.UUID;
@@ -10,13 +11,14 @@ import java.util.concurrent.ConcurrentHashMap;
  * DAG执行上下文实现
  */
 public class DagExecutionContext implements DagContext {
-
+    private ResponseBodyEmitter emitter;
     private final String executionId;
     private final String conversationId;
     private final Map<String, Object> dataMap;
     private final Map<String, Object> nodeResults;
 
-    public DagExecutionContext(String conversationId) {
+    public DagExecutionContext(String conversationId, ResponseBodyEmitter emitter) {
+        this.emitter = emitter;
         this.executionId = UUID.randomUUID().toString();
         this.conversationId = conversationId;
         this.dataMap = new ConcurrentHashMap<>();
@@ -67,5 +69,9 @@ public class DagExecutionContext implements DagContext {
     @Override
     public String getConversationId() {
         return conversationId;
+    }
+
+    public ResponseBodyEmitter getEmitter() {
+        return emitter;
     }
 }

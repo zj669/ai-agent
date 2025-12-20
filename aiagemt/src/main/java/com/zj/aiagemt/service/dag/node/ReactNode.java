@@ -4,6 +4,7 @@ import com.alibaba.fastjson2.JSON;
 import com.zj.aiagemt.common.design.dag.DagNodeExecutionException;
 import com.zj.aiagemt.service.dag.config.NodeConfig;
 import com.zj.aiagemt.service.dag.context.DagExecutionContext;
+import com.zj.aiagemt.service.dag.model.NodeType;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.ApplicationContext;
 
@@ -102,6 +103,11 @@ public class ReactNode extends AbstractConfigurableNode {
         } catch (Exception e) {
             throw new DagNodeExecutionException("React 节点执行失败: " + e.getMessage(), e, nodeId, true);
         }
+    }
+
+    @Override
+    public NodeType getNodeType() {
+        return NodeType.REACT_NODE;
     }
 
     /**

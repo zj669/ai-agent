@@ -1,10 +1,13 @@
 package com.zj.aiagemt.service.dag.node;
 
+import com.alibaba.fastjson.JSON;
 import com.zj.aiagemt.common.design.dag.DagNode;
 import com.zj.aiagemt.common.design.dag.DagNodeExecutionException;
+import com.zj.aiagemt.model.bo.AutoAgentExecuteResultEntity;
 import com.zj.aiagemt.service.dag.config.*;
 import com.zj.aiagemt.service.dag.context.DagExecutionContext;
 import com.zj.aiagemt.service.dag.exception.NodeConfigException;
+import com.zj.aiagemt.service.dag.model.NodeType;
 import io.modelcontextprotocol.client.McpSyncClient;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.ai.chat.client.ChatClient;
@@ -16,6 +19,7 @@ import org.springframework.ai.openai.api.OpenAiApi;
 import org.springframework.context.ApplicationContext;
 import org.springframework.web.client.RestClient;
 import org.springframework.web.reactive.function.client.WebClient;
+import org.springframework.web.servlet.mvc.method.annotation.ResponseBodyEmitter;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -102,7 +106,7 @@ public abstract class AbstractConfigurableNode implements DagNode<DagExecutionCo
                     .defaultSystem(config.getSystemPrompt());
 
             // 获取用户提示词
-            if(config.getUserPrompt() != null){
+            if (config.getUserPrompt() != null) {
                 builder.defaultUser(config.getUserPrompt());
             }
 
@@ -213,16 +217,19 @@ public abstract class AbstractConfigurableNode implements DagNode<DagExecutionCo
 
         ChatClient.ChatClientRequestSpec spec = chatClient.prompt(userMessage);
 
-//        // 处理记忆配置
-//        if (config.getMemory() != null && Boolean.TRUE.equals(config.getMemory().getEnabled())) {
-//            String conversationId = resolveConversationId(config.getMemory().getConversationId(), context);
-//            Integer retrieveSize = config.getMemory().getRetrieveSize() != null ? config.getMemory().getRetrieveSize()
-//                    : 10;
-//
-//            spec = spec.advisors(a -> a
-//                    .param("chat_memory_conversation_id", conversationId)
-//                    .param("chat_memory_response_size", retrieveSize));
-//        }
+        // // 处理记忆配置
+        // if (config.getMemory() != null &&
+        // Boolean.TRUE.equals(config.getMemory().getEnabled())) {
+        // String conversationId =
+        // resolveConversationId(config.getMemory().getConversationId(), context);
+        // Integer retrieveSize = config.getMemory().getRetrieveSize() != null ?
+        // config.getMemory().getRetrieveSize()
+        // : 10;
+        //
+        // spec = spec.advisors(a -> a
+        // .param("chat_memory_conversation_id", conversationId)
+        // .param("chat_memory_response_size", retrieveSize));
+        // }
         // todo
         String conversationId = context.getConversationId();
         spec = spec.advisors(a -> a
@@ -250,4 +257,28 @@ public abstract class AbstractConfigurableNode implements DagNode<DagExecutionCo
     public String execute(DagExecutionContext context) throws DagNodeExecutionException {
         return doExecute(context);
     }
+
+    public void pushMessage(String message, DagExecutionContext context) {
+        ResponseBodyEmitter emitter = context.getEmitter();
+        String conversationId = context.getConversationId();
+        try {
+            emitter.send(buildMessage(message, conversationId));
+        } catch (Exception e) {
+            log.error("Failed to push message to client", e);
+        }
+    }
+
+    private String buildMessage(String message, String conversationId) {
+        AutoAgentExecuteResultEntity result = AutoAgentExecuteResultEntity.builder()
+                .type(getNodeType().getLabel())
+                .nodeName(getNodeName())
+                .content(message)
+                .completed(false)
+                .timestamp(System.currentTimeMillis())
+                .sessionId(conversationId)
+                .build();
+        return "data: " + JSON.toJSONString(result) + "\n\n";
+    }
+
+    public abstract NodeType getNodeType();
 }

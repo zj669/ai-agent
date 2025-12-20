@@ -3,6 +3,7 @@ package com.zj.aiagemt.service.dag.node;
 import com.zj.aiagemt.common.design.dag.DagNodeExecutionException;
 import com.zj.aiagemt.service.dag.config.NodeConfig;
 import com.zj.aiagemt.service.dag.context.DagExecutionContext;
+import com.zj.aiagemt.service.dag.model.NodeType;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.ApplicationContext;
 
@@ -45,6 +46,11 @@ public class PlanNode extends AbstractConfigurableNode {
         } catch (Exception e) {
             throw new DagNodeExecutionException("规划节点执行失败: " + e.getMessage(), e, nodeId, true);
         }
+    }
+
+    @Override
+    public NodeType getNodeType() {
+        return NodeType.PLAN_NODE;
     }
 
     /**
