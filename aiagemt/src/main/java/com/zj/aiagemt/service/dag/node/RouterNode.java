@@ -186,12 +186,36 @@ public class RouterNode implements ConditionalDagNode<DagExecutionContext> {
     private String buildRoutingPrompt(DagExecutionContext context) {
         StringBuilder prompt = new StringBuilder();
 
+        // 添加自定义提示词（如果有）
         String customPrompt = (String) config.getCustomConfig().get("routingPrompt");
         if (customPrompt != null && !customPrompt.isEmpty()) {
             prompt.append(customPrompt).append("\n\n");
         }
 
-        prompt.append("候选节点: ").append(String.join(", ", candidateNodes)).append("\n\n");
+        // 尝试从context中获取DagGraph
+        Object dagGraphObj = context.getValue("__DAG_GRAPH__");
+        if (dagGraphObj instanceof com.zj.aiagemt.service.dag.model.DagGraph) {
+            com.zj.aiagemt.service.dag.model.DagGraph dagGraph = (com.zj.aiagemt.service.dag.model.DagGraph) dagGraphObj;
+
+            // 自动获取候选节点信息
+            prompt.append("候选节点及其功能：\n");
+            for (String candidateId : candidateNodes) {
+                Object nodeObj = dagGraph.getNode(candidateId);
+                if (nodeObj != null) {
+                    String nodeName = getNodeName(nodeObj);
+                    String nodeDescription = getNodeDescription(nodeObj);
+
+                    prompt.append("- ").append(candidateId)
+                            .append(" (").append(nodeName).append("): ")
+                            .append(nodeDescription)
+                            .append("\n");
+                }
+            }
+            prompt.append("\n");
+        } else {
+            // 如果没有DagGraph，回退到简单列表
+            prompt.append("候选节点: ").append(String.join(", ", candidateNodes)).append("\n\n");
+        }
 
         // 添加执行历史
         String executionHistory = context.getValue("execution_history", "");
@@ -205,9 +229,67 @@ public class RouterNode implements ConditionalDagNode<DagExecutionContext> {
             prompt.append("最近执行结果:\n").append(executionResult).append("\n\n");
         }
 
+        // 添加前序节点的结果（用于辅助决策）
+        addPreviousNodeResults(prompt, context);
+
         prompt.append("请从候选节点中选择一个最合适的节点继续执行，只返回节点ID。");
 
         return prompt.toString();
+    }
+
+    /**
+     * 获取节点名称
+     */
+    private String getNodeName(Object nodeObj) {
+        if (nodeObj instanceof com.zj.aiagemt.common.design.dag.DagNode) {
+            return ((com.zj.aiagemt.common.design.dag.DagNode) nodeObj).getNodeName();
+        } else if (nodeObj instanceof com.zj.aiagemt.common.design.dag.ConditionalDagNode) {
+            return ((com.zj.aiagemt.common.design.dag.ConditionalDagNode) nodeObj).getNodeName();
+        }
+        return "Unknown";
+    }
+
+    /**
+     * 获取节点描述（从configuration中提取systemPrompt）
+     */
+    private String getNodeDescription(Object nodeObj) {
+        try {
+            if (nodeObj instanceof AbstractConfigurableNode) {
+                AbstractConfigurableNode node = (AbstractConfigurableNode) nodeObj;
+                // 从config中获取systemPrompt作为节点功能描述
+                String systemPrompt = node.config.getSystemPrompt();
+                if (systemPrompt != null && !systemPrompt.isEmpty()) {
+                    // 截取前100个字符作为描述
+                    return systemPrompt.length() > 100 ? systemPrompt.substring(0, 100) + "..." : systemPrompt;
+                }
+            }
+        } catch (Exception e) {
+            log.warn("获取节点描述失败: {}", e.getMessage());
+        }
+        return "未提供描述";
+    }
+
+    /**
+     * 添加前序节点的执行结果到提示词中
+     */
+    private void addPreviousNodeResults(StringBuilder prompt, DagExecutionContext context) {
+        // 获取所有已执行节点的结果
+        var nodeResults = context.getAllNodeResults();
+        if (nodeResults != null && !nodeResults.isEmpty()) {
+            prompt.append("前序节点执行结果：\n");
+            nodeResults.forEach((nodeId, result) -> {
+                if (!nodeId.equals(this.nodeId)) { // 排除自身
+                    String resultStr = result != null ? result.toString() : "null";
+                    // 截取结果前200字符
+                    if (resultStr.length() > 200) {
+                        resultStr = resultStr.substring(0, 200) + "...";
+                    }
+                    prompt.append("  - ").append(nodeId).append(": ")
+                            .append(resultStr).append("\n");
+                }
+            });
+            prompt.append("\n");
+        }
     }
 
     /**

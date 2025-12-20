@@ -118,8 +118,12 @@ public class DagParallelScheduler {
 
                 conditionalNode.beforeExecute(context);
 
-                // ConditionalDagNode返回NodeRouteDecision，转换为String存储
+                // ConditionalDagNode返回NodeRouteDecision对象
                 Object decision = conditionalNode.execute(context);
+
+                // 将NodeRouteDecision对象本身存入context，供DagExecutor使用
+                // 注意：result字段用于返回给调用者，仍然转换为String
+                context.setNodeResult(nodeId, decision);
                 result = decision != null ? decision.toString() : null;
 
                 conditionalNode.afterExecute(context, (com.zj.aiagemt.common.design.dag.NodeRouteDecision) decision,
@@ -132,12 +136,12 @@ public class DagParallelScheduler {
                 dagNode.beforeExecute(context);
                 result = dagNode.execute(context);
                 dagNode.afterExecute(context, result, null);
+
+                // 将结果存入context
+                context.setNodeResult(nodeId, result);
             } else {
                 throw new RuntimeException("Unknown node type: " + nodeObj.getClass());
             }
-
-            // 存储结果
-            context.setNodeResult(nodeId, result);
 
             long duration = System.currentTimeMillis() - startTime;
             log.info("节点执行成功: {}, 耗时: {}ms", nodeId, duration);

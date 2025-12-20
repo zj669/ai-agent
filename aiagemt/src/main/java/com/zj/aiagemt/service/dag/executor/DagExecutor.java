@@ -57,13 +57,31 @@ public class DagExecutor {
             // 3. 创建工作流实例
             AiWorkflowInstance workflowInstance = createWorkflowInstance(dagGraph, context);
 
-            // 4. 按层级执行
+            // 4. 将 DagGraph 存入 context，供 RouterNode 等节点使用
+            context.setValue("__DAG_GRAPH__", dagGraph);
+
+            // 5. 初始化启用的节点集合（用于路由过滤）
+            Set<String> enabledNodes = new HashSet<>(dagGraph.getNodes().keySet());
+
+            // 6. 按层级执行
             for (int level = 0; level < executionLevels.size(); level++) {
                 List<String> levelNodeIds = executionLevels.get(level);
-                log.info("执行第 {} 层，节点数: {}", level + 1, levelNodeIds.size());
+
+                // 根据路由决策过滤节点
+                List<String> filteredNodeIds = levelNodeIds.stream()
+                        .filter(enabledNodes::contains)
+                        .collect(Collectors.toList());
+
+                if (filteredNodeIds.isEmpty()) {
+                    log.info("第 {} 层所有节点已被路由过滤，跳过", level + 1);
+                    continue;
+                }
+
+                log.info("执行第 {} 层，原始节点数: {}, 过滤后节点数: {}",
+                        level + 1, levelNodeIds.size(), filteredNodeIds.size());
 
                 // 获取本层的节点（需要类型转换，因为RouterNode返回ConditionalDagNode）
-                List<Object> levelNodes = levelNodeIds.stream()
+                List<Object> levelNodes = filteredNodeIds.stream()
                         .map(dagGraph::getNode)
                         .filter(Objects::nonNull)
                         .collect(Collectors.toList());
@@ -105,17 +123,17 @@ public class DagExecutor {
                     Object nodeObj = dagGraph.getNode(result.getNodeId());
                     if (nodeObj instanceof ConditionalDagNode) {
                         handleConditionalNode((ConditionalDagNode<DagExecutionContext>) nodeObj,
-                                context, dagGraph, executionLevels, level);
+                                context, dagGraph, enabledNodes);
                     }
                 }
 
                 // 更新工作流实例当前节点
-                if (!levelNodeIds.isEmpty()) {
-                    updateWorkflowInstance(workflowInstance, "RUNNING", levelNodeIds.get(0), context);
+                if (!filteredNodeIds.isEmpty()) {
+                    updateWorkflowInstance(workflowInstance, "RUNNING", filteredNodeIds.get(0), context);
                 }
             }
 
-            // 5. 执行完成
+            // 6. 执行完成
             updateWorkflowInstance(workflowInstance, "COMPLETED", null, context);
 
             long totalDuration = System.currentTimeMillis() - startTime;
@@ -147,15 +165,86 @@ public class DagExecutor {
 
     /**
      * 处理条件节点（路由节点）
+     * 根据路由决策禁用未被选中的节点
      */
     private void handleConditionalNode(ConditionalDagNode<DagExecutionContext> conditionalNode,
             DagExecutionContext context,
             DagGraph dagGraph,
-            List<List<String>> executionLevels,
-            int currentLevel) {
-        // 路由节点的决策已经在execute中完成并存储到context
-        // 这里可以根据需要进行额外处理
-        log.debug("处理条件节点: {}", conditionalNode.getNodeId());
+            Set<String> enabledNodes) {
+
+        String nodeId = conditionalNode.getNodeId();
+        log.info("处理路由节点: {}", nodeId);
+
+        // 从context获取路由决策结果
+        Object routeDecisionObj = context.getNodeResult(nodeId);
+        if (routeDecisionObj == null) {
+            log.warn("路由节点 {} 没有决策结果", nodeId);
+            return;
+        }
+
+        // 解析路由决策
+        String selectedNodeId = null;
+        if (routeDecisionObj instanceof String) {
+            // 如果直接存储的是字符串（节点ID）
+            selectedNodeId = (String) routeDecisionObj;
+        } else if (routeDecisionObj instanceof com.zj.aiagemt.common.design.dag.NodeRouteDecision) {
+            // 如果存储的是 NodeRouteDecision 对象
+            com.zj.aiagemt.common.design.dag.NodeRouteDecision decision = (com.zj.aiagemt.common.design.dag.NodeRouteDecision) routeDecisionObj;
+
+            if (decision.isStopExecution()) {
+                log.info("路由决策: 停止执行");
+                return;
+            }
+
+            // 获取选中的节点ID集合
+            Set<String> nextNodeIds = decision.getNextNodeIds();
+            if (nextNodeIds != null && !nextNodeIds.isEmpty()) {
+                selectedNodeId = nextNodeIds.iterator().next(); // 取第一个
+            }
+        }
+
+        if (selectedNodeId == null || selectedNodeId.isEmpty()) {
+            log.warn("无法从路由决策中获取选中的节点ID");
+            return;
+        }
+
+        log.info("路由决策: 选择节点 {}", selectedNodeId);
+
+        // 获取所有候选节点
+        Set<String> candidateNodes = conditionalNode.getCandidateNextNodes();
+        if (candidateNodes == null || candidateNodes.isEmpty()) {
+            log.warn("路由节点 {} 没有候选节点", nodeId);
+            return;
+        }
+
+        // 禁用未被选中的候选节点
+        for (String candidateNodeId : candidateNodes) {
+            if (!candidateNodeId.equals(selectedNodeId)) {
+                enabledNodes.remove(candidateNodeId);
+                log.info("禁用未选中的节点: {}", candidateNodeId);
+
+                // 递归禁用该节点的所有下游节点
+                disableDownstreamNodes(candidateNodeId, dagGraph, enabledNodes);
+            }
+        }
+    }
+
+    /**
+     * 递归禁用节点的所有下游节点
+     */
+    private void disableDownstreamNodes(String nodeId, DagGraph dagGraph, Set<String> enabledNodes) {
+        // 遍历所有边，找到以nodeId为source的边
+        for (var edge : dagGraph.getEdges()) {
+            if (edge.getSource().equals(nodeId)) {
+                String downstreamNodeId = edge.getTarget();
+                if (enabledNodes.contains(downstreamNodeId)) {
+                    enabledNodes.remove(downstreamNodeId);
+                    log.info("递归禁用下游节点: {}", downstreamNodeId);
+                    // 继续递归
+                    disableDownstreamNodes(downstreamNodeId, dagGraph, enabledNodes);
+                }
+            }
+        }
     }
 
     /**
