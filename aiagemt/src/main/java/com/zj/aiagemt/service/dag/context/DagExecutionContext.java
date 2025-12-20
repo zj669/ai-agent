@@ -25,6 +25,14 @@ public class DagExecutionContext implements DagContext {
         this.nodeResults = new ConcurrentHashMap<>();
     }
 
+    public DagExecutionContext(String conversationId) {
+        this.emitter = null;
+        this.executionId = UUID.randomUUID().toString();
+        this.conversationId = conversationId;
+        this.dataMap = new ConcurrentHashMap<>();
+        this.nodeResults = new ConcurrentHashMap<>();
+    }
+
     @Override
     public <T> void setValue(String key, T value) {
         dataMap.put(key, value);

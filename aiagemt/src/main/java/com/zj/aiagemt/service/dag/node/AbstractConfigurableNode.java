@@ -261,6 +261,10 @@ public abstract class AbstractConfigurableNode implements DagNode<DagExecutionCo
     public void pushMessage(String message, DagExecutionContext context) {
         ResponseBodyEmitter emitter = context.getEmitter();
         String conversationId = context.getConversationId();
+        if (emitter == null) {
+            log.warn("Emitter is null, message will not be pushed to client");
+            return;
+        }
         try {
             emitter.send(buildMessage(message, conversationId));
         } catch (Exception e) {
