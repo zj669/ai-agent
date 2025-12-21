@@ -416,8 +416,8 @@ public abstract class AbstractConfigurableNode implements DagNode<DagExecutionCo
         String typeLabel = (nodeType != null) ? nodeType.getLabel() : "UNKNOWN";
 
         AutoAgentExecuteResultEntity result = AutoAgentExecuteResultEntity.builder()
-                .type(typeLabel)
-                .nodeName(getNodeName())
+                .type("node_execute")
+                .nodeName(typeLabel)
                 .content(message)
                 .completed(false)
                 .timestamp(System.currentTimeMillis())
