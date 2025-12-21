@@ -2,10 +2,13 @@ package com.zj.aiagent.interfaces.web.controller.client;
 
 import com.zj.aiagent.application.agent.AgentApplicationService;
 import com.zj.aiagent.application.agent.command.ChatCommand;
+import com.zj.aiagent.application.agent.command.SaveAgentCommand;
 import com.zj.aiagent.application.agent.query.GetUserAgentsQuery;
 import com.zj.aiagent.interfaces.common.Response;
 import com.zj.aiagent.interfaces.web.dto.request.agent.ChatRequest;
+import com.zj.aiagent.interfaces.web.dto.request.agent.SaveAgentRequest;
 import com.zj.aiagent.interfaces.web.dto.response.agent.AgentResponse;
+import com.zj.aiagent.interfaces.web.dto.response.agent.SaveAgentResponse;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.annotation.Resource;
@@ -38,6 +41,56 @@ public class AgentController {
 
     @Resource
     private AgentApplicationService agentApplicationService;
+
+    /**
+     * 保存Agent配置
+     *
+     * @param request 保存请求
+     * @return 保存响应
+     */
+    @PostMapping("/save")
+    @Operation(summary = "保存Agent配置", description = "创建或更新Agent配置，支持拖拉拽配置保存")
+    public Response<SaveAgentResponse> saveAgent(@Valid @RequestBody SaveAgentRequest request) {
+        try {
+            // 获取当前用户ID
+            Long userId = com.zj.aiagent.shared.utils.UserContext.getUserId();
+            if (userId == null) {
+                return Response.unauthorized("未登录");
+            }
+
+            log.info("保存Agent配置请求, userId: {}, agentId: {}, agentName: {}",
+                    userId, request.getAgentId(), request.getAgentName());
+
+            // 构建Command
+            SaveAgentCommand command = SaveAgentCommand.builder()
+                    .userId(userId)
+                    .agentId(request.getAgentId())
+                    .agentName(request.getAgentName())
+                    .description(request.getDescription())
+                    .graphJson(request.getGraphJson())
+                    .status(request.getStatus())
+                    .build();
+
+            // 保存Agent
+            String agentId = agentApplicationService.saveAgent(command);
+
+            // 构建响应
+            SaveAgentResponse response = SaveAgentResponse.builder()
+                    .agentId(agentId)
+                    .status(request.getStatus() != null ? request.getStatus() : 0)
+                    .message("保存成功")
+                    .build();
+
+            return Response.success(response);
+
+        } catch (RuntimeException e) {
+            log.error("保存Agent配置失败", e);
+            return Response.fail(e.getMessage());
+        } catch (Exception e) {
+            log.error("保存Agent配置异常", e);
+            return Response.fail("保存失败: " + e.getMessage());
+        }
+    }
 
     /**
      * 与 Agent 进行流式聊天

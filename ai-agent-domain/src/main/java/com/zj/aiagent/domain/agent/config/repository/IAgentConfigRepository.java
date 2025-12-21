@@ -4,8 +4,10 @@ import com.zj.aiagent.domain.agent.config.entity.AdvisorEntity;
 import com.zj.aiagent.domain.agent.config.entity.McpToolEntity;
 import com.zj.aiagent.domain.agent.config.entity.ModelEntity;
 import com.zj.aiagent.domain.agent.config.entity.NodeTemplateEntity;
+import com.zj.aiagent.domain.agent.config.entity.SystemPromptEntity;
 
 import java.util.List;
+import java.util.Map;
 
 /**
  * Agent 配置仓储接口
@@ -42,4 +44,16 @@ public interface IAgentConfigRepository {
      * @return MCP 工具列表
      */
     List<McpToolEntity> findAllMcpTools();
+
+    /**
+     * 根据promptId查询系统提示词
+     *
+     * @param promptId 提示词ID
+     * @return 系统提示词实体，不存在则返回null
+     */
+    SystemPromptEntity findSystemPromptByPromptId(String promptId);
+
+    Map<String, Object> findModelWithApiByModelId(String modelId);
+
+    NodeTemplateEntity findNodeTemplateByNodeType(String nodeType);
 }

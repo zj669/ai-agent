@@ -7,22 +7,23 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 import java.time.LocalDateTime;
+
 @Data
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
 public class AiAgent {
     /**
-     * 主键ID
-     */
-    @Schema(description = "主键")
-    private Long id;
-
-    /**
      * 用户ID
      */
     @Schema(description = "用户ID")
     private Long userId;
+
+    /**
+     * 智能体ID
+     */
+    @Schema(description = "智能体ID")
+    private String agentId;
 
     /**
      * 智能体名称

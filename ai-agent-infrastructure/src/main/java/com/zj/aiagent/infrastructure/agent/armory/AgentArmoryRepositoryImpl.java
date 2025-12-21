@@ -59,7 +59,6 @@ public class AgentArmoryRepositoryImpl implements IAgentArmoryRepository {
      */
     private AiAgent convertToEntity(AiAgentPO po) {
         return AiAgent.builder()
-                .id(po.getId())
                 .userId(po.getUserId())
                 .agentName(po.getAgentName())
                 .description(po.getDescription())

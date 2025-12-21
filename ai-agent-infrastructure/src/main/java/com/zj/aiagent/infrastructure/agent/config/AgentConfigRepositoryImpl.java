@@ -4,18 +4,24 @@ import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.zj.aiagent.domain.agent.config.entity.*;
 import com.zj.aiagent.domain.agent.config.repository.IAgentConfigRepository;
 import com.zj.aiagent.infrastructure.persistence.entity.AiAdvisorPO;
+import com.zj.aiagent.infrastructure.persistence.entity.AiApiPO;
 import com.zj.aiagent.infrastructure.persistence.entity.AiModelPO;
 import com.zj.aiagent.infrastructure.persistence.entity.AiNodeTemplatePO;
+import com.zj.aiagent.infrastructure.persistence.entity.AiSystemPromptPO;
 import com.zj.aiagent.infrastructure.persistence.entity.AiToolMcpPO;
 import com.zj.aiagent.infrastructure.persistence.mapper.AiAdvisorMapper;
+import com.zj.aiagent.infrastructure.persistence.mapper.AiApiMapper;
 import com.zj.aiagent.infrastructure.persistence.mapper.AiModelMapper;
 import com.zj.aiagent.infrastructure.persistence.mapper.AiNodeTemplateMapper;
+import com.zj.aiagent.infrastructure.persistence.mapper.AiSystemPromptMapper;
 import com.zj.aiagent.infrastructure.persistence.mapper.AiToolMcpMapper;
 import jakarta.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Repository;
 
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 /**
@@ -39,6 +45,12 @@ public class AgentConfigRepositoryImpl implements IAgentConfigRepository {
 
     @Resource
     private AiToolMcpMapper aiToolMcpMapper;
+
+    @Resource
+    private AiSystemPromptMapper aiSystemPromptMapper;
+
+    @Resource
+    private AiApiMapper aiApiMapper;
 
     @Override
     public List<NodeTemplateEntity> findAllNodeTemplates() {
@@ -151,5 +163,92 @@ public class AgentConfigRepositoryImpl implements IAgentConfigRepository {
                 .requestTimeout(po.getRequestTimeout())
                 .status(po.getStatus())
                 .build();
+    }
+
+    @Override
+    public SystemPromptEntity findSystemPromptByPromptId(String promptId) {
+        log.debug("根据promptId查询系统提示词: {}", promptId);
+
+        LambdaQueryWrapper<AiSystemPromptPO> queryWrapper = new LambdaQueryWrapper<>();
+        queryWrapper.eq(AiSystemPromptPO::getPromptId, promptId);
+        queryWrapper.eq(AiSystemPromptPO::getStatus, 1); // 只查询启用状态的提示词
+
+        AiSystemPromptPO promptPO = aiSystemPromptMapper.selectOne(queryWrapper);
+
+        if (promptPO == null) {
+            log.warn("未找到promptId对应的系统提示词: {}", promptId);
+            return null;
+        }
+
+        return convertToSystemPromptEntity(promptPO);
+    }
+
+    /**
+     * 转换系统提示词 PO 到实体
+     */
+    private SystemPromptEntity convertToSystemPromptEntity(AiSystemPromptPO po) {
+        return SystemPromptEntity.builder()
+                .promptId(po.getPromptId())
+                .promptName(po.getPromptName())
+                .promptContent(po.getPromptContent())
+                .description(po.getDescription())
+                .status(po.getStatus())
+                .build();
+    }
+
+    @Override
+    public Map<String, Object> findModelWithApiByModelId(String modelId) {
+        log.debug("根据modelId查询model配置: {}", modelId);
+
+        // 查询model
+        LambdaQueryWrapper<AiModelPO> modelQuery = new LambdaQueryWrapper<>();
+        modelQuery.eq(AiModelPO::getModelId, modelId);
+        modelQuery.eq(AiModelPO::getStatus, 1);
+        AiModelPO modelPO = aiModelMapper.selectOne(modelQuery);
+
+        if (modelPO == null) {
+            log.warn("未找到modelId对应的model配置: {}", modelId);
+            return null;
+        }
+
+        // 查询关联的API配置
+        LambdaQueryWrapper<AiApiPO> apiQuery = new LambdaQueryWrapper<>();
+        apiQuery.eq(AiApiPO::getApiId, modelPO.getApiId());
+        apiQuery.eq(AiApiPO::getStatus, 1);
+        AiApiPO apiPO = aiApiMapper.selectOne(apiQuery);
+
+        if (apiPO == null) {
+            log.warn("未找到model关联的API配置: modelId={}, apiId={}", modelId, modelPO.getApiId());
+            return null;
+        }
+
+        // 构建返回Map
+        Map<String, Object> modelConfig = new HashMap<>();
+        modelConfig.put("modelName", modelPO.getModelName());
+        modelConfig.put("modelType", modelPO.getModelType());
+        modelConfig.put("baseUrl", apiPO.getBaseUrl());
+        modelConfig.put("apiKey", apiPO.getApiKey());
+        modelConfig.put("completionsPath", apiPO.getCompletionsPath());
+        modelConfig.put("embeddingsPath", apiPO.getEmbeddingsPath());
+
+        log.debug("查询到model配置: {}", modelConfig);
+        return modelConfig;
+    }
+
+    @Override
+    public NodeTemplateEntity findNodeTemplateByNodeType(String nodeType) {
+        log.debug("根据nodeType查询节点模板: {}", nodeType);
+
+        LambdaQueryWrapper<AiNodeTemplatePO> queryWrapper = new LambdaQueryWrapper<>();
+        queryWrapper.eq(AiNodeTemplatePO::getNodeType, nodeType);
+
+        AiNodeTemplatePO templatePO = aiNodeTemplateMapper.selectOne(queryWrapper);
+
+        if (templatePO == null) {
+            log.warn("未找到nodeType对应的节点模板: {}", nodeType);
+            return null;
+        }
+
+        return convertToNodeTemplateEntity(templatePO);
     }
 }
