@@ -99,7 +99,7 @@ public class AiAgentControlle {
             log.error("获取会话历史异常：{}", e.getMessage(), e);
             return Response.<Object>builder()
                     .code("0001")
-                    .info("获取会话历史失败：" + e.getMessage())
+                    .info("获取会话历史失败")
                     .build();
         }
     }
