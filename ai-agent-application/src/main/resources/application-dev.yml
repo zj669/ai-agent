@@ -1,0 +1,174 @@
+server:
+  port: 8091
+
+# 线程池配置
+thread:
+  pool:
+    executor:
+      config:
+        core-pool-size: 20
+        max-pool-size: 50
+        keep-alive-time: 5000
+        block-queue-size: 5000
+        policy: CallerRunsPolicy
+
+
+
+# 数据库配置；启动时配置数据库资源信息
+spring:
+  datasource:
+    dynamic:
+      datasource:
+        # 主库数据源 - MyBatis Plus
+        primary:
+          driver-class-name: ${PRIMARY_DB_DRIVER:com.mysql.cj.jdbc.Driver}
+          url: jdbc:mysql://${PRIMARY_DB_HOST:117.72.152.117}:${PRIMARY_DB_PORT:13306}/${PRIMARY_DB_NAME:ai_agent_station_study}?useUnicode=true&characterEncoding=utf8&zeroDateTimeBehavior=convertToNull&useSSL=false&serverTimezone=GMT%2B8
+          username: ${PRIMARY_DB_USER:root}
+          password: ${PRIMARY_DB_PASSWORD:123456}
+          type: com.zaxxer.hikari.HikariDataSource
+          hikari:
+            minimum-idle: ${PRIMARY_DB_MIN_IDLE:5}
+            maximum-pool-size: ${PRIMARY_DB_MAX_POOL_SIZE:15}
+            idle-timeout: ${PRIMARY_DB_IDLE_TIMEOUT:30000}
+            pool-name: PrimaryHikariCP
+            max-lifetime: ${PRIMARY_DB_MAX_LIFETIME:28740000}
+            connection-timeout: ${PRIMARY_DB_CONNECTION_TIMEOUT:30000}
+            connection-test-query: SELECT 1
+        # readonly数据源 - JDBC
+        pgvector:
+          url: jdbc:postgresql://${READONLY_DB_HOST:117.72.152.117}:${READONLY_DB_PORT:5432}/${READONLY_DB_NAME:postgres}
+          driver-class-name: ${READONLY_DB_DRIVER:org.postgresql.Driver}
+          username: ${READONLY_DB_USERNAME:root}
+          password: ${READONLY_DB_PASSWORD:123456}
+          type: com.zaxxer.hikari.HikariDataSource
+          hikari:
+            minimum-idle: ${READONLY_DB_MIN_IDLE:5}
+            maximum-pool-size: ${READONLY_DB_MAX_POOL_SIZE:15}
+            idle-timeout: ${READONLY_DB_IDLE_TIMEOUT:30000}
+            pool-name: PgvectorHikariCP
+            max-lifetime: ${READONLY_DB_MAX_LIFETIME:28740000}
+            connection-timeout: ${READONLY_DB_CONNECTION_TIMEOUT:30000}
+            connection-test-query: SELECT 1
+  ai:
+    openai:
+      base-url: https://globalai.vip
+      api-key: sk-igZGYZBslPs4UxqU1r8BuprgCFzD388sk36Mwnp95jxsfgKp
+      embedding:
+        base-url: https://dashscope.aliyuncs.com/compatible-mode
+        endpoint: https://dashscope.aliyuncs.com/compatible-mode/v1/embeddings
+        model: text-embedding-v4
+        options:
+          num_ctx: 512
+    agent:
+      auto-config:
+        enabled: true
+        client-ids: 6001,3101,3102,3103,3104
+  # 邮件配置
+  mail:
+    host: ${MAIL_HOST:smtp.qq.com}
+    port: ${MAIL_PORT:465}
+    username: ${MAIL_USERNAME:zj-669@qq.com}
+    password: ${MAIL_PASSWORD:romspgyuovtqddgh}
+    properties:
+      mail:
+        smtp:
+          auth: true
+          starttls:
+            enable: true
+            required: true
+          connectiontimeout: 5000
+          timeout: 5000
+          writetimeout: 5000
+
+# MyBatis-Plus配置
+mybatis-plus:
+  configuration:
+    map-underscore-to-camel-case: true
+    log-impl: org.apache.ibatis.logging.stdout.StdOutImpl
+  global-config:
+    db-config:
+      logic-delete-field: deleted
+      logic-delete-value: 1
+      logic-not-delete-value: 0
+# Redis
+redis:
+  sdk:
+    config:
+      host: 117.72.152.117
+      port: 16379
+      pool-size: 10
+      password: 123456
+      min-idle-size: 5
+      idle-timeout: 30000
+      connect-timeout: 5000
+      retry-attempts: 3
+      retry-interval: 1000
+      ping-interval: 60000
+      keep-alive: true
+
+# JWT配置
+jwt:
+  secret: aiagent-your-secret-key-change-in-production-please-make-it-long-enough
+  expiration: 604800000  # 7天,单位毫秒
+
+# 认证配置
+auth:
+  debug:
+    enabled: true  # 开发环境启用debug模式
+    header-name: debug-user  # debug模式的header名称
+
+# 日志
+logging:
+  level:
+    root: info
+  config: classpath:logback-spring.xml
+
+
+# Actuator 监控配置
+management:
+  # 端点配置
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics,prometheus,env,configprops
+      base-path: /actuator
+      cors:
+        allowed-origins: "*"
+        allowed-methods: GET,POST
+
+  # 端点详细配置
+  endpoint:
+    health:
+      show-details: always
+      show-components: always
+    prometheus:
+      access: unrestricted
+    info:
+      access: unrestricted
+    env:
+      access: unrestricted
+
+  # 指标配置
+  metrics:
+    # 分布式指标配置
+    distribution:
+      percentiles-histogram:
+        http.server.requests: true
+        spring.data.repository.invocations: true
+      percentiles:
+        http.server.requests: 0.5, 0.95, 0.99
+
+    # 标签配置
+    tags:
+      application: ${spring.application.name}
+      environment: development
+
+# 应用信息配置
+info:
+  app:
+    name: ${spring.application.name}
+    description: "agent Application with Prometheus Monitoring"
+    version: "1.0.0"
+    encoding: "UTF-8"
+    java:
+      version: ${java.version}
