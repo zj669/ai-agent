@@ -56,4 +56,11 @@ public interface IAgentConfigRepository {
     Map<String, Object> findModelWithApiByModelId(String modelId);
 
     NodeTemplateEntity findNodeTemplateByNodeType(String nodeType);
+
+    /**
+     * 查询所有启用的系统提示词
+     *
+     * @return 系统提示词列表
+     */
+    List<SystemPromptEntity> findAllSystemPrompts();
 }

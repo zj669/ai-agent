@@ -262,4 +262,137 @@ public class AgentConfigApplicationService {
                 .status(entity.getStatus())
                 .build();
     }
+
+    /**
+     * 获取配置项定义
+     * 
+     * 返回每个配置项类型（MODEL、ADVISOR、MCP_TOOL、SYSTEM_PROMPT等）的可选值列表
+     *
+     * @param configType 配置项类型（可选），如MODEL、ADVISOR、MCP_TOOL、SYSTEM_PROMPT
+     * @return 配置项定义列表
+     */
+    public List<ConfigDefinitionDTO> getConfigDefinitions(String configType) {
+        log.info("查询配置项定义，配置类型: {}", configType);
+
+        List<ConfigDefinitionDTO> result = new ArrayList<>();
+
+        if (configType == null || configType.isEmpty()) {
+            // 返回所有配置项类型的值
+            result.add(buildModelConfigDefinition());
+            result.add(buildAdvisorConfigDefinition());
+            result.add(buildMcpToolConfigDefinition());
+            result.add(buildSystemPromptConfigDefinition());
+        } else {
+            // 返回指定配置项类型的值
+            switch (configType.toUpperCase()) {
+                case "MODEL":
+                    result.add(buildModelConfigDefinition());
+                    break;
+                case "ADVISOR":
+                    result.add(buildAdvisorConfigDefinition());
+                    break;
+                case "MCP_TOOL":
+                    result.add(buildMcpToolConfigDefinition());
+                    break;
+                case "SYSTEM_PROMPT":
+                    result.add(buildSystemPromptConfigDefinition());
+                    break;
+                default:
+                    log.warn("未知的配置类型: {}", configType);
+            }
+        }
+
+        return result;
+    }
+
+    private ConfigDefinitionDTO buildModelConfigDefinition() {
+        List<ModelEntity> models = agentConfigRepository.findAllModels();
+        List<ConfigDefinitionDTO.ConfigOption> options = models.stream()
+                .map(model -> ConfigDefinitionDTO.ConfigOption.builder()
+                        .id(model.getModelId())
+                        .name(model.getModelName())
+                        .type(model.getModelType())
+                        .build())
+                .collect(Collectors.toList());
+
+        return ConfigDefinitionDTO.builder()
+                .configType("MODEL")
+                .configName("模型配置")
+                .options(options)
+                .build();
+    }
+
+    private ConfigDefinitionDTO buildAdvisorConfigDefinition() {
+        List<AdvisorEntity> advisors = agentConfigRepository.findAllAdvisors();
+        List<ConfigDefinitionDTO.ConfigOption> options = advisors.stream()
+                .map(advisor -> ConfigDefinitionDTO.ConfigOption.builder()
+                        .id(advisor.getAdvisorId())
+                        .name(advisor.getAdvisorName())
+                        .type(advisor.getAdvisorType())
+                        .build())
+                .collect(Collectors.toList());
+
+        return ConfigDefinitionDTO.builder()
+                .configType("ADVISOR")
+                .configName("Advisor配置")
+                .options(options)
+                .build();
+    }
+
+    private ConfigDefinitionDTO buildMcpToolConfigDefinition() {
+        List<McpToolEntity> mcpTools = agentConfigRepository.findAllMcpTools();
+        List<ConfigDefinitionDTO.ConfigOption> options = mcpTools.stream()
+                .map(tool -> ConfigDefinitionDTO.ConfigOption.builder()
+                        .id(tool.getMcpId())
+                        .name(tool.getMcpName())
+                        .type(tool.getTransportType())
+                        .build())
+                .collect(Collectors.toList());
+
+        return ConfigDefinitionDTO.builder()
+                .configType("MCP_TOOL")
+                .configName("MCP工具配置")
+                .options(options)
+                .build();
+    }
+
+    private ConfigDefinitionDTO buildSystemPromptConfigDefinition() {
+        List<com.zj.aiagent.domain.agent.config.entity.SystemPromptEntity> prompts = agentConfigRepository
+                .findAllSystemPrompts();
+
+        List<ConfigDefinitionDTO.ConfigOption> options = prompts.stream()
+                .map(prompt -> ConfigDefinitionDTO.ConfigOption.builder()
+                        .id(prompt.getPromptId())
+                        .name(prompt.getPromptName())
+                        .type("system_prompt")
+                        .build())
+                .collect(Collectors.toList());
+
+        return ConfigDefinitionDTO.builder()
+                .configType("SYSTEM_PROMPT")
+                .configName("系统提示词配置")
+                .options(options)
+                .build();
+    }
+
+    @lombok.Data
+    @lombok.Builder
+    @lombok.NoArgsConstructor
+    @lombok.AllArgsConstructor
+    public static class ConfigDefinitionDTO {
+        private String configType;
+        private String configName;
+        private List<ConfigOption> options;
+
+        @lombok.Data
+        @lombok.Builder
+        @lombok.NoArgsConstructor
+        @lombok.AllArgsConstructor
+        public static class ConfigOption {
+            private String id;
+            private String name;
+            private String type;
+            private Map<String, Object> extra;
+        }
+    }
 }

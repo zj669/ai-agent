@@ -251,4 +251,18 @@ public class AgentConfigRepositoryImpl implements IAgentConfigRepository {
 
         return convertToNodeTemplateEntity(templatePO);
     }
+
+    @Override
+    public List<SystemPromptEntity> findAllSystemPrompts() {
+        log.debug("查询所有启用的系统提示词");
+
+        LambdaQueryWrapper<AiSystemPromptPO> queryWrapper = new LambdaQueryWrapper<>();
+        queryWrapper.eq(AiSystemPromptPO::getStatus, 1);
+
+        List<AiSystemPromptPO> promptPOList = aiSystemPromptMapper.selectList(queryWrapper);
+
+        return promptPOList.stream()
+                .map(this::convertToSystemPromptEntity)
+                .collect(Collectors.toList());
+    }
 }
