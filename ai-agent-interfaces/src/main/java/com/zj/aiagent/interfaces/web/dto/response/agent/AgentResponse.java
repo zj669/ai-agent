@@ -24,8 +24,6 @@ public class AgentResponse {
     @Schema(description = "主键ID")
     private Long id;
 
-    @Schema(description = "智能体ID")
-    private String agentId;
 
     @Schema(description = "智能体名称")
     private String agentName;

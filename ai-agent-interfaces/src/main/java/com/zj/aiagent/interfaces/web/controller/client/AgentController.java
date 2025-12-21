@@ -3,7 +3,9 @@ package com.zj.aiagent.interfaces.web.controller.client;
 import com.zj.aiagent.application.agent.AgentApplicationService;
 import com.zj.aiagent.application.agent.command.ChatCommand;
 import com.zj.aiagent.application.agent.query.GetUserAgentsQuery;
+import com.zj.aiagent.interfaces.common.Response;
 import com.zj.aiagent.interfaces.web.dto.request.agent.ChatRequest;
+import com.zj.aiagent.interfaces.web.dto.response.agent.AgentResponse;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.annotation.Resource;
@@ -14,6 +16,7 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.mvc.method.annotation.ResponseBodyEmitter;
 
 import java.io.IOException;
+import java.util.List;
 
 /**
  * Agent 控制器
@@ -95,12 +98,12 @@ public class AgentController {
      */
     @GetMapping("/list")
     @Operation(summary = "查询当前用户的 Agent 列表")
-    public com.zj.aiagent.interfaces.common.Response<java.util.List<com.zj.aiagent.interfaces.web.dto.response.agent.AgentResponse>> getUserAgents() {
+    public Response<List<AgentResponse>> getUserAgents() {
         try {
             // 从 UserContext 获取当前用户 ID
             Long userId = com.zj.aiagent.shared.utils.UserContext.getUserId();
             if (userId == null) {
-                return com.zj.aiagent.interfaces.common.Response.unauthorized("未登录");
+                return Response.unauthorized("未登录");
             }
 
             log.info("查询用户 Agent 列表, userId: {}", userId);
@@ -120,7 +123,6 @@ public class AgentController {
                     .stream()
                     .map(dto -> com.zj.aiagent.interfaces.web.dto.response.agent.AgentResponse.builder()
                             .id(dto.getId())
-                            .agentId(dto.getAgentId())
                             .agentName(dto.getAgentName())
                             .description(dto.getDescription())
                             .status(dto.getStatus())

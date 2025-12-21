@@ -31,11 +31,6 @@ public class AiAgentPO {
     @Schema(description = "用户ID")
     private Long userId;
 
-    /**
-     * 智能体ID
-     */
-    @Schema(description = "智能体ID")
-    private String agentId;
 
     /**
      * 智能体名称

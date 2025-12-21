@@ -70,7 +70,6 @@ public class AgentApplicationService {
     private AgentDTO toDTO(AiAgentPO po) {
         return AgentDTO.builder()
                 .id(po.getId())
-                .agentId(po.getAgentId())
                 .agentName(po.getAgentName())
                 .description(po.getDescription())
                 .status(po.getStatus())
@@ -104,7 +103,6 @@ public class AgentApplicationService {
     @lombok.AllArgsConstructor
     public static class AgentDTO {
         private Long id;
-        private String agentId;
         private String agentName;
         private String description;
         private Integer status;
