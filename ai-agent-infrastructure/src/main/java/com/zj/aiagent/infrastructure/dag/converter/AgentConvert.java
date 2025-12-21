@@ -12,7 +12,6 @@ public class AgentConvert {
         return AiAgent.builder()
                 .id(po.getId())
                 .userId(po.getUserId())
-                .agentId(po.getAgentId())
                 .agentName(po.getAgentName())
                 .createTime(po.getCreateTime())
                 .status(po.getStatus())

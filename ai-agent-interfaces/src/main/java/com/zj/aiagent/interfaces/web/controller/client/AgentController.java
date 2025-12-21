@@ -1,7 +1,8 @@
 package com.zj.aiagent.interfaces.web.controller.client;
 
-import com.zj.aiagent.application.dag.AgentApplicationService;
-import com.zj.aiagent.application.dag.command.ChatCommand;
+import com.zj.aiagent.application.agent.AgentApplicationService;
+import com.zj.aiagent.application.agent.command.ChatCommand;
+import com.zj.aiagent.application.agent.query.GetUserAgentsQuery;
 import com.zj.aiagent.interfaces.web.dto.request.agent.ChatRequest;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -85,5 +86,55 @@ public class AgentController {
         }
 
         return emitter;
+    }
+
+    /**
+     * 查询当前用户的 Agent 列表
+     *
+     * @return Agent 列表
+     */
+    @GetMapping("/list")
+    @Operation(summary = "查询当前用户的 Agent 列表")
+    public com.zj.aiagent.interfaces.common.Response<java.util.List<com.zj.aiagent.interfaces.web.dto.response.agent.AgentResponse>> getUserAgents() {
+        try {
+            // 从 UserContext 获取当前用户 ID
+            Long userId = com.zj.aiagent.shared.utils.UserContext.getUserId();
+            if (userId == null) {
+                return com.zj.aiagent.interfaces.common.Response.unauthorized("未登录");
+            }
+
+            log.info("查询用户 Agent 列表, userId: {}", userId);
+
+            // 构建查询对象
+            GetUserAgentsQuery query = GetUserAgentsQuery
+                    .builder()
+                    .userId(userId)
+                    .build();
+
+            // 查询 Agent 列表
+            java.util.List<AgentApplicationService.AgentDTO> agentDTOList = agentApplicationService
+                    .getUserAgents(query);
+
+            // 转换为 Response
+            java.util.List<com.zj.aiagent.interfaces.web.dto.response.agent.AgentResponse> responseList = agentDTOList
+                    .stream()
+                    .map(dto -> com.zj.aiagent.interfaces.web.dto.response.agent.AgentResponse.builder()
+                            .id(dto.getId())
+                            .agentId(dto.getAgentId())
+                            .agentName(dto.getAgentName())
+                            .description(dto.getDescription())
+                            .status(dto.getStatus())
+                            .statusDesc(dto.getStatusDesc())
+                            .createTime(dto.getCreateTime())
+                            .updateTime(dto.getUpdateTime())
+                            .build())
+                    .collect(java.util.stream.Collectors.toList());
+
+            return com.zj.aiagent.interfaces.common.Response.success(responseList);
+
+        } catch (Exception e) {
+            log.error("查询用户 Agent 列表失败", e);
+            return com.zj.aiagent.interfaces.common.Response.fail("查询失败: " + e.getMessage());
+        }
     }
 }

@@ -36,7 +36,7 @@ public class DebugAuthenticationFilter implements AuthenticationFilter {
         try {
             Long userId = Long.parseLong(userIdStr);
             Optional<User> user = userRepository.findById(userId);
-            if (user.isEmpty() || user.get().isActive()) {
+            if (user.isEmpty() || !user.get().isActive()) {
                 throw new AuthenticationException("Debug用户不存在");
             }
             log.warn("🔧 [DEBUG认证] 认证成功, userId: {}, URI: {}",

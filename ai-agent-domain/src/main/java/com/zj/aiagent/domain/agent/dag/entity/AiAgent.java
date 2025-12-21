@@ -25,12 +25,6 @@ public class AiAgent {
     private Long userId;
 
     /**
-     * 智能体ID
-     */
-    @Schema(description = "智能体ID")
-    private String agentId;
-
-    /**
      * 智能体名称
      */
     @Schema(description = "智能体名称")
