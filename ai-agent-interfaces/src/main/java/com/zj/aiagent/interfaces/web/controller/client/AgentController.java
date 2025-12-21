@@ -205,4 +205,49 @@ public class AgentController {
             return com.zj.aiagent.interfaces.common.Response.fail("查询失败: " + e.getMessage());
         }
     }
+
+    /**
+     * 查询用户在指定Agent下的历史会话ID列表
+     *
+     * @param agentId Agent ID
+     * @return 会话ID列表
+     */
+    @GetMapping("/conversations/{agentId}")
+    @Operation(summary = "查询历史会话ID", description = "查询当前用户在指定Agent下的所有历史会话ID")
+    public Response<List<com.zj.aiagent.interfaces.web.dto.response.agent.ConversationIdResponse>> getConversationIds(
+            @PathVariable Long agentId) {
+        try {
+            // 从 UserContext 获取当前用户 ID
+            Long userId = com.zj.aiagent.shared.utils.UserContext.getUserId();
+            if (userId == null) {
+                return Response.unauthorized("未登录");
+            }
+
+            log.info("查询历史会话ID, userId: {}, agentId: {}", userId, agentId);
+
+            // 构建查询对象
+            com.zj.aiagent.application.agent.query.GetConversationIdsQuery query = com.zj.aiagent.application.agent.query.GetConversationIdsQuery
+                    .builder()
+                    .userId(userId)
+                    .agentId(agentId)
+                    .build();
+
+            // 查询会话ID列表
+            List<String> conversationIds = agentApplicationService.getConversationIds(query);
+
+            // 转换为响应对象
+            List<com.zj.aiagent.interfaces.web.dto.response.agent.ConversationIdResponse> responseList = conversationIds
+                    .stream()
+                    .map(id -> com.zj.aiagent.interfaces.web.dto.response.agent.ConversationIdResponse.builder()
+                            .conversationId(id)
+                            .build())
+                    .collect(java.util.stream.Collectors.toList());
+
+            return Response.success(responseList);
+
+        } catch (Exception e) {
+            log.error("查询历史会话ID失败", e);
+            return Response.fail("查询失败: " + e.getMessage());
+        }
+    }
 }

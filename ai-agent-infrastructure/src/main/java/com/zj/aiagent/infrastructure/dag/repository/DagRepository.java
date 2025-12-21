@@ -1,9 +1,7 @@
 package com.zj.aiagent.infrastructure.dag.repository;
 
-import cn.hutool.core.util.IdUtil;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.zj.aiagent.domain.agent.dag.entity.AiAgent;
-import com.zj.aiagent.domain.agent.dag.entity.DagGraph;
 import com.zj.aiagent.domain.agent.dag.repository.IDagRepository;
 import com.zj.aiagent.infrastructure.dag.converter.AgentConvert;
 import com.zj.aiagent.infrastructure.persistence.entity.AiAgentPO;
@@ -17,6 +15,9 @@ import org.springframework.stereotype.Repository;
 public class DagRepository implements IDagRepository {
     @Resource
     private AiAgentMapper aiAgentMapper;
+
+    @Resource
+    private com.zj.aiagent.infrastructure.persistence.mapper.AiAgentInstanceMapper aiAgentInstanceMapper;
 
     @Override
     public AiAgent selectAiAgentByAgentId(String agentId) {
@@ -70,5 +71,32 @@ public class DagRepository implements IDagRepository {
 
         AiAgentPO aiAgentPO = aiAgentMapper.selectOne(queryWrapper);
         return AgentConvert.toDomain(aiAgentPO);
+    }
+
+    @Override
+    public java.util.List<String> findDistinctConversationIds(Long userId, Long agentId) {
+        log.debug("查询用户历史会话ID: userId={}, agentId={}", userId, agentId);
+
+        if (userId == null || agentId == null) {
+            return java.util.Collections.emptyList();
+        }
+
+        // 查询所有符合条件的实例
+        LambdaQueryWrapper<com.zj.aiagent.infrastructure.persistence.entity.AiAgentInstancePO> queryWrapper = new LambdaQueryWrapper<>();
+        queryWrapper.eq(com.zj.aiagent.infrastructure.persistence.entity.AiAgentInstancePO::getAgentId, agentId)
+                .orderByDesc(com.zj.aiagent.infrastructure.persistence.entity.AiAgentInstancePO::getCreateTime);
+
+        java.util.List<com.zj.aiagent.infrastructure.persistence.entity.AiAgentInstancePO> instances = aiAgentInstanceMapper
+                .selectList(queryWrapper);
+
+        // 提取并去重 conversationId
+        java.util.List<String> conversationIds = instances.stream()
+                .map(com.zj.aiagent.infrastructure.persistence.entity.AiAgentInstancePO::getConversationId)
+                .filter(id -> id != null && !id.isEmpty())
+                .distinct()
+                .collect(java.util.stream.Collectors.toList());
+
+        log.debug("查询到 {} 个不重复的会话ID", conversationIds.size());
+        return conversationIds;
     }
 }

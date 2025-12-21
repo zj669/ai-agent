@@ -36,4 +36,13 @@ public interface IDagRepository {
      * @return Agent实体，不存在或userId不匹配则返回null
      */
     AiAgent selectAiAgentByAgentIdAndUserId(String agentId, Long userId);
+
+    /**
+     * 查询用户在指定Agent下的所有去重会话ID
+     *
+     * @param userId  用户ID
+     * @param agentId Agent ID
+     * @return 去重的会话ID列表
+     */
+    java.util.List<String> findDistinctConversationIds(Long userId, Long agentId);
 }

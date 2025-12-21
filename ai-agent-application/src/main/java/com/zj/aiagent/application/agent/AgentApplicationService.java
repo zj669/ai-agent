@@ -110,6 +110,19 @@ public class AgentApplicationService {
     }
 
     /**
+     * 查询用户在指定Agent下的历史会话ID列表
+     *
+     * @param query 查询对象
+     * @return 去重的会话ID列表
+     */
+    public List<String> getConversationIds(com.zj.aiagent.application.agent.query.GetConversationIdsQuery query) {
+        log.info("查询历史会话ID, userId: {}, agentId: {}", query.getUserId(), query.getAgentId());
+
+        // 调用仓储层查询
+        return dagRepository.findDistinctConversationIds(query.getUserId(), query.getAgentId());
+    }
+
+    /**
      * 转换为 DTO
      */
     private AgentDTO toDTO(AiAgentPO po) {
