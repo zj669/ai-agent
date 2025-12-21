@@ -102,22 +102,24 @@ public class RateLimitServiceImpl implements RateLimitService {
      * @throws IllegalStateException 超过限流阈值时抛出
      */
     private void checkRateLimit(String key, int maxAttempts, int timeWindowSeconds, String description) {
-        // 获取当前计数
-        String countStr = redisService.getValue(key);
-        int count = countStr == null ? 0 : Integer.parseInt(countStr);
+        // 获取当前计数(使用 getAtomicLong 确保类型一致)
+        Long currentCount = redisService.getAtomicLong(key);
+        long count = currentCount == null ? 0L : currentCount;
 
         // 检查是否超过限流阈值
-        if (rateLimitDomainService.isRateLimitExceeded(count, maxAttempts)) {
+        if (rateLimitDomainService.isRateLimitExceeded((int) count, maxAttempts)) {
             log.warn("触发限流: key={}, count={}, maxAttempts={}", key, count, maxAttempts);
-            throw new IllegalStateException("操作过于频繁，请稍后再试。限制：" + description);
+            throw new IllegalStateException("操作过于频繁,请稍后再试。限制:" + description);
         }
 
-        // 增加计数
+        // 增加计数(incr 会自动创建 key 并设置为 1,或者增加现有值)
         long newCount = redisService.incr(key);
 
-        // 如果是第一次计数，设置过期时间
+        // 如果是第一次计数,需要设置过期时间
+        // 注意:这里有一个小的竞态条件窗口,但对于限流场景是可接受的
         if (newCount == 1) {
-            redisService.setValue(key, String.valueOf(newCount), timeWindowSeconds);
+            // setValue 会覆盖值并设置过期时间
+            redisService.setValue(key, newCount, timeWindowSeconds);
         }
 
         log.debug("限流检查通过: key={}, count={}/{}", key, newCount, maxAttempts);

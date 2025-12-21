@@ -4,11 +4,12 @@ import com.zj.aiagent.domain.user.service.EmailService;
 import com.zj.aiagent.domain.user.service.EmailVerificationDomainService;
 import com.zj.aiagent.infrastructure.persistence.entity.EmailSendLogPO;
 import com.zj.aiagent.infrastructure.persistence.mapper.EmailSendLogMapper;
+import com.zj.aiagent.infrastructure.redis.IRedisService;
+import com.zj.aiagent.shared.constants.RedisKeyConstants;
 import jakarta.mail.MessagingException;
 import jakarta.mail.internet.MimeMessage;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import com.zj.aiagent.infrastructure.redis.IRedisService;
 import org.springframework.mail.MailException;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.mail.javamail.MimeMessageHelper;
@@ -39,8 +40,6 @@ public class EmailServiceImpl implements EmailService {
     @org.springframework.beans.factory.annotation.Value("${spring.mail.username}")
     private String mailUsername;
 
-    private static final String VERIFICATION_CODE_PREFIX = "email:verification:code:";
-
     /**
      * 发送验证码
      * 
@@ -55,7 +54,7 @@ public class EmailServiceImpl implements EmailService {
         String code = emailVerificationDomainService.generateVerificationCode();
 
         // 2. 存储验证码到Redis(5分钟过期)
-        String key = VERIFICATION_CODE_PREFIX + email;
+        String key = RedisKeyConstants.Email.VERIFICATION_CODE_PREFIX + email;
         long expirySeconds = emailVerificationDomainService.getCodeExpiryMinutes() * 60;
         redisService.setValue(key, code, expirySeconds);
 
@@ -77,7 +76,7 @@ public class EmailServiceImpl implements EmailService {
         }
 
         // 从Redis中获取验证码
-        String key = VERIFICATION_CODE_PREFIX + email;
+        String key = RedisKeyConstants.Email.VERIFICATION_CODE_PREFIX + email;
         String storedCode = redisService.getValue(key);
 
         if (storedCode == null) {

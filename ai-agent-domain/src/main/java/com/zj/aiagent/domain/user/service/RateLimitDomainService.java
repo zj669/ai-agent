@@ -1,8 +1,8 @@
 package com.zj.aiagent.domain.user.service;
 
+import com.zj.aiagent.shared.constants.RedisKeyConstants;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
-
 
 /**
  * 限流策略领域服务
@@ -66,7 +66,7 @@ public class RateLimitDomainService {
      * @return Redis键
      */
     public String getIpRateLimitKey(String ip) {
-        return "rate_limit:ip:" + ip;
+        return RedisKeyConstants.RateLimit.IP_PREFIX + ip;
     }
 
     /**
@@ -76,7 +76,7 @@ public class RateLimitDomainService {
      * @return Redis键
      */
     public String getEmailRateLimitKey(String email) {
-        return "rate_limit:email:" + email;
+        return RedisKeyConstants.RateLimit.EMAIL_PREFIX + email;
     }
 
     /**
@@ -86,7 +86,7 @@ public class RateLimitDomainService {
      * @return Redis键
      */
     public String getDeviceRateLimitKey(String deviceId) {
-        return "rate_limit:device:" + deviceId;
+        return RedisKeyConstants.RateLimit.DEVICE_PREFIX + deviceId;
     }
 
     /**
