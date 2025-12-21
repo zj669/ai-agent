@@ -32,6 +32,8 @@ public class AiNodeTemplatePO {
     @Schema(description = "节点类型")
     private String nodeType;
 
+    @Schema(description = "节点描述")
+    private String description;
     /**
      * 节点展示名称
      */

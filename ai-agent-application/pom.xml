@@ -21,6 +21,11 @@
             <groupId>com.zj</groupId>
             <artifactId>ai-agent-domain</artifactId>
         </dependency>
+        <!-- 依赖shared模块 -->
+        <dependency>
+            <groupId>com.zj</groupId>
+            <artifactId>ai-agent-shared</artifactId>
+        </dependency>
         <dependency>
             <groupId>com.zj</groupId>
             <artifactId>ai-agent-infrastructure</artifactId>
