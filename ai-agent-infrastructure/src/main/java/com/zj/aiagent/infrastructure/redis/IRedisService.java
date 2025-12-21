@@ -121,6 +121,15 @@ public interface IRedisService {
     void remove(String key);
 
     /**
+     * 设置指定 key 的过期时间
+     *
+     * @param key     键
+     * @param seconds 过期时间(秒)
+     * @return true-设置成功, false-设置失败
+     */
+    boolean expire(String key, long seconds);
+
+    /**
      * 判断指定 key 的值是否存在
      *
      * @param key 键

@@ -115,11 +115,10 @@ public class RateLimitServiceImpl implements RateLimitService {
         // 增加计数(incr 会自动创建 key 并设置为 1,或者增加现有值)
         long newCount = redisService.incr(key);
 
-        // 如果是第一次计数,需要设置过期时间
-        // 注意:这里有一个小的竞态条件窗口,但对于限流场景是可接受的
+        // 如果是第一次计数,设置过期时间
         if (newCount == 1) {
-            // setValue 会覆盖值并设置过期时间
-            redisService.setValue(key, newCount, timeWindowSeconds);
+            // 使用 expire 方法仅设置过期时间,不改变值的类型
+            redisService.expire(key, timeWindowSeconds);
         }
 
         log.debug("限流检查通过: key={}, count={}/{}", key, newCount, maxAttempts);

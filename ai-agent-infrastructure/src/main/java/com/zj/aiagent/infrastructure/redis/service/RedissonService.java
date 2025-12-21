@@ -83,6 +83,12 @@ public class RedissonService implements IRedisService {
     }
 
     @Override
+    public boolean expire(String key, long seconds) {
+        RAtomicLong atomicLong = redissonClient.getAtomicLong(key);
+        return atomicLong.expire(Duration.ofSeconds(seconds));
+    }
+
+    @Override
     public boolean isExists(String key) {
         return redissonClient.getBucket(key).isExists();
     }
