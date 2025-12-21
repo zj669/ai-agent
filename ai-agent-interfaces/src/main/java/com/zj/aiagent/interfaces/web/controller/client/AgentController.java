@@ -9,6 +9,7 @@ import com.zj.aiagent.interfaces.web.dto.response.agent.AgentResponse;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.annotation.Resource;
+import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.MediaType;
@@ -46,12 +47,16 @@ public class AgentController {
      */
     @PostMapping(value = "/chat", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
     @Operation(summary = "与 Agent 进行流式聊天")
-    public ResponseBodyEmitter chat(@Valid @RequestBody ChatRequest request) {
+    public ResponseBodyEmitter chat(@Valid @RequestBody ChatRequest request, HttpServletResponse response) {
         log.info("收到聊天请求, agentId: {}, conversationId: {}, message: {}",
                 request.getAgentId(), request.getConversationId(), request.getUserMessage());
-
+        // 设置SSE响应头
+        response.setContentType("text/event-stream");
+        response.setCharacterEncoding("UTF-8");
+        response.setHeader("Cache-Control", "no-cache");
+        response.setHeader("Connection", "keep-alive");
         // 创建 ResponseBodyEmitter 用于流式响应
-        ResponseBodyEmitter emitter = new ResponseBodyEmitter();
+        ResponseBodyEmitter emitter = new ResponseBodyEmitter(Long.MAX_VALUE);
 
         try {
             // 构建命令

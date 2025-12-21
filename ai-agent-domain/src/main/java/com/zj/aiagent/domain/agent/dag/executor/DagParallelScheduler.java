@@ -192,6 +192,7 @@ public class DagParallelScheduler {
             String status, Object result, Long durationMs) {
         org.springframework.web.servlet.mvc.method.annotation.ResponseBodyEmitter emitter = context.getEmitter();
         if (emitter == null) {
+            log.warn("Emitter is null, cannot push lifecycle event for node: {}", nodeId);
             return;
         }
 
