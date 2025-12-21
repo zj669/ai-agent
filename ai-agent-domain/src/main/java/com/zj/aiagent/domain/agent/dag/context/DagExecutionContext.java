@@ -17,13 +17,17 @@ public class DagExecutionContext implements DagContext {
     @Getter
     @Setter
     private ResponseBodyEmitter emitter;
+    @Getter
+    @Setter
+    private Long agentId;
     private final String executionId;
     private final String conversationId;
     private final Map<String, Object> dataMap;
     private final Map<String, Object> nodeResults;
 
-    public DagExecutionContext(String conversationId, ResponseBodyEmitter emitter) {
+    public DagExecutionContext(String conversationId, ResponseBodyEmitter emitter, Long agentId) {
         this.emitter = emitter;
+        this.agentId = agentId;
         this.executionId = UUID.randomUUID().toString();
         this.conversationId = conversationId;
         this.dataMap = new ConcurrentHashMap<>();

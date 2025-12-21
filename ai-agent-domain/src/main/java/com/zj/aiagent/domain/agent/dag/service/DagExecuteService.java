@@ -13,8 +13,8 @@ public class DagExecuteService {
     private DagExecutor dagExecutor;
 
 
-    public DagExecutor.DagExecutionResult executeDag(DagGraph dagGraph, String conversationId, String userMessage, ResponseBodyEmitter emitter) {
-        DagExecutionContext context = new DagExecutionContext(conversationId, emitter);
+    public DagExecutor.DagExecutionResult executeDag(DagGraph dagGraph, String conversationId, String userMessage, ResponseBodyEmitter emitter, String agentId) {
+        DagExecutionContext context = new DagExecutionContext(conversationId, emitter, Long.valueOf(agentId));
         context.setValue("userInput", userMessage);
         return dagExecutor.execute(dagGraph, context);
     }

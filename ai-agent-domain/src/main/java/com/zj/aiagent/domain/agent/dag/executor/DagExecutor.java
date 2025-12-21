@@ -1,11 +1,14 @@
 package com.zj.aiagent.domain.agent.dag.executor;
 
-
+import com.alibaba.fastjson.JSON;
 import com.zj.aiagent.domain.agent.dag.context.DagExecutionContext;
 import com.zj.aiagent.domain.agent.dag.entity.DagGraph;
+import com.zj.aiagent.domain.agent.dag.entity.DagExecutionInstance;
 import com.zj.aiagent.domain.agent.dag.logging.DagLoggingService;
+import com.zj.aiagent.domain.agent.dag.repository.IDagExecutionRepository;
 import com.zj.aiagent.shared.design.dag.ConditionalDagNode;
 import com.zj.aiagent.shared.design.dag.NodeRouteDecision;
+import jakarta.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
@@ -26,6 +29,9 @@ public class DagExecutor {
 
     private final DagParallelScheduler scheduler;
     private final DagLoggingService loggingService;
+
+    @Resource
+    private IDagExecutionRepository executionRepository;
 
     public DagExecutor(
             DagLoggingService loggingService) {
@@ -51,8 +57,8 @@ public class DagExecutor {
             // 2. 获取执行层级（用于并行执行）
             List<List<String>> executionLevels = DagTopologicalSorter.getExecutionLevels(dagGraph);
 
-            // 3. 创建工作流实例
-//            AiAgentInstance agentInstance = createAgentInstance(dagGraph, context);
+            // 3. 创建执行实例(DAG聚合内部操作)
+            DagExecutionInstance instance = createExecutionInstance(dagGraph, context);
 
             // 4. 将 DagGraph 存入 context，供 RouterNode 等节点使用
             context.setValue("__DAG_GRAPH__", dagGraph);
@@ -91,8 +97,8 @@ public class DagExecutor {
                     if (!result.isSuccess()) {
                         log.error("节点执行失败: {}", result.getNodeId());
 
-                        // 更新工作流实例状态
-//                        updateAgentInstance(agentInstance, "FAILED", result.getNodeId(), context);
+                        // 更新执行实例状态
+                        updateExecutionInstance(instance, "FAILED", result.getNodeId(), context);
 
                         long totalDuration = System.currentTimeMillis() - startTime;
                         return DagExecutionResult.failed(
@@ -106,8 +112,8 @@ public class DagExecutor {
                     if (result.getResult() != null && result.getResult().startsWith("WAITING_FOR_HUMAN")) {
                         log.info("节点等待人工介入: {}", result.getNodeId());
 
-                        // 更新工作流实例为暂停状态
-//                        updateAgentInstance(agentInstance, "PAUSED", result.getNodeId(), context);
+                        // 更新执行实例为暂停状态
+                        updateExecutionInstance(instance, "PAUSED", result.getNodeId(), context);
 
                         long totalDuration = System.currentTimeMillis() - startTime;
                         return DagExecutionResult.paused(
@@ -124,14 +130,14 @@ public class DagExecutor {
                     }
                 }
 
-//                // 更新工作流实例当前节点
-//                if (!filteredNodeIds.isEmpty()) {
-//                    updateAgentInstance(agentInstance, "RUNNING", filteredNodeIds.get(0), context);
-//                }
+                // 更新执行实例当前节点
+                if (!filteredNodeIds.isEmpty()) {
+                    updateExecutionInstance(instance, "RUNNING", filteredNodeIds.get(0), context);
+                }
             }
 
             // 6. 执行完成
-//            updateAgentInstance(agentInstance, "COMPLETED", null, context);
+            updateExecutionInstance(instance, "COMPLETED", null, context);
 
             long totalDuration = System.currentTimeMillis() - startTime;
 
@@ -244,52 +250,40 @@ public class DagExecutor {
     }
 
     /**
-     * 创建工作流实例
+     * 创建DAG执行实例
      */
-//    private AiAgentInstance createAgentInstance(DagGraph dagGraph, DagExecutionContext context) {
-//        AiAgentInstance instance = new AiAgentInstance();
-//        // TODO
-//        instance.setAgentId(1L);
-//        instance.setConversationId(context.getConversationId());
-//        instance.setCurrentNodeId(dagGraph.getStartNodeId());
-//        instance.setStatus("RUNNING");
-//        instance.setCreateTime(LocalDateTime.now());
-//        instance.setUpdateTime(LocalDateTime.now());
-//        instance.setRuntimeContextJson(JSON.toJSONString(context));
-//        // 保存到数据库
-//        try {
-//            agentInstanceMapper.insert(instance);
-//            log.info("创建智能体实例: id={}, conversationId={}", instance.getId(), instance.getConversationId());
-//        } catch (Exception e) {
-//            log.error("创建工作流实例失败", e);
-//        }
-//
-//        return instance;
-//    }
-//
-//    /**
-//     * 更新工作流实例
-//     */
-//    private void updateAgentInstance(AiAgentInstance instance, String status,
-//            String currentNodeId, DagExecutionContext context) {
-//        if (instance == null || instance.getId() == null) {
-//            return;
-//        }
-//
-//        instance.setStatus(status);
-//        if (currentNodeId != null) {
-//            instance.setCurrentNodeId(currentNodeId);
-//        }
-//        instance.setRuntimeContextJson(JSON.toJSONString(context.getAllNodeResults()));
-//        instance.setUpdateTime(LocalDateTime.now());
-//
-//        try {
-//            agentInstanceMapper.updateById(instance);
-//            log.debug("更新智能体实例: status={}, currentNodeId={}", status, currentNodeId);
-//        } catch (Exception e) {
-//            log.error("更新工作流实例失败", e);
-//        }
-//    }
+    private DagExecutionInstance createExecutionInstance(DagGraph dagGraph, DagExecutionContext context) {
+        DagExecutionInstance instance = DagExecutionInstance.builder()
+                .agentId(context.getAgentId())
+                .conversationId(context.getConversationId())
+                .currentNodeId(dagGraph.getStartNodeId())
+                .status("RUNNING")
+                .createTime(LocalDateTime.now())
+                .updateTime(LocalDateTime.now())
+                .runtimeContextJson(JSON.toJSONString(context.getAllNodeResults()))
+                .build();
+
+        return executionRepository.save(instance);
+    }
+
+    /**
+     * 更新DAG执行实例
+     */
+    private void updateExecutionInstance(DagExecutionInstance instance, String status,
+            String currentNodeId, DagExecutionContext context) {
+        if (instance == null || instance.getId() == null) {
+            return;
+        }
+
+        instance.setStatus(status);
+        if (currentNodeId != null) {
+            instance.setCurrentNodeId(currentNodeId);
+        }
+        instance.setRuntimeContextJson(JSON.toJSONString(context.getAllNodeResults()));
+        instance.setUpdateTime(LocalDateTime.now());
+
+        executionRepository.update(instance);
+    }
 
     /**
      * 关闭执行器

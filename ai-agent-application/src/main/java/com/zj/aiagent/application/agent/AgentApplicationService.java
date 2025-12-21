@@ -39,7 +39,7 @@ public class AgentApplicationService {
         if(conversationId == null){
             conversationId = String.valueOf(IdUtil.getSnowflake(1, 1).nextId());
         }
-        dagExecuteService.executeDag(dagGraph, conversationId, command.getUserMessage(), command.getEmitter());
+        dagExecuteService.executeDag(dagGraph, conversationId, command.getUserMessage(), command.getEmitter(), command.getAgentId());
     }
 
     /**
