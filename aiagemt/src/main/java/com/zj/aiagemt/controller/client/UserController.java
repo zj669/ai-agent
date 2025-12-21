@@ -40,21 +40,6 @@ public class UserController {
     @Resource
     private EmailLimitService emailLimitService;
 
-    @PostMapping("/register")
-    @Operation(summary = "用户注册")
-    public Response<UserVO> register(@Valid @RequestBody RegisterDTO dto) {
-        log.info("用户注册请求, username: {}", dto.getUsername());
-        try {
-            UserVO userVO = userService.register(dto);
-            return Response.success(userVO);
-        } catch (IllegalArgumentException e) {
-            log.warn("用户注册失败: {}", e.getMessage());
-            return Response.fail(e.getMessage());
-        } catch (Exception e) {
-            log.error("用户注册异常", e);
-            return Response.fail("注册失败,请稍后重试");
-        }
-    }
 
     @PostMapping("/email/sendCode")
     @Operation(summary = "发送邮箱验证码")

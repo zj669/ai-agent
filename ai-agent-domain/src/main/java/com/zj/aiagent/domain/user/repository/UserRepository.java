@@ -40,6 +40,14 @@ public interface UserRepository {
     Optional<User> findByEmail(String email);
 
     /**
+     * 根据手机号查询用户
+     * 
+     * @param phone 手机号
+     * @return 用户对象，不存在返回Optional.empty()
+     */
+    Optional<User> findByPhone(String phone);
+
+    /**
      * 保存用户
      * 
      * @param user 用户对象
@@ -77,4 +85,12 @@ public interface UserRepository {
      * @return true-存在，false-不存在
      */
     boolean existsByEmail(String email);
+
+    /**
+     * 检查手机号是否存在
+     * 
+     * @param phone 手机号
+     * @return true-存在，false-不存在
+     */
+    boolean existsByPhone(String phone);
 }

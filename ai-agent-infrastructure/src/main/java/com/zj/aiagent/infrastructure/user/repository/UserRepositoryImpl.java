@@ -49,6 +49,14 @@ public class UserRepositoryImpl implements UserRepository {
     }
 
     @Override
+    public Optional<User> findByPhone(String phone) {
+        LambdaQueryWrapper<UserPO> wrapper = new LambdaQueryWrapper<>();
+        wrapper.eq(UserPO::getPhone, phone);
+        UserPO po = userMapper.selectOne(wrapper);
+        return Optional.ofNullable(UserConverter.toDomain(po));
+    }
+
+    @Override
     public User save(User user) {
         UserPO po = UserConverter.toPO(user);
         userMapper.insert(po);
@@ -79,6 +87,13 @@ public class UserRepositoryImpl implements UserRepository {
     public boolean existsByEmail(String email) {
         LambdaQueryWrapper<UserPO> wrapper = new LambdaQueryWrapper<>();
         wrapper.eq(UserPO::getEmail, email);
+        return userMapper.selectCount(wrapper) > 0;
+    }
+
+    @Override
+    public boolean existsByPhone(String phone) {
+        LambdaQueryWrapper<UserPO> wrapper = new LambdaQueryWrapper<>();
+        wrapper.eq(UserPO::getPhone, phone);
         return userMapper.selectCount(wrapper) > 0;
     }
 }

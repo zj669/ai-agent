@@ -16,6 +16,10 @@
     <description>共享内核模块 - 无框架依赖的通用工具和设计模式抽象</description>
 
     <dependencies>
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-web</artifactId>
+        </dependency>
         <!-- Lombok -->
         <dependency>
             <groupId>org.projectlombok</groupId>
