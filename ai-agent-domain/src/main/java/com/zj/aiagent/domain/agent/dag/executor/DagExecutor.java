@@ -251,20 +251,38 @@ public class DagExecutor {
     }
 
     /**
-     * 创建DAG执行实例
+     * 查找或创建DAG执行实例
+     * 如果同一个conversationId已存在实例，则更新该实例；否则创建新实例
      */
     private DagExecutionInstance createExecutionInstance(DagGraph dagGraph, DagExecutionContext context) {
-        DagExecutionInstance instance = DagExecutionInstance.builder()
-                .agentId(context.getAgentId())
-                .conversationId(context.getConversationId())
-                .currentNodeId(dagGraph.getStartNodeId())
-                .status("RUNNING")
-                .createTime(LocalDateTime.now())
-                .updateTime(LocalDateTime.now())
-                .runtimeContextJson(JSON.toJSONString(context.getAllNodeResults()))
-                .build();
+        // 先根据conversationId查找已有实例
+        DagExecutionInstance instance = executionRepository.findByConversationId(context.getConversationId());
 
-        return executionRepository.save(instance);
+        if (instance != null) {
+            // 如果已存在，则更新现有实例
+            log.info("找到已存在的执行实例，将更新实例ID: {}, conversationId: {}",
+                    instance.getId(), context.getConversationId());
+            instance.setCurrentNodeId(dagGraph.getStartNodeId());
+            instance.setStatus("RUNNING");
+            instance.setUpdateTime(LocalDateTime.now());
+            instance.setRuntimeContextJson(JSON.toJSONString(context.getAllNodeResults()));
+            executionRepository.update(instance);
+        } else {
+            // 如果不存在，则创建新实例
+            log.info("未找到已存在的执行实例，创建新实例。conversationId: {}", context.getConversationId());
+            instance = DagExecutionInstance.builder()
+                    .agentId(context.getAgentId())
+                    .conversationId(context.getConversationId())
+                    .currentNodeId(dagGraph.getStartNodeId())
+                    .status("RUNNING")
+                    .createTime(LocalDateTime.now())
+                    .updateTime(LocalDateTime.now())
+                    .runtimeContextJson(JSON.toJSONString(context.getAllNodeResults()))
+                    .build();
+            instance = executionRepository.save(instance);
+        }
+
+        return instance;
     }
 
     /**
