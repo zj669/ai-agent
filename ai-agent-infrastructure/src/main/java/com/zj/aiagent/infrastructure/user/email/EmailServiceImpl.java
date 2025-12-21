@@ -1,9 +1,15 @@
 package com.zj.aiagent.infrastructure.user.email;
 
 import com.zj.aiagent.domain.user.service.EmailVerificationDomainService;
+import jakarta.mail.MessagingException;
+import jakarta.mail.internet.MimeMessage;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.redis.core.StringRedisTemplate;
+import org.springframework.mail.MailException;
+import org.springframework.mail.javamail.JavaMailSender;
+import org.springframework.mail.javamail.MimeMessageHelper;
+import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 
 import java.util.concurrent.TimeUnit;
@@ -24,6 +30,7 @@ public class EmailServiceImpl {
 
     private final StringRedisTemplate stringRedisTemplate;
     private final EmailVerificationDomainService emailVerificationDomainService;
+    private final JavaMailSender mailSender;
 
     private static final String VERIFICATION_CODE_PREFIX = "email:verification:code:";
 
@@ -48,14 +55,8 @@ public class EmailServiceImpl {
                 emailVerificationDomainService.getCodeExpiryMinutes(),
                 TimeUnit.MINUTES);
 
-        // 3. 发送邮件（这里暂时只是记录日志，实际需要对接邮件服务）
-        String subject = emailVerificationDomainService.buildVerificationEmailSubject();
-        String content = emailVerificationDomainService.buildVerificationEmailContent(code, email);
-
-        log.info("模拟发送邮件: email={}, subject={}, code={}", email, subject, code);
-
-        // TODO: 实际对接邮件服务
-//         mailSender.send(email, subject, content);
+        // 3. 异步发送邮件
+        sendEmailAsync(email, code);
     }
 
     /**
@@ -89,5 +90,63 @@ public class EmailServiceImpl {
         stringRedisTemplate.delete(key);
         log.info("验证码验证成功, email: {}", email);
         return true;
+    }
+
+    /**
+     * 异步发送邮件
+     * 
+     * @param email 邮箱地址
+     * @param code  验证码
+     */
+    @Async
+    protected void sendEmailAsync(String email, String code) {
+        try {
+            // 创建邮件
+            MimeMessage message = mailSender.createMimeMessage();
+            MimeMessageHelper helper = new MimeMessageHelper(message, true, "UTF-8");
+
+            helper.setTo(email);
+            helper.setSubject(emailVerificationDomainService.buildVerificationEmailSubject());
+
+            // 使用HTML模板
+            String content = buildHtmlEmailContent(code);
+            helper.setText(content, true);
+
+            // 发送邮件
+            mailSender.send(message);
+
+            log.info("邮件发送成功, email: {}", email);
+
+        } catch (MessagingException | MailException e) {
+            log.error("邮件发送失败, email: {}, error: {}", email, e.getMessage(), e);
+            // 注意：这里可以考虑添加重试机制或者记录到数据库
+        }
+    }
+
+    /**
+     * 构建HTML邮件内容
+     * 
+     * @param code 验证码
+     * @return HTML内容
+     */
+    private String buildHtmlEmailContent(String code) {
+        int expiryMinutes = emailVerificationDomainService.getCodeExpiryMinutes();
+
+        return "<div style='padding: 20px; background-color: #f5f5f5;'>" +
+                "<div style='max-width: 600px; margin: 0 auto; background-color: white; padding: 30px; border-radius: 10px;'>"
+                +
+                "<h2 style='color: #333; text-align: center;'>AI Agent 邮箱验证</h2>" +
+                "<div style='margin: 30px 0; padding: 20px; background-color: #f8f9fa; border-left: 4px solid #007bff;'>"
+                +
+                "<p style='margin: 0; font-size: 14px; color: #666;'>您的验证码是：</p>" +
+                "<p style='margin: 10px 0; font-size: 32px; font-weight: bold; color: #007bff; letter-spacing: 5px;'>"
+                + code + "</p>" +
+                "<p style='margin: 0; font-size: 14px; color: #999;'>验证码有效期为 " + expiryMinutes + " 分钟</p>" +
+                "</div>" +
+                "<p style='color: #666; font-size: 14px; line-height: 1.6;'>如果这不是您本人的操作，请忽略此邮件。</p>" +
+                "<hr style='border: none; border-top: 1px solid #eee; margin: 20px 0;'>" +
+                "<p style='color: #999; font-size: 12px; text-align: center;'>此邮件由系统自动发送，请勿回复。</p>" +
+                "</div>" +
+                "</div>";
     }
 }
