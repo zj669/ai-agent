@@ -1,7 +1,6 @@
 package com.zj.aiagent.domain.agent.dag.node;
 
 import com.alibaba.fastjson.JSON;
-
 import com.zj.aiagent.domain.agent.dag.config.AdvisorConfig;
 import com.zj.aiagent.domain.agent.dag.config.McpToolConfig;
 import com.zj.aiagent.domain.agent.dag.config.ModelConfig;
@@ -29,10 +28,7 @@ import org.springframework.web.servlet.mvc.method.annotation.ResponseBodyEmitter
 
 import java.io.PrintWriter;
 import java.io.StringWriter;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
-import java.util.Set;
+import java.util.*;
 
 /**
  * 可配置节点抽象基类
@@ -91,8 +87,20 @@ public abstract class AbstractConfigurableNode implements DagNode<DagExecutionCo
                     .nodeName(nodeName)
                     .build();
 
-            // 记录输入(当前执行上下文)
-            String inputJson = JSON.toJSONString(context.getAllNodeResults());
+            // 记录输入数据
+            // 如果是第一个节点(没有前序结果),记录用户输入;否则记录前序节点结果
+            String inputJson;
+            Map<String, Object> nodeResults = context.getAllNodeResults();
+            if (nodeResults == null || nodeResults.isEmpty()) {
+                // 第一个节点 - 记录用户输入
+                String userInput = context.getValue("userInput", "");
+                Map<String, Object> inputData = new HashMap<>();
+                inputData.put("userInput", userInput);
+                inputJson = JSON.toJSONString(inputData);
+            } else {
+                // 后续节点 - 记录前序节点结果
+                inputJson = JSON.toJSONString(nodeResults);
+            }
             executionLog.start(inputJson);
 
             // 保存日志并存入context

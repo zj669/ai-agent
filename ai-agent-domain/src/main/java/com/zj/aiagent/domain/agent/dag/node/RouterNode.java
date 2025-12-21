@@ -1,9 +1,12 @@
 package com.zj.aiagent.domain.agent.dag.node;
 
+import com.alibaba.fastjson.JSON;
 import com.zj.aiagent.domain.agent.dag.config.NodeConfig;
 import com.zj.aiagent.domain.agent.dag.context.DagExecutionContext;
 import com.zj.aiagent.domain.agent.dag.entity.DagGraph;
+import com.zj.aiagent.domain.agent.dag.entity.NodeExecutionLog;
 import com.zj.aiagent.domain.agent.dag.exception.NodeConfigException;
+import com.zj.aiagent.domain.agent.dag.repository.IDagExecutionRepository;
 import com.zj.aiagent.shared.design.dag.ConditionalDagNode;
 import com.zj.aiagent.shared.design.dag.DagNode;
 import com.zj.aiagent.shared.design.dag.DagNodeExecutionException;
@@ -11,6 +14,8 @@ import com.zj.aiagent.shared.design.dag.NodeRouteDecision;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.ApplicationContext;
 import com.zj.aiagent.domain.agent.dag.entity.NodeType;
+import java.io.PrintWriter;
+import java.io.StringWriter;
 import java.util.*;
 
 /**
@@ -71,21 +76,114 @@ public class RouterNode implements ConditionalDagNode<DagExecutionContext> {
     @Override
     public void beforeExecute(DagExecutionContext context) {
         log.info("路由节点 [{}] ({}) 开始执行", nodeName, nodeId);
+
+        try {
+            // 创建节点执行日志
+            NodeExecutionLog executionLog = NodeExecutionLog.builder()
+                    .instanceId(context.getInstanceId())
+                    .agentId(context.getAgentId())
+                    .conversationId(context.getConversationId())
+                    .nodeId(nodeId)
+                    .nodeType(NodeType.ROUTER_NODE.name())
+                    .nodeName(nodeName)
+                    .build();
+
+            // 记录输入数据
+            // 如果是第一个节点(没有前序结果),记录用户输入;否则记录前序节点结果
+            String inputJson;
+            Map<String, Object> nodeResults = context.getAllNodeResults();
+            if (nodeResults == null || nodeResults.isEmpty()) {
+                // 第一个节点 - 记录用户输入
+                String userInput = context.getValue("userInput", "");
+                Map<String, Object> inputData = new HashMap<>();
+                inputData.put("userInput", userInput);
+                inputJson = JSON.toJSONString(inputData);
+            } else {
+                // 后续节点 - 记录前序节点结果
+                inputJson = JSON.toJSONString(nodeResults);
+            }
+            executionLog.start(inputJson);
+
+            // 保存日志并存入context
+            IDagExecutionRepository repository = getExecutionRepository();
+            if (repository != null) {
+                executionLog = repository.saveNodeLog(executionLog);
+                context.setValue("_node_log_" + nodeId, executionLog);
+            }
+        } catch (Exception e) {
+            log.warn("保存路由节点执行日志失败，不影响执行", e);
+        }
     }
 
     @Override
     public void afterExecute(DagExecutionContext context, NodeRouteDecision result, Exception exception) {
+        // 获取执行日志
+        NodeExecutionLog executionLog = (NodeExecutionLog) context.getValue("_node_log_" + nodeId);
+
         if (exception != null) {
             log.error("路由节点 [{}] ({}) 执行失败", nodeName, nodeId, exception);
+
+            // 更新日志为失败
+            if (executionLog != null) {
+                try {
+                    executionLog.fail(exception.getMessage(), getStackTrace(exception));
+                    IDagExecutionRepository repository = getExecutionRepository();
+                    if (repository != null) {
+                        repository.updateNodeLog(executionLog);
+                    }
+                } catch (Exception e) {
+                    log.warn("更新路由节点执行日志失败，不影响执行", e);
+                }
+            }
         } else {
             log.info("路由节点 [{}] ({}) 执行成功，路由决策: {}", nodeName, nodeId,
                     result != null ? result.getNextNodeIds() : "STOP");
+
+            // 更新日志为成功
+            if (executionLog != null) {
+                try {
+                    String outputJson = result != null ? JSON.toJSONString(result) : "";
+                    executionLog.succeed(outputJson);
+                    IDagExecutionRepository repository = getExecutionRepository();
+                    if (repository != null) {
+                        repository.updateNodeLog(executionLog);
+                    }
+                } catch (Exception e) {
+                    log.warn("更新路由节点执行日志失败，不影响执行", e);
+                }
+            }
         }
     }
 
     @Override
     public long getTimeoutMillis() {
         return config.getTimeout() != null ? config.getTimeout() : 0;
+    }
+
+    /**
+     * 获取仓储
+     */
+    private IDagExecutionRepository getExecutionRepository() {
+        try {
+            return applicationContext.getBean(IDagExecutionRepository.class);
+        } catch (Exception e) {
+            return null;
+        }
+    }
+
+    /**
+     * 获取堆栈跟踪
+     */
+    private String getStackTrace(Exception e) {
+        StringWriter sw = new StringWriter();
+        PrintWriter pw = new PrintWriter(sw);
+        e.printStackTrace(pw);
+        String stackTrace = sw.toString();
+        // 截断堆栈,避免太长
+        if (stackTrace.length() > 2000) {
+            stackTrace = stackTrace.substring(0, 2000) + "...";
+        }
+        return stackTrace;
     }
 
     @Override
