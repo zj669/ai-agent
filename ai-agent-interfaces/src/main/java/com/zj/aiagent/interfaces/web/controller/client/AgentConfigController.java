@@ -66,81 +66,6 @@ public class AgentConfigController {
     }
 
     /**
-     * 查询所有模型
-     *
-     * @return 模型列表
-     */
-    @GetMapping("/models")
-    @Operation(summary = "查询模型列表", description = "获取所有启用的模型配置")
-    public Response<List<ModelResponse>> getModels() {
-        try {
-            log.info("查询模型列表");
-
-            List<ModelDTO> modelDTOList = agentConfigApplicationService.getModels();
-
-            List<ModelResponse> responseList = modelDTOList.stream()
-                    .map(this::convertToModelResponse)
-                    .collect(Collectors.toList());
-
-            return Response.success(responseList);
-
-        } catch (Exception e) {
-            log.error("查询模型列表失败", e);
-            return Response.fail("查询失败: " + e.getMessage());
-        }
-    }
-
-    /**
-     * 查询所有 Advisor
-     *
-     * @return Advisor 列表
-     */
-    @GetMapping("/advisors")
-    @Operation(summary = "查询 Advisor 列表", description = "获取所有启用的 Advisor 配置")
-    public Response<List<AdvisorResponse>> getAdvisors() {
-        try {
-            log.info("查询 Advisor 列表");
-
-            List<AdvisorDTO> advisorDTOList = agentConfigApplicationService.getAdvisors();
-
-            List<AdvisorResponse> responseList = advisorDTOList.stream()
-                    .map(this::convertToAdvisorResponse)
-                    .collect(Collectors.toList());
-
-            return Response.success(responseList);
-
-        } catch (Exception e) {
-            log.error("查询 Advisor 列表失败", e);
-            return Response.fail("查询失败: " + e.getMessage());
-        }
-    }
-
-    /**
-     * 查询所有 MCP 工具
-     *
-     * @return MCP 工具列表
-     */
-    @GetMapping("/mcp-tools")
-    @Operation(summary = "查询 MCP 工具列表", description = "获取所有启用的 MCP 工具配置")
-    public Response<List<McpToolResponse>> getMcpTools() {
-        try {
-            log.info("查询 MCP 工具列表");
-
-            List<McpToolDTO> mcpToolDTOList = agentConfigApplicationService.getMcpTools();
-
-            List<McpToolResponse> responseList = mcpToolDTOList.stream()
-                    .map(this::convertToMcpToolResponse)
-                    .collect(Collectors.toList());
-
-            return Response.success(responseList);
-
-        } catch (Exception e) {
-            log.error("查询 MCP 工具列表失败", e);
-            return Response.fail("查询失败: " + e.getMessage());
-        }
-    }
-
-    /**
      * 转换节点类型 DTO 到响应
      */
     private NodeTypeResponse convertToNodeTypeResponse(NodeTypeDTO dto) {
@@ -151,50 +76,6 @@ public class AgentConfigController {
                 .description(dto.getDescription())
                 .icon(dto.getIcon())
                 .supportedConfigs(dto.getSupportedConfigs())
-                .build();
-    }
-
-    /**
-     * 转换模型 DTO 到响应
-     */
-    private ModelResponse convertToModelResponse(ModelDTO dto) {
-        return ModelResponse.builder()
-                .id(dto.getId())
-                .modelId(dto.getModelId())
-                .modelName(dto.getModelName())
-                .modelType(dto.getModelType())
-                .apiId(dto.getApiId())
-                .status(dto.getStatus())
-                .build();
-    }
-
-    /**
-     * 转换 Advisor DTO 到响应
-     */
-    private AdvisorResponse convertToAdvisorResponse(AdvisorDTO dto) {
-        return AdvisorResponse.builder()
-                .id(dto.getId())
-                .advisorId(dto.getAdvisorId())
-                .advisorName(dto.getAdvisorName())
-                .advisorType(dto.getAdvisorType())
-                .orderNum(dto.getOrderNum())
-                .extParam(dto.getExtParam())
-                .status(dto.getStatus())
-                .build();
-    }
-
-    /**
-     * 转换 MCP 工具 DTO 到响应
-     */
-    private McpToolResponse convertToMcpToolResponse(McpToolDTO dto) {
-        return McpToolResponse.builder()
-                .id(dto.getId())
-                .mcpId(dto.getMcpId())
-                .mcpName(dto.getMcpName())
-                .transportType(dto.getTransportType())
-                .transportConfig(dto.getTransportConfig())
-                .requestTimeout(dto.getRequestTimeout())
-                .status(dto.getStatus())
                 .build();
     }
 
