@@ -1,15 +1,15 @@
 package com.zj.aiagent.infrastructure.agent.config;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
-import com.zj.aiagent.domain.agent.config.entity.AdvisorEntity;
-import com.zj.aiagent.domain.agent.config.entity.McpToolEntity;
-import com.zj.aiagent.domain.agent.config.entity.ModelEntity;
+import com.zj.aiagent.domain.agent.config.entity.*;
 import com.zj.aiagent.domain.agent.config.repository.IAgentConfigRepository;
 import com.zj.aiagent.infrastructure.persistence.entity.AiAdvisorPO;
 import com.zj.aiagent.infrastructure.persistence.entity.AiModelPO;
+import com.zj.aiagent.infrastructure.persistence.entity.AiNodeTemplatePO;
 import com.zj.aiagent.infrastructure.persistence.entity.AiToolMcpPO;
 import com.zj.aiagent.infrastructure.persistence.mapper.AiAdvisorMapper;
 import com.zj.aiagent.infrastructure.persistence.mapper.AiModelMapper;
+import com.zj.aiagent.infrastructure.persistence.mapper.AiNodeTemplateMapper;
 import com.zj.aiagent.infrastructure.persistence.mapper.AiToolMcpMapper;
 import jakarta.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;
@@ -29,6 +29,9 @@ import java.util.stream.Collectors;
 public class AgentConfigRepositoryImpl implements IAgentConfigRepository {
 
     @Resource
+    private AiNodeTemplateMapper aiNodeTemplateMapper;
+
+    @Resource
     private AiModelMapper aiModelMapper;
 
     @Resource
@@ -36,6 +39,17 @@ public class AgentConfigRepositoryImpl implements IAgentConfigRepository {
 
     @Resource
     private AiToolMcpMapper aiToolMcpMapper;
+
+    @Override
+    public List<NodeTemplateEntity> findAllNodeTemplates() {
+        log.debug("查询所有节点模板");
+
+        List<AiNodeTemplatePO> nodeTemplatePOList = aiNodeTemplateMapper.selectList(null);
+
+        return nodeTemplatePOList.stream()
+                .map(this::convertToNodeTemplateEntity)
+                .collect(Collectors.toList());
+    }
 
     @Override
     public List<ModelEntity> findAllModels() {
@@ -78,6 +92,21 @@ public class AgentConfigRepositoryImpl implements IAgentConfigRepository {
         return mcpToolPOList.stream()
                 .map(this::convertToMcpToolEntity)
                 .collect(Collectors.toList());
+    }
+
+    /**
+     * 转换节点模板 PO 到实体
+     */
+    private NodeTemplateEntity convertToNodeTemplateEntity(AiNodeTemplatePO po) {
+        return NodeTemplateEntity.builder()
+                .id(po.getId())
+                .nodeType(po.getNodeType())
+                .nodeName(po.getNodeName())
+                .description(po.getDescription())
+                .icon(po.getIcon())
+                .defaultSystemPrompt(po.getDefaultSystemPrompt())
+                .configSchema(po.getConfigSchema())
+                .build();
     }
 
     /**

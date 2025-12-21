@@ -1,5 +1,7 @@
 package com.zj.aiagent.application.agent.config;
 
+import com.alibaba.fastjson2.JSON;
+import com.alibaba.fastjson2.JSONObject;
 import com.zj.aiagent.application.agent.config.dto.AdvisorDTO;
 import com.zj.aiagent.application.agent.config.dto.McpToolDTO;
 import com.zj.aiagent.application.agent.config.dto.ModelDTO;
@@ -7,14 +9,15 @@ import com.zj.aiagent.application.agent.config.dto.NodeTypeDTO;
 import com.zj.aiagent.domain.agent.config.entity.AdvisorEntity;
 import com.zj.aiagent.domain.agent.config.entity.McpToolEntity;
 import com.zj.aiagent.domain.agent.config.entity.ModelEntity;
+import com.zj.aiagent.domain.agent.config.entity.NodeTemplateEntity;
 import com.zj.aiagent.domain.agent.config.repository.IAgentConfigRepository;
 import com.zj.aiagent.domain.agent.dag.entity.NodeType;
 import jakarta.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
+import org.springframework.util.StringUtils;
 
-import java.util.Arrays;
-import java.util.List;
+import java.util.*;
 import java.util.stream.Collectors;
 
 /**
@@ -32,14 +35,28 @@ public class AgentConfigApplicationService {
 
     /**
      * 获取所有节点类型
+     * 
+     * 从数据库的 ai_node_template 表读取节点配置信息
      *
      * @return 节点类型列表
      */
     public List<NodeTypeDTO> getNodeTypes() {
         log.info("查询所有节点类型");
 
+        // 从数据库查询节点模板
+        List<NodeTemplateEntity> nodeTemplates = agentConfigRepository.findAllNodeTemplates();
+
+        // 创建节点模板映射，方便根据节点类型查找
+        Map<String, NodeTemplateEntity> templateMap = nodeTemplates.stream()
+                .collect(Collectors.toMap(
+                        NodeTemplateEntity::getNodeType,
+                        entity -> entity,
+                        (existing, replacement) -> existing // 如果有重复，保留第一个
+                ));
+
+        // 将枚举类型转换为 DTO，并从数据库获取配置信息
         return Arrays.stream(NodeType.values())
-                .map(this::convertToNodeTypeDTO)
+                .map(nodeType -> convertToNodeTypeDTO(nodeType, templateMap.get(nodeType.name())))
                 .collect(Collectors.toList());
     }
 
@@ -90,22 +107,64 @@ public class AgentConfigApplicationService {
 
     /**
      * 转换节点类型枚举到 DTO
+     * 
+     * @param nodeType 节点类型枚举
+     * @param template 数据库中的节点模板（可能为 null）
      */
-    private NodeTypeDTO convertToNodeTypeDTO(NodeType nodeType) {
+    private NodeTypeDTO convertToNodeTypeDTO(NodeType nodeType, NodeTemplateEntity template) {
+        // 如果数据库中有配置，优先使用数据库配置，否则使用默认值
+        String description = (template != null && StringUtils.hasText(template.getDescription()))
+                ? template.getDescription()
+                : getDefaultDescription(nodeType);
+
+        String icon = (template != null && StringUtils.hasText(template.getIcon()))
+                ? template.getIcon()
+                : getDefaultIcon(nodeType);
+
+        List<String> supportedConfigs = (template != null && StringUtils.hasText(template.getConfigSchema()))
+                ? parseSupportedConfigs(template.getConfigSchema())
+                : getDefaultSupportedConfigs(nodeType);
+
         return NodeTypeDTO.builder()
                 .nodeType(nodeType.name())
                 .nodeTypeValue(nodeType.getValue())
                 .nodeName(nodeType.getLabel())
-                .description(getNodeTypeDescription(nodeType))
-                .icon(getNodeTypeIcon(nodeType))
-                .supportedConfigs(getSupportedConfigs(nodeType))
+                .description(description)
+                .icon(icon)
+                .supportedConfigs(supportedConfigs)
                 .build();
     }
 
     /**
-     * 获取节点类型描述
+     * 从 configSchema JSON 解析支持的配置项
+     * 
+     * configSchema 格式示例：
+     * {
+     * "supportedConfigs": ["MODEL", "ADVISOR", "MCP_TOOL", "SYSTEM_PROMPT"]
+     * }
      */
-    private String getNodeTypeDescription(NodeType nodeType) {
+    private List<String> parseSupportedConfigs(String configSchema) {
+        try {
+            if (!StringUtils.hasText(configSchema)) {
+                return Collections.emptyList();
+            }
+
+            JSONObject json = JSON.parseObject(configSchema);
+            if (json != null && json.containsKey("supportedConfigs")) {
+                return json.getList("supportedConfigs", String.class);
+            }
+
+            return Collections.emptyList();
+        } catch (Exception e) {
+            log.warn("解析 configSchema 失败: {}", configSchema, e);
+            return Collections.emptyList();
+        }
+    }
+
+    /**
+     * 获取默认描述（如果数据库中没有配置）
+     */
+    private String getDefaultDescription(NodeType nodeType) {
         switch (nodeType) {
             case ACT_NODE:
                 return "精准执行特定任务，不进行额外推理";
@@ -123,9 +182,9 @@ public class AgentConfigApplicationService {
     }
 
     /**
-     * 获取节点类型图标
+     * 获取默认图标（如果数据库中没有配置）
      */
-    private String getNodeTypeIcon(NodeType nodeType) {
+    private String getDefaultIcon(NodeType nodeType) {
         switch (nodeType) {
             case ACT_NODE:
                 return "icon-act";
@@ -143,9 +202,9 @@ public class AgentConfigApplicationService {
     }
 
     /**
-     * 获取节点支持的配置项
+     * 获取默认支持的配置项（如果数据库中没有配置）
      */
-    private List<String> getSupportedConfigs(NodeType nodeType) {
+    private List<String> getDefaultSupportedConfigs(NodeType nodeType) {
         switch (nodeType) {
             case ACT_NODE:
             case PLAN_NODE:
@@ -156,7 +215,7 @@ public class AgentConfigApplicationService {
             case HUMAN_NODE:
                 return Arrays.asList("TIMEOUT", "PROMPT_MESSAGE");
             default:
-                return Arrays.asList();
+                return Collections.emptyList();
         }
     }
 

@@ -3,6 +3,7 @@ package com.zj.aiagent.domain.agent.config.repository;
 import com.zj.aiagent.domain.agent.config.entity.AdvisorEntity;
 import com.zj.aiagent.domain.agent.config.entity.McpToolEntity;
 import com.zj.aiagent.domain.agent.config.entity.ModelEntity;
+import com.zj.aiagent.domain.agent.config.entity.NodeTemplateEntity;
 
 import java.util.List;
 
@@ -13,6 +14,13 @@ import java.util.List;
  * @since 2025-12-21
  */
 public interface IAgentConfigRepository {
+
+    /**
+     * 查询所有节点模板
+     *
+     * @return 节点模板列表
+     */
+    List<NodeTemplateEntity> findAllNodeTemplates();
 
     /**
      * 查询所有启用的模型
