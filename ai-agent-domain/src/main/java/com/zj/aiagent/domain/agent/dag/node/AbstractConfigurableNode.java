@@ -1,14 +1,17 @@
 package com.zj.aiagent.domain.agent.dag.node;
 
 import com.alibaba.fastjson.JSON;
+
 import com.zj.aiagent.domain.agent.dag.config.AdvisorConfig;
 import com.zj.aiagent.domain.agent.dag.config.McpToolConfig;
 import com.zj.aiagent.domain.agent.dag.config.ModelConfig;
 import com.zj.aiagent.domain.agent.dag.config.NodeConfig;
 import com.zj.aiagent.domain.agent.dag.context.DagExecutionContext;
 import com.zj.aiagent.domain.agent.dag.entity.AutoAgentExecuteResultEntity;
+import com.zj.aiagent.domain.agent.dag.entity.NodeExecutionLog;
 import com.zj.aiagent.domain.agent.dag.entity.NodeType;
 import com.zj.aiagent.domain.agent.dag.exception.NodeConfigException;
+import com.zj.aiagent.domain.agent.dag.repository.IDagExecutionRepository;
 import com.zj.aiagent.shared.design.dag.DagNode;
 import com.zj.aiagent.shared.design.dag.DagNodeExecutionException;
 import io.modelcontextprotocol.client.McpSyncClient;
@@ -24,6 +27,8 @@ import org.springframework.web.client.RestClient;
 import org.springframework.web.reactive.function.client.WebClient;
 import org.springframework.web.servlet.mvc.method.annotation.ResponseBodyEmitter;
 
+import java.io.PrintWriter;
+import java.io.StringWriter;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -74,20 +79,101 @@ public abstract class AbstractConfigurableNode implements DagNode<DagExecutionCo
     @Override
     public void beforeExecute(DagExecutionContext context) {
         log.info("节点 [{}] ({}) 开始执行", nodeName, nodeId);
+
+        try {
+            // 创建节点执行日志
+            NodeExecutionLog executionLog = NodeExecutionLog.builder()
+                    .instanceId(context.getInstanceId())
+                    .agentId(context.getAgentId())
+                    .conversationId(context.getConversationId())
+                    .nodeId(nodeId)
+                    .nodeType(getNodeType() != null ? getNodeType().name() : "UNKNOWN")
+                    .nodeName(nodeName)
+                    .build();
+
+            // 记录输入(当前执行上下文)
+            String inputJson = JSON.toJSONString(context.getAllNodeResults());
+            executionLog.start(inputJson);
+
+            // 保存日志并存入context
+            IDagExecutionRepository repository = getExecutionRepository();
+            if (repository != null) {
+                executionLog = repository.saveNodeLog(executionLog);
+                context.setValue("_node_log_" + nodeId, executionLog);
+            }
+        } catch (Exception e) {
+            log.warn("保存节点执行日志失败，不影响执行", e);
+        }
     }
 
     @Override
     public void afterExecute(DagExecutionContext context, String result, Exception exception) {
+        // 获取执行日志
+        NodeExecutionLog executionLog = (NodeExecutionLog) context.getValue("_node_log_" + nodeId);
+
         if (exception != null) {
             log.error("节点 [{}] ({}) 执行失败", nodeName, nodeId, exception);
+
+            // 更新日志为失败
+            if (executionLog != null) {
+                try {
+                    executionLog.fail(exception.getMessage(), getStackTrace(exception));
+                    IDagExecutionRepository repository = getExecutionRepository();
+                    if (repository != null) {
+                        repository.updateNodeLog(executionLog);
+                    }
+                } catch (Exception e) {
+                    log.warn("更新节点执行日志失败，不影响执行", e);
+                }
+            }
         } else {
             log.info("节点 [{}] ({}) 执行成功", nodeName, nodeId);
+
+            // 更新日志为成功
+            if (executionLog != null) {
+                try {
+                    String outputJson = result != null ? JSON.toJSONString(result) : "";
+                    executionLog.succeed(outputJson);
+                    IDagExecutionRepository repository = getExecutionRepository();
+                    if (repository != null) {
+                        repository.updateNodeLog(executionLog);
+                    }
+                } catch (Exception e) {
+                    log.warn("更新节点执行日志失败，不影响执行", e);
+                }
+            }
         }
     }
 
     @Override
     public long getTimeoutMillis() {
         return config.getTimeout() != null ? config.getTimeout() : 0;
+    }
+
+    /**
+     * 获取仓储
+     */
+    private IDagExecutionRepository getExecutionRepository() {
+        try {
+            return applicationContext.getBean(IDagExecutionRepository.class);
+        } catch (Exception e) {
+            return null;
+        }
+    }
+
+    /**
+     * 获取堆栈跟踪
+     */
+    private String getStackTrace(Exception e) {
+        StringWriter sw = new StringWriter();
+        PrintWriter pw = new PrintWriter(sw);
+        e.printStackTrace(pw);
+        String stackTrace = sw.toString();
+        // 截断堆栈,避免太长
+        if (stackTrace.length() > 2000) {
+            stackTrace = stackTrace.substring(0, 2000) + "...";
+        }
+        return stackTrace;
     }
 
     /**

@@ -1,9 +1,12 @@
 package com.zj.aiagent.infrastructure.agent.dag;
 
 import com.zj.aiagent.domain.agent.dag.entity.DagExecutionInstance;
+import com.zj.aiagent.domain.agent.dag.entity.NodeExecutionLog;
 import com.zj.aiagent.domain.agent.dag.repository.IDagExecutionRepository;
 import com.zj.aiagent.infrastructure.persistence.entity.AiAgentInstancePO;
+import com.zj.aiagent.infrastructure.persistence.entity.AiAgentExecutionLogPO;
 import com.zj.aiagent.infrastructure.persistence.mapper.AiAgentInstanceMapper;
+import com.zj.aiagent.infrastructure.persistence.mapper.AiAgentExecutionLogMapper;
 import jakarta.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Repository;
@@ -18,6 +21,9 @@ public class DagExecutionRepositoryImpl implements IDagExecutionRepository {
 
     @Resource
     private AiAgentInstanceMapper agentInstanceMapper;
+
+    @Resource
+    private AiAgentExecutionLogMapper executionLogMapper;
 
     @Override
     public DagExecutionInstance save(DagExecutionInstance instance) {
@@ -93,6 +99,58 @@ public class DagExecutionRepositoryImpl implements IDagExecutionRepository {
                 .runtimeContextJson(po.getRuntimeContextJson())
                 .createTime(po.getCreateTime())
                 .updateTime(po.getUpdateTime())
+                .build();
+    }
+
+    @Override
+    public NodeExecutionLog saveNodeLog(NodeExecutionLog log1) {
+        try {
+            AiAgentExecutionLogPO po = nodeLogToPO(log1);
+            executionLogMapper.insert(po);
+            log1.setId(po.getId());
+            return log1;
+        } catch (Exception e) {
+            log.error("保存节点执行日志失败", e);
+            throw new RuntimeException("保存节点执行日志失败", e);
+        }
+    }
+
+    @Override
+    public void updateNodeLog(NodeExecutionLog log1) {
+        try {
+            AiAgentExecutionLogPO po = nodeLogToPO(log1);
+            executionLogMapper.updateById(po);
+        } catch (Exception e) {
+            log.error("更新节点执行日志失败", e);
+            throw new RuntimeException("更新节点执行日志失败", e);
+        }
+    }
+
+    /**
+     * NodeExecutionLog Entity 转 PO
+     */
+    private AiAgentExecutionLogPO nodeLogToPO(NodeExecutionLog entity) {
+        return AiAgentExecutionLogPO.builder()
+                .id(entity.getId())
+                .instanceId(entity.getInstanceId())
+                .agentId(String.valueOf(entity.getAgentId()))
+                .conversationId(entity.getConversationId())
+                .nodeId(entity.getNodeId())
+                .nodeType(entity.getNodeType())
+                .nodeName(entity.getNodeName())
+                .executeStatus(entity.getExecuteStatus())
+                .inputData(entity.getInputData())
+                .outputData(entity.getOutputData())
+                .errorMessage(entity.getErrorMessage())
+                .errorStack(entity.getErrorStack())
+                .startTime(entity.getStartTime())
+                .endTime(entity.getEndTime())
+                .durationMs(entity.getDurationMs())
+                .retryCount(entity.getRetryCount())
+                .modelInfo(entity.getModelInfo())
+                .tokenUsage(entity.getTokenUsage())
+                .metadata(entity.getMetadata())
+                .createTime(entity.getCreateTime())
                 .build();
     }
 }

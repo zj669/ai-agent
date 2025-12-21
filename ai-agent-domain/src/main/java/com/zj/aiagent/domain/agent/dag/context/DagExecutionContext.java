@@ -1,6 +1,5 @@
 package com.zj.aiagent.domain.agent.dag.context;
 
-
 import com.zj.aiagent.shared.design.dag.DagContext;
 import lombok.Getter;
 import lombok.Setter;
@@ -20,6 +19,12 @@ public class DagExecutionContext implements DagContext {
     @Getter
     @Setter
     private Long agentId;
+
+    /**
+     * 执行实例ID
+     */
+    private Long instanceId;
+
     private final String executionId;
     private final String conversationId;
     private final Map<String, Object> dataMap;
@@ -86,6 +91,14 @@ public class DagExecutionContext implements DagContext {
     @Override
     public String getConversationId() {
         return conversationId;
+    }
+
+    public Long getInstanceId() {
+        return instanceId;
+    }
+
+    public void setInstanceId(Long instanceId) {
+        this.instanceId = instanceId;
     }
 
 }

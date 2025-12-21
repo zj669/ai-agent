@@ -1,6 +1,7 @@
 package com.zj.aiagent.domain.agent.dag.repository;
 
 import com.zj.aiagent.domain.agent.dag.entity.DagExecutionInstance;
+import com.zj.aiagent.domain.agent.dag.entity.NodeExecutionLog;
 
 /**
  * DAG 执行实例仓储接口
@@ -37,4 +38,19 @@ public interface IDagExecutionRepository {
      * @return 执行实例,不存在返回 null
      */
     DagExecutionInstance findByConversationId(String conversationId);
+
+    /**
+     * 保存节点执行日志
+     *
+     * @param log 执行日志
+     * @return 保存后的日志(包含生成的ID)
+     */
+    NodeExecutionLog saveNodeLog(NodeExecutionLog log);
+
+    /**
+     * 更新节点执行日志
+     *
+     * @param log 执行日志
+     */
+    void updateNodeLog(NodeExecutionLog log);
 }

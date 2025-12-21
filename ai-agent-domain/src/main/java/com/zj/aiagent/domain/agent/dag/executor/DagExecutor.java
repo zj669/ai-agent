@@ -59,6 +59,7 @@ public class DagExecutor {
 
             // 3. 创建执行实例(DAG聚合内部操作)
             DagExecutionInstance instance = createExecutionInstance(dagGraph, context);
+            context.setInstanceId(instance.getId()); // 设置实例ID到上下文
 
             // 4. 将 DagGraph 存入 context，供 RouterNode 等节点使用
             context.setValue("__DAG_GRAPH__", dagGraph);
