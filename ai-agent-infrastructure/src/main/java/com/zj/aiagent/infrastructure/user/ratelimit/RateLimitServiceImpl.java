@@ -4,7 +4,7 @@ import com.zj.aiagent.domain.user.service.RateLimitDomainService;
 import com.zj.aiagent.domain.user.service.RateLimitService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.data.redis.core.StringRedisTemplate;
+import com.zj.aiagent.infrastructure.redis.IRedisService;
 import org.springframework.stereotype.Service;
 
 import java.util.concurrent.TimeUnit;
@@ -23,7 +23,7 @@ import java.util.concurrent.TimeUnit;
 @RequiredArgsConstructor
 public class RateLimitServiceImpl implements RateLimitService {
 
-    private final StringRedisTemplate stringRedisTemplate;
+    private final IRedisService redisService;
     private final RateLimitDomainService rateLimitDomainService;
 
     /**
@@ -103,7 +103,7 @@ public class RateLimitServiceImpl implements RateLimitService {
      */
     private void checkRateLimit(String key, int maxAttempts, int timeWindowSeconds, String description) {
         // 获取当前计数
-        String countStr = stringRedisTemplate.opsForValue().get(key);
+        String countStr = redisService.getValue(key);
         int count = countStr == null ? 0 : Integer.parseInt(countStr);
 
         // 检查是否超过限流阈值
@@ -113,11 +113,11 @@ public class RateLimitServiceImpl implements RateLimitService {
         }
 
         // 增加计数
-        Long newCount = stringRedisTemplate.opsForValue().increment(key);
+        long newCount = redisService.incr(key);
 
         // 如果是第一次计数，设置过期时间
-        if (newCount != null && newCount == 1) {
-            stringRedisTemplate.expire(key, timeWindowSeconds, TimeUnit.SECONDS);
+        if (newCount == 1) {
+            redisService.setValue(key, String.valueOf(newCount), timeWindowSeconds);
         }
 
         log.debug("限流检查通过: key={}, count={}/{}", key, newCount, maxAttempts);

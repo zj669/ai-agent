@@ -5,14 +5,12 @@ import jakarta.annotation.Resource;
 import org.redisson.api.*;
 import org.springframework.stereotype.Service;
 
-
 import java.time.Duration;
 import java.util.concurrent.TimeUnit;
 
 /**
  * Redis 服务 - Redisson
  *
- * @author Fuzhengwei bugstack.cn @小傅哥
  */
 @Service("redissonService")
 public class RedissonService implements IRedisService {

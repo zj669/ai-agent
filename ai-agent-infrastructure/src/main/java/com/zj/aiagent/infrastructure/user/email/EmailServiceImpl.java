@@ -8,7 +8,7 @@ import jakarta.mail.MessagingException;
 import jakarta.mail.internet.MimeMessage;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.data.redis.core.StringRedisTemplate;
+import com.zj.aiagent.infrastructure.redis.IRedisService;
 import org.springframework.mail.MailException;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.mail.javamail.MimeMessageHelper;
@@ -31,7 +31,7 @@ import java.util.concurrent.TimeUnit;
 @RequiredArgsConstructor
 public class EmailServiceImpl implements EmailService {
 
-    private final StringRedisTemplate stringRedisTemplate;
+    private final IRedisService redisService;
     private final EmailVerificationDomainService emailVerificationDomainService;
     private final JavaMailSender mailSender;
     private final EmailSendLogMapper emailSendLogMapper;
@@ -54,13 +54,10 @@ public class EmailServiceImpl implements EmailService {
         // 1. 生成验证码
         String code = emailVerificationDomainService.generateVerificationCode();
 
-        // 2. 存储验证码到Redis（5分钟过期）
+        // 2. 存储验证码到Redis(5分钟过期)
         String key = VERIFICATION_CODE_PREFIX + email;
-        stringRedisTemplate.opsForValue().set(
-                key,
-                code,
-                emailVerificationDomainService.getCodeExpiryMinutes(),
-                TimeUnit.MINUTES);
+        long expirySeconds = emailVerificationDomainService.getCodeExpiryMinutes() * 60;
+        redisService.setValue(key, code, expirySeconds);
 
         // 3. 异步发送邮件
         sendEmailAsync(email, code);
@@ -81,7 +78,7 @@ public class EmailServiceImpl implements EmailService {
 
         // 从Redis中获取验证码
         String key = VERIFICATION_CODE_PREFIX + email;
-        String storedCode = stringRedisTemplate.opsForValue().get(key);
+        String storedCode = redisService.getValue(key);
 
         if (storedCode == null) {
             log.warn("验证码不存在或已过期, email: {}", email);
@@ -94,7 +91,7 @@ public class EmailServiceImpl implements EmailService {
         }
 
         // 验证成功后删除验证码
-        stringRedisTemplate.delete(key);
+        redisService.remove(key);
         log.info("验证码验证成功, email: {}", email);
         return true;
     }
