@@ -16,14 +16,9 @@
     <description>接口层 - Web层、监控、启动模块</description>
 
     <dependencies>
-        <!-- 依赖所有模块 -->
         <dependency>
             <groupId>com.zj</groupId>
             <artifactId>ai-agent-application</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>com.zj</groupId>
-            <artifactId>ai-agent-infrastructure</artifactId>
         </dependency>
 
         <!-- Spring Boot Web -->

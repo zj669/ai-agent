@@ -78,6 +78,11 @@
                 <artifactId>ai-agent-infrastructure</artifactId>
                 <version>${project.version}</version>
             </dependency>
+            <dependency>
+                <groupId>com.zj</groupId>
+                <artifactId>ai-agent-interfaces</artifactId>
+                <version>${project.version}</version>
+            </dependency>
 
             <!-- Spring AI -->
             <dependency>

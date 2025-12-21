@@ -2,6 +2,8 @@ package com.zj.aiagent.infrastructure.user.email;
 
 import com.zj.aiagent.domain.user.service.EmailService;
 import com.zj.aiagent.domain.user.service.EmailVerificationDomainService;
+import com.zj.aiagent.infrastructure.persistence.entity.EmailSendLogPO;
+import com.zj.aiagent.infrastructure.persistence.mapper.EmailSendLogMapper;
 import jakarta.mail.MessagingException;
 import jakarta.mail.internet.MimeMessage;
 import lombok.RequiredArgsConstructor;
@@ -32,6 +34,10 @@ public class EmailServiceImpl implements EmailService {
     private final StringRedisTemplate stringRedisTemplate;
     private final EmailVerificationDomainService emailVerificationDomainService;
     private final JavaMailSender mailSender;
+    private final EmailSendLogMapper emailSendLogMapper;
+
+    @org.springframework.beans.factory.annotation.Value("${spring.mail.username}")
+    private String mailUsername;
 
     private static final String VERIFICATION_CODE_PREFIX = "email:verification:code:";
 
@@ -107,6 +113,9 @@ public class EmailServiceImpl implements EmailService {
             MimeMessageHelper helper = new MimeMessageHelper(message, true, "UTF-8");
 
             helper.setTo(email);
+            // 设置发件人（必须与授权用户一致）
+            helper.setFrom(mailUsername);
+
             helper.setSubject(emailVerificationDomainService.buildVerificationEmailSubject());
 
             // 使用HTML模板
@@ -117,10 +126,20 @@ public class EmailServiceImpl implements EmailService {
             mailSender.send(message);
 
             log.info("邮件发送成功, email: {}", email);
-
+            emailSendLogMapper.insert(EmailSendLogPO.builder()
+                    .email(email)
+                    .verificationCode(code)
+                    .sendStatus(1)
+                    .build());
         } catch (MessagingException | MailException e) {
             log.error("邮件发送失败, email: {}, error: {}", email, e.getMessage(), e);
             // 注意：这里可以考虑添加重试机制或者记录到数据库
+            emailSendLogMapper.insert(EmailSendLogPO.builder()
+                    .email(email)
+                    .verificationCode(code)
+                    .sendStatus(0)
+                    .errorMsg(e.getMessage())
+                    .build());
         }
     }
 

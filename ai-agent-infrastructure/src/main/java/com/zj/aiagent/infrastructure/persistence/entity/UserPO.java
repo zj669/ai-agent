@@ -51,12 +51,6 @@ public class UserPO {
     @TableField("create_time")
     private LocalDateTime createTime;
 
-    @TableField("create_by")
-    private Long createBy;
-
     @TableField("update_time")
     private LocalDateTime updateTime;
-
-    @TableField("update_by")
-    private Long updateBy;
 }

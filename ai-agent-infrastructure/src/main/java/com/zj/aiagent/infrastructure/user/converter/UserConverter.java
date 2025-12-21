@@ -36,9 +36,7 @@ public class UserConverter {
         user.setLastLoginTime(po.getLastLoginTime());
         user.setLastLoginIp(po.getLastLoginIp());
         user.setCreateTime(po.getCreateTime());
-        user.setCreateBy(po.getCreateBy());
         user.setUpdateTime(po.getUpdateTime());
-        user.setUpdateBy(po.getUpdateBy());
 
         return user;
     }
@@ -65,9 +63,7 @@ public class UserConverter {
         po.setLastLoginTime(user.getLastLoginTime());
         po.setLastLoginIp(user.getLastLoginIp());
         po.setCreateTime(user.getCreateTime());
-        po.setCreateBy(user.getCreateBy());
         po.setUpdateTime(user.getUpdateTime());
-        po.setUpdateBy(user.getUpdateBy());
 
         return po;
     }

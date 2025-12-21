@@ -48,7 +48,9 @@ public class WebMvcConfig implements WebMvcConfigurer {
         registry.addInterceptor(loginInterceptor)
                 .addPathPatterns("/api/**", "/client/**") // 拦截所有/api/**路径
                 .excludePathPatterns(
+                        "/client/user/email/register", // 放行注册接口
                         "/client/user/register", // 放行注册接口
+                        "/client/user/email/sendCode", // 放行注册接口
                         "/client/user/login" // 放行登录接口
                 );
     }

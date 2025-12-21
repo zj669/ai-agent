@@ -28,4 +28,5 @@ public interface EmailService {
      * @return true-验证成功，false-验证失败
      */
     boolean verifyCode(String email, String code);
+
 }

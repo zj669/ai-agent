@@ -1,5 +1,5 @@
 server:
-  port: 8091
+  port: 8080
 
 # 线程池配置
 thread:
@@ -69,16 +69,24 @@ spring:
     port: ${MAIL_PORT:465}
     username: ${MAIL_USERNAME:zj-669@qq.com}
     password: ${MAIL_PASSWORD:romspgyuovtqddgh}
+    protocol: smtp
+    default-encoding: UTF-8
     properties:
       mail:
         smtp:
           auth: true
-          starttls:
+          # 使用 SSL 连接（端口 465）
+          ssl:
             enable: true
-            required: true
-          connectiontimeout: 5000
-          timeout: 5000
-          writetimeout: 5000
+          # 配置 SSL Socket Factory
+          socketFactory:
+            class: javax.net.ssl.SSLSocketFactory
+            port: 465
+          # 超时配置（增加到 10 秒）
+          connectiontimeout: 10000
+          timeout: 10000
+          writetimeout: 10000
+
 
 # MyBatis-Plus配置
 mybatis-plus:

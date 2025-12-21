@@ -146,36 +146,36 @@ public class UserController {
         }
     }
 
-    /**
-     * 传统用户名注册
-     */
-    @PostMapping("/register")
-    @Operation(summary = "用户注册")
-    public Response<UserResponse> register(@Valid @RequestBody RegisterUserRequest request) {
-        log.info("用户注册请求, username: {}", request.getUsername());
-        try {
-            // 构建命令
-            RegisterUserCommand command = RegisterUserCommand.builder()
-                    .username(request.getUsername())
-                    .password(request.getPassword())
-                    .email(request.getEmail())
-                    .phone(request.getPhone())
-                    .build();
-
-            // 执行注册
-            UserApplicationService.UserDTO userDTO = userApplicationService.register(command);
-
-            // 转换响应
-            UserResponse response = convertToResponse(userDTO);
-            return Response.success(response);
-        } catch (IllegalArgumentException e) {
-            log.warn("用户注册失败: {}", e.getMessage());
-            return Response.fail(e.getMessage());
-        } catch (Exception e) {
-            log.error("用户注册异常", e);
-            return Response.fail("注册失败,请稍后重试");
-        }
-    }
+//    /**
+//     * 传统用户名注册
+//     */
+//    @PostMapping("/register")
+//    @Operation(summary = "用户注册")
+//    public Response<UserResponse> register(@Valid @RequestBody RegisterUserRequest request) {
+//        log.info("用户注册请求, username: {}", request.getUsername());
+//        try {
+//            // 构建命令
+//            RegisterUserCommand command = RegisterUserCommand.builder()
+//                    .username(request.getUsername())
+//                    .password(request.getPassword())
+//                    .email(request.getEmail())
+//                    .phone(request.getPhone())
+//                    .build();
+//
+//            // 执行注册
+//            UserApplicationService.UserDTO userDTO = userApplicationService.register(command);
+//
+//            // 转换响应
+//            UserResponse response = convertToResponse(userDTO);
+//            return Response.success(response);
+//        } catch (IllegalArgumentException e) {
+//            log.warn("用户注册失败: {}", e.getMessage());
+//            return Response.fail(e.getMessage());
+//        } catch (Exception e) {
+//            log.error("用户注册异常", e);
+//            return Response.fail("注册失败,请稍后重试");
+//        }
+//    }
 
     /**
      * 获取当前登录用户信息
