@@ -1,6 +1,5 @@
 package com.zj.aiagent.domain.agent.dag.executor;
 
-
 import com.zj.aiagent.domain.agent.dag.context.DagExecutionContext;
 import com.zj.aiagent.domain.agent.dag.logging.DagLoggingService;
 import com.zj.aiagent.shared.design.dag.ConditionalDagNode;
@@ -108,6 +107,9 @@ public class DagParallelScheduler {
 
         long startTime = System.currentTimeMillis();
 
+        // 推送节点开始事件
+        pushNodeLifecycleEvent(context, nodeId, nodeName, "starting", null, null);
+
         try {
             log.info("开始执行节点: {}", nodeId);
 
@@ -117,7 +119,7 @@ public class DagParallelScheduler {
             if (nodeObj instanceof ConditionalDagNode) {
                 // ConditionalDagNode（如RouterNode）
                 @SuppressWarnings("unchecked")
-               ConditionalDagNode<DagExecutionContext> conditionalNode = (ConditionalDagNode<DagExecutionContext>) nodeObj;
+                ConditionalDagNode<DagExecutionContext> conditionalNode = (ConditionalDagNode<DagExecutionContext>) nodeObj;
 
                 conditionalNode.beforeExecute(context);
 
@@ -149,11 +151,17 @@ public class DagParallelScheduler {
             long duration = System.currentTimeMillis() - startTime;
             log.info("节点执行成功: {}, 耗时: {}ms", nodeId, duration);
 
+            // 推送节点完成事件
+            pushNodeLifecycleEvent(context, nodeId, nodeName, "completed", result, duration);
+
             return new NodeExecutionResult(nodeId, true, result, null, duration);
 
         } catch (DagNodeExecutionException e) {
             long duration = System.currentTimeMillis() - startTime;
             log.error("节点执行失败: {}, 耗时: {}ms", nodeId, duration, e);
+
+            // 推送节点失败事件
+            pushNodeLifecycleEvent(context, nodeId, nodeName, "failed", e.getMessage(), duration);
 
             return new NodeExecutionResult(nodeId, false, null, e, duration);
         } catch (Exception e) {
@@ -163,7 +171,58 @@ public class DagParallelScheduler {
             DagNodeExecutionException wrappedException = new DagNodeExecutionException(
                     "Node execution failed: " + e.getMessage(), e, nodeId, true);
 
+            // 推送节点失败事件
+            pushNodeLifecycleEvent(context, nodeId, nodeName, "failed", e.getMessage(), duration);
+
             return new NodeExecutionResult(nodeId, false, null, wrappedException, duration);
+        }
+    }
+
+    /**
+     * 推送节点生命周期事件到客户端
+     * 
+     * @param context    执行上下文
+     * @param nodeId     节点ID
+     * @param nodeName   节点名称
+     * @param status     节点状态: starting, completed, failed
+     * @param result     结果或错误信息
+     * @param durationMs 执行耗时(毫秒),starting 事件时为 null
+     */
+    private void pushNodeLifecycleEvent(DagExecutionContext context, String nodeId, String nodeName,
+            String status, Object result, Long durationMs) {
+        org.springframework.web.servlet.mvc.method.annotation.ResponseBodyEmitter emitter = context.getEmitter();
+        if (emitter == null) {
+            return;
+        }
+
+        try {
+            // 构建事件消息
+            java.util.Map<String, Object> event = new java.util.HashMap<>();
+            event.put("type", "node_lifecycle");
+            event.put("nodeId", nodeId);
+            event.put("nodeName", nodeName);
+            event.put("status", status);
+            event.put("timestamp", System.currentTimeMillis());
+
+            if (result != null) {
+                // 限制结果长度避免消息过大
+                String resultStr = result.toString();
+                if (resultStr.length() > 500) {
+                    resultStr = resultStr.substring(0, 500) + "...";
+                }
+                event.put("result", resultStr);
+            }
+
+            if (durationMs != null) {
+                event.put("durationMs", durationMs);
+            }
+
+            String message = "data: " + com.alibaba.fastjson.JSON.toJSONString(event) + "\n\n";
+            emitter.send(message);
+
+            log.debug("推送节点生命周期事件: nodeId={}, status={}", nodeId, status);
+        } catch (Exception e) {
+            log.warn("推送节点生命周期事件失败: nodeId={}, status={}", nodeId, status, e);
         }
     }
 

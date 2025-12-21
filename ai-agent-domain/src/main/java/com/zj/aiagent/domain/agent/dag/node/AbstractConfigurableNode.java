@@ -214,31 +214,72 @@ public abstract class AbstractConfigurableNode implements DagNode<DagExecutionCo
 
     /**
      * 执行AI调用
+     * 支持流式推送到客户端
      */
-    protected String callAI(String userMessage, DagExecutionContext context) {
+    protected String callAI(String userMessage, DagExecutionContext context) throws DagNodeExecutionException {
         ChatClient chatClient = buildChatClient(context);
-
         ChatClient.ChatClientRequestSpec spec = chatClient.prompt(userMessage);
 
-        // // 处理记忆配置
-        // if (config.getMemory() != null &&
-        // Boolean.TRUE.equals(config.getMemory().getEnabled())) {
-        // String conversationId =
-        // resolveConversationId(config.getMemory().getConversationId(), context);
-        // Integer retrieveSize = config.getMemory().getRetrieveSize() != null ?
-        // config.getMemory().getRetrieveSize()
-        // : 10;
-        //
-        // spec = spec.advisors(a -> a
-        // .param("chat_memory_conversation_id", conversationId)
-        // .param("chat_memory_response_size", retrieveSize));
-        // }
-        // todo
+        // 配置会话记忆
         String conversationId = context.getConversationId();
         spec = spec.advisors(a -> a
                 .param("chat_memory_conversation_id", conversationId)
                 .param("chat_memory_response_size", 10));
-        return spec.call().content();
+
+        // 检查是否有 emitter,决定使用同步还是流式
+        ResponseBodyEmitter emitter = context.getEmitter();
+        if (emitter != null) {
+            // 使用流式调用
+            return callAIStream(spec, context);
+        } else {
+            // 同步调用
+            return spec.call().content();
+        }
+    }
+
+    /**
+     * 流式调用 AI 并推送到客户端
+     */
+    private String callAIStream(ChatClient.ChatClientRequestSpec spec, DagExecutionContext context)
+            throws DagNodeExecutionException {
+        StringBuilder fullResponse = new StringBuilder();
+        java.util.concurrent.CountDownLatch latch = new java.util.concurrent.CountDownLatch(1);
+        java.util.concurrent.atomic.AtomicReference<Exception> errorRef = new java.util.concurrent.atomic.AtomicReference<>();
+
+        try {
+            reactor.core.publisher.Flux<String> stream = spec.stream().content();
+
+            stream.subscribe(
+                    chunk -> {
+                        // 推送每个 chunk
+                        pushMessage(chunk, context);
+                        fullResponse.append(chunk);
+                    },
+                    error -> {
+                        log.error("流式调用失败", error);
+                        errorRef.set((Exception) error);
+                        latch.countDown();
+                    },
+                    latch::countDown);
+
+            // 等待流完成,最多等待5分钟
+            boolean completed = latch.await(5, java.util.concurrent.TimeUnit.MINUTES);
+            if (!completed) {
+                throw new DagNodeExecutionException("流式调用超时", null, nodeId, true);
+            }
+
+            // 检查是否有错误
+            Exception error = errorRef.get();
+            if (error != null) {
+                throw new DagNodeExecutionException("流式调用失败: " + error.getMessage(), error, nodeId, true);
+            }
+
+            return fullResponse.toString();
+
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            throw new DagNodeExecutionException("流式调用被中断", e, nodeId, true);
+        }
     }
 
     /**
@@ -276,8 +317,12 @@ public abstract class AbstractConfigurableNode implements DagNode<DagExecutionCo
     }
 
     private String buildMessage(String message, String conversationId) {
+        // 获取节点类型,如果为 null 则使用默认值
+        NodeType nodeType = getNodeType();
+        String typeLabel = (nodeType != null) ? nodeType.getLabel() : "UNKNOWN";
+
         AutoAgentExecuteResultEntity result = AutoAgentExecuteResultEntity.builder()
-                .type(getNodeType().getLabel())
+                .type(typeLabel)
                 .nodeName(getNodeName())
                 .content(message)
                 .completed(false)

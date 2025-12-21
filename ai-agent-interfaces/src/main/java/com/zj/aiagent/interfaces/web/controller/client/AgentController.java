@@ -66,14 +66,22 @@ public class AgentController {
             new Thread(() -> {
                 try {
                     agentApplicationService.chat(command);
-                    emitter.complete();
+                    // 尝试完成响应,如果已经完成则会抛出 IllegalStateException
+                    try {
+                        emitter.complete();
+                    } catch (IllegalStateException e) {
+                        // emitter 已经完成,忽略此异常
+                        log.debug("Emitter 已经完成,无需再次调用 complete");
+                    }
                 } catch (Exception e) {
                     log.error("聊天处理异常", e);
+                    // 尝试发送错误信息,如果 emitter 已完成则忽略
                     try {
                         emitter.send("error: " + e.getMessage());
                         emitter.completeWithError(e);
-                    } catch (IOException ioException) {
-                        log.error("发送错误信息失败", ioException);
+                    } catch (IllegalStateException | IOException ex) {
+                        // emitter 已经完成或发送失败,记录但不再抛出
+                        log.warn("无法发送错误信息,emitter 可能已完成: {}", ex.getMessage());
                     }
                 }
             }).start();

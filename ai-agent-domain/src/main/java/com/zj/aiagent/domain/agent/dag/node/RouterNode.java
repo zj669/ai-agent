@@ -123,7 +123,7 @@ public class RouterNode implements ConditionalDagNode<DagExecutionContext> {
     /**
      * 通过AI评估选择节点
      */
-    private String evaluateByAI(DagExecutionContext context) {
+    private String evaluateByAI(DagExecutionContext context) throws DagNodeExecutionException {
         // 构建路由提示词
         String routingPrompt = buildRoutingPrompt(context);
 
@@ -155,7 +155,7 @@ public class RouterNode implements ConditionalDagNode<DagExecutionContext> {
 
         // 暴露callAI方法供RouterNode使用
         @Override
-        public String callAI(String userMessage, DagExecutionContext context) {
+        public String callAI(String userMessage, DagExecutionContext context) throws DagNodeExecutionException {
             return super.callAI(userMessage, context);
         }
     }

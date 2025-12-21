@@ -214,7 +214,7 @@ public class ReactNode extends AbstractConfigurableNode {
     /**
      * 执行搜索行动
      */
-    private String executeSearch(String query, DagExecutionContext context) {
+    private String executeSearch(String query, DagExecutionContext context) throws DagNodeExecutionException {
         // 这里可以集成实际的搜索服务
         log.info("执行搜索: {}", query);
 
@@ -229,7 +229,7 @@ public class ReactNode extends AbstractConfigurableNode {
     /**
      * 执行计算行动
      */
-    private String executeCalculate(String expression, DagExecutionContext context) {
+    private String executeCalculate(String expression, DagExecutionContext context) throws DagNodeExecutionException {
         log.info("执行计算: {}", expression);
 
         // 简化实现：使用 AI 进行计算
