@@ -7,10 +7,10 @@ import com.zj.aiagent.application.user.command.SendEmailCodeCommand;
 import com.zj.aiagent.application.user.query.GetUserInfoQuery;
 import com.zj.aiagent.domain.user.entity.User;
 import com.zj.aiagent.domain.user.repository.UserRepository;
+import com.zj.aiagent.domain.user.service.EmailService;
+import com.zj.aiagent.domain.user.service.RateLimitService;
 import com.zj.aiagent.domain.user.service.TokenService;
 import com.zj.aiagent.domain.user.service.UserAuthenticationDomainService;
-import com.zj.aiagent.infrastructure.user.email.EmailServiceImpl;
-import com.zj.aiagent.infrastructure.user.ratelimit.RateLimitServiceImpl;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -32,8 +32,8 @@ public class UserApplicationService {
     private final UserAuthenticationDomainService authenticationDomainService;
     private final UserRepository userRepository;
     private final TokenService tokenService;
-    private final EmailServiceImpl emailService;
-    private final RateLimitServiceImpl rateLimitService;
+    private final EmailService emailService;
+    private final RateLimitService rateLimitService;
 
     /**
      * 用户注册

@@ -1,5 +1,6 @@
 package com.zj.aiagent.infrastructure.user.email;
 
+import com.zj.aiagent.domain.user.service.EmailService;
 import com.zj.aiagent.domain.user.service.EmailVerificationDomainService;
 import jakarta.mail.MessagingException;
 import jakarta.mail.internet.MimeMessage;
@@ -26,7 +27,7 @@ import java.util.concurrent.TimeUnit;
 @Slf4j
 @Service
 @RequiredArgsConstructor
-public class EmailServiceImpl {
+public class EmailServiceImpl implements EmailService {
 
     private final StringRedisTemplate stringRedisTemplate;
     private final EmailVerificationDomainService emailVerificationDomainService;

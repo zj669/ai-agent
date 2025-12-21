@@ -1,6 +1,7 @@
 package com.zj.aiagent.infrastructure.user.ratelimit;
 
 import com.zj.aiagent.domain.user.service.RateLimitDomainService;
+import com.zj.aiagent.domain.user.service.RateLimitService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.redis.core.StringRedisTemplate;
@@ -20,7 +21,7 @@ import java.util.concurrent.TimeUnit;
 @Slf4j
 @Service
 @RequiredArgsConstructor
-public class RateLimitServiceImpl {
+public class RateLimitServiceImpl implements RateLimitService {
 
     private final StringRedisTemplate stringRedisTemplate;
     private final RateLimitDomainService rateLimitDomainService;
@@ -31,6 +32,7 @@ public class RateLimitServiceImpl {
      * @param ip IP地址
      * @throws IllegalStateException 超过限流阈值时抛出
      */
+    @Override
     public void checkIpRateLimit(String ip) {
         String key = rateLimitDomainService.getIpRateLimitKey(ip);
         checkRateLimit(
@@ -46,6 +48,7 @@ public class RateLimitServiceImpl {
      * @param email 邮箱地址
      * @throws IllegalStateException 超过限流阈值时抛出
      */
+    @Override
     public void checkEmailRateLimit(String email) {
         String key = rateLimitDomainService.getEmailRateLimitKey(email);
         checkRateLimit(
@@ -61,6 +64,7 @@ public class RateLimitServiceImpl {
      * @param deviceId 设备指纹
      * @throws IllegalStateException 超过限流阈值时抛出
      */
+    @Override
     public void checkDeviceRateLimit(String deviceId) {
         if (deviceId == null || deviceId.isEmpty()) {
             return; // 设备指纹可选，如果没有则不进行限流
