@@ -11,6 +11,7 @@ import com.zj.aiagent.interfaces.web.dto.response.agent.config.McpToolResponse;
 import com.zj.aiagent.interfaces.web.dto.response.agent.config.ModelResponse;
 import com.zj.aiagent.interfaces.web.dto.response.agent.config.NodeTypeResponse;
 import com.zj.aiagent.interfaces.web.dto.response.config.ConfigDefinitionResponse;
+import com.zj.aiagent.interfaces.web.dto.response.config.ConfigFieldDefinitionResponse;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.annotation.Resource;
@@ -79,21 +80,16 @@ public class AgentConfigController {
                 .build();
     }
 
-    /**
-     * 查询节点配置项定义
-     *
-     * @param nodeType 节点类型（可选）
-     * @return 配置项定义列表
-     */
+
     @GetMapping("/config-definitions")
     @Operation(summary = "查询配置项定义", description = "获取配置项的类型定义和表单 Schema")
     public Response<List<com.zj.aiagent.interfaces.web.dto.response.config.ConfigDefinitionResponse>> getConfigDefinitions(
-            @RequestParam(required = false) String nodeType) {
+            @RequestParam(required = false) String configType) {
         try {
-            log.info("查询配置项定义，节点类型: {}", nodeType);
+            log.info("查询配置项定义，节点类型: {}", configType);
 
             List<AgentConfigApplicationService.ConfigDefinitionDTO> dtoList = agentConfigApplicationService
-                    .getConfigDefinitions(nodeType);
+                    .getConfigDefinitions(configType);
 
             List<ConfigDefinitionResponse> responseList = dtoList
                     .stream()
@@ -127,6 +123,54 @@ public class AgentConfigController {
                 .configType(dto.getConfigType())
                 .configName(dto.getConfigName())
                 .options(options)
+                .build();
+    }
+
+    /**
+     * 查询配置字段属性定义
+     *
+     * @param configType 配置类型（MODEL、ADVISOR、MCP_TOOL、USER_PROMPT、TIMEOUT等）
+     * @return 配置字段属性定义列表
+     */
+    @GetMapping("/config-field-definitions")
+    @Operation(summary = "查询配置字段属性定义", description = "获取指定配置类型的可自定义字段列表")
+    public Response<List<ConfigFieldDefinitionResponse>> getConfigFieldDefinitions(
+            @RequestParam(required = true) String configType) {
+        try {
+            log.info("查询配置字段属性定义，配置类型: {}", configType);
+
+            List<AgentConfigApplicationService.ConfigFieldDefinitionDTO> dtoList = agentConfigApplicationService
+                    .getConfigFieldDefinitions(configType);
+
+            List<ConfigFieldDefinitionResponse> responseList = dtoList
+                    .stream()
+                    .map(this::convertToConfigFieldDefinitionResponse)
+                    .collect(Collectors.toList());
+
+            return Response.success(responseList);
+
+        } catch (IllegalArgumentException e) {
+            log.warn("配置类型参数错误: {}", e.getMessage());
+            return Response.fail("参数错误: " + e.getMessage());
+        } catch (Exception e) {
+            log.error("查询配置字段属性定义失败", e);
+            return Response.fail("查询失败: " + e.getMessage());
+        }
+    }
+
+    /**
+     * 转换配置字段定义 DTO 到响应
+     */
+    private ConfigFieldDefinitionResponse convertToConfigFieldDefinitionResponse(
+            AgentConfigApplicationService.ConfigFieldDefinitionDTO dto) {
+        return ConfigFieldDefinitionResponse.builder()
+                .fieldName(dto.getFieldName())
+                .fieldLabel(dto.getFieldLabel())
+                .fieldType(dto.getFieldType())
+                .required(dto.getRequired())
+                .description(dto.getDescription())
+                .defaultValue(dto.getDefaultValue())
+                .options(dto.getOptions())
                 .build();
     }
 }
