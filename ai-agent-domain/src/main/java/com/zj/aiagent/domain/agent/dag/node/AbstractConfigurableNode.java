@@ -13,6 +13,8 @@ import com.zj.aiagent.domain.agent.dag.exception.NodeConfigException;
 import com.zj.aiagent.domain.agent.dag.repository.IDagExecutionRepository;
 import com.zj.aiagent.shared.design.dag.DagNode;
 import com.zj.aiagent.shared.design.dag.DagNodeExecutionException;
+import com.zj.aiagent.shared.design.dag.NodeExecutionResult;
+import com.zj.aiagent.shared.model.enums.AiAgentEnumVO;
 import io.modelcontextprotocol.client.McpSyncClient;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.ai.chat.client.ChatClient;
@@ -35,7 +37,7 @@ import java.util.*;
  * 提供节点配置管理和ChatClient构建能力
  */
 @Slf4j
-public abstract class AbstractConfigurableNode implements DagNode<DagExecutionContext, String> {
+public abstract class AbstractConfigurableNode implements DagNode<DagExecutionContext, NodeExecutionResult> {
 
     protected final String nodeId;
     protected final String nodeName;
@@ -43,7 +45,7 @@ public abstract class AbstractConfigurableNode implements DagNode<DagExecutionCo
     protected final ApplicationContext applicationContext;
 
     protected AbstractConfigurableNode(String nodeId, String nodeName, NodeConfig config,
-            ApplicationContext applicationContext) {
+                                       ApplicationContext applicationContext) {
         this.nodeId = nodeId;
         this.nodeName = nodeName;
         this.config = config;
@@ -52,9 +54,11 @@ public abstract class AbstractConfigurableNode implements DagNode<DagExecutionCo
         if (config == null) {
             throw new NodeConfigException("NodeConfig cannot be null for node: " + nodeId);
         }
-        if (config.getSystemPrompt() == null || config.getSystemPrompt().isEmpty()) {
-            throw new NodeConfigException("SystemPrompt is required for node: " + nodeId);
-        }
+        // systemPrompt 可选 - RouterNode 等节点可能不需要
+        // if (config.getSystemPrompt() == null || config.getSystemPrompt().isEmpty()) {
+        // throw new NodeConfigException("SystemPrompt is required for node: " +
+        // nodeId);
+        // }
     }
 
     @Override
@@ -115,7 +119,7 @@ public abstract class AbstractConfigurableNode implements DagNode<DagExecutionCo
     }
 
     @Override
-    public void afterExecute(DagExecutionContext context, String result, Exception exception) {
+    public void afterExecute(DagExecutionContext context, NodeExecutionResult result, Exception exception) {
         // 获取执行日志
         NodeExecutionLog executionLog = (NodeExecutionLog) context.getValue("_node_log_" + nodeId);
 
@@ -140,7 +144,7 @@ public abstract class AbstractConfigurableNode implements DagNode<DagExecutionCo
             // 更新日志为成功
             if (executionLog != null) {
                 try {
-                    String outputJson = result != null ? JSON.toJSONString(result) : "";
+                    String outputJson = result != null ? JSON.toJSONString(result.getContent()) : "";
                     executionLog.succeed(outputJson);
                     IDagExecutionRepository repository = getExecutionRepository();
                     if (repository != null) {
@@ -276,7 +280,7 @@ public abstract class AbstractConfigurableNode implements DagNode<DagExecutionCo
         if (config.getMcpTools() != null) {
             for (McpToolConfig mcpConfig : config.getMcpTools()) {
                 try {
-                    String beanName = "ai_client_tool_mcp_" + mcpConfig.getMcpId();
+                    String beanName = AiAgentEnumVO.AI_TOOL_MCP.getBeanName(mcpConfig.getMcpId());
                     McpSyncClient mcpClient = applicationContext.getBean(beanName, McpSyncClient.class);
                     mcpClients.add(mcpClient);
                 } catch (Exception e) {
@@ -295,7 +299,7 @@ public abstract class AbstractConfigurableNode implements DagNode<DagExecutionCo
         if (config.getAdvisors() != null) {
             for (AdvisorConfig advisorConfig : config.getAdvisors()) {
                 try {
-                    String beanName = "ai_client_advisor_" + advisorConfig.getAdvisorId();
+                    String beanName = AiAgentEnumVO.AI_ADVISOR.getBeanName(advisorConfig.getAdvisorId());
                     Advisor advisor = applicationContext.getBean(beanName, Advisor.class);
                     advisors.add(advisor);
                 } catch (Exception e) {
@@ -377,23 +381,27 @@ public abstract class AbstractConfigurableNode implements DagNode<DagExecutionCo
     }
 
     /**
-     * 解析会话ID（支持占位符）
+     * 子类实现具体执行逻辑
      */
-    private String resolveConversationId(String conversationIdTemplate, DagExecutionContext context) {
-        if (conversationIdTemplate == null) {
-            return context.getConversationId();
-        }
-        return conversationIdTemplate.replace("${conversationId}", context.getConversationId());
+    protected abstract NodeExecutionResult doExecute(DagExecutionContext context) throws DagNodeExecutionException;
+
+    @Override
+    public NodeExecutionResult execute(DagExecutionContext context) throws DagNodeExecutionException {
+        return doExecute(context);
     }
 
     /**
-     * 子类实现具体执行逻辑
+     * 是否为路由节点
      */
-    protected abstract String doExecute(DagExecutionContext context) throws DagNodeExecutionException;
+    public boolean isRouterNode() {
+        return false;
+    }
 
-    @Override
-    public String execute(DagExecutionContext context) throws DagNodeExecutionException {
-        return doExecute(context);
+    /**
+     * 获取候选下游节点（仅路由节点使用）
+     */
+    public java.util.Set<String> getCandidateNextNodes() {
+        return java.util.Collections.emptySet();
     }
 
     public void pushMessage(String message, DagExecutionContext context) {

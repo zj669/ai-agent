@@ -1,8 +1,10 @@
 package com.zj.aiagent.domain.agent.dag.node;
+
 import com.zj.aiagent.domain.agent.dag.config.NodeConfig;
 import com.zj.aiagent.domain.agent.dag.context.DagExecutionContext;
 import com.zj.aiagent.domain.agent.dag.entity.NodeType;
 import com.zj.aiagent.shared.design.dag.DagNodeExecutionException;
+import com.zj.aiagent.shared.design.dag.NodeExecutionResult;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.ApplicationContext;
 import lombok.extern.slf4j.Slf4j;
@@ -20,7 +22,7 @@ public class PlanNode extends AbstractConfigurableNode {
     }
 
     @Override
-    protected String doExecute(DagExecutionContext context) throws DagNodeExecutionException {
+    protected NodeExecutionResult doExecute(DagExecutionContext context) throws DagNodeExecutionException {
         try {
             // 从context获取用户输入
             String userInput = context.getValue("userInput");
@@ -42,7 +44,7 @@ public class PlanNode extends AbstractConfigurableNode {
 
             log.info("规划节点执行完成，规划结果: {}", planResult);
 
-            return planResult;
+            return NodeExecutionResult.content(planResult);
 
         } catch (Exception e) {
             throw new DagNodeExecutionException("规划节点执行失败: " + e.getMessage(), e, nodeId, true);

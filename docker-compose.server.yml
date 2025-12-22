@@ -1,0 +1,24 @@
+services:
+  frontend:
+    image: crpi-gj68k07wqq52fpxi.cn-chengdu.personal.cr.aliyuncs.com/zj669/ai-agent-frontend:v1.0
+    ports:
+      - "80:80"
+    depends_on:
+      - backend
+    restart: unless-stopped
+    networks:
+      - app-network
+
+  backend:
+    image: crpi-gj68k07wqq52fpxi.cn-chengdu.personal.cr.aliyuncs.com/zj669/ai-agent-backend:v1.0
+    ports:
+      - "8080:8080"
+    environment:
+      - SPRING_PROFILES_ACTIVE=dev
+    restart: unless-stopped
+    networks:
+      - app-network
+
+networks:
+  app-network:
+    driver: bridge

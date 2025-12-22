@@ -5,8 +5,9 @@ import com.zj.aiagent.domain.agent.dag.context.DagExecutionContext;
 import com.zj.aiagent.domain.agent.dag.entity.DagGraph;
 import com.zj.aiagent.domain.agent.dag.entity.DagExecutionInstance;
 import com.zj.aiagent.domain.agent.dag.logging.DagLoggingService;
+import com.zj.aiagent.domain.agent.dag.node.AbstractConfigurableNode;
 import com.zj.aiagent.domain.agent.dag.repository.IDagExecutionRepository;
-import com.zj.aiagent.shared.design.dag.ConditionalDagNode;
+import com.zj.aiagent.shared.design.dag.NodeExecutionResult;
 import com.zj.aiagent.shared.design.dag.NodeRouteDecision;
 import jakarta.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;
@@ -91,8 +92,8 @@ public class DagExecutor {
                 log.info("执行第 {} 层，原始节点数: {}, 过滤后节点数: {}",
                         level + 1, levelNodeIds.size(), filteredNodeIds.size());
 
-                // 获取本层的节点（需要类型转换，因为RouterNode返回ConditionalDagNode）
-                List<Object> levelNodes = filteredNodeIds.stream()
+                // 获取本层的节点（统一使用 AbstractConfigurableNode 类型）
+                List<AbstractConfigurableNode> levelNodes = filteredNodeIds.stream()
                         .map(dagGraph::getNode)
                         .filter(Objects::nonNull)
                         .collect(Collectors.toList());
@@ -133,11 +134,10 @@ public class DagExecutor {
                                 totalDuration);
                     }
 
-                    // 处理路由节点
-                    Object nodeObj = dagGraph.getNode(result.getNodeId());
-                    if (nodeObj instanceof ConditionalDagNode) {
-                        handleConditionalNode((ConditionalDagNode<DagExecutionContext>) nodeObj,
-                                context, dagGraph, enabledNodes);
+                    // 处理路由节点（使用 isRouterNode() 方法代替 instanceof）
+                    AbstractConfigurableNode node = dagGraph.getNode(result.getNodeId());
+                    if (node != null && node.isRouterNode()) {
+                        handleRouterNode(node, context, dagGraph, enabledNodes);
                     }
                 }
 
@@ -190,18 +190,18 @@ public class DagExecutor {
     }
 
     /**
-     * 处理条件节点（路由节点）
+     * 处理路由节点
      * 根据路由决策禁用未被选中的节点
      */
-    private void handleConditionalNode(ConditionalDagNode<DagExecutionContext> conditionalNode,
+    private void handleRouterNode(AbstractConfigurableNode routerNode,
             DagExecutionContext context,
             DagGraph dagGraph,
             Set<String> enabledNodes) {
 
-        String nodeId = conditionalNode.getNodeId();
+        String nodeId = routerNode.getNodeId();
         log.info("处理路由节点: {}", nodeId);
 
-        // 从context获取路由决策结果
+        // 从 context 获取路由决策结果
         Object routeDecisionObj = context.getNodeResult(nodeId);
         if (routeDecisionObj == null) {
             log.warn("路由节点 {} 没有决策结果", nodeId);
@@ -213,18 +213,28 @@ public class DagExecutor {
         if (routeDecisionObj instanceof String) {
             // 如果直接存储的是字符串（节点ID）
             selectedNodeId = (String) routeDecisionObj;
+        } else if (routeDecisionObj instanceof NodeExecutionResult execResult) {
+            // 如果存储的是 NodeExecutionResult 对象
+            if (execResult.isRoutingDecision()) {
+                NodeRouteDecision decision = execResult.getRouteDecision();
+                if (decision.isStopExecution()) {
+                    log.info("路由决策: 停止执行");
+                    return;
+                }
+                Set<String> nextNodeIds = decision.getNextNodeIds();
+                if (nextNodeIds != null && !nextNodeIds.isEmpty()) {
+                    selectedNodeId = nextNodeIds.iterator().next();
+                }
+            }
         } else if (routeDecisionObj instanceof NodeRouteDecision decision) {
             // 如果存储的是 NodeRouteDecision 对象
-
             if (decision.isStopExecution()) {
                 log.info("路由决策: 停止执行");
                 return;
             }
-
-            // 获取选中的节点ID集合
             Set<String> nextNodeIds = decision.getNextNodeIds();
             if (nextNodeIds != null && !nextNodeIds.isEmpty()) {
-                selectedNodeId = nextNodeIds.iterator().next(); // 取第一个
+                selectedNodeId = nextNodeIds.iterator().next();
             }
         }
 
@@ -236,7 +246,7 @@ public class DagExecutor {
         log.info("路由决策: 选择节点 {}", selectedNodeId);
 
         // 获取所有候选节点
-        Set<String> candidateNodes = conditionalNode.getCandidateNextNodes();
+        Set<String> candidateNodes = routerNode.getCandidateNextNodes();
         if (candidateNodes == null || candidateNodes.isEmpty()) {
             log.warn("路由节点 {} 没有候选节点", nodeId);
             return;

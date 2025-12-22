@@ -1,6 +1,5 @@
 package com.zj.aiagent.domain.agent.dag.entity;
 
-
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -8,6 +7,8 @@ import lombok.NoArgsConstructor;
 
 import java.util.List;
 import java.util.Map;
+
+import com.zj.aiagent.domain.agent.dag.node.AbstractConfigurableNode;
 
 /**
  * DAG图模型 - 包含所有节点和依赖关系
@@ -35,9 +36,9 @@ public class DagGraph {
 
     /**
      * 节点映射 (nodeId -> node)
-     * 使用Object类型因为RouterNode返回ConditionalDagNode，与其他节点返回类型不同
+     * 统一使用 AbstractConfigurableNode 类型
      */
-    private Map<String, Object> nodes;
+    private Map<String, AbstractConfigurableNode> nodes;
 
     /**
      * 边列表
@@ -57,7 +58,7 @@ public class DagGraph {
     /**
      * 获取节点
      */
-    public Object getNode(String nodeId) {
+    public AbstractConfigurableNode getNode(String nodeId) {
         return nodes.get(nodeId);
     }
 

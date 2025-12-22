@@ -1,71 +1,41 @@
 package com.zj.aiagent.domain.agent.dag.node;
 
-import com.alibaba.fastjson.JSON;
 import com.zj.aiagent.domain.agent.dag.config.NodeConfig;
 import com.zj.aiagent.domain.agent.dag.context.DagExecutionContext;
 import com.zj.aiagent.domain.agent.dag.entity.DagGraph;
-import com.zj.aiagent.domain.agent.dag.entity.NodeExecutionLog;
+import com.zj.aiagent.domain.agent.dag.entity.NodeType;
 import com.zj.aiagent.domain.agent.dag.exception.NodeConfigException;
-import com.zj.aiagent.domain.agent.dag.repository.IDagExecutionRepository;
-import com.zj.aiagent.shared.design.dag.ConditionalDagNode;
 import com.zj.aiagent.shared.design.dag.DagNode;
 import com.zj.aiagent.shared.design.dag.DagNodeExecutionException;
+import com.zj.aiagent.shared.design.dag.NodeExecutionResult;
 import com.zj.aiagent.shared.design.dag.NodeRouteDecision;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.ApplicationContext;
-import com.zj.aiagent.domain.agent.dag.entity.NodeType;
-import java.io.PrintWriter;
-import java.io.StringWriter;
+
 import java.util.*;
 
 /**
  * 路由节点 - 条件路由选择下一个节点
  * 根据条件选择下一个节点,支持AI评估条件,支持规则表达式
  * 
- * 注意：RouterNode直接实现ConditionalDagNode，不继承AbstractConfigurableNode
- * 因为返回类型不同（NodeRouteDecision vs String）
+ * 重构后：继承 AbstractConfigurableNode，统一节点类型体系
  */
 @Slf4j
-public class RouterNode implements ConditionalDagNode<DagExecutionContext> {
+public class RouterNode extends AbstractConfigurableNode {
 
-    protected final String nodeId;
-    protected final String nodeName;
-    protected final NodeConfig config;
-    protected final ApplicationContext applicationContext;
     private final Set<String> candidateNodes;
 
-    // 创建一个helper来复用ChatClient构建逻辑
-    private final NodeConfigHelper configHelper;
-
     public RouterNode(String nodeId, String nodeName, NodeConfig config, ApplicationContext applicationContext) {
-        this.nodeId = nodeId;
-        this.nodeName = nodeName;
-        this.config = config;
-        this.applicationContext = applicationContext;
-        this.configHelper = new NodeConfigHelper(config, applicationContext, this);
+        super(nodeId, nodeName, config, applicationContext);
 
         if (config == null) {
             throw new NodeConfigException("NodeConfig cannot be null for node: " + nodeId);
         }
 
         // 从配置中获取候选节点列表
+        @SuppressWarnings("unchecked")
         List<String> candidates = (List<String>) config.getCustomConfig().get("candidateNodes");
         this.candidateNodes = candidates != null ? new HashSet<>(candidates) : new HashSet<>();
-    }
-
-    @Override
-    public String getNodeId() {
-        return nodeId;
-    }
-
-    @Override
-    public String getNodeName() {
-        return nodeName;
-    }
-
-    @Override
-    public Set<String> getDependencies() {
-        return Collections.emptySet();
     }
 
     @Override
@@ -74,120 +44,17 @@ public class RouterNode implements ConditionalDagNode<DagExecutionContext> {
     }
 
     @Override
-    public void beforeExecute(DagExecutionContext context) {
-        log.info("路由节点 [{}] ({}) 开始执行", nodeName, nodeId);
-
-        try {
-            // 创建节点执行日志
-            NodeExecutionLog executionLog = NodeExecutionLog.builder()
-                    .instanceId(context.getInstanceId())
-                    .agentId(context.getAgentId())
-                    .conversationId(context.getConversationId())
-                    .nodeId(nodeId)
-                    .nodeType(NodeType.ROUTER_NODE.name())
-                    .nodeName(nodeName)
-                    .build();
-
-            // 记录输入数据
-            // 如果是第一个节点(没有前序结果),记录用户输入;否则记录前序节点结果
-            String inputJson;
-            Map<String, Object> nodeResults = context.getAllNodeResults();
-            if (nodeResults == null || nodeResults.isEmpty()) {
-                // 第一个节点 - 记录用户输入
-                String userInput = context.getValue("userInput", "");
-                Map<String, Object> inputData = new HashMap<>();
-                inputData.put("userInput", userInput);
-                inputJson = JSON.toJSONString(inputData);
-            } else {
-                // 后续节点 - 记录前序节点结果
-                inputJson = JSON.toJSONString(nodeResults);
-            }
-            executionLog.start(inputJson);
-
-            // 保存日志并存入context
-            IDagExecutionRepository repository = getExecutionRepository();
-            if (repository != null) {
-                executionLog = repository.saveNodeLog(executionLog);
-                context.setValue("_node_log_" + nodeId, executionLog);
-            }
-        } catch (Exception e) {
-            log.warn("保存路由节点执行日志失败，不影响执行", e);
-        }
+    public boolean isRouterNode() {
+        return true;
     }
 
     @Override
-    public void afterExecute(DagExecutionContext context, NodeRouteDecision result, Exception exception) {
-        // 获取执行日志
-        NodeExecutionLog executionLog = (NodeExecutionLog) context.getValue("_node_log_" + nodeId);
-
-        if (exception != null) {
-            log.error("路由节点 [{}] ({}) 执行失败", nodeName, nodeId, exception);
-
-            // 更新日志为失败
-            if (executionLog != null) {
-                try {
-                    executionLog.fail(exception.getMessage(), getStackTrace(exception));
-                    IDagExecutionRepository repository = getExecutionRepository();
-                    if (repository != null) {
-                        repository.updateNodeLog(executionLog);
-                    }
-                } catch (Exception e) {
-                    log.warn("更新路由节点执行日志失败，不影响执行", e);
-                }
-            }
-        } else {
-            log.info("路由节点 [{}] ({}) 执行成功，路由决策: {}", nodeName, nodeId,
-                    result != null ? result.getNextNodeIds() : "STOP");
-
-            // 更新日志为成功
-            if (executionLog != null) {
-                try {
-                    String outputJson = result != null ? JSON.toJSONString(result) : "";
-                    executionLog.succeed(outputJson);
-                    IDagExecutionRepository repository = getExecutionRepository();
-                    if (repository != null) {
-                        repository.updateNodeLog(executionLog);
-                    }
-                } catch (Exception e) {
-                    log.warn("更新路由节点执行日志失败，不影响执行", e);
-                }
-            }
-        }
+    public NodeType getNodeType() {
+        return NodeType.ROUTER_NODE;
     }
 
     @Override
-    public long getTimeoutMillis() {
-        return config.getTimeout() != null ? config.getTimeout() : 0;
-    }
-
-    /**
-     * 获取仓储
-     */
-    private IDagExecutionRepository getExecutionRepository() {
-        try {
-            return applicationContext.getBean(IDagExecutionRepository.class);
-        } catch (Exception e) {
-            return null;
-        }
-    }
-
-    /**
-     * 获取堆栈跟踪
-     */
-    private String getStackTrace(Exception e) {
-        StringWriter sw = new StringWriter();
-        PrintWriter pw = new PrintWriter(sw);
-        e.printStackTrace(pw);
-        String stackTrace = sw.toString();
-        // 截断堆栈,避免太长
-        if (stackTrace.length() > 2000) {
-            stackTrace = stackTrace.substring(0, 2000) + "...";
-        }
-        return stackTrace;
-    }
-
-    @Override
-    public NodeRouteDecision execute(DagExecutionContext context) throws DagNodeExecutionException {
+    protected NodeExecutionResult doExecute(DagExecutionContext context) throws DagNodeExecutionException {
         try {
             log.info("路由节点开始执行，评估下一步执行路径");
 
@@ -208,10 +75,12 @@ public class RouterNode implements ConditionalDagNode<DagExecutionContext> {
             context.setNodeResult(nodeId, selectedNode);
 
             if (selectedNode == null || selectedNode.isEmpty()) {
-                return NodeRouteDecision.stop();
+                return NodeExecutionResult.routing(NodeRouteDecision.stop(), "路由决策：停止执行");
             }
 
-            return NodeRouteDecision.continueWith(selectedNode);
+            return NodeExecutionResult.routing(
+                    NodeRouteDecision.continueWith(selectedNode),
+                    "路由决策：继续执行节点 " + selectedNode);
 
         } catch (Exception e) {
             throw new DagNodeExecutionException("路由节点执行失败: " + e.getMessage(), e, nodeId, true);
@@ -225,85 +94,17 @@ public class RouterNode implements ConditionalDagNode<DagExecutionContext> {
         // 构建路由提示词
         String routingPrompt = buildRoutingPrompt(context);
 
-        // 使用helper调用AI评估
-        String aiDecision = configHelper.callAI(routingPrompt, context);
+        // 使用父类的 callAI 方法
+        String aiDecision = callAI(routingPrompt, context);
 
         // 解析AI返回的节点ID
         return parseNodeIdFromAIResponse(aiDecision);
     }
 
     /**
-     * NodeConfigHelper - 复用ChatClient构建逻辑
-     */
-    private static class NodeConfigHelper extends AbstractConfigurableNode {
-
-        private final RouterNode parentNode;
-
-        public NodeConfigHelper(NodeConfig config, ApplicationContext applicationContext, RouterNode parentNode) {
-            super("helper", "helper", config, applicationContext);
-            this.parentNode = parentNode;
-        }
-
-        @Override
-        protected String doExecute(DagExecutionContext context) {
-            return null;
-        }
-
-        @Override
-        public NodeType getNodeType() {
-            return null;
-        }
-
-        // 暴露callAI方法供RouterNode使用
-        @Override
-        public String callAI(String userMessage, DagExecutionContext context) throws DagNodeExecutionException {
-            return super.callAI(userMessage, context);
-        }
-
-        // 重写 pushMessage,委托给父节点
-        @Override
-        public void pushMessage(String message, DagExecutionContext context) {
-            if (parentNode != null) {
-                parentNode.pushMessage(message, context);
-            }
-        }
-    }
-
-    /**
-     * 推送消息到客户端
-     */
-    private void pushMessage(String message, DagExecutionContext context) {
-        org.springframework.web.servlet.mvc.method.annotation.ResponseBodyEmitter emitter = context.getEmitter();
-        String conversationId = context.getConversationId();
-        if (emitter == null) {
-            log.warn("Emitter is null, message will not be pushed to client");
-            return;
-        }
-        try {
-            emitter.send(buildMessage(message, conversationId));
-        } catch (Exception e) {
-            log.error("Failed to push message to client", e);
-        }
-    }
-
-    /**
-     * 构建 SSE 消息
-     */
-    private String buildMessage(String message, String conversationId) {
-        java.util.Map<String, Object> event = new java.util.HashMap<>();
-        event.put("type", "node_execute");
-        event.put("nodeName", NodeType.ROUTER_NODE.getLabel());
-        event.put("content", message);
-        event.put("completed", false);
-        event.put("timestamp", System.currentTimeMillis());
-        event.put("conversationId", conversationId);
-
-        return "data: " + JSON.toJSONString(event) + "\n\n";
-    }
-
-    /**
      * 通过规则评估选择节点
      */
+    @SuppressWarnings("unchecked")
     private String evaluateByRules(DagExecutionContext context) {
         // 获取规则列表
         List<Map<String, String>> rules = (List<Map<String, String>>) config.getCustomConfig().get("routingRules");
@@ -347,7 +148,7 @@ public class RouterNode implements ConditionalDagNode<DagExecutionContext> {
             for (String candidateId : candidateNodes) {
                 Object nodeObj = dagGraph.getNode(candidateId);
                 if (nodeObj != null) {
-                    String nodeName = getNodeName(nodeObj);
+                    String nodeName = getNodeNameFromObj(nodeObj);
                     String nodeDescription = getNodeDescription(nodeObj);
 
                     prompt.append("- ").append(candidateId)
@@ -385,11 +186,9 @@ public class RouterNode implements ConditionalDagNode<DagExecutionContext> {
     /**
      * 获取节点名称
      */
-    private String getNodeName(Object nodeObj) {
+    private String getNodeNameFromObj(Object nodeObj) {
         if (nodeObj instanceof DagNode) {
-            return ((DagNode) nodeObj).getNodeName();
-        } else if (nodeObj instanceof ConditionalDagNode) {
-            return ((ConditionalDagNode) nodeObj).getNodeName();
+            return ((DagNode<?, ?>) nodeObj).getNodeName();
         }
         return "Unknown";
     }
@@ -399,8 +198,7 @@ public class RouterNode implements ConditionalDagNode<DagExecutionContext> {
      */
     private String getNodeDescription(Object nodeObj) {
         try {
-            if (nodeObj instanceof AbstractConfigurableNode) {
-                AbstractConfigurableNode node = (AbstractConfigurableNode) nodeObj;
+            if (nodeObj instanceof AbstractConfigurableNode node) {
                 // 从config中获取systemPrompt作为节点功能描述
                 String systemPrompt = node.config.getSystemPrompt();
                 if (systemPrompt != null && !systemPrompt.isEmpty()) {

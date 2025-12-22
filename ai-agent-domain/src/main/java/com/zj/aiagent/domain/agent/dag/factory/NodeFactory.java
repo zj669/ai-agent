@@ -32,9 +32,9 @@ public class NodeFactory {
 
     /**
      * 根据节点定义创建节点实例
-     * 返回 Object 类型因为 RouterNode 实现的是 ConditionalDagNode，不是 DagNode
+     * 统一返回 AbstractConfigurableNode 类型
      */
-    public Object createNode(GraphJsonSchema.NodeDefinition nodeDef) {
+    public AbstractConfigurableNode createNode(GraphJsonSchema.NodeDefinition nodeDef) {
         String nodeType = nodeDef.getNodeType();
         String nodeId = nodeDef.getNodeId();
         String nodeName = nodeDef.getNodeName();
@@ -65,12 +65,12 @@ public class NodeFactory {
 
         NodeConfig.NodeConfigBuilder builder = NodeConfig.builder();
 
-        // 系统提示词(必填)
+        // 系统提示词(路由节点等可能为空)
         String systemPrompt = configJson.getString("systemPrompt");
-        if (systemPrompt == null || systemPrompt.isEmpty()) {
-            throw new NodeConfigException("systemPrompt is required");
+        // RouterNode 等节点不需要 systemPrompt
+        if (systemPrompt != null && !systemPrompt.isEmpty()) {
+            builder.systemPrompt(systemPrompt);
         }
-        builder.systemPrompt(systemPrompt);
 
         // 模型配置
         if (configJson.containsKey("model")) {

@@ -6,6 +6,7 @@ import com.zj.aiagent.domain.agent.dag.entity.DagGraph;
 import com.zj.aiagent.domain.agent.dag.entity.GraphJsonSchema;
 import com.zj.aiagent.domain.agent.dag.exception.NodeConfigException;
 import com.zj.aiagent.domain.agent.dag.factory.NodeFactory;
+import com.zj.aiagent.domain.agent.dag.node.AbstractConfigurableNode;
 import com.zj.aiagent.domain.agent.dag.repository.IDagRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -55,10 +56,10 @@ public class DagLoaderService {
                 throw new NodeConfigException("Invalid graph_json: nodes cannot be empty");
             }
 
-            // 构建节点映射（使用Object类型支持ConditionalDagNode）
-            Map<String, Object> nodeMap = new HashMap<>();
+            // 构建节点映射（统一使用 AbstractConfigurableNode 类型）
+            Map<String, AbstractConfigurableNode> nodeMap = new HashMap<>();
             for (GraphJsonSchema.NodeDefinition nodeDef : schema.getNodes()) {
-                Object node = nodeFactory.createNode(nodeDef);
+                AbstractConfigurableNode node = nodeFactory.createNode(nodeDef);
                 nodeMap.put(nodeDef.getNodeId(), node);
                 log.info("创建节点: {} ({})", nodeDef.getNodeName(), nodeDef.getNodeId());
             }

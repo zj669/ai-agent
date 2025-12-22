@@ -2,10 +2,9 @@ package com.zj.aiagent.domain.agent.dag.executor;
 
 import com.zj.aiagent.domain.agent.dag.context.DagExecutionContext;
 import com.zj.aiagent.domain.agent.dag.logging.DagLoggingService;
-import com.zj.aiagent.shared.design.dag.ConditionalDagNode;
-import com.zj.aiagent.shared.design.dag.DagNode;
+import com.zj.aiagent.domain.agent.dag.node.AbstractConfigurableNode;
 import com.zj.aiagent.shared.design.dag.DagNodeExecutionException;
-import com.zj.aiagent.shared.design.dag.NodeRouteDecision;
+import com.zj.aiagent.shared.design.dag.NodeExecutionResult;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.extern.slf4j.Slf4j;
@@ -45,7 +44,7 @@ public class DagParallelScheduler {
 
     /**
      * 并行执行一组节点
-     * 注意：使用Object类型因为RouterNode是ConditionalDagNode
+     * 统一使用 AbstractConfigurableNode 类型
      * 
      * @param nodes          要执行的节点列表
      * @param context        执行上下文
@@ -53,7 +52,7 @@ public class DagParallelScheduler {
      * @param totalNodes     总节点数
      */
     public List<NodeExecutionResult> executeParallel(
-            List<Object> nodes,
+            List<AbstractConfigurableNode> nodes,
             DagExecutionContext context,
             int completedNodes,
             int totalNodes) {
@@ -70,9 +69,9 @@ public class DagParallelScheduler {
 
         List<CompletableFuture<NodeExecutionResult>> futures = new ArrayList<>();
 
-        for (Object nodeObj : nodes) {
+        for (AbstractConfigurableNode node : nodes) {
             CompletableFuture<NodeExecutionResult> future = CompletableFuture.supplyAsync(() -> {
-                return executeNode(nodeObj, context);
+                return executeNode(node, context);
             }, executorService);
 
             futures.add(future);
@@ -100,21 +99,12 @@ public class DagParallelScheduler {
 
     /**
      * 执行单个节点
-     * 注意：nodeObj可能是DagNode或ConditionalDagNode
+     * 统一使用 AbstractConfigurableNode 类型
      */
-    private NodeExecutionResult executeNode(Object nodeObj,
+    private NodeExecutionResult executeNode(AbstractConfigurableNode node,
             DagExecutionContext context) {
-        // 获取节点基本信息
-        String nodeId;
-        String nodeName;
-
-        if (nodeObj instanceof DagNode) {
-            DagNode<?, ?> node = (DagNode<?, ?>) nodeObj;
-            nodeId = node.getNodeId();
-            nodeName = node.getNodeName();
-        } else {
-            throw new RuntimeException("Unknown node type: " + nodeObj.getClass());
-        }
+        String nodeId = node.getNodeId();
+        String nodeName = node.getNodeName();
 
         long startTime = System.currentTimeMillis();
 
@@ -128,40 +118,17 @@ public class DagParallelScheduler {
         try {
             log.info("开始执行节点: {}", nodeId);
 
-            String result;
+            // 统一调用 beforeExecute
+            node.beforeExecute(context);
 
-            // 判断节点类型并执行
-            if (nodeObj instanceof ConditionalDagNode) {
-                // ConditionalDagNode（如RouterNode）
-                @SuppressWarnings("unchecked")
-                ConditionalDagNode<DagExecutionContext> conditionalNode = (ConditionalDagNode<DagExecutionContext>) nodeObj;
+            // 执行节点
+            com.zj.aiagent.shared.design.dag.NodeExecutionResult result = node.execute(context);
 
-                conditionalNode.beforeExecute(context);
+            // 调用 afterExecute
+            node.afterExecute(context, result, null);
 
-                // ConditionalDagNode返回NodeRouteDecision对象
-                Object decision = conditionalNode.execute(context);
-
-                // 将NodeRouteDecision对象本身存入context，供DagExecutor使用
-                // 注意：result字段用于返回给调用者，仍然转换为String
-                context.setNodeResult(nodeId, decision);
-                result = decision != null ? decision.toString() : null;
-
-                conditionalNode.afterExecute(context, (NodeRouteDecision) decision,
-                        null);
-            } else if (nodeObj instanceof DagNode) {
-                // 普通DagNode
-                @SuppressWarnings("unchecked")
-                DagNode<DagExecutionContext, String> dagNode = (DagNode<DagExecutionContext, String>) nodeObj;
-
-                dagNode.beforeExecute(context);
-                result = dagNode.execute(context);
-                dagNode.afterExecute(context, result, null);
-
-                // 将结果存入context
-                context.setNodeResult(nodeId, result);
-            } else {
-                throw new RuntimeException("Unknown node type: " + nodeObj.getClass());
-            }
+            // 将结果存入context
+            context.setNodeResult(nodeId, result);
 
             long duration = System.currentTimeMillis() - startTime;
             log.info("节点执行成功: {}, 耗时: {}ms", nodeId, duration);
@@ -174,14 +141,18 @@ public class DagParallelScheduler {
             }
 
             // 推送节点完成事件
-            pushNodeLifecycleEvent(context, nodeId, nodeName, "completed", result, duration, currentCompleted,
+            String resultContent = result != null ? result.getContent() : null;
+            pushNodeLifecycleEvent(context, nodeId, nodeName, "completed", resultContent, duration, currentCompleted,
                     currentTotal);
 
-            return new NodeExecutionResult(nodeId, true, result, null, duration);
+            return new NodeExecutionResult(nodeId, true, resultContent, null, duration);
 
         } catch (DagNodeExecutionException e) {
             long duration = System.currentTimeMillis() - startTime;
             log.error("节点执行失败: {}, 耗时: {}ms", nodeId, duration, e);
+
+            // 调用 afterExecute 记录失败
+            node.afterExecute(context, null, e);
 
             // 获取进度信息，并增加当前节点
             Integer currentCompleted = context.getValue("__PROGRESS_COMPLETED__");
@@ -201,6 +172,9 @@ public class DagParallelScheduler {
 
             DagNodeExecutionException wrappedException = new DagNodeExecutionException(
                     "Node execution failed: " + e.getMessage(), e, nodeId, true);
+
+            // 调用 afterExecute 记录失败
+            node.afterExecute(context, null, wrappedException);
 
             // 获取进度信息，并增加当前节点
             Integer currentCompleted = context.getValue("__PROGRESS_COMPLETED__");

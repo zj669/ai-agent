@@ -5,6 +5,7 @@ import com.zj.aiagent.domain.agent.dag.config.NodeConfig;
 import com.zj.aiagent.domain.agent.dag.context.DagExecutionContext;
 import com.zj.aiagent.domain.agent.dag.entity.NodeType;
 import com.zj.aiagent.shared.design.dag.DagNodeExecutionException;
+import com.zj.aiagent.shared.design.dag.NodeExecutionResult;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.ApplicationContext;
@@ -39,7 +40,7 @@ public class ReactNode extends AbstractConfigurableNode {
     }
 
     @Override
-    protected String doExecute(DagExecutionContext context) throws DagNodeExecutionException {
+    protected NodeExecutionResult doExecute(DagExecutionContext context) throws DagNodeExecutionException {
         try {
             int maxIterations = getMaxIterations();
             String goal = context.getValue("userMessage", context.getValue("userInput", "完成用户任务"));
@@ -71,7 +72,7 @@ public class ReactNode extends AbstractConfigurableNode {
                     iterations.add(finalIteration);
 
                     context.setValue("react_iterations", iterations);
-                    return formatFinalResult(finalAnswer, iterations);
+                    return NodeExecutionResult.content(formatFinalResult(finalAnswer, iterations));
                 }
 
                 // 2. Action: 提取并执行行动
@@ -99,7 +100,7 @@ public class ReactNode extends AbstractConfigurableNode {
             log.warn("达到最大迭代次数 {}, 未能完成任务", maxIterations);
             context.setValue("react_iterations", iterations);
 
-            return formatIncompleteResult(iterations, maxIterations);
+            return NodeExecutionResult.content(formatIncompleteResult(iterations, maxIterations));
 
         } catch (Exception e) {
             throw new DagNodeExecutionException("React 节点执行失败: " + e.getMessage(), e, nodeId, true);
