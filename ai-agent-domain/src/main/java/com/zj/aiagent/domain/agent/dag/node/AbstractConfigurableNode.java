@@ -2,9 +2,11 @@ package com.zj.aiagent.domain.agent.dag.node;
 
 import com.alibaba.fastjson.JSON;
 import com.zj.aiagent.domain.agent.dag.config.AdvisorConfig;
+import com.zj.aiagent.domain.agent.dag.config.FallbackModelProperties;
 import com.zj.aiagent.domain.agent.dag.config.McpToolConfig;
 import com.zj.aiagent.domain.agent.dag.config.ModelConfig;
 import com.zj.aiagent.domain.agent.dag.config.NodeConfig;
+import com.zj.aiagent.domain.agent.dag.config.ResilienceConfig;
 import com.zj.aiagent.domain.agent.dag.context.ContextKey;
 import com.zj.aiagent.domain.agent.dag.context.DagExecutionContext;
 import com.zj.aiagent.domain.agent.dag.entity.AutoAgentExecuteResultEntity;
@@ -12,6 +14,7 @@ import com.zj.aiagent.domain.agent.dag.entity.NodeExecutionLog;
 import com.zj.aiagent.domain.agent.dag.entity.NodeType;
 import com.zj.aiagent.domain.agent.dag.exception.NodeConfigException;
 import com.zj.aiagent.domain.agent.dag.repository.IDagExecutionRepository;
+import com.zj.aiagent.domain.agent.dag.resilience.RetryStrategy;
 import com.zj.aiagent.shared.design.dag.DagNode;
 import com.zj.aiagent.shared.design.dag.DagNodeExecutionException;
 import com.zj.aiagent.shared.design.dag.NodeExecutionResult;
@@ -313,9 +316,25 @@ public abstract class AbstractConfigurableNode implements DagNode<DagExecutionCo
 
     /**
      * 执行AI调用
-     * 支持流式推送到客户端
+     * 支持流式推送到客户端，支持模型降级
      */
     protected String callAI(String userMessage, DagExecutionContext context) throws DagNodeExecutionException {
+        try {
+            return doPrimaryAICall(userMessage, context);
+        } catch (Exception e) {
+            // 检查是否应该降级
+            if (shouldFallback(e)) {
+                log.warn("主模型调用失败，尝试使用降级模型: {}", e.getMessage());
+                return doFallbackAICall(userMessage, context);
+            }
+            throw e;
+        }
+    }
+
+    /**
+     * 主模型AI调用
+     */
+    private String doPrimaryAICall(String userMessage, DagExecutionContext context) throws DagNodeExecutionException {
         ChatClient chatClient = buildChatClient(context);
         ChatClient.ChatClientRequestSpec spec = chatClient.prompt(userMessage);
 
@@ -325,15 +344,102 @@ public abstract class AbstractConfigurableNode implements DagNode<DagExecutionCo
                 .param("chat_memory_conversation_id", conversationId)
                 .param("chat_memory_response_size", 10));
 
-        // 检查是否有 emitter,决定使用同步还是流式
+        // 检查是否有 emitter，决定使用同步还是流式
         ResponseBodyEmitter emitter = context.getEmitter();
         if (emitter != null) {
-            // 使用流式调用
             return callAIStream(spec, context);
         } else {
-            // 同步调用
             return spec.call().content();
         }
+    }
+
+    /**
+     * 降级模型AI调用
+     */
+    private String doFallbackAICall(String userMessage, DagExecutionContext context) throws DagNodeExecutionException {
+        try {
+            FallbackModelProperties fallbackProps = getFallbackModelProperties();
+            if (fallbackProps == null || !fallbackProps.isAvailable()) {
+                throw new DagNodeExecutionException("降级模型未配置或不可用", null, nodeId, true);
+            }
+
+            log.info("使用降级模型: {}", fallbackProps.getModelName());
+
+            // 构建降级模型的ChatModel
+            OpenAiChatModel fallbackModel = buildFallbackChatModel(fallbackProps);
+            ChatClient fallbackClient = ChatClient.builder(fallbackModel)
+                    .defaultSystem(config.getSystemPrompt())
+                    .build();
+
+            ChatClient.ChatClientRequestSpec spec = fallbackClient.prompt(userMessage);
+
+            // 降级模型不使用流式，直接同步调用
+            String result = spec.call().content();
+            log.info("降级模型调用成功");
+            return result;
+
+        } catch (Exception e) {
+            throw new DagNodeExecutionException("降级模型调用失败: " + e.getMessage(), e, nodeId, true);
+        }
+    }
+
+    /**
+     * 判断是否应该使用降级模型
+     */
+    private boolean shouldFallback(Exception e) {
+        ResilienceConfig resilience = getResilienceConfig();
+        if (!Boolean.TRUE.equals(resilience.getEnableFallback())) {
+            return false;
+        }
+
+        FallbackModelProperties fallbackProps = getFallbackModelProperties();
+        return fallbackProps != null && fallbackProps.isAvailable();
+    }
+
+    /**
+     * 获取降级模型配置
+     */
+    private FallbackModelProperties getFallbackModelProperties() {
+        try {
+            return applicationContext.getBean(FallbackModelProperties.class);
+        } catch (Exception e) {
+            log.debug("降级模型配置未找到");
+            return null;
+        }
+    }
+
+    /**
+     * 构建降级模型的ChatModel
+     */
+    private OpenAiChatModel buildFallbackChatModel(FallbackModelProperties props) {
+        WebClient.Builder webClientBuilder = applicationContext.getBean("webClientBuilder1", WebClient.Builder.class);
+        RestClient.Builder restClientBuilder = applicationContext.getBean("restClientBuilder1",
+                RestClient.Builder.class);
+
+        OpenAiApi openAiApi = OpenAiApi.builder()
+                .baseUrl(props.getBaseUrl())
+                .apiKey(props.getApiKey())
+                .webClientBuilder(webClientBuilder)
+                .restClientBuilder(restClientBuilder)
+                .build();
+
+        OpenAiChatOptions.Builder optionsBuilder = OpenAiChatOptions.builder()
+                .model(props.getModelName());
+
+        if (props.getTemperature() != null) {
+            optionsBuilder.temperature(props.getTemperature());
+        }
+        if (props.getMaxTokens() != null) {
+            optionsBuilder.maxTokens(props.getMaxTokens());
+        }
+        if (props.getTopP() != null) {
+            optionsBuilder.topP(props.getTopP());
+        }
+
+        return OpenAiChatModel.builder()
+                .openAiApi(openAiApi)
+                .defaultOptions(optionsBuilder.build())
+                .build();
     }
 
     /**
@@ -388,7 +494,24 @@ public abstract class AbstractConfigurableNode implements DagNode<DagExecutionCo
 
     @Override
     public NodeExecutionResult execute(DagExecutionContext context) throws DagNodeExecutionException {
-        return doExecute(context);
+        ResilienceConfig resilience = getResilienceConfig();
+        RetryStrategy retryStrategy = new RetryStrategy();
+
+        // 带超时和重试的执行 - 使用 Callable 支持 checked exception
+        return retryStrategy.executeWithTimeoutAndRetry(
+                () -> doExecute(context),
+                resilience,
+                nodeId);
+    }
+
+    /**
+     * 获取弹性配置，如果未配置则返回默认配置
+     */
+    protected ResilienceConfig getResilienceConfig() {
+        if (config.getResilience() != null) {
+            return config.getResilience();
+        }
+        return ResilienceConfig.defaultConfig();
     }
 
     /**

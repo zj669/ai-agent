@@ -63,6 +63,14 @@ spring:
       auto-config:
         enabled: true
         client-ids: 6001,3101,3102,3103,3104
+  # 降级模型配置
+  fallback:
+    enabled: true
+    base-url: ${FALLBACK_BASE_URL:https://globalai.vip}
+    api-key: ${FALLBACK_API_KEY:sk-igZGYZBslPs4UxqU1r8BuprgCFzD388sk36Mwnp95jxsfgKp}
+    model-name: ${FALLBACK_MODEL:gpt-3.5-turbo}
+    temperature: 0.7
+    max-tokens: 2000
   # 邮件配置
   mail:
     host: ${MAIL_HOST:smtp.qq.com}

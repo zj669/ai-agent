@@ -27,10 +27,10 @@ public class NodeConfig {
      */
     private ModelConfig model;
 
-//    /**
-//     * 记忆配置
-//     */
-//    private MemoryConfig memory;
+    // /**
+    // * 记忆配置
+    // */
+    // private MemoryConfig memory;
 
     /**
      * 用户提示词
@@ -61,4 +61,9 @@ public class NodeConfig {
      * 自定义配置(针对特定节点类型)
      */
     private Map<String, Object> customConfig;
+
+    /**
+     * 弹性配置（超时、重试、限流、降级）
+     */
+    private ResilienceConfig resilience;
 }
