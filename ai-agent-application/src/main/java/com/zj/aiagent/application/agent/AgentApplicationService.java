@@ -155,11 +155,43 @@ public class AgentApplicationService {
     }
 
     /**
+     * 发布Agent（将草稿状态变更为发布状态）
+     *
+     * @param command 发布命令
+     */
+    public void publishAgent(com.zj.aiagent.application.agent.command.PublishAgentCommand command) {
+        log.info("发布Agent, userId: {}, agentId: {}", command.getUserId(), command.getAgentId());
+
+        // 查询Agent（需要验证用户权限）
+        AiAgent agent = dagRepository.selectAiAgentByAgentIdAndUserId(
+                command.getAgentId(),
+                command.getUserId());
+
+        if (agent == null) {
+            throw new RuntimeException("Agent不存在或无权限访问");
+        }
+
+        // 检查当前状态
+        if (agent.getStatus() != 0) {
+            throw new RuntimeException("只有草稿状态的Agent才能发布，当前状态为: " + getStatusDesc(agent.getStatus()));
+        }
+
+        // 更新状态为已发布
+        agent.setStatus(1);
+        agent.setUpdateTime(LocalDateTime.now());
+
+        // 保存更新
+        dagRepository.saveAgent(agent);
+
+        log.info("Agent发布成功, agentId: {}", command.getAgentId());
+    }
+
+    /**
      * 转换为 DTO
      */
     private AgentDTO toDTO(AiAgentPO po) {
         return AgentDTO.builder()
-                .id(po.getId())
+                .agentId(String.valueOf(po.getId()))
                 .agentName(po.getAgentName())
                 .description(po.getDescription())
                 .status(po.getStatus())
@@ -342,7 +374,7 @@ public class AgentApplicationService {
     @lombok.NoArgsConstructor
     @lombok.AllArgsConstructor
     public static class AgentDTO {
-        private Long id;
+        private String agentId;
         private String agentName;
         private String description;
         private Integer status;

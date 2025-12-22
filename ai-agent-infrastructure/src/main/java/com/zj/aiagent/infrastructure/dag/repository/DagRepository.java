@@ -36,10 +36,13 @@ public class DagRepository implements IDagRepository {
     public AiAgent saveAgent(AiAgent agent) {
         log.info("保存Agent配置, agentId={}, agentName={}", agent.getAgentId(), agent.getAgentName());
 
-        // 查询是否已存在
-        LambdaQueryWrapper<AiAgentPO> queryWrapper = new LambdaQueryWrapper<>();
-        queryWrapper.eq(AiAgentPO::getId, agent.getAgentId());
-        AiAgentPO existingPO = aiAgentMapper.selectOne(queryWrapper);
+        AiAgentPO existingPO = null;
+        if (agent.getAgentId() != null && !agent.getAgentId().isEmpty()) {
+            // 查询是否已存在
+            LambdaQueryWrapper<AiAgentPO> queryWrapper = new LambdaQueryWrapper<>();
+            queryWrapper.eq(AiAgentPO::getId, agent.getAgentId());
+            existingPO = aiAgentMapper.selectOne(queryWrapper);
+        }
 
         AiAgentPO aiAgentPO = AgentConvert.toPO(agent);
 

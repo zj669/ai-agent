@@ -21,9 +21,8 @@ import java.time.LocalDateTime;
 @Schema(description = "Agent 信息")
 public class AgentResponse {
 
-    @Schema(description = "主键ID")
-    private Long id;
-
+    @Schema(description = "Agent ID")
+    private String agentId;
 
     @Schema(description = "智能体名称")
     private String agentName;

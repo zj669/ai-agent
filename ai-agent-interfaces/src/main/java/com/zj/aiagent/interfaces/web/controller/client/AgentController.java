@@ -2,6 +2,7 @@ package com.zj.aiagent.interfaces.web.controller.client;
 
 import com.zj.aiagent.application.agent.AgentApplicationService;
 import com.zj.aiagent.application.agent.command.ChatCommand;
+import com.zj.aiagent.application.agent.command.PublishAgentCommand;
 import com.zj.aiagent.application.agent.command.SaveAgentCommand;
 import com.zj.aiagent.application.agent.query.GetUserAgentsQuery;
 import com.zj.aiagent.interfaces.common.Response;
@@ -188,7 +189,7 @@ public class AgentController {
             java.util.List<com.zj.aiagent.interfaces.web.dto.response.agent.AgentResponse> responseList = agentDTOList
                     .stream()
                     .map(dto -> com.zj.aiagent.interfaces.web.dto.response.agent.AgentResponse.builder()
-                            .id(dto.getId())
+                            .agentId(dto.getAgentId())
                             .agentName(dto.getAgentName())
                             .description(dto.getDescription())
                             .status(dto.getStatus())
@@ -203,6 +204,44 @@ public class AgentController {
         } catch (Exception e) {
             log.error("查询用户 Agent 列表失败", e);
             return com.zj.aiagent.interfaces.common.Response.fail("查询失败: " + e.getMessage());
+        }
+    }
+
+    /**
+     * 发布Agent（将草稿状态变更为发布状态）
+     *
+     * @param agentId Agent ID
+     * @return 响应结果
+     */
+    @PostMapping("/publish/{agentId}")
+    @Operation(summary = "发布Agent", description = "将草稿状态的Agent更改为已发布状态")
+    public Response<String> publishAgent(@PathVariable String agentId) {
+        try {
+            // 从 UserContext 获取当前用户 ID
+            Long userId = com.zj.aiagent.shared.utils.UserContext.getUserId();
+            if (userId == null) {
+                return Response.unauthorized("未登录");
+            }
+
+            log.info("发布Agent, userId: {}, agentId: {}", userId, agentId);
+
+            // 构建命令
+            PublishAgentCommand command = PublishAgentCommand.builder()
+                    .userId(userId)
+                    .agentId(agentId)
+                    .build();
+
+            // 执行发布
+            agentApplicationService.publishAgent(command);
+
+            return Response.success("发布成功");
+
+        } catch (RuntimeException e) {
+            log.error("发布Agent失败", e);
+            return Response.fail(e.getMessage());
+        } catch (Exception e) {
+            log.error("发布Agent异常", e);
+            return Response.fail("发布失败: " + e.getMessage());
         }
     }
 

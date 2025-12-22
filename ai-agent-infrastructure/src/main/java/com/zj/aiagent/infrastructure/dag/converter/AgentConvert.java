@@ -36,15 +36,19 @@ public class AgentConvert {
         if (agent == null) {
             return null;
         }
-        return AiAgentPO.builder()
-                .id(Long.valueOf(agent.getAgentId()))
+        AiAgentPO.AiAgentPOBuilder builder = AiAgentPO.builder()
                 .userId(agent.getUserId())
                 .agentName(agent.getAgentName())
                 .description(agent.getDescription())
                 .graphJson(agent.getGraphJson())
                 .status(agent.getStatus())
                 .createTime(agent.getCreateTime())
-                .updateTime(agent.getUpdateTime())
-                .build();
+                .updateTime(agent.getUpdateTime());
+
+        if (agent.getAgentId() != null && !agent.getAgentId().isEmpty()) {
+            builder.id(Long.valueOf(agent.getAgentId()));
+        }
+
+        return builder.build();
     }
 }
