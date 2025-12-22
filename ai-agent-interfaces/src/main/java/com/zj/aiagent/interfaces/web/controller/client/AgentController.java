@@ -163,8 +163,8 @@ public class AgentController {
                     DagExecutor.DagExecutionResult result = agentApplicationService.chat(command);
 
                     // 4. 获取 instanceId
-                    if (result != null && result.getExecutionId() != null) {
-                        instanceId = Long.valueOf(result.getExecutionId());
+                    if (result != null && result.getInstanceId() != null) {
+                        instanceId = result.getInstanceId();
                     }
 
                     // 5. 保存 AI 回复（成功）

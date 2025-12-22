@@ -112,6 +112,7 @@ public class DagExecutor {
                         long totalDuration = System.currentTimeMillis() - startTime;
                         return DagExecutionResult.failed(
                                 context.getExecutionId(),
+                                context.getInstanceId(),
                                 "Node execution failed: " + result.getNodeId(),
                                 result.getException(),
                                 totalDuration);
@@ -127,6 +128,7 @@ public class DagExecutor {
                         long totalDuration = System.currentTimeMillis() - startTime;
                         return DagExecutionResult.paused(
                                 context.getExecutionId(),
+                                context.getInstanceId(),
                                 result.getNodeId(),
                                 totalDuration);
                     }
@@ -162,7 +164,7 @@ public class DagExecutor {
 
             log.info("DAG执行完成，总耗时: {}ms", totalDuration);
 
-            return DagExecutionResult.success(context.getExecutionId(), totalDuration);
+            return DagExecutionResult.success(context.getExecutionId(), context.getInstanceId(), totalDuration);
 
         } catch (Exception e) {
             log.error("DAG执行异常", e);
@@ -180,6 +182,7 @@ public class DagExecutor {
 
             return DagExecutionResult.failed(
                     context.getExecutionId(),
+                    context.getInstanceId(),
                     "DAG execution error: " + e.getMessage(),
                     e,
                     totalDuration);
@@ -398,15 +401,17 @@ public class DagExecutor {
      */
     public static class DagExecutionResult {
         private final String executionId;
+        private final Long instanceId; // 新增
         private final String status; // SUCCESS, FAILED, PAUSED
         private final String message;
         private final String pausedAtNodeId;
         private final Exception exception;
         private final long durationMs;
 
-        private DagExecutionResult(String executionId, String status, String message,
+        private DagExecutionResult(String executionId, Long instanceId, String status, String message,
                 String pausedAtNodeId, Exception exception, long durationMs) {
             this.executionId = executionId;
+            this.instanceId = instanceId;
             this.status = status;
             this.message = message;
             this.pausedAtNodeId = pausedAtNodeId;
@@ -414,24 +419,29 @@ public class DagExecutor {
             this.durationMs = durationMs;
         }
 
-        public static DagExecutionResult success(String executionId, long durationMs) {
-            return new DagExecutionResult(executionId, "SUCCESS", "DAG executed successfully",
+        public static DagExecutionResult success(String executionId, Long instanceId, long durationMs) {
+            return new DagExecutionResult(executionId, instanceId, "SUCCESS", "DAG executed successfully",
                     null, null, durationMs);
         }
 
-        public static DagExecutionResult failed(String executionId, String message,
+        public static DagExecutionResult failed(String executionId, Long instanceId, String message,
                 Exception exception, long durationMs) {
-            return new DagExecutionResult(executionId, "FAILED", message, null, exception, durationMs);
+            return new DagExecutionResult(executionId, instanceId, "FAILED", message, null, exception, durationMs);
         }
 
-        public static DagExecutionResult paused(String executionId, String pausedAtNodeId, long durationMs) {
-            return new DagExecutionResult(executionId, "PAUSED", "Waiting for human intervention",
+        public static DagExecutionResult paused(String executionId, Long instanceId, String pausedAtNodeId,
+                long durationMs) {
+            return new DagExecutionResult(executionId, instanceId, "PAUSED", "Waiting for human intervention",
                     pausedAtNodeId, null, durationMs);
         }
 
         // Getters
         public String getExecutionId() {
             return executionId;
+        }
+
+        public Long getInstanceId() {
+            return instanceId;
         }
 
         public String getStatus() {

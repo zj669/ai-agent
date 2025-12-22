@@ -82,4 +82,23 @@ public class RedisKeyConstants {
             // 禁止实例化
         }
     }
+
+    /**
+     * 幂等相关Redis Key常量
+     */
+    public static class Idempotent {
+
+        /**
+         * 幂等锁Key前缀
+         * <p>
+         * 格式: idempotent:{userId}:{method}:{paramsHash}
+         * <p>
+         * 默认过期时间: 5秒
+         */
+        public static final String PREFIX = "idempotent:";
+
+        private Idempotent() {
+            // 禁止实例化
+        }
+    }
 }
