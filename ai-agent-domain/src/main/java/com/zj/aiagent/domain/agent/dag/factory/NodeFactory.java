@@ -44,12 +44,11 @@ public class NodeFactory {
 
         // 根据类型创建节点
         return switch (nodeType) {
-            case "PLAN" -> new PlanNode(nodeId, nodeName, config, applicationContext);
-            case "ACT" -> new ActNode(nodeId, nodeName, config, applicationContext);
-            case "HUMAN" -> new HumanNode(nodeId, nodeName, config, applicationContext);
-            case "ROUTER" -> new RouterNode(nodeId, nodeName, config, applicationContext);
-            case "REACT" -> new ReactNode(nodeId, nodeName, config, applicationContext);
-            case "END" -> new EndNode(nodeId, nodeName);
+            case "PLAN_NODE" -> new PlanNode(nodeId, nodeName, config, applicationContext);
+            case "ACT_NODE" -> new ActNode(nodeId, nodeName, config, applicationContext);
+            case "HUMAN_NODE" -> new HumanNode(nodeId, nodeName, config, applicationContext);
+            case "ROUTER_NODE" -> new RouterNode(nodeId, nodeName, config, applicationContext);
+            case "REACT_NODE" -> new ReactNode(nodeId, nodeName, config, applicationContext);
             default -> throw new NodeConfigException("Unknown node type: " + nodeType);
         };
     }
