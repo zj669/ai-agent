@@ -9,6 +9,7 @@ import com.zj.aiagent.application.agent.query.GetUserAgentsQuery;
 import com.zj.aiagent.domain.agent.chat.entity.ChatMessageEntity;
 import com.zj.aiagent.domain.agent.dag.executor.DagExecutor;
 import com.zj.aiagent.interfaces.common.Response;
+import com.zj.aiagent.interfaces.common.annotation.Idempotent;
 import com.zj.aiagent.interfaces.web.dto.request.agent.ChatRequest;
 import com.zj.aiagent.interfaces.web.dto.request.agent.SaveAgentRequest;
 import com.zj.aiagent.interfaces.web.dto.response.agent.AgentResponse;
@@ -119,6 +120,7 @@ public class AgentController {
      */
     @PostMapping(value = "/chat", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
     @Operation(summary = "与 Agent 进行流式聊天")
+    @Idempotent()
     public ResponseBodyEmitter chat(@Valid @RequestBody ChatRequest request, HttpServletResponse response) {
         log.info("收到聊天请求, agentId: {}, conversationId: {}, message: {}",
                 request.getAgentId(), request.getConversationId(), request.getUserMessage());
