@@ -250,4 +250,57 @@ public class AgentController {
             return Response.fail("查询失败: " + e.getMessage());
         }
     }
+
+    /**
+     * 查询Agent详情
+     *
+     * @param agentId Agent ID
+     * @return Agent详情
+     */
+    @GetMapping("/detail/{agentId}")
+    @Operation(summary = "查询Agent详情", description = "根据agentId查询Agent的详细配置信息")
+    public Response<com.zj.aiagent.interfaces.web.dto.response.agent.AgentDetailResponse> getAgentDetail(
+            @PathVariable String agentId) {
+        try {
+            // 从 UserContext 获取当前用户 ID
+            Long userId = com.zj.aiagent.shared.utils.UserContext.getUserId();
+            if (userId == null) {
+                return Response.unauthorized("未登录");
+            }
+
+            log.info("查询Agent详情, userId: {}, agentId: {}", userId, agentId);
+
+            // 构建查询对象
+            com.zj.aiagent.application.agent.query.GetAgentDetailQuery query = com.zj.aiagent.application.agent.query.GetAgentDetailQuery
+                    .builder()
+                    .userId(userId)
+                    .agentId(agentId)
+                    .build();
+
+            // 查询Agent详情
+            AgentApplicationService.AgentDetailDTO detailDTO = agentApplicationService.getAgentDetail(query);
+
+            // 转换为响应对象
+            com.zj.aiagent.interfaces.web.dto.response.agent.AgentDetailResponse response = com.zj.aiagent.interfaces.web.dto.response.agent.AgentDetailResponse
+                    .builder()
+                    .agentId(detailDTO.getAgentId())
+                    .agentName(detailDTO.getAgentName())
+                    .description(detailDTO.getDescription())
+                    .status(detailDTO.getStatus())
+                    .statusDesc(detailDTO.getStatusDesc())
+                    .graphJson(detailDTO.getGraphJson())
+                    .createTime(detailDTO.getCreateTime())
+                    .updateTime(detailDTO.getUpdateTime())
+                    .build();
+
+            return Response.success(response);
+
+        } catch (RuntimeException e) {
+            log.error("查询Agent详情失败", e);
+            return Response.fail(e.getMessage());
+        } catch (Exception e) {
+            log.error("查询Agent详情异常", e);
+            return Response.fail("查询失败: " + e.getMessage());
+        }
+    }
 }

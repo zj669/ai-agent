@@ -123,6 +123,38 @@ public class AgentApplicationService {
     }
 
     /**
+     * 查询Agent详情
+     *
+     * @param query 查询对象
+     * @return Agent详情DTO
+     */
+    public AgentApplicationService.AgentDetailDTO getAgentDetail(
+            com.zj.aiagent.application.agent.query.GetAgentDetailQuery query) {
+        log.info("查询Agent详情, userId: {}, agentId: {}", query.getUserId(), query.getAgentId());
+
+        // 查询Agent（需要验证用户权限）
+        AiAgent agent = dagRepository.selectAiAgentByAgentIdAndUserId(
+                query.getAgentId(),
+                query.getUserId());
+
+        if (agent == null) {
+            throw new RuntimeException("Agent不存在或无权限访问");
+        }
+
+        // 转换为DTO
+        return AgentApplicationService.AgentDetailDTO.builder()
+                .agentId(agent.getAgentId())
+                .agentName(agent.getAgentName())
+                .description(agent.getDescription())
+                .status(agent.getStatus())
+                .statusDesc(getStatusDesc(agent.getStatus()))
+                .graphJson(agent.getGraphJson())
+                .createTime(agent.getCreateTime())
+                .updateTime(agent.getUpdateTime())
+                .build();
+    }
+
+    /**
      * 转换为 DTO
      */
     private AgentDTO toDTO(AiAgentPO po) {
@@ -178,63 +210,14 @@ public class AgentApplicationService {
                     continue;
                 }
 
-                // 处理modelId
-                String modelId = config.getString("modelId");
-                if (modelId != null && !modelId.isEmpty()) {
-                    java.util.Map<String, Object> modelConfig = agentConfigRepository
-                            .findModelWithApiByModelId(modelId);
-                    if (modelConfig != null) {
-                        // 替换为完整的model配置
-                        config.put("model", modelConfig);
-                        config.remove("modelId");
-                        log.debug("节点 {} 的modelId已转换为完整配置", node.getString("nodeId"));
-                    } else {
-                        log.warn("未找到modelId对应的配置: {}", modelId);
-                    }
+                // 处理 model 配置（新逻辑：支持平台模型和自定义模型）
+                com.alibaba.fastjson.JSONObject modelConfig = config.getJSONObject("model");
+                if (modelConfig != null) {
+                    processModelConfig(modelConfig);
                 }
 
-                // 处理promptId
-                String promptId = config.getString("promptId");
-                if (promptId != null && !promptId.isEmpty()) {
-                    com.zj.aiagent.domain.agent.config.entity.SystemPromptEntity promptEntity = agentConfigRepository
-                            .findSystemPromptByPromptId(promptId);
-                    if (promptEntity != null) {
-                        // 替换为systemPrompt内容
-                        config.put("systemPrompt", promptEntity.getPromptContent());
-                        config.remove("promptId");
-                        log.debug("节点 {} 的promptId已转换为systemPrompt", node.getString("nodeId"));
-                    } else {
-                        // promptId不存在，使用nodeType的默认prompt
-                        log.warn("未找到promptId {}，尝试使用nodeType默认prompt", promptId);
-                        String nodeType = node.getString("nodeType");
-                        if (nodeType != null && !nodeType.isEmpty()) {
-                            com.zj.aiagent.domain.agent.config.entity.NodeTemplateEntity templateEntity = agentConfigRepository
-                                    .findNodeTemplateByNodeType(nodeType);
-                            if (templateEntity != null && templateEntity.getDefaultSystemPrompt() != null) {
-                                config.put("systemPrompt", templateEntity.getDefaultSystemPrompt());
-                                config.remove("promptId");
-                                log.info("节点 {} 使用nodeType {} 的默认prompt", node.getString("nodeId"), nodeType);
-                            } else {
-                                log.warn("nodeType {} 也没有默认prompt", nodeType);
-                            }
-                        }
-                    }
-                } else {
-                    // 没有promptId，检查是否需要nodeType默认prompt
-                    if (!config.containsKey("systemPrompt") ||
-                            config.getString("systemPrompt") == null ||
-                            config.getString("systemPrompt").isEmpty()) {
-                        String nodeType = node.getString("nodeType");
-                        if (nodeType != null && !nodeType.isEmpty()) {
-                            com.zj.aiagent.domain.agent.config.entity.NodeTemplateEntity templateEntity = agentConfigRepository
-                                    .findNodeTemplateByNodeType(nodeType);
-                            if (templateEntity != null && templateEntity.getDefaultSystemPrompt() != null) {
-                                config.put("systemPrompt", templateEntity.getDefaultSystemPrompt());
-                                log.info("节点 {} 使用nodeType {} 的默认prompt", node.getString("nodeId"), nodeType);
-                            }
-                        }
-                    }
-                }
+                // 处理 promptId
+                processPromptConfig(config, node);
             }
 
             // 序列化回JSON字符串
@@ -243,6 +226,111 @@ public class AgentApplicationService {
         } catch (Exception e) {
             log.error("处理graphJson失败", e);
             throw new RuntimeException("graphJson格式错误: " + e.getMessage());
+        }
+    }
+
+    /**
+     * 处理模型配置
+     * 支持两种模式：
+     * 1. 平台模型：有 modelId，后端自动填充 baseUrl、apiKey、modelName
+     * 2. 自定义模型：无 modelId，必须提供 baseUrl、apiKey、modelName
+     */
+    private void processModelConfig(com.alibaba.fastjson.JSONObject modelConfig) {
+        String modelId = modelConfig.getString("modelId");
+
+        if (modelId != null && !modelId.isEmpty() && !"null".equals(modelId)) {
+            // 模式1: 使用平台模型
+            log.info("使用平台模型, modelId: {}", modelId);
+
+            // 从数据库查询模型配置
+            java.util.Map<String, Object> platformModelConfig = agentConfigRepository
+                    .findModelWithApiByModelId(modelId);
+
+            if (platformModelConfig == null) {
+                throw new RuntimeException("未找到modelId对应的配置: " + modelId);
+            }
+
+            // 填充缺失的字段，但保留用户自定义的值
+            if (!modelConfig.containsKey("baseUrl") || modelConfig.getString("baseUrl") == null
+                    || modelConfig.getString("baseUrl").isEmpty()) {
+                modelConfig.put("baseUrl", platformModelConfig.get("baseUrl"));
+            }
+            if (!modelConfig.containsKey("apiKey") || modelConfig.getString("apiKey") == null
+                    || modelConfig.getString("apiKey").isEmpty()) {
+                modelConfig.put("apiKey", platformModelConfig.get("apiKey"));
+            }
+            if (!modelConfig.containsKey("modelName") || modelConfig.getString("modelName") == null
+                    || modelConfig.getString("modelName").isEmpty()) {
+                modelConfig.put("modelName", platformModelConfig.get("modelName"));
+            }
+
+            log.debug("平台模型配置填充完成: {}", modelConfig);
+
+        } else {
+            // 模式2: 使用自定义模型
+            log.info("使用自定义模型");
+
+            // 验证必填字段
+            String baseUrl = modelConfig.getString("baseUrl");
+            String apiKey = modelConfig.getString("apiKey");
+            String modelName = modelConfig.getString("modelName");
+
+            if (baseUrl == null || baseUrl.isEmpty()) {
+                throw new RuntimeException("自定义模型时，baseUrl 为必填项");
+            }
+            if (apiKey == null || apiKey.isEmpty()) {
+                throw new RuntimeException("自定义模型时，apiKey 为必填项");
+            }
+            if (modelName == null || modelName.isEmpty()) {
+                throw new RuntimeException("自定义模型时，modelName 为必填项");
+            }
+
+            log.debug("自定义模型配置验证通过: {}", modelConfig);
+        }
+    }
+
+    /**
+     * 处理 Prompt 配置
+     */
+    private void processPromptConfig(com.alibaba.fastjson.JSONObject config, com.alibaba.fastjson.JSONObject node) {
+        String promptId = config.getString("promptId");
+        if (promptId != null && !promptId.isEmpty()) {
+            com.zj.aiagent.domain.agent.config.entity.SystemPromptEntity promptEntity = agentConfigRepository
+                    .findSystemPromptByPromptId(promptId);
+            if (promptEntity != null) {
+                // 替换为systemPrompt内容
+                config.put("systemPrompt", promptEntity.getPromptContent());
+                config.remove("promptId");
+                log.debug("节点 {} 的promptId已转换为systemPrompt", node.getString("nodeId"));
+            } else {
+                // promptId不存在，使用nodeType的默认prompt
+                log.warn("未找到promptId {}，尝试使用nodeType默认prompt", promptId);
+                setDefaultSystemPrompt(config, node);
+            }
+        } else {
+            // 没有promptId，检查是否需要nodeType默认prompt
+            if (!config.containsKey("systemPrompt") ||
+                    config.getString("systemPrompt") == null ||
+                    config.getString("systemPrompt").isEmpty()) {
+                setDefaultSystemPrompt(config, node);
+            }
+        }
+    }
+
+    /**
+     * 设置默认系统提示词
+     */
+    private void setDefaultSystemPrompt(com.alibaba.fastjson.JSONObject config, com.alibaba.fastjson.JSONObject node) {
+        String nodeType = node.getString("nodeType");
+        if (nodeType != null && !nodeType.isEmpty()) {
+            com.zj.aiagent.domain.agent.config.entity.NodeTemplateEntity templateEntity = agentConfigRepository
+                    .findNodeTemplateByNodeType(nodeType);
+            if (templateEntity != null && templateEntity.getDefaultSystemPrompt() != null) {
+                config.put("systemPrompt", templateEntity.getDefaultSystemPrompt());
+                log.info("节点 {} 使用nodeType {} 的默认prompt", node.getString("nodeId"), nodeType);
+            } else {
+                log.warn("nodeType {} 没有默认prompt", nodeType);
+            }
         }
     }
 
@@ -259,6 +347,24 @@ public class AgentApplicationService {
         private String description;
         private Integer status;
         private String statusDesc;
+        private LocalDateTime createTime;
+        private LocalDateTime updateTime;
+    }
+
+    /**
+     * Agent详情DTO
+     */
+    @lombok.Data
+    @lombok.Builder
+    @lombok.NoArgsConstructor
+    @lombok.AllArgsConstructor
+    public static class AgentDetailDTO {
+        private String agentId;
+        private String agentName;
+        private String description;
+        private Integer status;
+        private String statusDesc;
+        private String graphJson;
         private LocalDateTime createTime;
         private LocalDateTime updateTime;
     }

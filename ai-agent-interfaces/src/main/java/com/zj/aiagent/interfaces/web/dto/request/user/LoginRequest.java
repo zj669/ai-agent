@@ -16,7 +16,7 @@ public class LoginRequest {
 
     @NotBlank(message = "账号不能为空")
     @Schema(description = "账号(用户名/邮箱/手机号)", example = "testuser")
-    private String account;
+    private String email;
 
     @NotBlank(message = "密码不能为空")
     @Schema(description = "密码", example = "123456")

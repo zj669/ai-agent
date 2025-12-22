@@ -3,15 +3,11 @@ package com.zj.aiagent.interfaces.web.controller.client;
 import com.zj.aiagent.application.user.UserApplicationService;
 import com.zj.aiagent.application.user.command.LoginCommand;
 import com.zj.aiagent.application.user.command.RegisterByEmailCommand;
-import com.zj.aiagent.application.user.command.RegisterUserCommand;
 import com.zj.aiagent.application.user.command.SendEmailCodeCommand;
 import com.zj.aiagent.application.user.query.GetUserInfoQuery;
-
-
 import com.zj.aiagent.interfaces.common.Response;
 import com.zj.aiagent.interfaces.web.dto.request.user.LoginRequest;
 import com.zj.aiagent.interfaces.web.dto.request.user.RegisterByEmailRequest;
-import com.zj.aiagent.interfaces.web.dto.request.user.RegisterUserRequest;
 import com.zj.aiagent.interfaces.web.dto.request.user.SendEmailCodeRequest;
 import com.zj.aiagent.interfaces.web.dto.response.user.UserResponse;
 import com.zj.aiagent.shared.utils.IpUtils;
@@ -119,14 +115,14 @@ public class UserController {
     @PostMapping("/login")
     @Operation(summary = "用户登录")
     public Response<UserResponse> login(@Valid @RequestBody LoginRequest request, HttpServletRequest httpRequest) {
-        log.info("用户登录请求, account: {}", request.getAccount());
+        log.info("用户登录请求, account: {}", request.getEmail());
         try {
             // 获取真实IP
             String ip = IpUtils.getRealIp(httpRequest);
 
             // 构建命令
             LoginCommand command = LoginCommand.builder()
-                    .account(request.getAccount())
+                    .account(request.getEmail())
                     .password(request.getPassword())
                     .loginIp(ip)
                     .build();
