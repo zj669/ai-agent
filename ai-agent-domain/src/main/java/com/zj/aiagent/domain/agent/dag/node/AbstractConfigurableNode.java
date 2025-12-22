@@ -410,7 +410,7 @@ public abstract class AbstractConfigurableNode implements DagNode<DagExecutionCo
         }
     }
 
-    private String buildMessage(String message, String conversationId) {
+    protected String buildMessage(String message, String conversationId) {
         // 获取节点类型,如果为 null 则使用默认值
         NodeType nodeType = getNodeType();
         String typeLabel = (nodeType != null) ? nodeType.getLabel() : "UNKNOWN";
@@ -421,7 +421,7 @@ public abstract class AbstractConfigurableNode implements DagNode<DagExecutionCo
                 .content(message)
                 .completed(false)
                 .timestamp(System.currentTimeMillis())
-                .sessionId(conversationId)
+                .conversationId(conversationId)
                 .build();
         return "data: " + JSON.toJSONString(result) + "\n\n";
     }

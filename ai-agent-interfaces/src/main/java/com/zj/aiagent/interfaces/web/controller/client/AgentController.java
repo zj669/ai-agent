@@ -1,14 +1,18 @@
 package com.zj.aiagent.interfaces.web.controller.client;
 
+import cn.hutool.core.util.IdUtil;
 import com.zj.aiagent.application.agent.AgentApplicationService;
 import com.zj.aiagent.application.agent.command.ChatCommand;
 import com.zj.aiagent.application.agent.command.PublishAgentCommand;
 import com.zj.aiagent.application.agent.command.SaveAgentCommand;
 import com.zj.aiagent.application.agent.query.GetUserAgentsQuery;
+import com.zj.aiagent.domain.agent.chat.entity.ChatMessageEntity;
+import com.zj.aiagent.domain.agent.dag.executor.DagExecutor;
 import com.zj.aiagent.interfaces.common.Response;
 import com.zj.aiagent.interfaces.web.dto.request.agent.ChatRequest;
 import com.zj.aiagent.interfaces.web.dto.request.agent.SaveAgentRequest;
 import com.zj.aiagent.interfaces.web.dto.response.agent.AgentResponse;
+import com.zj.aiagent.interfaces.web.dto.response.agent.ChatHistoryResponse;
 import com.zj.aiagent.interfaces.web.dto.response.agent.SaveAgentResponse;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -22,6 +26,7 @@ import org.springframework.web.servlet.mvc.method.annotation.ResponseBodyEmitter
 
 import java.io.IOException;
 import java.util.List;
+import java.util.stream.Collectors;
 
 /**
  * Agent 控制器
@@ -42,6 +47,9 @@ public class AgentController {
 
     @Resource
     private AgentApplicationService agentApplicationService;
+
+    @Resource
+    private com.zj.aiagent.application.agent.ChatMessageApplicationService chatMessageApplicationService;
 
     /**
      * 保存Agent配置
@@ -93,6 +101,16 @@ public class AgentController {
         }
     }
 
+    @GetMapping("newChat")
+    @Operation(summary = "发起流式问答前生成会话ID")
+    public Response<String> newChat() {
+        return Response.<String>builder()
+                .code("0000")
+                .info("成功")
+                .data(String.valueOf(IdUtil.getSnowflake(1, 1).nextId()))
+                .build();
+    }
+
     /**
      * 与 Agent 进行流式聊天
      * 
@@ -123,8 +141,41 @@ public class AgentController {
 
             // 异步执行聊天，避免阻塞请求线程
             new Thread(() -> {
+                String conversationId = command.getConversationId();
+                Long instanceId = null;
+
                 try {
-                    agentApplicationService.chat(command);
+                    // 1. 生成会话ID
+                    if (conversationId == null || conversationId.isEmpty()) {
+                        conversationId = String.valueOf(IdUtil.getSnowflake(1, 1).nextId());
+                        command.setConversationId(conversationId);
+                    }
+
+                    // 2. 保存用户消息
+                    Long userId = com.zj.aiagent.shared.utils.UserContext.getUserId();
+                    chatMessageApplicationService.saveUserMessage(
+                            conversationId,
+                            Long.valueOf(command.getAgentId()),
+                            userId,
+                            command.getUserMessage());
+
+                    // 3. 执行聊天并获取结果
+                    DagExecutor.DagExecutionResult result = agentApplicationService.chat(command);
+
+                    // 4. 获取 instanceId
+                    if (result != null && result.getExecutionId() != null) {
+                        instanceId = Long.valueOf(result.getExecutionId());
+                    }
+
+                    // 5. 保存 AI 回复（成功）
+                    chatMessageApplicationService.saveAssistantMessage(
+                            conversationId,
+                            Long.valueOf(command.getAgentId()),
+                            instanceId,
+                            null,
+                            false,
+                            null);
+
                     // 尝试完成响应,如果已经完成则会抛出 IllegalStateException
                     try {
                         emitter.complete();
@@ -134,9 +185,28 @@ public class AgentController {
                     }
                 } catch (Exception e) {
                     log.error("聊天处理异常", e);
+
+                    // 保存 AI 回复（失败）
+                    try {
+                        chatMessageApplicationService.saveAssistantMessage(
+                                conversationId,
+                                Long.valueOf(command.getAgentId()),
+                                instanceId,
+                                null,
+                                true,
+                                e.getMessage());
+                    } catch (Exception saveEx) {
+                        log.error("保存错误消息失败", saveEx);
+                    }
+
                     // 尝试发送错误信息,如果 emitter 已完成则忽略
                     try {
-                        emitter.send("error: " + e.getMessage());
+                        String errorMsg = buildErrorEvent(
+                                "CHAT_EXECUTION_FAILED",
+                                "EXECUTION_ERROR",
+                                e.getMessage(),
+                                command.getConversationId());
+                        emitter.send(errorMsg);
                         emitter.completeWithError(e);
                     } catch (IllegalStateException | IOException ex) {
                         // emitter 已经完成或发送失败,记录但不再抛出
@@ -148,7 +218,12 @@ public class AgentController {
         } catch (Exception e) {
             log.error("创建聊天会话异常", e);
             try {
-                emitter.send("error: " + e.getMessage());
+                String errorMsg = buildErrorEvent(
+                        "CHAT_SESSION_CREATION_FAILED",
+                        "INITIALIZATION_ERROR",
+                        e.getMessage(),
+                        null);
+                emitter.send(errorMsg);
                 emitter.completeWithError(e);
             } catch (IOException ioException) {
                 log.error("发送错误信息失败", ioException);
@@ -156,6 +231,74 @@ public class AgentController {
         }
 
         return emitter;
+    }
+
+    /**
+     * 查询会话历史消息
+     */
+    @GetMapping("/chat/history/{conversationId}")
+    @Operation(summary = "查询会话历史消息", description = "根据会话ID查询历史消息,包含节点执行详情")
+    public Response<List<ChatHistoryResponse>> getChatHistory(@PathVariable String conversationId) {
+        try {
+            log.info("查询会话历史: conversationId={}", conversationId);
+
+            List<ChatMessageEntity> messages = chatMessageApplicationService.getConversationHistory(conversationId);
+
+            List<ChatHistoryResponse> responses = messages.stream()
+                    .map(this::convertToChatHistoryResponse)
+                    .collect(Collectors.toList());
+
+            log.info("查询会话历史成功: conversationId={}, count={}", conversationId, responses.size());
+            return Response.success(responses);
+
+        } catch (Exception e) {
+            log.error("查询聊天历史失败: conversationId={}", conversationId, e);
+            return Response.fail("查询失败: " + e.getMessage());
+        }
+    }
+
+    /**
+     * 转换为前端响应格式
+     */
+    private ChatHistoryResponse convertToChatHistoryResponse(ChatMessageEntity entity) {
+        ChatHistoryResponse.ChatHistoryResponseBuilder builder = ChatHistoryResponse.builder()
+                .role(entity.getRole().getValue())
+                .timestamp(entity.getTimestamp())
+                .error(entity.getIsError());
+
+        // 用户消息
+        if (entity.getRole() == ChatMessageEntity.MessageRole.USER) {
+            builder.content(entity.getContent());
+        }
+
+        // AI 回复 - 转换节点执行详情
+        if (entity.getNodeExecutions() != null && !entity.getNodeExecutions().isEmpty()) {
+            List<ChatHistoryResponse.NodeExecution> nodes = entity.getNodeExecutions().stream()
+                    .map(node -> ChatHistoryResponse.NodeExecution.builder()
+                            .nodeId(node.getNodeId())
+                            .nodeName(node.getNodeName())
+                            .status(convertExecuteStatus(node.getExecuteStatus()))
+                            .content(node.getOutputData())
+                            .duration(node.getDurationMs())
+                            .build())
+                    .collect(Collectors.toList());
+            builder.nodes(nodes);
+        }
+
+        return builder.build();
+    }
+
+    /**
+     * 转换执行状态
+     */
+    private String convertExecuteStatus(String executeStatus) {
+        if ("SUCCESS".equals(executeStatus))
+            return "completed";
+        if ("FAILED".equals(executeStatus))
+            return "error";
+        if ("RUNNING".equals(executeStatus))
+            return "running";
+        return "pending";
     }
 
     /**
@@ -341,5 +484,23 @@ public class AgentController {
             log.error("查询Agent详情异常", e);
             return Response.fail("查询失败: " + e.getMessage());
         }
+    }
+
+    /**
+     * 构建标准化错误事件
+     */
+    private String buildErrorEvent(String errorCode, String errorType,
+            String message, String conversationId) {
+        java.util.Map<String, Object> event = new java.util.HashMap<>();
+        event.put("type", "error");
+        event.put("errorCode", errorCode);
+        event.put("errorType", errorType);
+        event.put("message", message);
+        if (conversationId != null) {
+            event.put("conversationId", conversationId);
+        }
+        event.put("timestamp", System.currentTimeMillis());
+
+        return "data: " + com.alibaba.fastjson.JSON.toJSONString(event) + "\n\n";
     }
 }

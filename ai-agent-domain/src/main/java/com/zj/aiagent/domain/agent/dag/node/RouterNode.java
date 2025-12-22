@@ -42,7 +42,7 @@ public class RouterNode implements ConditionalDagNode<DagExecutionContext> {
         this.nodeName = nodeName;
         this.config = config;
         this.applicationContext = applicationContext;
-        this.configHelper = new NodeConfigHelper(config, applicationContext);
+        this.configHelper = new NodeConfigHelper(config, applicationContext, this);
 
         if (config == null) {
             throw new NodeConfigException("NodeConfig cannot be null for node: " + nodeId);
@@ -237,8 +237,11 @@ public class RouterNode implements ConditionalDagNode<DagExecutionContext> {
      */
     private static class NodeConfigHelper extends AbstractConfigurableNode {
 
-        public NodeConfigHelper(NodeConfig config, ApplicationContext applicationContext) {
+        private final RouterNode parentNode;
+
+        public NodeConfigHelper(NodeConfig config, ApplicationContext applicationContext, RouterNode parentNode) {
             super("helper", "helper", config, applicationContext);
+            this.parentNode = parentNode;
         }
 
         @Override
@@ -256,6 +259,46 @@ public class RouterNode implements ConditionalDagNode<DagExecutionContext> {
         public String callAI(String userMessage, DagExecutionContext context) throws DagNodeExecutionException {
             return super.callAI(userMessage, context);
         }
+
+        // 重写 pushMessage,委托给父节点
+        @Override
+        public void pushMessage(String message, DagExecutionContext context) {
+            if (parentNode != null) {
+                parentNode.pushMessage(message, context);
+            }
+        }
+    }
+
+    /**
+     * 推送消息到客户端
+     */
+    private void pushMessage(String message, DagExecutionContext context) {
+        org.springframework.web.servlet.mvc.method.annotation.ResponseBodyEmitter emitter = context.getEmitter();
+        String conversationId = context.getConversationId();
+        if (emitter == null) {
+            log.warn("Emitter is null, message will not be pushed to client");
+            return;
+        }
+        try {
+            emitter.send(buildMessage(message, conversationId));
+        } catch (Exception e) {
+            log.error("Failed to push message to client", e);
+        }
+    }
+
+    /**
+     * 构建 SSE 消息
+     */
+    private String buildMessage(String message, String conversationId) {
+        java.util.Map<String, Object> event = new java.util.HashMap<>();
+        event.put("type", "node_execute");
+        event.put("nodeName", NodeType.ROUTER_NODE.getLabel());
+        event.put("content", message);
+        event.put("completed", false);
+        event.put("timestamp", System.currentTimeMillis());
+        event.put("conversationId", conversationId);
+
+        return "data: " + JSON.toJSONString(event) + "\n\n";
     }
 
     /**

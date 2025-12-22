@@ -46,16 +46,27 @@ public class DagParallelScheduler {
     /**
      * 并行执行一组节点
      * 注意：使用Object类型因为RouterNode是ConditionalDagNode
+     * 
+     * @param nodes          要执行的节点列表
+     * @param context        执行上下文
+     * @param completedNodes 已完成节点数
+     * @param totalNodes     总节点数
      */
     public List<NodeExecutionResult> executeParallel(
             List<Object> nodes,
-            DagExecutionContext context) {
+            DagExecutionContext context,
+            int completedNodes,
+            int totalNodes) {
 
         if (nodes == null || nodes.isEmpty()) {
             return List.of();
         }
 
         log.info("并行执行 {} 个节点", nodes.size());
+
+        // 将进度信息存入上下文，供 executeNode 使用
+        context.setValue("__PROGRESS_COMPLETED__", completedNodes);
+        context.setValue("__PROGRESS_TOTAL__", totalNodes);
 
         List<CompletableFuture<NodeExecutionResult>> futures = new ArrayList<>();
 
@@ -107,8 +118,12 @@ public class DagParallelScheduler {
 
         long startTime = System.currentTimeMillis();
 
+        // 从上下文获取进度信息
+        Integer completedNodes = context.getValue("__PROGRESS_COMPLETED__");
+        Integer totalNodes = context.getValue("__PROGRESS_TOTAL__");
+
         // 推送节点开始事件
-        pushNodeLifecycleEvent(context, nodeId, nodeName, "starting", null, null);
+        pushNodeLifecycleEvent(context, nodeId, nodeName, "starting", null, null, completedNodes, totalNodes);
 
         try {
             log.info("开始执行节点: {}", nodeId);
@@ -151,8 +166,16 @@ public class DagParallelScheduler {
             long duration = System.currentTimeMillis() - startTime;
             log.info("节点执行成功: {}, 耗时: {}ms", nodeId, duration);
 
+            // 获取进度信息，并增加当前节点
+            Integer currentCompleted = context.getValue("__PROGRESS_COMPLETED__");
+            Integer currentTotal = context.getValue("__PROGRESS_TOTAL__");
+            if (currentCompleted != null) {
+                currentCompleted += 1; // 当前节点已完成
+            }
+
             // 推送节点完成事件
-            pushNodeLifecycleEvent(context, nodeId, nodeName, "completed", result, duration);
+            pushNodeLifecycleEvent(context, nodeId, nodeName, "completed", result, duration, currentCompleted,
+                    currentTotal);
 
             return new NodeExecutionResult(nodeId, true, result, null, duration);
 
@@ -160,8 +183,16 @@ public class DagParallelScheduler {
             long duration = System.currentTimeMillis() - startTime;
             log.error("节点执行失败: {}, 耗时: {}ms", nodeId, duration, e);
 
+            // 获取进度信息，并增加当前节点
+            Integer currentCompleted = context.getValue("__PROGRESS_COMPLETED__");
+            Integer currentTotal = context.getValue("__PROGRESS_TOTAL__");
+            if (currentCompleted != null) {
+                currentCompleted += 1; // 即使失败也计入已处理
+            }
+
             // 推送节点失败事件
-            pushNodeLifecycleEvent(context, nodeId, nodeName, "failed", e.getMessage(), duration);
+            pushNodeLifecycleEvent(context, nodeId, nodeName, "failed", e.getMessage(), duration, currentCompleted,
+                    currentTotal);
 
             return new NodeExecutionResult(nodeId, false, null, e, duration);
         } catch (Exception e) {
@@ -171,8 +202,16 @@ public class DagParallelScheduler {
             DagNodeExecutionException wrappedException = new DagNodeExecutionException(
                     "Node execution failed: " + e.getMessage(), e, nodeId, true);
 
+            // 获取进度信息，并增加当前节点
+            Integer currentCompleted = context.getValue("__PROGRESS_COMPLETED__");
+            Integer currentTotal = context.getValue("__PROGRESS_TOTAL__");
+            if (currentCompleted != null) {
+                currentCompleted += 1;
+            }
+
             // 推送节点失败事件
-            pushNodeLifecycleEvent(context, nodeId, nodeName, "failed", e.getMessage(), duration);
+            pushNodeLifecycleEvent(context, nodeId, nodeName, "failed", e.getMessage(), duration, currentCompleted,
+                    currentTotal);
 
             return new NodeExecutionResult(nodeId, false, null, wrappedException, duration);
         }
@@ -181,15 +220,17 @@ public class DagParallelScheduler {
     /**
      * 推送节点生命周期事件到客户端
      * 
-     * @param context    执行上下文
-     * @param nodeId     节点ID
-     * @param nodeName   节点名称
-     * @param status     节点状态: starting, completed, failed
-     * @param result     结果或错误信息
-     * @param durationMs 执行耗时(毫秒),starting 事件时为 null
+     * @param context        执行上下文
+     * @param nodeId         节点ID
+     * @param nodeName       节点名称
+     * @param status         节点状态: starting, completed, failed
+     * @param result         结果或错误信息
+     * @param durationMs     执行耗时(毫秒),starting 事件时为 null
+     * @param completedNodes 已完成节点数(可选)
+     * @param totalNodes     总节点数(可选)
      */
     private void pushNodeLifecycleEvent(DagExecutionContext context, String nodeId, String nodeName,
-            String status, Object result, Long durationMs) {
+            String status, Object result, Long durationMs, Integer completedNodes, Integer totalNodes) {
         org.springframework.web.servlet.mvc.method.annotation.ResponseBodyEmitter emitter = context.getEmitter();
         if (emitter == null) {
             log.warn("Emitter is null, cannot push lifecycle event for node: {}", nodeId);
@@ -204,6 +245,7 @@ public class DagParallelScheduler {
             event.put("nodeName", nodeName);
             event.put("status", status);
             event.put("timestamp", System.currentTimeMillis());
+            event.put("conversationId", context.getConversationId());
 
             if (result != null) {
                 // 限制结果长度避免消息过大
@@ -216,6 +258,15 @@ public class DagParallelScheduler {
 
             if (durationMs != null) {
                 event.put("durationMs", durationMs);
+            }
+
+            // 添加进度信息
+            if (completedNodes != null && totalNodes != null && totalNodes > 0) {
+                java.util.Map<String, Object> progress = new java.util.HashMap<>();
+                progress.put("current", completedNodes);
+                progress.put("total", totalNodes);
+                progress.put("percentage", (int) ((completedNodes * 100.0) / totalNodes));
+                event.put("progress", progress);
             }
 
             String message = "data: " + com.alibaba.fastjson.JSON.toJSONString(event) + "\n\n";

@@ -28,6 +28,6 @@ public class ChatRequest {
     @Schema(description = "用户消息", required = true, example = "你好，请帮我分析一下这个问题")
     private String userMessage;
 
-    @Schema(description = "会话ID（可选，不传则自动生成）", example = "conversation_456")
+    @Schema(description = "会话ID", required = true, example = "conversation_456")
     private String conversationId;
 }

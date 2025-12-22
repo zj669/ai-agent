@@ -11,6 +11,7 @@ import com.zj.aiagent.domain.agent.dag.entity.DagGraph;
 import com.zj.aiagent.domain.agent.dag.repository.IDagRepository;
 import com.zj.aiagent.domain.agent.dag.service.DagExecuteService;
 import com.zj.aiagent.domain.agent.dag.service.DagLoaderService;
+import com.zj.aiagent.domain.agent.dag.executor.DagExecutor;
 import com.zj.aiagent.infrastructure.persistence.entity.AiAgentPO;
 import com.zj.aiagent.infrastructure.persistence.mapper.AiAgentMapper;
 import lombok.RequiredArgsConstructor;
@@ -38,14 +39,14 @@ public class AgentApplicationService {
     private final IDagRepository dagRepository;
     private final IAgentConfigRepository agentConfigRepository;
 
-    public void chat(ChatCommand command) {
+    public DagExecutor.DagExecutionResult chat(ChatCommand command) {
         log.info("执行对话, user: {}", command.getUserMessage());
         DagGraph dagGraph = dagLoaderService.loadDagByAgentId(command.getAgentId());
         String conversationId = command.getConversationId();
         if (conversationId == null) {
             conversationId = String.valueOf(IdUtil.getSnowflake(1, 1).nextId());
         }
-        dagExecuteService.executeDag(dagGraph, conversationId, command.getUserMessage(), command.getEmitter(),
+        return dagExecuteService.executeDag(dagGraph, conversationId, command.getUserMessage(), command.getEmitter(),
                 command.getAgentId());
     }
 

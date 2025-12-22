@@ -57,6 +57,10 @@ public class DagExecutor {
             // 2. 获取执行层级（用于并行执行）
             List<List<String>> executionLevels = DagTopologicalSorter.getExecutionLevels(dagGraph);
 
+            // 2.5 推送 DAG 开始事件
+            int totalNodes = dagGraph.getNodes().size();
+            pushDagStartEvent(context, dagGraph.getDagId(), totalNodes);
+
             // 3. 创建执行实例(DAG聚合内部操作)
             DagExecutionInstance instance = createExecutionInstance(dagGraph, context);
             context.setInstanceId(instance.getId()); // 设置实例ID到上下文
@@ -66,6 +70,9 @@ public class DagExecutor {
 
             // 5. 初始化启用的节点集合（用于路由过滤）
             Set<String> enabledNodes = new HashSet<>(dagGraph.getNodes().keySet());
+
+            // 5.5 初始化进度跟踪
+            int completedNodes = 0;
 
             // 6. 按层级执行
             for (int level = 0; level < executionLevels.size(); level++) {
@@ -91,7 +98,8 @@ public class DagExecutor {
                         .collect(Collectors.toList());
 
                 // 并行执行本层所有节点
-                List<DagParallelScheduler.NodeExecutionResult> results = scheduler.executeParallel(levelNodes, context);
+                List<DagParallelScheduler.NodeExecutionResult> results = scheduler.executeParallel(
+                        levelNodes, context, completedNodes, totalNodes);
 
                 // 检查执行结果
                 for (var result : results) {
@@ -135,6 +143,9 @@ public class DagExecutor {
                 if (!filteredNodeIds.isEmpty()) {
                     updateExecutionInstance(instance, "RUNNING", filteredNodeIds.get(0), context);
                 }
+
+                // 更新已完成节点数
+                completedNodes += filteredNodeIds.size();
             }
 
             // 6. 执行完成
@@ -145,6 +156,9 @@ public class DagExecutor {
             // 记录DAG完成
             loggingService.logDagEnd(context.getExecutionId(), context.getConversationId(),
                     dagGraph.getDagId(), "SUCCESS", totalDuration);
+
+            // 推送 DAG 完成事件
+            pushDagCompleteEvent(context, dagGraph.getDagId(), "success", totalDuration);
 
             log.info("DAG执行完成，总耗时: {}ms", totalDuration);
 
@@ -158,6 +172,11 @@ public class DagExecutor {
             // 记录DAG失败
             loggingService.logDagEnd(context.getExecutionId(), context.getConversationId(),
                     dagGraph != null ? dagGraph.getDagId() : "unknown", "FAILED", totalDuration);
+
+            // 推送 DAG 失败事件
+            if (dagGraph != null) {
+                pushDagCompleteEvent(context, dagGraph.getDagId(), "failed", totalDuration);
+            }
 
             return DagExecutionResult.failed(
                     context.getExecutionId(),
@@ -247,6 +266,62 @@ public class DagExecutor {
                     disableDownstreamNodes(downstreamNodeId, dagGraph, enabledNodes);
                 }
             }
+        }
+    }
+
+    /**
+     * 推送 DAG 开始事件
+     */
+    private void pushDagStartEvent(DagExecutionContext context, String dagId, int totalNodes) {
+        org.springframework.web.servlet.mvc.method.annotation.ResponseBodyEmitter emitter = context.getEmitter();
+        if (emitter == null) {
+            return;
+        }
+
+        try {
+            java.util.Map<String, Object> event = new java.util.HashMap<>();
+            event.put("type", "dag_start");
+            event.put("conversationId", context.getConversationId());
+            event.put("agentId", String.valueOf(context.getAgentId()));
+            event.put("dagId", dagId);
+            event.put("totalNodes", totalNodes);
+            event.put("timestamp", System.currentTimeMillis());
+
+            String message = "data: " + com.alibaba.fastjson.JSON.toJSONString(event) + "\n\n";
+            emitter.send(message);
+
+            log.debug("推送 DAG 开始事件: dagId={}", dagId);
+        } catch (Exception e) {
+            log.warn("推送 DAG 开始事件失败: dagId={}", dagId, e);
+        }
+    }
+
+    /**
+     * 推送 DAG 完成事件
+     */
+    private void pushDagCompleteEvent(DagExecutionContext context, String dagId,
+            String status, long durationMs) {
+        org.springframework.web.servlet.mvc.method.annotation.ResponseBodyEmitter emitter = context.getEmitter();
+        if (emitter == null) {
+            return;
+        }
+
+        try {
+            java.util.Map<String, Object> event = new java.util.HashMap<>();
+            event.put("type", "dag_complete");
+            event.put("conversationId", context.getConversationId());
+            event.put("agentId", String.valueOf(context.getAgentId()));
+            event.put("dagId", dagId);
+            event.put("status", status); // "success" | "failed"
+            event.put("durationMs", durationMs);
+            event.put("timestamp", System.currentTimeMillis());
+
+            String message = "data: " + com.alibaba.fastjson.JSON.toJSONString(event) + "\n\n";
+            emitter.send(message);
+
+            log.debug("推送 DAG 完成事件: dagId={}, status={}", dagId, status);
+        } catch (Exception e) {
+            log.warn("推送 DAG 完成事件失败: dagId={}", dagId, e);
         }
     }
 
