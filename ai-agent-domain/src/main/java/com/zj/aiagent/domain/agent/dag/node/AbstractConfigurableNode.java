@@ -5,6 +5,7 @@ import com.zj.aiagent.domain.agent.dag.config.AdvisorConfig;
 import com.zj.aiagent.domain.agent.dag.config.McpToolConfig;
 import com.zj.aiagent.domain.agent.dag.config.ModelConfig;
 import com.zj.aiagent.domain.agent.dag.config.NodeConfig;
+import com.zj.aiagent.domain.agent.dag.context.ContextKey;
 import com.zj.aiagent.domain.agent.dag.context.DagExecutionContext;
 import com.zj.aiagent.domain.agent.dag.entity.AutoAgentExecuteResultEntity;
 import com.zj.aiagent.domain.agent.dag.entity.NodeExecutionLog;
@@ -45,7 +46,7 @@ public abstract class AbstractConfigurableNode implements DagNode<DagExecutionCo
     protected final ApplicationContext applicationContext;
 
     protected AbstractConfigurableNode(String nodeId, String nodeName, NodeConfig config,
-                                       ApplicationContext applicationContext) {
+            ApplicationContext applicationContext) {
         this.nodeId = nodeId;
         this.nodeName = nodeName;
         this.config = config;
@@ -97,7 +98,7 @@ public abstract class AbstractConfigurableNode implements DagNode<DagExecutionCo
             Map<String, Object> nodeResults = context.getAllNodeResults();
             if (nodeResults == null || nodeResults.isEmpty()) {
                 // 第一个节点 - 记录用户输入
-                String userInput = context.getValue("userInput", "");
+                String userInput = context.getValue(ContextKey.USER_INPUT.key(), "");
                 Map<String, Object> inputData = new HashMap<>();
                 inputData.put("userInput", userInput);
                 inputJson = JSON.toJSONString(inputData);
@@ -111,7 +112,7 @@ public abstract class AbstractConfigurableNode implements DagNode<DagExecutionCo
             IDagExecutionRepository repository = getExecutionRepository();
             if (repository != null) {
                 executionLog = repository.saveNodeLog(executionLog);
-                context.setValue("_node_log_" + nodeId, executionLog);
+                context.setValue(ContextKey.NODE_LOG_PREFIX.forNode(nodeId), executionLog);
             }
         } catch (Exception e) {
             log.warn("保存节点执行日志失败，不影响执行", e);
@@ -121,7 +122,7 @@ public abstract class AbstractConfigurableNode implements DagNode<DagExecutionCo
     @Override
     public void afterExecute(DagExecutionContext context, NodeExecutionResult result, Exception exception) {
         // 获取执行日志
-        NodeExecutionLog executionLog = (NodeExecutionLog) context.getValue("_node_log_" + nodeId);
+        NodeExecutionLog executionLog = (NodeExecutionLog) context.getValue(ContextKey.NODE_LOG_PREFIX.forNode(nodeId));
 
         if (exception != null) {
             log.error("节点 [{}] ({}) 执行失败", nodeName, nodeId, exception);

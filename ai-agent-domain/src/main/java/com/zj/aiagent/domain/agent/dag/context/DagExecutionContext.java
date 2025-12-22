@@ -1,5 +1,6 @@
 package com.zj.aiagent.domain.agent.dag.context;
 
+import com.zj.aiagent.domain.agent.dag.entity.DagGraph;
 import com.zj.aiagent.shared.design.dag.DagContext;
 import lombok.Getter;
 import lombok.Setter;
@@ -30,6 +31,28 @@ public class DagExecutionContext implements DagContext {
     private final Map<String, Object> dataMap;
     private final Map<String, Object> nodeResults;
 
+    // ==================== 领域对象 ====================
+    /** 用户输入数据 */
+    @Getter
+    private final UserInputData userInputData;
+
+    /** 执行阶段数据 */
+    @Getter
+    private final ExecutionData executionData;
+
+    /** 人工介入数据 */
+    @Getter
+    private final HumanInterventionData humanInterventionData;
+
+    /** 进度数据 */
+    @Getter
+    private ProgressData progressData;
+
+    /** DAG 图对象 */
+    @Getter
+    @Setter
+    private DagGraph dagGraph;
+
     public DagExecutionContext(String conversationId, ResponseBodyEmitter emitter, Long agentId) {
         this.emitter = emitter;
         this.agentId = agentId;
@@ -37,6 +60,10 @@ public class DagExecutionContext implements DagContext {
         this.conversationId = conversationId;
         this.dataMap = new ConcurrentHashMap<>();
         this.nodeResults = new ConcurrentHashMap<>();
+        // 初始化领域对象
+        this.userInputData = new UserInputData();
+        this.executionData = new ExecutionData();
+        this.humanInterventionData = new HumanInterventionData();
     }
 
     public DagExecutionContext(String conversationId) {
@@ -45,6 +72,10 @@ public class DagExecutionContext implements DagContext {
         this.conversationId = conversationId;
         this.dataMap = new ConcurrentHashMap<>();
         this.nodeResults = new ConcurrentHashMap<>();
+        // 初始化领域对象
+        this.userInputData = new UserInputData();
+        this.executionData = new ExecutionData();
+        this.humanInterventionData = new HumanInterventionData();
     }
 
     @Override
@@ -101,4 +132,33 @@ public class DagExecutionContext implements DagContext {
         this.instanceId = instanceId;
     }
 
+    // ==================== 领域对象便捷方法 ====================
+
+    /**
+     * 初始化进度数据
+     */
+    public void initProgress(int totalNodes) {
+        this.progressData = new ProgressData(0, totalNodes);
+    }
+
+    /**
+     * 获取有效的用户输入
+     */
+    public String getEffectiveUserInput() {
+        return userInputData.getEffectiveInput();
+    }
+
+    /**
+     * 设置用户输入
+     */
+    public void setUserInput(String input) {
+        userInputData.setUserInput(input);
+    }
+
+    /**
+     * 检查是否等待人工介入
+     */
+    public boolean isWaitingForHuman() {
+        return humanInterventionData.isWaitingForHuman();
+    }
 }

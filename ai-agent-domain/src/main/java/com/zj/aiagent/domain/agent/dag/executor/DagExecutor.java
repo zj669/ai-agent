@@ -1,6 +1,7 @@
 package com.zj.aiagent.domain.agent.dag.executor;
 
 import com.alibaba.fastjson.JSON;
+import com.zj.aiagent.domain.agent.dag.context.ContextKey;
 import com.zj.aiagent.domain.agent.dag.context.DagExecutionContext;
 import com.zj.aiagent.domain.agent.dag.entity.DagGraph;
 import com.zj.aiagent.domain.agent.dag.entity.DagExecutionInstance;
@@ -66,8 +67,8 @@ public class DagExecutor {
             DagExecutionInstance instance = createExecutionInstance(dagGraph, context);
             context.setInstanceId(instance.getId()); // 设置实例ID到上下文
 
-            // 4. 将 DagGraph 存入 context，供 RouterNode 等节点使用
-            context.setValue("__DAG_GRAPH__", dagGraph);
+            // 4. 将 DagGraph 存入领域对象，供 RouterNode 等节点使用
+            context.setDagGraph(dagGraph);
 
             // 5. 初始化启用的节点集合（用于路由过滤）
             Set<String> enabledNodes = new HashSet<>(dagGraph.getNodes().keySet());

@@ -2,6 +2,7 @@ package com.zj.aiagent.domain.agent.dag.node;
 
 import com.alibaba.fastjson2.JSON;
 import com.zj.aiagent.domain.agent.dag.config.NodeConfig;
+import com.zj.aiagent.domain.agent.dag.context.ContextKey;
 import com.zj.aiagent.domain.agent.dag.context.DagExecutionContext;
 import com.zj.aiagent.domain.agent.dag.entity.NodeType;
 import com.zj.aiagent.shared.design.dag.DagNodeExecutionException;
@@ -43,7 +44,7 @@ public class ReactNode extends AbstractConfigurableNode {
     protected NodeExecutionResult doExecute(DagExecutionContext context) throws DagNodeExecutionException {
         try {
             int maxIterations = getMaxIterations();
-            String goal = context.getValue("userMessage", context.getValue("userInput", "完成用户任务"));
+            String goal = context.getUserInputData().getEffectiveInput("完成用户任务");
 
             log.info("React 节点开始执行，目标: {}, 最大迭代: {}", goal, maxIterations);
 
@@ -71,7 +72,7 @@ public class ReactNode extends AbstractConfigurableNode {
                     finalIteration.put("finalAnswer", finalAnswer);
                     iterations.add(finalIteration);
 
-                    context.setValue("react_iterations", iterations);
+                    context.setValue(ContextKey.REACT_ITERATIONS.key(), iterations);
                     return NodeExecutionResult.content(formatFinalResult(finalAnswer, iterations));
                 }
 
@@ -98,7 +99,7 @@ public class ReactNode extends AbstractConfigurableNode {
 
             // 达到最大迭代次数
             log.warn("达到最大迭代次数 {}, 未能完成任务", maxIterations);
-            context.setValue("react_iterations", iterations);
+            context.setValue(ContextKey.REACT_ITERATIONS.key(), iterations);
 
             return NodeExecutionResult.content(formatIncompleteResult(iterations, maxIterations));
 

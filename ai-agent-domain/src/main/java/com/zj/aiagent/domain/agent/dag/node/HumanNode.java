@@ -2,6 +2,7 @@ package com.zj.aiagent.domain.agent.dag.node;
 
 import com.zj.aiagent.domain.agent.dag.config.NodeConfig;
 import com.zj.aiagent.domain.agent.dag.context.DagExecutionContext;
+import com.zj.aiagent.domain.agent.dag.context.HumanInterventionData;
 import com.zj.aiagent.domain.agent.dag.context.HumanInterventionRequest;
 import com.zj.aiagent.domain.agent.dag.context.HumanNodeResult;
 import com.zj.aiagent.domain.agent.dag.entity.NodeType;
@@ -26,13 +27,13 @@ public class HumanNode extends AbstractConfigurableNode {
         try {
             log.info("人工检查节点开始执行，等待人工审核");
 
-            // 检查是否已经有人工审核结果(恢复执行的情况)
-            Boolean humanApproved = context.getValue("human_approved");
-            if (humanApproved != null) {
-                String humanComments = context.getValue("human_comments", "");
-                log.info("人工审核已完成，审核结果: {}, 评论: {}", humanApproved, humanComments);
+            // 从领域对象检查是否已经有人工审核结果
+            HumanInterventionData humanData = context.getHumanInterventionData();
+            if (humanData.isReviewed()) {
+                String humanComments = humanData.getComments("");
+                log.info("人工审核已完成，审核结果: {}, 评论: {}", humanData.isApproved(), humanComments);
 
-                if (Boolean.TRUE.equals(humanApproved)) {
+                if (humanData.isApproved()) {
                     return NodeExecutionResult.content(HumanNodeResult.approved(humanComments));
                 } else {
                     return NodeExecutionResult.content(HumanNodeResult.rejected(humanComments));
@@ -51,10 +52,9 @@ public class HumanNode extends AbstractConfigurableNode {
                     .createTime(System.currentTimeMillis())
                     .build();
 
-            // 存储请求到context供后续API查询
-            context.setValue("human_intervention_request", request);
-            context.setValue("paused_at", System.currentTimeMillis());
-            context.setValue("paused_node_id", nodeId);
+            // 存储请求到领域对象
+            humanData.setRequest(request);
+            humanData.setPaused(nodeId);
 
             log.info("人工介入请求已创建，执行ID: {}, 节点ID: {}", request.getExecutionId(), nodeId);
 

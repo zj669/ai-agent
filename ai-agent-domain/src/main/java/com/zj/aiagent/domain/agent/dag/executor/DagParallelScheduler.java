@@ -1,10 +1,10 @@
 package com.zj.aiagent.domain.agent.dag.executor;
 
 import com.zj.aiagent.domain.agent.dag.context.DagExecutionContext;
+import com.zj.aiagent.domain.agent.dag.context.ProgressData;
 import com.zj.aiagent.domain.agent.dag.logging.DagLoggingService;
 import com.zj.aiagent.domain.agent.dag.node.AbstractConfigurableNode;
 import com.zj.aiagent.shared.design.dag.DagNodeExecutionException;
-import com.zj.aiagent.shared.design.dag.NodeExecutionResult;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.extern.slf4j.Slf4j;
@@ -63,9 +63,10 @@ public class DagParallelScheduler {
 
         log.info("并行执行 {} 个节点", nodes.size());
 
-        // 将进度信息存入上下文，供 executeNode 使用
-        context.setValue("__PROGRESS_COMPLETED__", completedNodes);
-        context.setValue("__PROGRESS_TOTAL__", totalNodes);
+        // 初始化进度数据领域对象
+        context.initProgress(totalNodes);
+        ProgressData progress = context.getProgressData();
+        progress.setCompletedNodes(completedNodes);
 
         List<CompletableFuture<NodeExecutionResult>> futures = new ArrayList<>();
 
@@ -108,9 +109,10 @@ public class DagParallelScheduler {
 
         long startTime = System.currentTimeMillis();
 
-        // 从上下文获取进度信息
-        Integer completedNodes = context.getValue("__PROGRESS_COMPLETED__");
-        Integer totalNodes = context.getValue("__PROGRESS_TOTAL__");
+        // 从领域对象获取进度信息
+        ProgressData progress = context.getProgressData();
+        Integer completedNodes = progress != null ? progress.getCompletedNodes() : null;
+        Integer totalNodes = progress != null ? progress.getTotalNodes() : null;
 
         // 推送节点开始事件
         pushNodeLifecycleEvent(context, nodeId, nodeName, "starting", null, null, completedNodes, totalNodes);
@@ -133,15 +135,15 @@ public class DagParallelScheduler {
             long duration = System.currentTimeMillis() - startTime;
             log.info("节点执行成功: {}, 耗时: {}ms", nodeId, duration);
 
-            // 获取进度信息，并增加当前节点
-            Integer currentCompleted = context.getValue("__PROGRESS_COMPLETED__");
-            Integer currentTotal = context.getValue("__PROGRESS_TOTAL__");
-            if (currentCompleted != null) {
-                currentCompleted += 1; // 当前节点已完成
+            // 更新进度领域对象
+            if (progress != null) {
+                progress.incrementCompleted();
             }
 
             // 推送节点完成事件
             String resultContent = result != null ? result.getContent() : null;
+            int currentCompleted = progress != null ? progress.getCompletedNodes() : 0;
+            int currentTotal = progress != null ? progress.getTotalNodes() : 0;
             pushNodeLifecycleEvent(context, nodeId, nodeName, "completed", resultContent, duration, currentCompleted,
                     currentTotal);
 
@@ -154,14 +156,12 @@ public class DagParallelScheduler {
             // 调用 afterExecute 记录失败
             node.afterExecute(context, null, e);
 
-            // 获取进度信息，并增加当前节点
-            Integer currentCompleted = context.getValue("__PROGRESS_COMPLETED__");
-            Integer currentTotal = context.getValue("__PROGRESS_TOTAL__");
-            if (currentCompleted != null) {
-                currentCompleted += 1; // 即使失败也计入已处理
+            // 更新进度并推送节点失败事件
+            if (progress != null) {
+                progress.incrementCompleted();
             }
-
-            // 推送节点失败事件
+            int currentCompleted = progress != null ? progress.getCompletedNodes() : 0;
+            int currentTotal = progress != null ? progress.getTotalNodes() : 0;
             pushNodeLifecycleEvent(context, nodeId, nodeName, "failed", e.getMessage(), duration, currentCompleted,
                     currentTotal);
 
@@ -176,14 +176,12 @@ public class DagParallelScheduler {
             // 调用 afterExecute 记录失败
             node.afterExecute(context, null, wrappedException);
 
-            // 获取进度信息，并增加当前节点
-            Integer currentCompleted = context.getValue("__PROGRESS_COMPLETED__");
-            Integer currentTotal = context.getValue("__PROGRESS_TOTAL__");
-            if (currentCompleted != null) {
-                currentCompleted += 1;
+            // 更新进度并推送节点失败事件
+            if (progress != null) {
+                progress.incrementCompleted();
             }
-
-            // 推送节点失败事件
+            int currentCompleted = progress != null ? progress.getCompletedNodes() : 0;
+            int currentTotal = progress != null ? progress.getTotalNodes() : 0;
             pushNodeLifecycleEvent(context, nodeId, nodeName, "failed", e.getMessage(), duration, currentCompleted,
                     currentTotal);
 

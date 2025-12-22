@@ -1,6 +1,7 @@
 package com.zj.aiagent.domain.agent.dag.node;
 
 import com.zj.aiagent.domain.agent.dag.config.NodeConfig;
+import com.zj.aiagent.domain.agent.dag.context.ContextKey;
 import com.zj.aiagent.domain.agent.dag.context.DagExecutionContext;
 import com.zj.aiagent.domain.agent.dag.entity.DagGraph;
 import com.zj.aiagent.domain.agent.dag.entity.NodeType;
@@ -71,7 +72,7 @@ public class RouterNode extends AbstractConfigurableNode {
             log.info("路由节点执行完成，选择节点: {}", selectedNode);
 
             // 存储路由决策
-            context.setValue("router_decision", selectedNode);
+            context.setValue(ContextKey.ROUTER_DECISION.key(), selectedNode);
             context.setNodeResult(nodeId, selectedNode);
 
             if (selectedNode == null || selectedNode.isEmpty()) {
@@ -140,9 +141,9 @@ public class RouterNode extends AbstractConfigurableNode {
             prompt.append(customPrompt).append("\n\n");
         }
 
-        // 尝试从context中获取DagGraph
-        Object dagGraphObj = context.getValue("__DAG_GRAPH__");
-        if (dagGraphObj instanceof DagGraph dagGraph) {
+        // 从领域对象获取 DagGraph
+        DagGraph dagGraph = context.getDagGraph();
+        if (dagGraph != null) {
             // 自动获取候选节点信息
             prompt.append("候选节点及其功能：\n");
             for (String candidateId : candidateNodes) {
@@ -163,15 +164,15 @@ public class RouterNode extends AbstractConfigurableNode {
             prompt.append("候选节点: ").append(String.join(", ", candidateNodes)).append("\n\n");
         }
 
-        // 添加执行历史
-        String executionHistory = context.getValue("execution_history", "");
+        // 从领域对象添加执行历史
+        String executionHistory = context.getExecutionData().getHistoryAsString();
         if (!executionHistory.isEmpty()) {
             prompt.append("执行历史:\n").append(executionHistory).append("\n\n");
         }
 
         // 添加最近的执行结果
-        String executionResult = context.getValue("execution_result", "");
-        if (!executionResult.isEmpty()) {
+        String executionResult = context.getExecutionData().getExecutionResult();
+        if (executionResult != null && !executionResult.isEmpty()) {
             prompt.append("最近执行结果:\n").append(executionResult).append("\n\n");
         }
 

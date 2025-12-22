@@ -1,6 +1,7 @@
 package com.zj.aiagent.domain.agent.dag.node;
 
 import com.zj.aiagent.domain.agent.dag.config.NodeConfig;
+import com.zj.aiagent.domain.agent.dag.context.ContextKey;
 import com.zj.aiagent.domain.agent.dag.context.DagExecutionContext;
 import com.zj.aiagent.domain.agent.dag.entity.NodeType;
 import com.zj.aiagent.shared.design.dag.DagNodeExecutionException;
@@ -24,11 +25,8 @@ public class PlanNode extends AbstractConfigurableNode {
     @Override
     protected NodeExecutionResult doExecute(DagExecutionContext context) throws DagNodeExecutionException {
         try {
-            // 从context获取用户输入
-            String userInput = context.getValue("userInput");
-            if (userInput == null || userInput.isEmpty()) {
-                userInput = context.getValue("userMessage", "");
-            }
+            // 从context领域对象获取用户输入
+            String userInput = context.getUserInputData().getEffectiveInput("");
 
             log.info("规划节点开始执行，用户输入: {}", userInput);
 
@@ -38,8 +36,8 @@ public class PlanNode extends AbstractConfigurableNode {
             // 调用AI进行任务规划
             String planResult = callAI(planningPrompt, context);
 
-            // 存储规划结果
-            context.setValue("plan_result", planResult);
+            // 存储规划结果到领域对象
+            context.getExecutionData().setPlanResult(planResult);
             context.setNodeResult(nodeId, planResult);
 
             log.info("规划节点执行完成，规划结果: {}", planResult);
@@ -64,7 +62,7 @@ public class PlanNode extends AbstractConfigurableNode {
         prompt.append("用户任务: ").append(userInput).append("\n\n");
 
         // 如果有执行历史，加入上下文
-        String executionHistory = context.getValue("execution_history");
+        String executionHistory = context.getExecutionData().getHistoryAsString();
         if (executionHistory != null && !executionHistory.isEmpty()) {
             prompt.append("之前的执行历史:\n").append(executionHistory).append("\n\n");
         }
