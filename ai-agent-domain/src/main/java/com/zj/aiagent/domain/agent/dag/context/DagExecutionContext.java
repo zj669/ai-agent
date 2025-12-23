@@ -6,9 +6,12 @@ import lombok.Getter;
 import lombok.Setter;
 import org.springframework.web.servlet.mvc.method.annotation.ResponseBodyEmitter;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.atomic.AtomicInteger;
 
 /**
  * DAG执行上下文实现
@@ -30,6 +33,28 @@ public class DagExecutionContext implements DagContext {
     private final String conversationId;
     private final Map<String, Object> dataMap;
     private final Map<String, Object> nodeResults;
+
+    // ==================== 循环状态管理 ====================
+
+    /**
+     * 节点执行次数跟踪 (nodeId -> 执行次数)
+     * 用于防止无限循环
+     */
+    private final Map<String, AtomicInteger> nodeExecutionCounts;
+
+    /**
+     * 最大循环次数限制
+     * 单个节点在循环中最多可执行的次数
+     */
+    @Setter
+    private int maxLoopIterations = 10;
+
+    /**
+     * 消息历史 (Reducer 累积模式)
+     * 用于保存多轮对话历史
+     */
+    @Getter
+    private final List<ChatMessage> messageHistory;
 
     // ==================== 领域对象 ====================
     /** 用户输入数据 */
@@ -60,6 +85,11 @@ public class DagExecutionContext implements DagContext {
         this.conversationId = conversationId;
         this.dataMap = new ConcurrentHashMap<>();
         this.nodeResults = new ConcurrentHashMap<>();
+
+        // 初始化循环状态管理
+        this.nodeExecutionCounts = new ConcurrentHashMap<>();
+        this.messageHistory = new ArrayList<>();
+
         // 初始化领域对象
         this.userInputData = new UserInputData();
         this.executionData = new ExecutionData();
@@ -72,6 +102,11 @@ public class DagExecutionContext implements DagContext {
         this.conversationId = conversationId;
         this.dataMap = new ConcurrentHashMap<>();
         this.nodeResults = new ConcurrentHashMap<>();
+
+        // 初始化循环状态管理
+        this.nodeExecutionCounts = new ConcurrentHashMap<>();
+        this.messageHistory = new ArrayList<>();
+
         // 初始化领域对象
         this.userInputData = new UserInputData();
         this.executionData = new ExecutionData();
@@ -160,5 +195,78 @@ public class DagExecutionContext implements DagContext {
      */
     public boolean isWaitingForHuman() {
         return humanInterventionData.isWaitingForHuman();
+    }
+
+    // ==================== 循环状态管理方法 ====================
+
+    /**
+     * 检查节点是否可以继续循环执行
+     * 
+     * @param nodeId 节点ID
+     * @return true 如果节点执行次数未超过限制
+     */
+    public boolean canExecuteNode(String nodeId) {
+        AtomicInteger count = nodeExecutionCounts.computeIfAbsent(nodeId, k -> new AtomicInteger(0));
+        return count.get() < maxLoopIterations;
+    }
+
+    /**
+     * 增加节点执行计数
+     * 
+     * @param nodeId 节点ID
+     * @return 增加后的执行次数
+     */
+    public int incrementNodeExecutionCount(String nodeId) {
+        return nodeExecutionCounts.computeIfAbsent(nodeId, k -> new AtomicInteger(0)).incrementAndGet();
+    }
+
+    /**
+     * 获取节点执行次数
+     * 
+     * @param nodeId 节点ID
+     * @return 执行次数，如果节点未执行过则返回 0
+     */
+    public int getNodeExecutionCount(String nodeId) {
+        AtomicInteger count = nodeExecutionCounts.get(nodeId);
+        return count != null ? count.get() : 0;
+    }
+
+    /**
+     * 添加消息到历史 (Reducer 模式)
+     * 
+     * @param message 聊天消息
+     */
+    public void addMessage(ChatMessage message) {
+        messageHistory.add(message);
+    }
+
+    /**
+     * 添加消息到历史 (便捷方法)
+     * 
+     * @param role    角色
+     * @param content 内容
+     */
+    public void addMessage(String role, String content) {
+        messageHistory.add(new ChatMessage(role, content));
+    }
+
+    /**
+     * 添加消息到历史 (带来源节点)
+     * 
+     * @param role         角色
+     * @param content      内容
+     * @param sourceNodeId 来源节点ID
+     */
+    public void addMessage(String role, String content, String sourceNodeId) {
+        messageHistory.add(new ChatMessage(role, content, sourceNodeId));
+    }
+
+    /**
+     * 获取最大循环次数
+     * 
+     * @return 最大循环次数
+     */
+    public int getMaxLoopIterations() {
+        return maxLoopIterations;
     }
 }

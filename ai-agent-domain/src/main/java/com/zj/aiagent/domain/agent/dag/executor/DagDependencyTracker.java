@@ -1,6 +1,7 @@
 package com.zj.aiagent.domain.agent.dag.executor;
 
 import com.zj.aiagent.domain.agent.dag.entity.DagGraph;
+import com.zj.aiagent.domain.agent.dag.entity.EdgeType;
 import com.zj.aiagent.domain.agent.dag.entity.GraphJsonSchema;
 import lombok.extern.slf4j.Slf4j;
 
@@ -36,6 +37,12 @@ public class DagDependencyTracker {
     private final Set<String> enabledNodes;
 
     /**
+     * 循环边映射 (source -> target集合)
+     * 存储所有 LOOP_BACK 类型的边，用于运行时触发循环
+     */
+    private final Map<String, Set<String>> loopBackEdges;
+
+    /**
      * 构造函数
      * 
      * @param dagGraph DAG图
@@ -45,6 +52,7 @@ public class DagDependencyTracker {
         this.downstreamNodes = new HashMap<>();
         this.completedNodes = Collections.synchronizedSet(new HashSet<>());
         this.enabledNodes = Collections.synchronizedSet(new HashSet<>());
+        this.loopBackEdges = new HashMap<>();
 
         initializeDependencies(dagGraph);
     }
@@ -60,11 +68,19 @@ public class DagDependencyTracker {
             enabledNodes.add(nodeId);
         }
 
-        // 根据边构建依赖关系
+        // 根据边构建依赖关系（区分依赖边和循环边）
         for (GraphJsonSchema.EdgeDefinition edge : dagGraph.getEdges()) {
             String source = edge.getSource();
             String target = edge.getTarget();
 
+            // 处理循环边
+            if (edge.getEdgeType() == EdgeType.LOOP_BACK) {
+                loopBackEdges.computeIfAbsent(source, k -> new HashSet<>()).add(target);
+                log.debug("记录循环边: {} -> {}", source, target);
+                continue; // 循环边不参与依赖计数
+            }
+
+            // 处理标准依赖边
             // 目标节点的依赖计数+1
             pendingDependencies.get(target).incrementAndGet();
 
@@ -72,7 +88,8 @@ public class DagDependencyTracker {
             downstreamNodes.get(source).add(target);
         }
 
-        log.info("依赖跟踪器初始化完成，节点数: {}", dagGraph.getNodes().size());
+        log.info("依赖跟踪器初始化完成，节点数: {}, 循环边数: {}",
+                dagGraph.getNodes().size(), loopBackEdges.size());
         logDependencyStatus();
     }
 
@@ -218,5 +235,39 @@ public class DagDependencyTracker {
     public int getPendingDependencies(String nodeId) {
         AtomicInteger counter = pendingDependencies.get(nodeId);
         return counter != null ? counter.get() : -1;
+    }
+
+    // ==================== 循环边支持方法 ====================
+
+    /**
+     * 重置节点状态，使其可以重新执行
+     * 注意：此方法只重置 completedNodes 标记，不重置依赖计数
+     * 
+     * @param nodeId 要重置的节点ID
+     */
+    public void resetNode(String nodeId) {
+        if (completedNodes.remove(nodeId)) {
+            log.info("重置节点状态以支持循环执行: {}", nodeId);
+        }
+    }
+
+    /**
+     * 获取节点的循环边目标节点
+     * 
+     * @param nodeId 源节点ID
+     * @return 循环边指向的目标节点集合，如果没有则返回空集合
+     */
+    public Set<String> getLoopBackTargets(String nodeId) {
+        return loopBackEdges.getOrDefault(nodeId, Collections.emptySet());
+    }
+
+    /**
+     * 检查节点是否有循环边
+     * 
+     * @param nodeId 节点ID
+     * @return true 如果节点有循环边
+     */
+    public boolean hasLoopBackEdges(String nodeId) {
+        return loopBackEdges.containsKey(nodeId) && !loopBackEdges.get(nodeId).isEmpty();
     }
 }

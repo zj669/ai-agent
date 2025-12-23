@@ -112,6 +112,24 @@ public class GraphJsonSchema {
          * 条件(可选)
          */
         private String condition;
+
+        /**
+         * 边类型
+         * DEPENDENCY: 标准依赖边（默认）
+         * LOOP_BACK: 循环边，不参与拓扑排序
+         * CONDITIONAL: 条件边，由节点动态决定是否激活
+         */
+        @Builder.Default
+        private EdgeType edgeType = EdgeType.DEPENDENCY;
+
+        /**
+         * 获取边类型，处理 null 情况
+         * 
+         * @return 边类型，null 时默认为 DEPENDENCY
+         */
+        public EdgeType getEdgeType() {
+            return edgeType != null ? edgeType : EdgeType.DEPENDENCY;
+        }
     }
 
     /**

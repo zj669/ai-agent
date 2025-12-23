@@ -185,6 +185,21 @@ public class DagEventDrivenScheduler {
                 // 标记完成并获取新就绪节点
                 Set<String> newReadyNodes = tracker.markCompleted(nodeId);
 
+                // 检查并处理循环边
+                Set<String> loopTargets = tracker.getLoopBackTargets(nodeId);
+                if (!loopTargets.isEmpty()) {
+                    for (String targetNodeId : loopTargets) {
+                        // 检查是否应该触发循环
+                        if (shouldTriggerLoop(context, targetNodeId)) {
+                            handleLoopBack(targetNodeId, dagGraph, context, tracker,
+                                    nodeResults, failures, pausedNodes, activeTaskCount,
+                                    completedCount, progress, allDoneLatch);
+                        } else {
+                            log.info("节点 {} 循环终止：达到最大循环次数或其他条件", targetNodeId);
+                        }
+                    }
+                }
+
                 // 递归提交新就绪节点
                 for (String readyNodeId : newReadyNodes) {
                     submitNode(readyNodeId, dagGraph, context, tracker, nodeResults, failures, pausedNodes,
@@ -419,6 +434,49 @@ public class DagEventDrivenScheduler {
             executor.shutdownNow();
             Thread.currentThread().interrupt();
         }
+    }
+
+    // ==================== 循环边支持方法 ====================
+
+    /**
+     * 处理循环边触发
+     * 重置目标节点状态并重新提交执行
+     */
+    private void handleLoopBack(
+            String targetNodeId,
+            DagGraph dagGraph,
+            DagExecutionContext context,
+            DagDependencyTracker tracker,
+            ConcurrentHashMap<String, NodeResult> nodeResults,
+            ConcurrentHashMap<String, Exception> failures,
+            ConcurrentHashMap<String, String> pausedNodes,
+            AtomicInteger activeTaskCount,
+            AtomicInteger completedCount,
+            ProgressData progress,
+            CountDownLatch allDoneLatch) {
+
+        // 增加节点执行计数
+        int count = context.incrementNodeExecutionCount(targetNodeId);
+        log.info("触发循环执行: {} (第 {} 次)", targetNodeId, count);
+
+        // 重置目标节点状态
+        tracker.resetNode(targetNodeId);
+
+        // 清除之前的执行结果（可选，保留历史可用于调试）
+        // nodeResults.remove(targetNodeId);
+
+        // 重新提交节点执行
+        submitNode(targetNodeId, dagGraph, context, tracker,
+                nodeResults, failures, pausedNodes,
+                activeTaskCount, completedCount, progress, allDoneLatch);
+    }
+
+    /**
+     * 判断是否应该触发循环
+     * 检查节点执行次数是否未达上限
+     */
+    private boolean shouldTriggerLoop(DagExecutionContext context, String nodeId) {
+        return context.canExecuteNode(nodeId);
     }
 
     /**

@@ -1,7 +1,7 @@
 package com.zj.aiagent.domain.agent.dag.executor;
 
-
 import com.zj.aiagent.domain.agent.dag.entity.DagGraph;
+import com.zj.aiagent.domain.agent.dag.entity.EdgeType;
 import com.zj.aiagent.domain.agent.dag.exception.NodeConfigException;
 import lombok.extern.slf4j.Slf4j;
 
@@ -31,8 +31,14 @@ public class DagTopologicalSorter {
             adjacencyList.put(nodeId, new ArrayList<>());
         }
 
-        // 构建邻接表和计算入度
+        // 构建邻接表和计算入度（忽略 LOOP_BACK 边）
         for (var edge : dagGraph.getEdges()) {
+            // 跳过循环边，循环边不参与拓扑排序
+            if (edge.getEdgeType() == EdgeType.LOOP_BACK) {
+                log.debug("跳过循环边: {} -> {}", edge.getSource(), edge.getTarget());
+                continue;
+            }
+
             String source = edge.getSource();
             String target = edge.getTarget();
 
@@ -132,8 +138,13 @@ public class DagTopologicalSorter {
             adjacencyList.put(nodeId, new ArrayList<>());
         }
 
-        // 构建邻接表和计算入度
+        // 构建邻接表和计算入度（忽略 LOOP_BACK 边）
         for (var edge : dagGraph.getEdges()) {
+            // 跳过循环边
+            if (edge.getEdgeType() == EdgeType.LOOP_BACK) {
+                continue;
+            }
+
             adjacencyList.get(edge.getSource()).add(edge.getTarget());
             inDegree.put(edge.getTarget(), inDegree.get(edge.getTarget()) + 1);
         }
