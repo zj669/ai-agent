@@ -46,7 +46,7 @@ public class UserController {
     @PostMapping("/email/sendCode")
     @Operation(summary = "发送邮箱验证码")
     public Response<Void> sendEmailCode(@Valid @RequestBody SendEmailCodeRequest request,
-                                        HttpServletRequest httpRequest) {
+            HttpServletRequest httpRequest) {
         log.info("发送邮箱验证码请求, email: {}", request.getEmail());
         try {
             // 获取真实IP
@@ -78,7 +78,7 @@ public class UserController {
     @PostMapping("/email/register")
     @Operation(summary = "邮箱注册")
     public Response<UserResponse> emailRegister(@Valid @RequestBody RegisterByEmailRequest request,
-                                                HttpServletRequest httpRequest) {
+            HttpServletRequest httpRequest) {
         log.info("邮箱注册请求, email: {}", request.getEmail());
         try {
             // 获取真实IP
@@ -142,37 +142,6 @@ public class UserController {
         }
     }
 
-//    /**
-//     * 传统用户名注册
-//     */
-//    @PostMapping("/register")
-//    @Operation(summary = "用户注册")
-//    public Response<UserResponse> register(@Valid @RequestBody RegisterUserRequest request) {
-//        log.info("用户注册请求, username: {}", request.getUsername());
-//        try {
-//            // 构建命令
-//            RegisterUserCommand command = RegisterUserCommand.builder()
-//                    .username(request.getUsername())
-//                    .password(request.getPassword())
-//                    .email(request.getEmail())
-//                    .phone(request.getPhone())
-//                    .build();
-//
-//            // 执行注册
-//            UserApplicationService.UserDTO userDTO = userApplicationService.register(command);
-//
-//            // 转换响应
-//            UserResponse response = convertToResponse(userDTO);
-//            return Response.success(response);
-//        } catch (IllegalArgumentException e) {
-//            log.warn("用户注册失败: {}", e.getMessage());
-//            return Response.fail(e.getMessage());
-//        } catch (Exception e) {
-//            log.error("用户注册异常", e);
-//            return Response.fail("注册失败,请稍后重试");
-//        }
-//    }
-
     /**
      * 获取当前登录用户信息
      */
@@ -202,6 +171,33 @@ public class UserController {
         } catch (Exception e) {
             log.error("获取用户信息异常", e);
             return Response.fail("获取用户信息失败");
+        }
+    }
+
+    /**
+     * 退出登录
+     */
+    @PostMapping("/logout")
+    @Operation(summary = "退出登录")
+    public Response<Void> logout(HttpServletRequest request) {
+        try {
+            // 从请求头获取Token
+            String token = request.getHeader("Authorization");
+            if (token != null && token.startsWith("Bearer ")) {
+                token = token.substring(7);
+            }
+
+            if (token == null || token.isEmpty()) {
+                return Response.fail("Token不能为空");
+            }
+
+            // 执行退出登录
+            userApplicationService.logout(token);
+
+            return Response.success();
+        } catch (Exception e) {
+            log.error("退出登录异常", e);
+            return Response.fail("退出登录失败");
         }
     }
 

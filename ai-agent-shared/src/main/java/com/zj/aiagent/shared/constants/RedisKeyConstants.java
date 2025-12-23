@@ -78,6 +78,15 @@ public class RedisKeyConstants {
      */
     public static class User {
 
+        /**
+         * Token黑名单Key前缀
+         * <p>
+         * 格式: user:token:blacklist:{token}
+         * <p>
+         * 用于存储已退出登录的Token，防止被重复使用
+         */
+        public static final String TOKEN_BLACKLIST_PREFIX = "user:token:blacklist:";
+
         private User() {
             // 禁止实例化
         }

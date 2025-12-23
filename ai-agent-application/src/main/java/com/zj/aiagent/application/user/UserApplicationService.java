@@ -142,6 +142,20 @@ public class UserApplicationService {
     }
 
     /**
+     * 用户退出登录
+     * 
+     * @param token 用户Token
+     */
+    public void logout(String token) {
+        log.info("执行用户退出登录");
+
+        // 使Token失效
+        tokenService.invalidateToken(token);
+
+        log.info("用户退出登录成功");
+    }
+
+    /**
      * 构建用户DTO
      * 
      * @param user  用户实体

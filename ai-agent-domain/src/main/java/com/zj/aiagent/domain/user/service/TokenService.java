@@ -40,4 +40,11 @@ public interface TokenService {
      * @return true-已过期, false-未过期
      */
     boolean isTokenExpired(String token);
+
+    /**
+     * 使令牌失效（用于退出登录）
+     * 
+     * @param token 令牌字符串
+     */
+    void invalidateToken(String token);
 }
