@@ -586,9 +586,23 @@ public abstract class AbstractConfigurableNode implements DagNode<DagExecutionCo
         try {
             var repository = applicationContext.getBean(
                     com.zj.aiagent.domain.agent.dag.repository.IHumanInterventionRepository.class);
+
+            // 保存暂停状态
             repository.savePauseState(request);
             log.info("已保存人工介入暂停状态: conversationId={}, nodeId={}",
                     context.getConversationId(), nodeId);
+
+            // 【新增】保存完整执行上下文快照
+            com.zj.aiagent.domain.agent.dag.context.ExecutionContextSnapshot snapshot = com.zj.aiagent.domain.agent.dag.context.ExecutionContextSnapshot
+                    .fromContext(
+                            context, nodeId, nodeName);
+            snapshot.setCheckMessage(checkMessage);
+            snapshot.setAllowModifyOutput(hi.getAllowModifyOutput());
+
+            repository.saveContextSnapshot(snapshot);
+            log.info("已保存完整执行上下文快照: conversationId={}, executedNodes={}",
+                    context.getConversationId(), snapshot.getExecutedNodeIds().size());
+
         } catch (Exception e) {
             log.warn("保存人工介入状态失败，不影响执行", e);
         }

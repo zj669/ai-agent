@@ -269,4 +269,14 @@ public class DagExecutionContext implements DagContext {
     public int getMaxLoopIterations() {
         return maxLoopIterations;
     }
+
+    /**
+     * 获取数据映射表（用于快照）
+     * 注意：返回副本以防止外部修改
+     * 
+     * @return 数据映射表的副本
+     */
+    public Map<String, Object> getDataMap() {
+        return new ConcurrentHashMap<>(dataMap);
+    }
 }

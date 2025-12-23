@@ -1,5 +1,6 @@
 package com.zj.aiagent.domain.agent.dag.repository;
 
+import com.zj.aiagent.domain.agent.dag.context.ExecutionContextSnapshot;
 import com.zj.aiagent.domain.agent.dag.context.HumanInterventionRequest;
 
 /**
@@ -70,4 +71,34 @@ public interface IHumanInterventionRepository {
      * @param modifications  需要修改的字段，key为nodeId，value为新的执行结果
      */
     void updateContext(String conversationId, java.util.Map<String, Object> modifications);
+
+    /**
+     * 保存完整执行上下文快照
+     *
+     * @param snapshot 快照对象
+     */
+    void saveContextSnapshot(ExecutionContextSnapshot snapshot);
+
+    /**
+     * 加载完整执行上下文快照
+     *
+     * @param conversationId 会话ID
+     * @return 快照对象，如果不存在返回 null
+     */
+    ExecutionContextSnapshot loadContextSnapshot(String conversationId);
+
+    /**
+     * 更新快照中的可编辑字段
+     *
+     * @param conversationId 会话ID
+     * @param modifications  需要修改的字段Map
+     */
+    void updateSnapshotEditableFields(String conversationId, java.util.Map<String, Object> modifications);
+
+    /**
+     * 删除执行上下文快照
+     *
+     * @param conversationId 会话ID
+     */
+    void deleteContextSnapshot(String conversationId);
 }

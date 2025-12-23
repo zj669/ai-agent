@@ -7,7 +7,9 @@ import com.zj.aiagent.application.agent.command.PublishAgentCommand;
 import com.zj.aiagent.application.agent.command.SaveAgentCommand;
 import com.zj.aiagent.application.agent.query.GetUserAgentsQuery;
 import com.zj.aiagent.domain.agent.chat.entity.ChatMessageEntity;
+import com.zj.aiagent.domain.agent.dag.context.ExecutionContextSnapshot;
 import com.zj.aiagent.domain.agent.dag.executor.DagExecutor;
+import com.zj.aiagent.domain.agent.dag.repository.IHumanInterventionRepository;
 import com.zj.aiagent.interfaces.common.Response;
 import com.zj.aiagent.interfaces.common.annotation.Idempotent;
 import com.zj.aiagent.interfaces.web.dto.request.agent.ChatRequest;
@@ -53,6 +55,9 @@ public class AgentController {
 
     @Resource
     private com.zj.aiagent.application.agent.ChatMessageApplicationService chatMessageApplicationService;
+
+    @Resource
+    private IHumanInterventionRepository humanInterventionRepository;
 
     /**
      * 保存Agent配置
@@ -393,6 +398,53 @@ public class AgentController {
         } catch (Exception e) {
             log.error("更新执行上下文失败: conversationId={}", conversationId, e);
             return Response.fail("更新失败: " + e.getMessage());
+        }
+    }
+
+    /**
+     * 获取完整快照
+     */
+    @GetMapping("/snapshot/{conversationId}")
+    @Operation(summary = "获取执行上下文快照", description = "获取完整的执行上下文快照,支持查看和编辑")
+    public Response<ExecutionContextSnapshot> getContextSnapshot(@PathVariable String conversationId) {
+        try {
+            log.info("获取执行上下文快照: conversationId={}", conversationId);
+
+            ExecutionContextSnapshot snapshot = humanInterventionRepository.loadContextSnapshot(conversationId);
+
+            if (snapshot == null) {
+                return Response.fail("未找到快照: " + conversationId);
+            }
+
+            return Response.success(snapshot);
+
+        } catch (Exception e) {
+            log.error("获取快照失败: conversationId={}", conversationId, e);
+            return Response.fail("获取快照失败: " + e.getMessage());
+        }
+    }
+
+    /**
+     * 更新快照可编辑字段
+     */
+    @PutMapping("/snapshot/{conversationId}")
+    @Operation(summary = "更新快照可编辑字段", description = "更新快照中的可编辑字段(nodeResults、userInput、customVariables、messageHistory)")
+    public Response<Void> updateContextSnapshot(
+            @PathVariable String conversationId,
+            @Valid @RequestBody com.zj.aiagent.interfaces.web.dto.request.agent.UpdateContextRequest request) {
+        try {
+            log.info("更新快照可编辑字段: conversationId={}, modifications={}",
+                    conversationId, request.getModifications().keySet());
+
+            humanInterventionRepository.updateSnapshotEditableFields(
+                    conversationId,
+                    request.getModifications());
+
+            return Response.success(null);
+
+        } catch (Exception e) {
+            log.error("更新快照失败: conversationId={}", conversationId, e);
+            return Response.fail("更新快照失败: " + e.getMessage());
         }
     }
 

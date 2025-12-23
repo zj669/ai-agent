@@ -1,6 +1,7 @@
 package com.zj.aiagent.infrastructure.persistence.repository;
 
 import com.alibaba.fastjson.JSON;
+import com.zj.aiagent.domain.agent.dag.context.ExecutionContextSnapshot;
 import com.zj.aiagent.domain.agent.dag.context.HumanInterventionRequest;
 import com.zj.aiagent.domain.agent.dag.entity.DagExecutionInstance;
 import com.zj.aiagent.domain.agent.dag.repository.IDagExecutionRepository;
@@ -237,6 +238,125 @@ public class HumanInterventionRepositoryImpl implements IHumanInterventionReposi
             }
         } catch (Exception e) {
             log.error("从数据库加载人工介入状态失败", e);
+        }
+        return null;
+    }
+
+    // ==================== 快照相关方法 ====================
+
+    private static final String SNAPSHOT_PREFIX = "dag:snapshot:";
+
+    @Override
+    public void saveContextSnapshot(ExecutionContextSnapshot snapshot) {
+        String key = SNAPSHOT_PREFIX + snapshot.getConversationId();
+        String json = JSON.toJSONString(snapshot);
+
+        // 写入 Redis
+        redisService.setValue(key, json, RedisKeyConstants.HumanIntervention.DEFAULT_TTL_SECONDS);
+        log.info("保存执行上下文快照到 Redis: conversationId={}, pausedNodeId={}",
+                snapshot.getConversationId(), snapshot.getPausedNodeId());
+
+        // 同步写入数据库备份
+        syncSnapshotToDatabase(snapshot);
+    }
+
+    @Override
+    public ExecutionContextSnapshot loadContextSnapshot(String conversationId) {
+        String key = SNAPSHOT_PREFIX + conversationId;
+
+        // 优先从 Redis 读取
+        String json = redisService.getValue(key);
+        if (json != null) {
+            log.debug("从 Redis 加载执行上下文快照: conversationId={}", conversationId);
+            return JSON.parseObject(json, ExecutionContextSnapshot.class);
+        }
+
+        // Redis miss，从数据库恢复
+        log.info("Redis miss，从数据库加载执行上下文快照: conversationId={}", conversationId);
+        return loadSnapshotFromDatabase(conversationId);
+    }
+
+    @Override
+    @SuppressWarnings("unchecked")
+    public void updateSnapshotEditableFields(String conversationId, Map<String, Object> modifications) {
+        ExecutionContextSnapshot snapshot = loadContextSnapshot(conversationId);
+        if (snapshot == null) {
+            throw new RuntimeException("未找到快照: " + conversationId);
+        }
+
+        // 仅允许更新可编辑字段
+        if (modifications.containsKey("nodeResults")) {
+            snapshot.setNodeResults((Map<String, Object>) modifications.get("nodeResults"));
+        }
+        if (modifications.containsKey("userInput")) {
+            snapshot.setUserInput((String) modifications.get("userInput"));
+        }
+        if (modifications.containsKey("customVariables")) {
+            snapshot.setCustomVariables((Map<String, Object>) modifications.get("customVariables"));
+        }
+        if (modifications.containsKey("messageHistory")) {
+            // messageHistory 需要转换为 List<ChatMessage>
+            Object msgHistory = modifications.get("messageHistory");
+            if (msgHistory instanceof java.util.List) {
+                snapshot.setMessageHistory(
+                        (java.util.List<com.zj.aiagent.domain.agent.dag.context.ChatMessage>) msgHistory);
+            }
+        }
+
+        // 重新保存快照
+        saveContextSnapshot(snapshot);
+        log.info("更新快照可编辑字段: conversationId={}, modifiedKeys={}", conversationId, modifications.keySet());
+    }
+
+    @Override
+    public void deleteContextSnapshot(String conversationId) {
+        String key = SNAPSHOT_PREFIX + conversationId;
+        redisService.remove(key);
+        log.info("删除执行上下文快照: conversationId={}", conversationId);
+    }
+
+    /**
+     * 同步快照到数据库备份
+     */
+    private void syncSnapshotToDatabase(ExecutionContextSnapshot snapshot) {
+        try {
+            DagExecutionInstance instance = dagExecutionRepository.findByConversationId(snapshot.getConversationId());
+            if (instance != null) {
+                // 将快照存储到 runtimeContextJson
+                String snapshotJson = JSON.toJSONString(snapshot);
+                instance.setRuntimeContextJson(snapshotJson);
+                instance.setCurrentNodeId(snapshot.getPausedNodeId());
+                instance.setStatus("PAUSED");
+                instance.setUpdateTime(java.time.LocalDateTime.now());
+
+                dagExecutionRepository.update(instance);
+                log.debug("同步快照到数据库: conversationId={}", snapshot.getConversationId());
+            }
+        } catch (Exception e) {
+            log.warn("同步快照到数据库失败，不影响主流程", e);
+        }
+    }
+
+    /**
+     * 从数据库加载快照
+     */
+    private ExecutionContextSnapshot loadSnapshotFromDatabase(String conversationId) {
+        try {
+            DagExecutionInstance instance = dagExecutionRepository.findByConversationId(conversationId);
+            if (instance != null && instance.getRuntimeContextJson() != null) {
+                ExecutionContextSnapshot snapshot = JSON.parseObject(
+                        instance.getRuntimeContextJson(),
+                        ExecutionContextSnapshot.class);
+
+                // 回写到 Redis
+                String key = SNAPSHOT_PREFIX + conversationId;
+                redisService.setValue(key, instance.getRuntimeContextJson(),
+                        RedisKeyConstants.HumanIntervention.DEFAULT_TTL_SECONDS);
+
+                return snapshot;
+            }
+        } catch (Exception e) {
+            log.error("从数据库加载快照失败: conversationId={}", conversationId, e);
         }
         return null;
     }

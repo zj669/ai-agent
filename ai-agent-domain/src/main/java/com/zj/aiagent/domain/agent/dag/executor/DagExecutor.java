@@ -7,6 +7,7 @@ import com.zj.aiagent.domain.agent.dag.entity.DagGraph;
 import com.zj.aiagent.domain.agent.dag.logging.DagLoggingService;
 import com.zj.aiagent.domain.agent.dag.node.AbstractConfigurableNode;
 import com.zj.aiagent.domain.agent.dag.repository.IDagExecutionRepository;
+import com.zj.aiagent.domain.agent.dag.repository.IHumanInterventionRepository;
 import com.zj.aiagent.shared.design.dag.NodeExecutionResult;
 import com.zj.aiagent.shared.design.dag.NodeRouteDecision;
 import jakarta.annotation.Resource;
@@ -48,6 +49,9 @@ public class DagExecutor {
 
     @Resource
     private IDagExecutionRepository executionRepository;
+
+    @Resource
+    private IHumanInterventionRepository humanInterventionRepository;
 
     /**
      * 当前使用的调度策略（可通过配置文件或环境变量修改）
@@ -617,6 +621,14 @@ public class DagExecutor {
                 case EVENT_DRIVEN -> resumeWithEventDriven(dagGraph, context, instance);
                 case LEVEL_BASED -> resumeWithLevelBased(dagGraph, context, instance);
             };
+
+            // 6. 恢复执行完成后清理 Redis 快照
+            try {
+                humanInterventionRepository.deleteContextSnapshot(context.getConversationId());
+                log.info("已清理 Redis 快照: conversationId={}", context.getConversationId());
+            } catch (Exception e) {
+                log.warn("清理 Redis 快照失败，不影响结果", e);
+            }
 
             return result;
 
