@@ -238,12 +238,23 @@ public class AgentController {
     }
 
     /**
-     * 人工介入审核
+     * 人工介入审核并自动恢复执行
      */
-    @PostMapping("/review")
-    @Operation(summary = "人工介入审核", description = "审核暂停的节点，批准或拒绝继续执行")
-    public Response<Void> reviewHumanIntervention(
-            @Valid @RequestBody com.zj.aiagent.interfaces.web.dto.request.agent.ReviewRequest request) {
+    @PostMapping(value = "/review", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
+    @Operation(summary = "人工介入审核并自动恢复", description = "审核暂停的节点，批准后自动恢复执行，通过SSE推送结果")
+    public ResponseBodyEmitter reviewHumanIntervention(
+            @Valid @RequestBody com.zj.aiagent.interfaces.web.dto.request.agent.ReviewRequest request,
+            HttpServletResponse response) {
+
+        // 设置SSE响应头
+        response.setContentType("text/event-stream");
+        response.setCharacterEncoding("UTF-8");
+        response.setHeader("Cache-Control", "no-cache");
+        response.setHeader("Connection", "keep-alive");
+
+        // 创建 ResponseBodyEmitter 用于流式响应
+        ResponseBodyEmitter emitter = new ResponseBodyEmitter(Long.MAX_VALUE);
+
         try {
             log.info("收到人工介入审核请求: conversationId={}, nodeId={}, approved={}",
                     request.getConversationId(), request.getNodeId(), request.getApproved());
@@ -258,15 +269,56 @@ public class AgentController {
                     .modifiedOutput(request.getModifiedOutput())
                     .build();
 
-            // 调用应用服务处理审核
-            agentApplicationService.reviewAndResume(command);
+            // 异步执行审核并恢复，避免阻塞请求线程
+            new Thread(() -> {
+                try {
+                    // 调用应用服务处理审核并恢复执行
+                    DagExecutor.DagExecutionResult result = agentApplicationService.reviewAndResume(command, emitter);
 
-            return Response.success(null);
+                    log.info("人工介入审核并恢复执行完成: conversationId={}, status={}",
+                            request.getConversationId(), result.getStatus());
+
+                    // 尝试完成响应
+                    try {
+                        emitter.complete();
+                    } catch (IllegalStateException e) {
+                        log.debug("Emitter 已经完成，无需再次调用 complete");
+                    }
+
+                } catch (Exception e) {
+                    log.error("人工介入审核并恢复执行失败", e);
+
+                    // 尝试发送错误信息
+                    try {
+                        String errorMsg = buildErrorEvent(
+                                "REVIEW_RESUME_FAILED",
+                                "EXECUTION_ERROR",
+                                e.getMessage(),
+                                request.getConversationId());
+                        emitter.send(errorMsg);
+                        emitter.completeWithError(e);
+                    } catch (IllegalStateException | IOException ex) {
+                        log.warn("无法发送错误信息，emitter 可能已完成: {}", ex.getMessage());
+                    }
+                }
+            }).start();
 
         } catch (Exception e) {
-            log.error("人工介入审核失败", e);
-            return Response.fail("审核失败: " + e.getMessage());
+            log.error("创建审核会话异常", e);
+            try {
+                String errorMsg = buildErrorEvent(
+                        "REVIEW_SESSION_CREATION_FAILED",
+                        "INITIALIZATION_ERROR",
+                        e.getMessage(),
+                        request.getConversationId());
+                emitter.send(errorMsg);
+                emitter.completeWithError(e);
+            } catch (IOException ioException) {
+                log.error("发送错误信息失败", ioException);
+            }
         }
+
+        return emitter;
     }
 
     /**

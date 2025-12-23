@@ -541,6 +541,197 @@ public class DagExecutor {
     }
 
     /**
+     * 从暂停状态恢复执行
+     *
+     * @param dagGraph DAG 图
+     * @param context  执行上下文（已包含审核结果）
+     * @return 执行结果
+     */
+    public DagExecutionResult resumeFromPause(DagGraph dagGraph, DagExecutionContext context) {
+        log.info("从暂停状态恢复执行: conversationId={}", context.getConversationId());
+
+        long startTime = System.currentTimeMillis();
+
+        try {
+            // 1. 从数据库加载执行实例
+            DagExecutionInstance instance = executionRepository.findByConversationId(context.getConversationId());
+            if (instance == null) {
+                throw new RuntimeException("未找到执行实例: " + context.getConversationId());
+            }
+
+            // 检查是否确实处于暂停状态
+            if (!"PAUSED".equals(instance.getStatus())) {
+                log.warn("执行实例状态不是 PAUSED，当前状态: {}", instance.getStatus());
+            }
+
+            // 设置 instanceId 到上下文
+            context.setInstanceId(instance.getId());
+
+            // 2. 恢复运行时上下文（已执行节点的结果）
+            if (instance.getRuntimeContextJson() != null && !instance.getRuntimeContextJson().isEmpty()) {
+                try {
+                    java.util.Map<String, Object> savedContext = com.alibaba.fastjson.JSON
+                            .parseObject(instance.getRuntimeContextJson(), java.util.Map.class);
+
+                    for (java.util.Map.Entry<String, Object> entry : savedContext.entrySet()) {
+                        context.setNodeResult(entry.getKey(), entry.getValue());
+                    }
+
+                    log.info("已恢复 {} 个节点的执行结果", savedContext.size());
+                } catch (Exception e) {
+                    log.warn("恢复上下文失败，继续执行", e);
+                }
+            }
+
+            // 3. 检查审核结果
+            if (!context.getHumanInterventionData().isApproved()) {
+                // 拒绝 - 终止整个 DAG 执行
+                log.warn("人工审核被拒绝，终止 DAG 执行");
+
+                updateExecutionInstance(instance, "FAILED", instance.getCurrentNodeId(), context);
+
+                // 推送终止事件
+                pushDagCompleteEvent(context, dagGraph.getDagId(), "rejected",
+                        System.currentTimeMillis() - startTime);
+
+                long totalDuration = System.currentTimeMillis() - startTime;
+                return DagExecutionResult.failed(
+                        context.getExecutionId(),
+                        instance.getId(),
+                        "人工审核被拒绝",
+                        null,
+                        totalDuration);
+            }
+
+            // 4. 批准 - 继续执行
+            log.info("人工审核已批准，继续执行 DAG");
+
+            // 将 DagGraph 存入上下文
+            context.setDagGraph(dagGraph);
+
+            // 推送 DAG 恢复事件
+            pushDagResumeEvent(context, dagGraph.getDagId(), instance.getCurrentNodeId());
+
+            // 5. 使用当前策略继续执行
+            DagExecutionResult result = switch (schedulingStrategy) {
+                case EVENT_DRIVEN -> resumeWithEventDriven(dagGraph, context, instance);
+                case LEVEL_BASED -> resumeWithLevelBased(dagGraph, context, instance);
+            };
+
+            return result;
+
+        } catch (Exception e) {
+            log.error("恢复执行异常", e);
+
+            long totalDuration = System.currentTimeMillis() - startTime;
+            pushDagCompleteEvent(context, dagGraph.getDagId(), "failed", totalDuration);
+
+            return DagExecutionResult.failed(
+                    context.getExecutionId(),
+                    context.getInstanceId(),
+                    "恢复执行失败: " + e.getMessage(),
+                    e,
+                    totalDuration);
+        }
+    }
+
+    /**
+     * 使用事件驱动调度器恢复执行
+     */
+    private DagExecutionResult resumeWithEventDriven(
+            DagGraph dagGraph,
+            DagExecutionContext context,
+            DagExecutionInstance instance) {
+
+        long startTime = System.currentTimeMillis();
+
+        try {
+            // 使用事件驱动调度器执行（会自动跳过已执行节点）
+            DagEventDrivenScheduler.SchedulerExecutionResult result = eventDrivenScheduler.execute(dagGraph, context);
+
+            long totalDuration = System.currentTimeMillis() - startTime;
+
+            if ("FAILED".equals(result.getStatus())) {
+                updateExecutionInstance(instance, "FAILED", null, context);
+                loggingService.logDagEnd(context.getExecutionId(), context.getConversationId(),
+                        dagGraph.getDagId(), "FAILED", totalDuration);
+                pushDagCompleteEvent(context, dagGraph.getDagId(), "failed", totalDuration);
+
+                return DagExecutionResult.failed(
+                        context.getExecutionId(),
+                        context.getInstanceId(),
+                        result.getMessage(),
+                        result.getException(),
+                        totalDuration);
+            }
+
+            if ("PAUSED".equals(result.getStatus())) {
+                updateExecutionInstance(instance, "PAUSED", result.getPausedNodeId(), context);
+                return DagExecutionResult.paused(
+                        context.getExecutionId(),
+                        context.getInstanceId(),
+                        result.getPausedNodeId(),
+                        totalDuration);
+            }
+
+            // 成功
+            updateExecutionInstance(instance, "COMPLETED", null, context);
+            loggingService.logDagEnd(context.getExecutionId(), context.getConversationId(),
+                    dagGraph.getDagId(), "SUCCESS", totalDuration);
+            pushDagCompleteEvent(context, dagGraph.getDagId(), "success", totalDuration);
+
+            log.info("DAG 恢复执行完成（事件驱动），总耗时: {}ms", totalDuration);
+            return DagExecutionResult.success(context.getExecutionId(), context.getInstanceId(), totalDuration);
+
+        } catch (Exception e) {
+            log.error("事件驱动恢复执行异常", e);
+            throw e;
+        }
+    }
+
+    /**
+     * 使用层级调度器恢复执行
+     */
+    private DagExecutionResult resumeWithLevelBased(
+            DagGraph dagGraph,
+            DagExecutionContext context,
+            DagExecutionInstance instance) {
+
+        // 层级调度器恢复执行的实现（与原 executeWithLevelBased 类似，但跳过已执行节点）
+        log.info("使用层级调度器恢复执行");
+
+        // 简化实现：直接调用完整执行，依赖节点检查逻辑跳过已执行节点
+        return executeWithLevelBased(dagGraph, context);
+    }
+
+    /**
+     * 推送 DAG 恢复事件
+     */
+    private void pushDagResumeEvent(DagExecutionContext context, String dagId, String fromNodeId) {
+        org.springframework.web.servlet.mvc.method.annotation.ResponseBodyEmitter emitter = context.getEmitter();
+        if (emitter == null) {
+            return;
+        }
+
+        try {
+            java.util.Map<String, Object> event = new java.util.HashMap<>();
+            event.put("type", "dag_resume");
+            event.put("conversationId", context.getConversationId());
+            event.put("agentId", String.valueOf(context.getAgentId()));
+            event.put("dagId", dagId);
+            event.put("fromNodeId", fromNodeId);
+            event.put("timestamp", System.currentTimeMillis());
+
+            String message = "data: " + com.alibaba.fastjson.JSON.toJSONString(event) + "\n\n";
+            emitter.send(message);
+
+            log.debug("推送 DAG 恢复事件: dagId={}, fromNodeId={}", dagId, fromNodeId);
+        } catch (Exception e) {
+            log.warn("推送 DAG 恢复事件失败: dagId={}", dagId, e);
+        }
+    }
+
+    /**
      * DAG执行结果
      */
     public static class DagExecutionResult {

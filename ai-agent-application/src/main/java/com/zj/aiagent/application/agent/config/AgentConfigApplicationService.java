@@ -400,87 +400,16 @@ public class AgentConfigApplicationService {
         }
 
         List<ConfigFieldDefinitionDTO> result = new ArrayList<>();
-
-        switch (configType.toUpperCase()) {
-            case "MODEL":
-                result = buildModelFieldDefinitions();
-                break;
-            case "ADVISOR":
-                result = buildAdvisorFieldDefinitions();
-                break;
-            case "MCP_TOOL":
-                result = buildMcpToolFieldDefinitions();
-                break;
-            case "MEMORY":
-                result = buildMemoryFieldDefinitions();
-                break;
-            case "USER_PROMPT":
-                result.add(ConfigFieldDefinitionDTO.builder()
-                        .fieldName("userPrompt")
-                        .fieldLabel("用户提示词")
-                        .fieldType("textarea")
-                        .required(false)
-                        .description("自定义的用户提示词内容")
-                        .build());
-                break;
-            case "TIMEOUT":
-                result.add(ConfigFieldDefinitionDTO.builder()
-                        .fieldName("timeout")
-                        .fieldLabel("超时时间")
-                        .fieldType("number")
-                        .required(false)
-                        .description("节点执行超时时间(毫秒)")
-                        .build());
-                break;
-            case "HUMAN_INTERVENTION":
-                result = buildHumanInterventionFieldDefinitions();
-                break;
-            default:
-                log.warn("未知的配置类型: {}", configType);
-                throw new IllegalArgumentException("未知的配置类型: " + configType);
+        result = buildFieldDefinitionsFromDatabase(configType.toUpperCase());
+        if(result.isEmpty()){
+            log.warn("未知的配置类型: {}", configType);
+            throw new IllegalArgumentException("未知的配置类型: " + configType);
         }
 
         return result;
 
     }
 
-    /**
-     * 构建人工介入配置的字段定义
-     * 从数据库读取配置字段定义
-     */
-    private List<ConfigFieldDefinitionDTO> buildHumanInterventionFieldDefinitions() {
-        // 从数据库查询配置字段定义
-        List<ConfigFieldDefinitionEntity> entities = agentConfigRepository
-                .findConfigFieldDefinitions("HUMAN_INTERVENTION");
-
-        // 转换为 DTO
-        return entities.stream()
-                .map(entity -> {
-                    ConfigFieldDefinitionDTO.ConfigFieldDefinitionDTOBuilder builder = ConfigFieldDefinitionDTO
-                            .builder()
-                            .fieldName(entity.getFieldName())
-                            .fieldLabel(entity.getFieldLabel())
-                            .fieldType(entity.getFieldType())
-                            .required(entity.getRequired())
-                            .description(entity.getDescription());
-
-                    // 处理默认值
-                    if (entity.getDefaultValue() != null && !entity.getDefaultValue().isEmpty()) {
-                        // 根据字段类型转换默认值
-                        Object defaultValue = convertDefaultValue(entity.getFieldType(), entity.getDefaultValue());
-                        builder.defaultValue(defaultValue);
-                    }
-
-                    // 处理选项列表
-                    if (entity.getOptions() != null && !entity.getOptions().isEmpty()) {
-                        List<String> options = entity.getParsedOptions();
-                        builder.options(options);
-                    }
-
-                    return builder.build();
-                })
-                .collect(Collectors.toList());
-    }
 
     /**
      * 根据字段类型转换默认值
@@ -503,38 +432,6 @@ public class AgentConfigApplicationService {
             log.warn("转换默认值失败: fieldType={}, value={}", fieldType, defaultValueStr, e);
             return defaultValueStr;
         }
-    }
-
-    /**
-     * 构建模型配置的字段定义
-     * 从数据库读取配置字段定义
-     */
-    private List<ConfigFieldDefinitionDTO> buildModelFieldDefinitions() {
-        return buildFieldDefinitionsFromDatabase("MODEL");
-    }
-
-    /**
-     * 构建Advisor配置的字段定义
-     * 从数据库读取配置字段定义
-     */
-    private List<ConfigFieldDefinitionDTO> buildAdvisorFieldDefinitions() {
-        return buildFieldDefinitionsFromDatabase("ADVISOR");
-    }
-
-    /**
-     * 构建MCP工具配置的字段定义
-     * 从数据库读取配置字段定义
-     */
-    private List<ConfigFieldDefinitionDTO> buildMcpToolFieldDefinitions() {
-        return buildFieldDefinitionsFromDatabase("MCP_TOOL");
-    }
-
-    /**
-     * 构建Memory配置的字段定义
-     * 从数据库读取配置字段定义
-     */
-    private List<ConfigFieldDefinitionDTO> buildMemoryFieldDefinitions() {
-        return buildFieldDefinitionsFromDatabase("MEMORY");
     }
 
     /**

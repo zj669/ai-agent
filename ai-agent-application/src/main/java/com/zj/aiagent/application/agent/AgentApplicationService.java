@@ -8,11 +8,12 @@ import com.zj.aiagent.application.agent.query.GetUserAgentsQuery;
 import com.zj.aiagent.domain.agent.config.repository.IAgentConfigRepository;
 import com.zj.aiagent.domain.agent.dag.entity.AiAgent;
 import com.zj.aiagent.domain.agent.dag.entity.DagGraph;
+import com.zj.aiagent.domain.agent.dag.executor.DagExecutor;
+import com.zj.aiagent.domain.agent.dag.repository.IDagExecutionRepository;
 import com.zj.aiagent.domain.agent.dag.repository.IDagRepository;
 import com.zj.aiagent.domain.agent.dag.repository.IHumanInterventionRepository;
 import com.zj.aiagent.domain.agent.dag.service.DagExecuteService;
 import com.zj.aiagent.domain.agent.dag.service.DagLoaderService;
-import com.zj.aiagent.domain.agent.dag.executor.DagExecutor;
 import com.zj.aiagent.infrastructure.persistence.entity.AiAgentPO;
 import com.zj.aiagent.infrastructure.persistence.mapper.AiAgentMapper;
 import lombok.RequiredArgsConstructor;
@@ -40,6 +41,7 @@ public class AgentApplicationService {
     private final IDagRepository dagRepository;
     private final IAgentConfigRepository agentConfigRepository;
     private final IHumanInterventionRepository humanInterventionRepository;
+    private final IDagExecutionRepository dagExecutionRepository;
 
     public DagExecutor.DagExecutionResult chat(ChatCommand command) {
         log.info("执行对话, user: {}", command.getUserMessage());
@@ -56,29 +58,67 @@ public class AgentApplicationService {
      * 人工介入审核并恢复执行
      *
      * @param command 审核命令
+     * @param emitter SSE 响应流
+     * @return DAG 执行结果
      */
-    public void reviewAndResume(com.zj.aiagent.application.agent.command.ReviewCommand command) {
-        log.info("处理人工介入审核: conversationId={}, nodeId={}, approved={}",
+    public DagExecutor.DagExecutionResult reviewAndResume(
+            com.zj.aiagent.application.agent.command.ReviewCommand command,
+            org.springframework.web.servlet.mvc.method.annotation.ResponseBodyEmitter emitter) {
+
+        log.info("处理人工介入审核并恢复执行: conversationId={}, nodeId={}, approved={}",
                 command.getConversationId(), command.getNodeId(), command.getApproved());
 
-        // 1. 保存审核结果到 Redis + 数据库
-        humanInterventionRepository.saveReviewResult(
-                command.getConversationId(),
-                command.getNodeId(),
-                command.getApproved(),
-                command.getComments(),
-                command.getModifiedOutput());
+        try {
+            // 1. 保存审核结果到 Redis + 数据库
+            humanInterventionRepository.saveReviewResult(
+                    command.getConversationId(),
+                    command.getNodeId(),
+                    command.getApproved(),
+                    command.getComments(),
+                    command.getModifiedOutput());
 
-        // 2. 重新触发 DAG 执行（从暂停点恢复）
-        // TODO: 实现恢复执行逻辑
-        // 当前简化实现：审核结果已保存，前端需要重新发起 chat 请求
-        // 完整实现需要：
-        // - 从数据库加载 DagExecutionInstance
-        // - 恢复 DagExecutionContext
-        // - 从暂停的节点继续执行
+            log.info("审核结果已保存: conversationId={}, approved={}",
+                    command.getConversationId(), command.getApproved());
 
-        log.info("人工介入审核完成: conversationId={}, nodeId={}",
-                command.getConversationId(), command.getNodeId());
+            // 2. 查询暂停状态获取必要信息
+            com.zj.aiagent.domain.agent.dag.context.HumanInterventionRequest pausedState = humanInterventionRepository
+                    .findPausedState(command.getConversationId());
+
+            if (pausedState == null) {
+                throw new RuntimeException("未找到暂停状态: conversationId=" + command.getConversationId());
+            }
+
+            // 3. 从实例获取 agentId
+            com.zj.aiagent.domain.agent.dag.entity.DagExecutionInstance instance = dagExecutionRepository
+                    .findByConversationId(command.getConversationId());
+
+            if (instance == null) {
+                throw new RuntimeException("未找到执行实例: conversationId=" + command.getConversationId());
+            }
+
+            String agentId = String.valueOf(instance.getAgentId());
+
+            // 4. 加载 DAG 图
+            DagGraph dagGraph = dagLoaderService.loadDagByAgentId(agentId);
+
+            // 5. 恢复执行
+            DagExecutor.DagExecutionResult result = dagExecuteService.resumeDag(
+                    dagGraph,
+                    command.getConversationId(),
+                    emitter,
+                    agentId,
+                    command.getApproved(),
+                    command.getModifiedOutput());
+
+            log.info("人工介入审核并恢复执行完成: conversationId={}, status={}",
+                    command.getConversationId(), result.getStatus());
+
+            return result;
+
+        } catch (Exception e) {
+            log.error("人工介入审核并恢复执行失败: conversationId={}", command.getConversationId(), e);
+            throw new RuntimeException("恢复执行失败: " + e.getMessage(), e);
+        }
     }
 
     /**
