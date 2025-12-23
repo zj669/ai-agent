@@ -28,23 +28,149 @@ import java.util.stream.Collectors;
 @Service
 public class DagExecutor {
 
-    private final DagParallelScheduler scheduler;
+    /**
+     * 调度策略枚举
+     */
+    public enum SchedulingStrategy {
+        /**
+         * 事件驱动调度（推荐）：基于依赖计数触发的细粒度并行
+         */
+        EVENT_DRIVEN,
+        /**
+         * 层级并行调度（传统）：按层级分组的粗粒度并行
+         */
+        LEVEL_BASED
+    }
+
+    private final DagParallelScheduler levelBasedScheduler;
+    private final DagEventDrivenScheduler eventDrivenScheduler;
     private final DagLoggingService loggingService;
 
     @Resource
     private IDagExecutionRepository executionRepository;
 
-    public DagExecutor(
-            DagLoggingService loggingService) {
+    /**
+     * 当前使用的调度策略（可通过配置文件或环境变量修改）
+     */
+    private SchedulingStrategy schedulingStrategy = SchedulingStrategy.EVENT_DRIVEN;
+
+    public DagExecutor(DagLoggingService loggingService) {
         this.loggingService = loggingService;
-        this.scheduler = new DagParallelScheduler(4); // 最多4个并行任务
+        this.levelBasedScheduler = new DagParallelScheduler(4); // 最多4个并行任务
+        this.eventDrivenScheduler = new DagEventDrivenScheduler(4); // 最多4个并行任务
     }
 
     /**
-     * 执行DAG
+     * 设置调度策略
+     */
+    public void setSchedulingStrategy(SchedulingStrategy strategy) {
+        this.schedulingStrategy = strategy;
+        log.info("调度策略设置为: {}", strategy);
+    }
+
+    /**
+     * 执行DAG（根据策略选择调度器）
      */
     public DagExecutionResult execute(DagGraph dagGraph, DagExecutionContext context) {
-        log.info("开始执行DAG: {}, executionId: {}", dagGraph.getDagId(), context.getExecutionId());
+        log.info("开始执行DAG: {}, executionId: {}, 策略: {}",
+                dagGraph.getDagId(), context.getExecutionId(), schedulingStrategy);
+
+        // 根据策略选择调度器
+        return switch (schedulingStrategy) {
+            case EVENT_DRIVEN -> executeWithEventDriven(dagGraph, context);
+            case LEVEL_BASED -> executeWithLevelBased(dagGraph, context);
+        };
+    }
+
+    /**
+     * 使用事件驱动调度器执行DAG
+     */
+    private DagExecutionResult executeWithEventDriven(DagGraph dagGraph, DagExecutionContext context) {
+        log.info("使用事件驱动调度器执行DAG: {}", dagGraph.getDagId());
+
+        // 记录DAG开始
+        loggingService.logDagStart(context.getExecutionId(), context.getConversationId(), dagGraph.getDagId());
+
+        long startTime = System.currentTimeMillis();
+
+        try {
+            // 1. 拓扑排序（检测循环依赖）
+            DagTopologicalSorter.sort(dagGraph);
+
+            // 2. 推送 DAG 开始事件
+            int totalNodes = dagGraph.getNodes().size();
+            pushDagStartEvent(context, dagGraph.getDagId(), totalNodes);
+
+            // 3. 创建执行实例
+            DagExecutionInstance instance = createExecutionInstance(dagGraph, context);
+            context.setInstanceId(instance.getId());
+
+            // 4. 将 DagGraph 存入上下文
+            context.setDagGraph(dagGraph);
+
+            // 5. 使用事件驱动调度器执行
+            DagEventDrivenScheduler.SchedulerExecutionResult result = eventDrivenScheduler.execute(dagGraph, context);
+
+            // 6. 处理结果
+            long totalDuration = System.currentTimeMillis() - startTime;
+
+            if ("FAILED".equals(result.getStatus())) {
+                updateExecutionInstance(instance, "FAILED", null, context);
+                loggingService.logDagEnd(context.getExecutionId(), context.getConversationId(),
+                        dagGraph.getDagId(), "FAILED", totalDuration);
+                pushDagCompleteEvent(context, dagGraph.getDagId(), "failed", totalDuration);
+
+                return DagExecutionResult.failed(
+                        context.getExecutionId(),
+                        context.getInstanceId(),
+                        result.getMessage(),
+                        result.getException(),
+                        totalDuration);
+            }
+
+            if ("PAUSED".equals(result.getStatus())) {
+                updateExecutionInstance(instance, "PAUSED", result.getPausedNodeId(), context);
+                return DagExecutionResult.paused(
+                        context.getExecutionId(),
+                        context.getInstanceId(),
+                        result.getPausedNodeId(),
+                        totalDuration);
+            }
+
+            // 成功
+            updateExecutionInstance(instance, "COMPLETED", null, context);
+            loggingService.logDagEnd(context.getExecutionId(), context.getConversationId(),
+                    dagGraph.getDagId(), "SUCCESS", totalDuration);
+            pushDagCompleteEvent(context, dagGraph.getDagId(), "success", totalDuration);
+
+            log.info("DAG执行完成（事件驱动），总耗时: {}ms", totalDuration);
+            return DagExecutionResult.success(context.getExecutionId(), context.getInstanceId(), totalDuration);
+
+        } catch (Exception e) {
+            log.error("DAG执行异常（事件驱动）", e);
+
+            long totalDuration = System.currentTimeMillis() - startTime;
+            loggingService.logDagEnd(context.getExecutionId(), context.getConversationId(),
+                    dagGraph != null ? dagGraph.getDagId() : "unknown", "FAILED", totalDuration);
+
+            if (dagGraph != null) {
+                pushDagCompleteEvent(context, dagGraph.getDagId(), "failed", totalDuration);
+            }
+
+            return DagExecutionResult.failed(
+                    context.getExecutionId(),
+                    context.getInstanceId(),
+                    "DAG execution error: " + e.getMessage(),
+                    e,
+                    totalDuration);
+        }
+    }
+
+    /**
+     * 使用层级并行调度器执行DAG（传统方式）
+     */
+    private DagExecutionResult executeWithLevelBased(DagGraph dagGraph, DagExecutionContext context) {
+        log.info("使用层级并行调度器执行DAG: {}", dagGraph.getDagId());
 
         // 记录DAG开始
         loggingService.logDagStart(context.getExecutionId(), context.getConversationId(), dagGraph.getDagId());
@@ -53,7 +179,7 @@ public class DagExecutor {
 
         try {
             // 1. 拓扑排序
-            List<String> sortedNodes = DagTopologicalSorter.sort(dagGraph);
+            DagTopologicalSorter.sort(dagGraph);
 
             // 2. 获取执行层级（用于并行执行）
             List<List<String>> executionLevels = DagTopologicalSorter.getExecutionLevels(dagGraph);
@@ -99,7 +225,7 @@ public class DagExecutor {
                         .collect(Collectors.toList());
 
                 // 并行执行本层所有节点
-                List<DagParallelScheduler.NodeExecutionResult> results = scheduler.executeParallel(
+                List<DagParallelScheduler.NodeExecutionResult> results = levelBasedScheduler.executeParallel(
                         levelNodes, context, completedNodes, totalNodes);
 
                 // 检查执行结果
@@ -396,14 +522,22 @@ public class DagExecutor {
      * 关闭执行器
      */
     public void shutdown() {
-        scheduler.shutdown();
+        levelBasedScheduler.shutdown();
+        eventDrivenScheduler.shutdown();
     }
 
     /**
-     * 获取调度器（用于恢复执行）
+     * 获取层级调度器（用于恢复执行）
      */
-    public DagParallelScheduler getScheduler() {
-        return scheduler;
+    public DagParallelScheduler getLevelBasedScheduler() {
+        return levelBasedScheduler;
+    }
+
+    /**
+     * 获取事件驱动调度器
+     */
+    public DagEventDrivenScheduler getEventDrivenScheduler() {
+        return eventDrivenScheduler;
     }
 
     /**
