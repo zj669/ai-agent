@@ -102,4 +102,21 @@ public class DagRepository implements IDagRepository {
         log.debug("查询到 {} 个不重复的会话ID", conversationIds.size());
         return conversationIds;
     }
+
+    @Override
+    public boolean deleteAgentByAgentIdAndUserId(String agentId, Long userId) {
+        log.info("删除Agent, agentId={}, userId={}", agentId, userId);
+
+        if (agentId == null || userId == null) {
+            return false;
+        }
+
+        LambdaQueryWrapper<AiAgentPO> queryWrapper = new LambdaQueryWrapper<>();
+        queryWrapper.eq(AiAgentPO::getId, agentId);
+        queryWrapper.eq(AiAgentPO::getUserId, userId);
+
+        int deleted = aiAgentMapper.delete(queryWrapper);
+        log.info("删除Agent结果: agentId={}, deleted={}", agentId, deleted > 0);
+        return deleted > 0;
+    }
 }

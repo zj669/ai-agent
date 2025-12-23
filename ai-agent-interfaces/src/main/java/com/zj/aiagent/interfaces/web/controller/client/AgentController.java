@@ -596,6 +596,45 @@ public class AgentController {
     }
 
     /**
+     * 删除Agent
+     *
+     * @param agentId Agent ID
+     * @return 响应结果
+     */
+    @DeleteMapping("/{agentId}")
+    @Operation(summary = "删除Agent", description = "删除指定的Agent，仅允许删除自己创建的Agent")
+    public Response<Void> deleteAgent(@PathVariable String agentId) {
+        try {
+            // 从 UserContext 获取当前用户 ID
+            Long userId = com.zj.aiagent.shared.utils.UserContext.getUserId();
+            if (userId == null) {
+                return Response.unauthorized("未登录");
+            }
+
+            log.info("删除Agent, userId: {}, agentId: {}", userId, agentId);
+
+            // 构建命令
+            com.zj.aiagent.application.agent.command.DeleteAgentCommand command = com.zj.aiagent.application.agent.command.DeleteAgentCommand
+                    .builder()
+                    .userId(userId)
+                    .agentId(agentId)
+                    .build();
+
+            // 执行删除
+            agentApplicationService.deleteAgent(command);
+
+            return Response.success(null);
+
+        } catch (RuntimeException e) {
+            log.error("删除Agent失败", e);
+            return Response.fail(e.getMessage());
+        } catch (Exception e) {
+            log.error("删除Agent异常", e);
+            return Response.fail("删除失败: " + e.getMessage());
+        }
+    }
+
+    /**
      * 构建标准化错误事件
      */
     private String buildErrorEvent(String errorCode, String errorType,

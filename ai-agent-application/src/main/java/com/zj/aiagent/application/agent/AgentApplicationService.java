@@ -284,6 +284,35 @@ public class AgentApplicationService {
     }
 
     /**
+     * 删除Agent
+     *
+     * @param command 删除命令
+     */
+    public void deleteAgent(com.zj.aiagent.application.agent.command.DeleteAgentCommand command) {
+        log.info("删除Agent, userId: {}, agentId: {}", command.getUserId(), command.getAgentId());
+
+        // 1. 权限校验：验证Agent存在且属于当前用户
+        AiAgent agent = dagRepository.selectAiAgentByAgentIdAndUserId(
+                command.getAgentId(),
+                command.getUserId());
+
+        if (agent == null) {
+            throw new RuntimeException("Agent不存在或无权限删除");
+        }
+
+        // 2. 执行删除
+        boolean deleted = dagRepository.deleteAgentByAgentIdAndUserId(
+                command.getAgentId(),
+                command.getUserId());
+
+        if (!deleted) {
+            throw new RuntimeException("删除Agent失败");
+        }
+
+        log.info("Agent删除成功, agentId: {}", command.getAgentId());
+    }
+
+    /**
      * 转换为 DTO
      */
     private AgentDTO toDTO(AiAgentPO po) {

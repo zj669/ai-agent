@@ -45,4 +45,14 @@ public interface IDagRepository {
      * @return 去重的会话ID列表
      */
     java.util.List<String> findDistinctConversationIds(Long userId, Long agentId);
+
+    /**
+     * 删除Agent
+     * 需要同时匹配agentId和userId，确保只能删除自己的Agent
+     *
+     * @param agentId Agent ID
+     * @param userId  用户ID
+     * @return 是否删除成功
+     */
+    boolean deleteAgentByAgentIdAndUserId(String agentId, Long userId);
 }
