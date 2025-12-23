@@ -123,11 +123,6 @@ public class NodeFactory {
             builder.mcpTools(parseMcpToolConfigs(configJson.getJSONArray("mcpTools")));
         }
 
-        // 超时时间
-        if (configJson.containsKey("timeout")) {
-            builder.timeout(configJson.getLong("timeout"));
-        }
-
         // 人工介入配置
         if (configJson.containsKey("humanIntervention")) {
             builder.humanIntervention(parseHumanInterventionConfig(configJson.getJSONObject("humanIntervention")));
@@ -139,16 +134,27 @@ public class NodeFactory {
             builder.nextNodes(nextNodes);
         }
 
-        // 自定义配置（暂时禁用，避免空指针问题）
-        // Map<String, Object> customConfig = new HashMap<>();
-        // for (String key : configJson.keySet()) {
-        // if (!isStandardConfigKey(key)) {
-        // customConfig.put(key, configJson.get(key));
-        // }
-        // }
-        // if (!customConfig.isEmpty()) {
-        // builder.customConfig(customConfig);
-        // }
+        if(configJson.containsKey("resilience")){
+            builder.resilience(ResilienceConfig.builder()
+                    .timeoutMs(configJson.getLong("timeoutMs"))
+                    .maxRetries(configJson.getInteger("maxRetries"))
+                    .retryDelayMs(configJson.getLong("retryDelayMs"))
+                    .retryMultiplier(configJson.getDouble("retryMultiplier"))
+                    .maxRetryDelayMs(configJson.getLong("maxRetryDelayMs"))
+                    .maxConcurrent(configJson.getInteger("maxConcurrent"))
+                    .build()
+            );
+        }
+
+         Map<String, Object> customConfig = new HashMap<>();
+         for (String key : configJson.keySet()) {
+         if (!isStandardConfigKey(key)) {
+         customConfig.put(key, configJson.get(key));
+         }
+         }
+         if (!customConfig.isEmpty()) {
+         builder.customConfig(customConfig);
+         }
 
         return builder.build();
     }

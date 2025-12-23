@@ -134,12 +134,6 @@ public class RouterNode extends AbstractConfigurableNode {
     private String buildRoutingPrompt(DagExecutionContext context) {
         StringBuilder prompt = new StringBuilder();
 
-        // 自定义提示词（已禁用）
-        String customPrompt = null;
-        if (customPrompt != null && !customPrompt.isEmpty()) {
-            prompt.append(customPrompt).append("\n\n");
-        }
-
         // 从领域对象获取 DagGraph
         DagGraph dagGraph = context.getDagGraph();
         if (dagGraph != null) {
@@ -200,10 +194,9 @@ public class RouterNode extends AbstractConfigurableNode {
         try {
             if (nodeObj instanceof AbstractConfigurableNode node) {
                 // 从config中获取systemPrompt作为节点功能描述
-                String systemPrompt = node.config.getSystemPrompt();
-                if (systemPrompt != null && !systemPrompt.isEmpty()) {
-                    // 截取前100个字符作为描述
-                    return systemPrompt.length() > 100 ? systemPrompt.substring(0, 100) + "..." : systemPrompt;
+                Map<String, Object> customConfig = node.config.getCustomConfig();
+                if (customConfig != null && !customConfig.isEmpty()) {
+                    return customConfig.get("functionDescription").toString();
                 }
             }
         } catch (Exception e) {

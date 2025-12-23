@@ -6,6 +6,7 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 import java.util.List;
+import java.util.Map;
 
 /**
  * 节点配置类 - 存储节点的可配置项
@@ -67,4 +68,6 @@ public class NodeConfig {
      * 弹性配置（超时、重试、限流、降级）
      */
     private ResilienceConfig resilience;
+
+    Map<String, Object> customConfig;
 }
