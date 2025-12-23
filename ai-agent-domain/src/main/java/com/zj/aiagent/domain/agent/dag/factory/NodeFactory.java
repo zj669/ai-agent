@@ -104,7 +104,8 @@ public class NodeFactory {
         }
 
         // 模型配置
-        if (configJson.containsKey("model")) {
+        if (configJson.containsKey("model") && configJson.getJSONObject("model") != null
+                && !configJson.getJSONObject("model").isEmpty()) {
             builder.model(parseModelConfig(configJson.getJSONObject("model")));
         }
 
@@ -114,27 +115,32 @@ public class NodeFactory {
         // }
 
         // Advisor配置
-        if (configJson.containsKey("advisors")) {
+        if (configJson.containsKey("advisors") && configJson.getJSONArray("advisors") != null
+                && !configJson.getJSONArray("advisors").isEmpty()) {
             builder.advisors(parseAdvisorConfigs(configJson.getJSONArray("advisors")));
         }
 
         // MCP工具配置
-        if (configJson.containsKey("mcpTools")) {
+        if (configJson.containsKey("mcpTools") && configJson.getJSONArray("mcpTools") != null
+                && !configJson.getJSONArray("mcpTools").isEmpty()) {
             builder.mcpTools(parseMcpToolConfigs(configJson.getJSONArray("mcpTools")));
         }
 
         // 人工介入配置
-        if (configJson.containsKey("humanIntervention")) {
+        if (configJson.containsKey("humanIntervention") && configJson.getJSONObject("humanIntervention") != null
+                && !configJson.getJSONObject("humanIntervention").isEmpty()) {
             builder.humanIntervention(parseHumanInterventionConfig(configJson.getJSONObject("humanIntervention")));
         }
 
         // 候选节点列表（用于 RouterNode）
-        if (configJson.containsKey("nextNodes")) {
+        if (configJson.containsKey("nextNodes") && configJson.getJSONObject("nextNodes") != null
+                && !configJson.getJSONObject("nextNodes").isEmpty()) {
             List<String> nextNodes = configJson.getList("nextNodes", String.class);
             builder.nextNodes(nextNodes);
         }
 
-        if(configJson.containsKey("resilience")){
+        if (configJson.containsKey("resilience") && configJson.getJSONObject("resilience") != null
+                && !configJson.getJSONObject("resilience").isEmpty()) {
             builder.resilience(ResilienceConfig.builder()
                     .timeoutMs(configJson.getLong("timeoutMs"))
                     .maxRetries(configJson.getInteger("maxRetries"))
@@ -142,19 +148,18 @@ public class NodeFactory {
                     .retryMultiplier(configJson.getDouble("retryMultiplier"))
                     .maxRetryDelayMs(configJson.getLong("maxRetryDelayMs"))
                     .maxConcurrent(configJson.getInteger("maxConcurrent"))
-                    .build()
-            );
+                    .build());
         }
 
-         Map<String, Object> customConfig = new HashMap<>();
-         for (String key : configJson.keySet()) {
-         if (!isStandardConfigKey(key)) {
-         customConfig.put(key, configJson.get(key));
-         }
-         }
-         if (!customConfig.isEmpty()) {
-         builder.customConfig(customConfig);
-         }
+        Map<String, Object> customConfig = new HashMap<>();
+        for (String key : configJson.keySet()) {
+            if (!isStandardConfigKey(key)) {
+                customConfig.put(key, configJson.get(key));
+            }
+        }
+        if (!customConfig.isEmpty()) {
+            builder.customConfig(customConfig);
+        }
 
         return builder.build();
     }
@@ -255,7 +260,7 @@ public class NodeFactory {
      * 解析人工介入配置
      */
     private HumanInterventionConfig parseHumanInterventionConfig(JSONObject hiJson) {
-        if (hiJson == null) {
+        if (hiJson == null || hiJson.isEmpty()) {
             return null;
         }
 
