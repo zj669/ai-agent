@@ -75,6 +75,32 @@ public class DagEventDrivenScheduler {
         CountDownLatch allDoneLatch = new CountDownLatch(1);
 
         // 获取初始就绪节点
+        // 在获取就绪节点前，先处理已执行的节点（恢复现场）
+        int restoredCount = 0;
+        for (AbstractConfigurableNode node : dagGraph.getNodes().values()) {
+            if (context.isNodeExecuted(node.getNodeId())) {
+                String nodeId = node.getNodeId();
+                log.info("恢复已执行节点状态: {}", nodeId);
+
+                // 如果是路由节点，需要重新应用路由决策（禁用未选中的路径）
+                if (node.isRouterNode()) {
+                    handleRouterNode(node, context, dagGraph, tracker);
+                }
+
+                // 标记为完成，这将更新下游节点的依赖计数
+                tracker.markCompleted(nodeId);
+
+                // 更新进度
+                progress.incrementCompleted();
+                completedCount.incrementAndGet();
+                restoredCount++;
+            }
+        }
+
+        if (restoredCount > 0) {
+            log.info("已恢复 {} 个节点的执行状态", restoredCount);
+        }
+
         Set<String> readyNodes = tracker.getReadyNodes();
         log.info("初始就绪节点: {}", readyNodes);
 

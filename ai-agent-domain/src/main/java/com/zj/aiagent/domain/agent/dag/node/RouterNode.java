@@ -70,17 +70,24 @@ public class RouterNode extends AbstractConfigurableNode {
 
             log.info("路由节点执行完成，选择节点: {}", selectedNode);
 
-            // 存储路由决策
+            // 存储路由决策到 ContextKey（用于其他节点引用）
             context.setValue(ContextKey.ROUTER_DECISION.key(), selectedNode);
-            context.setNodeResult(nodeId, selectedNode);
 
+            // 构建路由结果
+            NodeExecutionResult result;
             if (selectedNode == null || selectedNode.isEmpty()) {
-                return NodeExecutionResult.routing(NodeRouteDecision.stop(), "路由决策：停止执行");
+                result = NodeExecutionResult.routing(NodeRouteDecision.stop(), "路由决策：停止执行");
+            } else {
+                result = NodeExecutionResult.routing(
+                        NodeRouteDecision.continueWith(selectedNode),
+                        "路由决策：继续执行节点 " + selectedNode);
             }
 
-            return NodeExecutionResult.routing(
-                    NodeRouteDecision.continueWith(selectedNode),
-                    "路由决策：继续执行节点 " + selectedNode);
+            // 存储完整的 NodeExecutionResult（而不是仅存储字符串）
+            // 这样在恢复执行时可以正确解析路由决策
+            context.setNodeResult(nodeId, result);
+
+            return result;
 
         } catch (Exception e) {
             throw new DagNodeExecutionException("路由节点执行失败: " + e.getMessage(), e, nodeId, true);
