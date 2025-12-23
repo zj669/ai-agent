@@ -2,7 +2,6 @@ package com.zj.aiagent.domain.agent.dag.executor;
 
 import com.zj.aiagent.domain.agent.dag.context.DagExecutionContext;
 import com.zj.aiagent.domain.agent.dag.context.ProgressData;
-import com.zj.aiagent.domain.agent.dag.logging.DagLoggingService;
 import com.zj.aiagent.domain.agent.dag.node.AbstractConfigurableNode;
 import com.zj.aiagent.shared.design.dag.DagNodeExecutionException;
 import lombok.AllArgsConstructor;
@@ -21,12 +20,10 @@ import java.util.concurrent.*;
 public class DagParallelScheduler {
 
     private final ExecutorService executorService;
-    private final DagLoggingService loggingService;
     private final int maxParallelism;
 
-    public DagParallelScheduler(int maxParallelism, DagLoggingService loggingService) {
+    public DagParallelScheduler(int maxParallelism) {
         this.maxParallelism = maxParallelism;
-        this.loggingService = loggingService;
         this.executorService = new ThreadPoolExecutor(
                 maxParallelism,
                 maxParallelism,

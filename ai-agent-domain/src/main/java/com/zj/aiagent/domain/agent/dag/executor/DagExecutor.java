@@ -1,10 +1,9 @@
 package com.zj.aiagent.domain.agent.dag.executor;
 
 import com.alibaba.fastjson.JSON;
-import com.zj.aiagent.domain.agent.dag.context.ContextKey;
 import com.zj.aiagent.domain.agent.dag.context.DagExecutionContext;
-import com.zj.aiagent.domain.agent.dag.entity.DagGraph;
 import com.zj.aiagent.domain.agent.dag.entity.DagExecutionInstance;
+import com.zj.aiagent.domain.agent.dag.entity.DagGraph;
 import com.zj.aiagent.domain.agent.dag.logging.DagLoggingService;
 import com.zj.aiagent.domain.agent.dag.node.AbstractConfigurableNode;
 import com.zj.aiagent.domain.agent.dag.repository.IDagExecutionRepository;
@@ -38,7 +37,7 @@ public class DagExecutor {
     public DagExecutor(
             DagLoggingService loggingService) {
         this.loggingService = loggingService;
-        this.scheduler = new DagParallelScheduler(4, loggingService); // 最多4个并行任务
+        this.scheduler = new DagParallelScheduler(4); // 最多4个并行任务
     }
 
     /**
