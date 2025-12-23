@@ -236,6 +236,113 @@ public class AgentController {
     }
 
     /**
+     * 人工介入审核
+     */
+    @PostMapping("/review")
+    @Operation(summary = "人工介入审核", description = "审核暂停的节点，批准或拒绝继续执行")
+    public Response<Void> reviewHumanIntervention(
+            @Valid @RequestBody com.zj.aiagent.interfaces.web.dto.request.agent.ReviewRequest request) {
+        try {
+            log.info("收到人工介入审核请求: conversationId={}, nodeId={}, approved={}",
+                    request.getConversationId(), request.getNodeId(), request.getApproved());
+
+            // 转换为 Command
+            com.zj.aiagent.application.agent.command.ReviewCommand command = com.zj.aiagent.application.agent.command.ReviewCommand
+                    .builder()
+                    .conversationId(request.getConversationId())
+                    .nodeId(request.getNodeId())
+                    .approved(request.getApproved())
+                    .comments(request.getComments())
+                    .modifiedOutput(request.getModifiedOutput())
+                    .build();
+
+            // 调用应用服务处理审核
+            agentApplicationService.reviewAndResume(command);
+
+            return Response.success(null);
+
+        } catch (Exception e) {
+            log.error("人工介入审核失败", e);
+            return Response.fail("审核失败: " + e.getMessage());
+        }
+    }
+
+    /**
+     * 查询执行上下文
+     */
+    @GetMapping("/context/{conversationId}")
+    @Operation(summary = "查询执行上下文", description = "获取指定会话的执行上下文，包含节点执行结果和暂停状态")
+    public Response<com.zj.aiagent.interfaces.web.dto.response.agent.ExecutionContextResponse> getExecutionContext(
+            @PathVariable String conversationId) {
+        try {
+            log.info("收到查询执行上下文请求: conversationId={}", conversationId);
+
+            // 构建查询对象
+            com.zj.aiagent.application.agent.query.GetExecutionContextQuery query = com.zj.aiagent.application.agent.query.GetExecutionContextQuery
+                    .builder()
+                    .conversationId(conversationId)
+                    .build();
+
+            // 调用应用服务查询
+            com.zj.aiagent.application.agent.ExecutionContextDTO dto = agentApplicationService
+                    .getExecutionContext(query);
+
+            // 转换为响应对象
+            com.zj.aiagent.interfaces.web.dto.response.agent.ExecutionContextResponse response = com.zj.aiagent.interfaces.web.dto.response.agent.ExecutionContextResponse
+                    .builder()
+                    .conversationId(dto.getConversationId())
+                    .status(dto.getStatus())
+                    .pausedNodeId(dto.getPausedNodeId())
+                    .pausedNodeName(dto.getPausedNodeName())
+                    .pausedAt(dto.getPausedAt())
+                    .nodeResults(dto.getNodeResults())
+                    .allowModifyOutput(dto.getInterventionRequest() != null
+                            ? dto.getInterventionRequest().getAllowModifyOutput()
+                            : null)
+                    .checkMessage(dto.getInterventionRequest() != null
+                            ? dto.getInterventionRequest().getCheckMessage()
+                            : null)
+                    .build();
+
+            return Response.success(response);
+
+        } catch (Exception e) {
+            log.error("查询执行上下文失败: conversationId={}", conversationId, e);
+            return Response.fail("查询失败: " + e.getMessage());
+        }
+    }
+
+    /**
+     * 更新执行上下文
+     */
+    @PutMapping("/context/{conversationId}")
+    @Operation(summary = "更新执行上下文", description = "修改指定会话的执行上下文中的节点结果")
+    public Response<Void> updateExecutionContext(
+            @PathVariable String conversationId,
+            @Valid @RequestBody com.zj.aiagent.interfaces.web.dto.request.agent.UpdateContextRequest request) {
+        try {
+            log.info("收到更新执行上下文请求: conversationId={}, modifications={}",
+                    conversationId, request.getModifications().keySet());
+
+            // 构建命令对象
+            com.zj.aiagent.application.agent.command.UpdateExecutionContextCommand command = com.zj.aiagent.application.agent.command.UpdateExecutionContextCommand
+                    .builder()
+                    .conversationId(conversationId)
+                    .modifications(request.getModifications())
+                    .build();
+
+            // 调用应用服务更新
+            agentApplicationService.updateExecutionContext(command);
+
+            return Response.success(null);
+
+        } catch (Exception e) {
+            log.error("更新执行上下文失败: conversationId={}", conversationId, e);
+            return Response.fail("更新失败: " + e.getMessage());
+        }
+    }
+
+    /**
      * 查询会话历史消息
      */
     @GetMapping("/chat/history/{conversationId}")

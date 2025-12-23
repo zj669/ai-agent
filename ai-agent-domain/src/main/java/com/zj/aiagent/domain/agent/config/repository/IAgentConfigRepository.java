@@ -63,4 +63,13 @@ public interface IAgentConfigRepository {
      * @return 系统提示词列表
      */
     List<SystemPromptEntity> findAllSystemPrompts();
+
+    /**
+     * 查询配置字段定义
+     *
+     * @param configType 配置类型
+     * @return 配置字段定义列表
+     */
+    List<com.zj.aiagent.domain.agent.config.entity.ConfigFieldDefinitionEntity> findConfigFieldDefinitions(
+            String configType);
 }

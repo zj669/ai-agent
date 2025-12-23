@@ -6,10 +6,7 @@ import com.zj.aiagent.application.agent.config.dto.AdvisorDTO;
 import com.zj.aiagent.application.agent.config.dto.McpToolDTO;
 import com.zj.aiagent.application.agent.config.dto.ModelDTO;
 import com.zj.aiagent.application.agent.config.dto.NodeTypeDTO;
-import com.zj.aiagent.domain.agent.config.entity.AdvisorEntity;
-import com.zj.aiagent.domain.agent.config.entity.McpToolEntity;
-import com.zj.aiagent.domain.agent.config.entity.ModelEntity;
-import com.zj.aiagent.domain.agent.config.entity.NodeTemplateEntity;
+import com.zj.aiagent.domain.agent.config.entity.*;
 import com.zj.aiagent.domain.agent.config.repository.IAgentConfigRepository;
 import com.zj.aiagent.domain.agent.dag.entity.NodeType;
 import jakarta.annotation.Resource;
@@ -174,8 +171,8 @@ public class AgentConfigApplicationService {
                 return "Reasoning-Acting-Observing 循环，支持多轮推理";
             case ROUTER_NODE:
                 return "根据条件选择下一个执行节点，支持AI评估和规则表达式";
-            case HUMAN_NODE:
-                return "等待人工介入，需要用户确认或输入";
+            // case HUMAN_NODE:
+            // return "等待人工介入，需要用户确认或输入";
             default:
                 return "";
         }
@@ -194,8 +191,8 @@ public class AgentConfigApplicationService {
                 return "icon-react";
             case ROUTER_NODE:
                 return "icon-router";
-            case HUMAN_NODE:
-                return "icon-human";
+            // case HUMAN_NODE:
+            // return "icon-human";
             default:
                 return "icon-default";
         }
@@ -209,11 +206,12 @@ public class AgentConfigApplicationService {
             case ACT_NODE:
             case PLAN_NODE:
             case REACT_NODE:
-                return Arrays.asList("MODEL", "ADVISOR", "MCP_TOOL", "SYSTEM_PROMPT", "USER_PROMPT", "TIMEOUT");
+                return Arrays.asList("MODEL", "ADVISOR", "MCP_TOOL", "SYSTEM_PROMPT", "USER_PROMPT", "TIMEOUT",
+                        "HUMAN_INTERVENTION");
             case ROUTER_NODE:
-                return Arrays.asList("MODEL", "ROUTING_STRATEGY", "CANDIDATE_NODES", "TIMEOUT");
-            case HUMAN_NODE:
-                return Arrays.asList("TIMEOUT", "PROMPT_MESSAGE");
+                return Arrays.asList("MODEL", "ROUTING_STRATEGY", "CANDIDATE_NODES", "TIMEOUT", "HUMAN_INTERVENTION");
+            // case HUMAN_NODE:
+            // return Arrays.asList("TIMEOUT", "PROMPT_MESSAGE");
             default:
                 return Collections.emptyList();
         }
@@ -297,12 +295,23 @@ public class AgentConfigApplicationService {
                 case "SYSTEM_PROMPT":
                     result.add(buildSystemPromptConfigDefinition());
                     break;
+                case "HUMAN_INTERVENTION":
+                    result.add(buildHumanInterventionConfigDefinition());
+                    break;
                 default:
                     log.warn("未知的配置类型: {}", configType);
             }
         }
 
         return result;
+    }
+
+    private ConfigDefinitionDTO buildHumanInterventionConfigDefinition() {
+        return ConfigDefinitionDTO.builder()
+                .configType("HUMAN_INTERVENTION")
+                .configName("人工介入")
+                .options(new ArrayList<>())
+                .build();
     }
 
     private ConfigDefinitionDTO buildModelConfigDefinition() {
@@ -423,198 +432,148 @@ public class AgentConfigApplicationService {
                         .description("节点执行超时时间(毫秒)")
                         .build());
                 break;
+            case "HUMAN_INTERVENTION":
+                result = buildHumanInterventionFieldDefinitions();
+                break;
             default:
                 log.warn("未知的配置类型: {}", configType);
                 throw new IllegalArgumentException("未知的配置类型: " + configType);
         }
 
         return result;
+
+    }
+
+    /**
+     * 构建人工介入配置的字段定义
+     * 从数据库读取配置字段定义
+     */
+    private List<ConfigFieldDefinitionDTO> buildHumanInterventionFieldDefinitions() {
+        // 从数据库查询配置字段定义
+        List<ConfigFieldDefinitionEntity> entities = agentConfigRepository
+                .findConfigFieldDefinitions("HUMAN_INTERVENTION");
+
+        // 转换为 DTO
+        return entities.stream()
+                .map(entity -> {
+                    ConfigFieldDefinitionDTO.ConfigFieldDefinitionDTOBuilder builder = ConfigFieldDefinitionDTO
+                            .builder()
+                            .fieldName(entity.getFieldName())
+                            .fieldLabel(entity.getFieldLabel())
+                            .fieldType(entity.getFieldType())
+                            .required(entity.getRequired())
+                            .description(entity.getDescription());
+
+                    // 处理默认值
+                    if (entity.getDefaultValue() != null && !entity.getDefaultValue().isEmpty()) {
+                        // 根据字段类型转换默认值
+                        Object defaultValue = convertDefaultValue(entity.getFieldType(), entity.getDefaultValue());
+                        builder.defaultValue(defaultValue);
+                    }
+
+                    // 处理选项列表
+                    if (entity.getOptions() != null && !entity.getOptions().isEmpty()) {
+                        List<String> options = entity.getParsedOptions();
+                        builder.options(options);
+                    }
+
+                    return builder.build();
+                })
+                .collect(Collectors.toList());
+    }
+
+    /**
+     * 根据字段类型转换默认值
+     */
+    private Object convertDefaultValue(String fieldType, String defaultValueStr) {
+        if (defaultValueStr == null || defaultValueStr.isEmpty()) {
+            return null;
+        }
+
+        try {
+            switch (fieldType.toLowerCase()) {
+                case "boolean":
+                    return Boolean.parseBoolean(defaultValueStr);
+                case "number":
+                    return Double.parseDouble(defaultValueStr);
+                default:
+                    return defaultValueStr;
+            }
+        } catch (Exception e) {
+            log.warn("转换默认值失败: fieldType={}, value={}", fieldType, defaultValueStr, e);
+            return defaultValueStr;
+        }
     }
 
     /**
      * 构建模型配置的字段定义
+     * 从数据库读取配置字段定义
      */
     private List<ConfigFieldDefinitionDTO> buildModelFieldDefinitions() {
-        List<ConfigFieldDefinitionDTO> fields = new ArrayList<>();
-
-        fields.add(ConfigFieldDefinitionDTO.builder()
-                .fieldName("baseUrl")
-                .fieldLabel("API基础URL")
-                .fieldType("text")
-                .required(false)
-                .description("模型API的基础URL地址")
-                .build());
-
-        fields.add(ConfigFieldDefinitionDTO.builder()
-                .fieldName("apiKey")
-                .fieldLabel("API密钥")
-                .fieldType("password")
-                .required(false)
-                .description("访问模型API的密钥")
-                .build());
-
-        fields.add(ConfigFieldDefinitionDTO.builder()
-                .fieldName("modelName")
-                .fieldLabel("模型名称")
-                .fieldType("text")
-                .required(false)
-                .description("使用的模型名称")
-                .build());
-
-        fields.add(ConfigFieldDefinitionDTO.builder()
-                .fieldName("temperature")
-                .fieldLabel("温度参数")
-                .fieldType("number")
-                .required(false)
-                .description("控制输出随机性，范围0.0-2.0")
-                .defaultValue(0.7)
-                .build());
-
-        fields.add(ConfigFieldDefinitionDTO.builder()
-                .fieldName("maxTokens")
-                .fieldLabel("最大Token数")
-                .fieldType("number")
-                .required(false)
-                .description("生成文本的最大token数量")
-                .build());
-
-        fields.add(ConfigFieldDefinitionDTO.builder()
-                .fieldName("topP")
-                .fieldLabel("Top P参数")
-                .fieldType("number")
-                .required(false)
-                .description("核采样参数，范围0.0-1.0")
-                .build());
-
-        fields.add(ConfigFieldDefinitionDTO.builder()
-                .fieldName("frequencyPenalty")
-                .fieldLabel("频率惩罚")
-                .fieldType("number")
-                .required(false)
-                .description("降低重复内容的惩罚系数")
-                .build());
-
-        fields.add(ConfigFieldDefinitionDTO.builder()
-                .fieldName("presencePenalty")
-                .fieldLabel("存在惩罚")
-                .fieldType("number")
-                .required(false)
-                .description("鼓励生成新内容的惩罚系数")
-                .build());
-
-        return fields;
+        return buildFieldDefinitionsFromDatabase("MODEL");
     }
 
     /**
      * 构建Advisor配置的字段定义
+     * 从数据库读取配置字段定义
      */
     private List<ConfigFieldDefinitionDTO> buildAdvisorFieldDefinitions() {
-        List<ConfigFieldDefinitionDTO> fields = new ArrayList<>();
-
-        fields.add(ConfigFieldDefinitionDTO.builder()
-                .fieldName("advisorId")
-                .fieldLabel("Advisor ID")
-                .fieldType("text")
-                .required(true)
-                .description("Advisor的唯一标识")
-                .build());
-
-        fields.add(ConfigFieldDefinitionDTO.builder()
-                .fieldName("advisorType")
-                .fieldLabel("Advisor类型")
-                .fieldType("select")
-                .required(true)
-                .description("Advisor类型：MEMORY, RAG, TOOL, CUSTOM")
-                .options(Arrays.asList("MEMORY", "RAG", "TOOL", "CUSTOM"))
-                .build());
-
-        fields.add(ConfigFieldDefinitionDTO.builder()
-                .fieldName("config")
-                .fieldLabel("配置参数")
-                .fieldType("json")
-                .required(false)
-                .description("Advisor的配置参数，JSON格式")
-                .build());
-
-        return fields;
+        return buildFieldDefinitionsFromDatabase("ADVISOR");
     }
 
     /**
      * 构建MCP工具配置的字段定义
+     * 从数据库读取配置字段定义
      */
     private List<ConfigFieldDefinitionDTO> buildMcpToolFieldDefinitions() {
-        List<ConfigFieldDefinitionDTO> fields = new ArrayList<>();
-
-        fields.add(ConfigFieldDefinitionDTO.builder()
-                .fieldName("mcpId")
-                .fieldLabel("MCP工具ID")
-                .fieldType("text")
-                .required(true)
-                .description("MCP工具的唯一标识")
-                .build());
-
-        fields.add(ConfigFieldDefinitionDTO.builder()
-                .fieldName("mcpName")
-                .fieldLabel("MCP工具名称")
-                .fieldType("text")
-                .required(true)
-                .description("MCP工具的名称")
-                .build());
-
-        fields.add(ConfigFieldDefinitionDTO.builder()
-                .fieldName("mcpType")
-                .fieldLabel("MCP工具类型")
-                .fieldType("select")
-                .required(true)
-                .description("MCP工具类型")
-                .options(Arrays.asList("FILE_SYSTEM", "CODE_EXECUTOR", "WEB_SEARCH", "DATABASE", "API_CLIENT"))
-                .build());
-
-        return fields;
+        return buildFieldDefinitionsFromDatabase("MCP_TOOL");
     }
 
     /**
      * 构建Memory配置的字段定义
+     * 从数据库读取配置字段定义
      */
     private List<ConfigFieldDefinitionDTO> buildMemoryFieldDefinitions() {
-        List<ConfigFieldDefinitionDTO> fields = new ArrayList<>();
+        return buildFieldDefinitionsFromDatabase("MEMORY");
+    }
 
-        fields.add(ConfigFieldDefinitionDTO.builder()
-                .fieldName("enabled")
-                .fieldLabel("启用记忆")
-                .fieldType("boolean")
-                .required(false)
-                .description("是否启用记忆功能")
-                .defaultValue(false)
-                .build());
+    /**
+     * 通用方法：从数据库读取配置字段定义并转换为DTO
+     * 
+     * @param configType 配置类型
+     * @return 配置字段定义DTO列表
+     */
+    private List<ConfigFieldDefinitionDTO> buildFieldDefinitionsFromDatabase(String configType) {
+        // 从数据库查询配置字段定义
+        List<ConfigFieldDefinitionEntity> entities = agentConfigRepository.findConfigFieldDefinitions(configType);
 
-        fields.add(ConfigFieldDefinitionDTO.builder()
-                .fieldName("type")
-                .fieldLabel("记忆类型")
-                .fieldType("select")
-                .required(false)
-                .description("记忆的类型")
-                .options(Arrays.asList("VECTOR_STORE", "CHAT_MEMORY", "SUMMARY_MEMORY", "BUFFER_MEMORY"))
-                .build());
+        // 转换为 DTO
+        return entities.stream()
+                .map(entity -> {
+                    ConfigFieldDefinitionDTO.ConfigFieldDefinitionDTOBuilder builder = ConfigFieldDefinitionDTO
+                            .builder()
+                            .fieldName(entity.getFieldName())
+                            .fieldLabel(entity.getFieldLabel())
+                            .fieldType(entity.getFieldType())
+                            .required(entity.getRequired())
+                            .description(entity.getDescription());
 
-        fields.add(ConfigFieldDefinitionDTO.builder()
-                .fieldName("retrieveSize")
-                .fieldLabel("检索大小")
-                .fieldType("number")
-                .required(false)
-                .description("从记忆中检索的条目数量")
-                .defaultValue(10)
-                .build());
+                    // 处理默认值
+                    if (entity.getDefaultValue() != null && !entity.getDefaultValue().isEmpty()) {
+                        // 根据字段类型转换默认值
+                        Object defaultValue = convertDefaultValue(entity.getFieldType(), entity.getDefaultValue());
+                        builder.defaultValue(defaultValue);
+                    }
 
-        fields.add(ConfigFieldDefinitionDTO.builder()
-                .fieldName("conversationId")
-                .fieldLabel("会话ID")
-                .fieldType("text")
-                .required(false)
-                .description("会话ID，支持占位符${conversationId}")
-                .build());
+                    // 处理选项列表
+                    if (entity.getOptions() != null && !entity.getOptions().isEmpty()) {
+                        List<String> options = entity.getParsedOptions();
+                        builder.options(options);
+                    }
 
-        return fields;
+                    return builder.build();
+                })
+                .collect(Collectors.toList());
     }
 
     @lombok.Data

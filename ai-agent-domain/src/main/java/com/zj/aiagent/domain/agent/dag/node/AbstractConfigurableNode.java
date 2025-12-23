@@ -3,12 +3,15 @@ package com.zj.aiagent.domain.agent.dag.node;
 import com.alibaba.fastjson.JSON;
 import com.zj.aiagent.domain.agent.dag.config.AdvisorConfig;
 import com.zj.aiagent.domain.agent.dag.config.FallbackModelProperties;
+import com.zj.aiagent.domain.agent.dag.config.HumanInterventionConfig;
 import com.zj.aiagent.domain.agent.dag.config.McpToolConfig;
 import com.zj.aiagent.domain.agent.dag.config.ModelConfig;
 import com.zj.aiagent.domain.agent.dag.config.NodeConfig;
 import com.zj.aiagent.domain.agent.dag.config.ResilienceConfig;
 import com.zj.aiagent.domain.agent.dag.context.ContextKey;
 import com.zj.aiagent.domain.agent.dag.context.DagExecutionContext;
+import com.zj.aiagent.domain.agent.dag.context.HumanInterventionData;
+import com.zj.aiagent.domain.agent.dag.context.HumanInterventionRequest;
 import com.zj.aiagent.domain.agent.dag.entity.AutoAgentExecuteResultEntity;
 import com.zj.aiagent.domain.agent.dag.entity.NodeExecutionLog;
 import com.zj.aiagent.domain.agent.dag.entity.NodeType;
@@ -494,14 +497,104 @@ public abstract class AbstractConfigurableNode implements DagNode<DagExecutionCo
 
     @Override
     public NodeExecutionResult execute(DagExecutionContext context) throws DagNodeExecutionException {
+        // 检查是否需要执行前暂停
+        if (shouldPauseBefore()) {
+            return handleHumanIntervention(context, HumanInterventionConfig.InterventionTiming.BEFORE, null);
+        }
+
+        // 执行节点逻辑（带重试和超时）
         ResilienceConfig resilience = getResilienceConfig();
         RetryStrategy retryStrategy = new RetryStrategy();
 
-        // 带超时和重试的执行 - 使用 Callable 支持 checked exception
-        return retryStrategy.executeWithTimeoutAndRetry(
+        NodeExecutionResult result = retryStrategy.executeWithTimeoutAndRetry(
                 () -> doExecute(context),
                 resilience,
                 nodeId);
+
+        // 检查是否需要执行后暂停
+        if (shouldPauseAfter()) {
+            return handleHumanIntervention(context, HumanInterventionConfig.InterventionTiming.AFTER, result);
+        }
+
+        return result;
+    }
+
+    /**
+     * 判断是否需要在执行前暂停
+     */
+    private boolean shouldPauseBefore() {
+        HumanInterventionConfig hi = config.getHumanIntervention();
+        return hi != null && hi.isEnabled() &&
+                hi.getTiming() == HumanInterventionConfig.InterventionTiming.BEFORE;
+    }
+
+    /**
+     * 判断是否需要在执行后暂停
+     */
+    private boolean shouldPauseAfter() {
+        HumanInterventionConfig hi = config.getHumanIntervention();
+        return hi != null && hi.isEnabled() &&
+                (hi.getTiming() == null || hi.getTiming() == HumanInterventionConfig.InterventionTiming.AFTER);
+    }
+
+    /**
+     * 处理人工介入逻辑
+     */
+    private NodeExecutionResult handleHumanIntervention(
+            DagExecutionContext context,
+            HumanInterventionConfig.InterventionTiming timing,
+            NodeExecutionResult preliminaryResult) {
+
+        HumanInterventionData humanData = context.getHumanInterventionData();
+
+        // 检查是否已经审核过
+        if (humanData.isReviewed()) {
+            if (humanData.isApproved()) {
+                log.info("人工审核已通过，节点: {}", nodeId);
+                // 如果允许修改输出且用户提供了修改，使用修改后的结果
+                if (humanData.hasModifiedOutput()) {
+                    return NodeExecutionResult.content(humanData.getModifiedOutput());
+                }
+                // 否则返回原始结果
+                return preliminaryResult != null ? preliminaryResult : NodeExecutionResult.content("审核通过");
+            } else {
+                log.warn("人工审核被拒绝，节点: {}", nodeId);
+                return NodeExecutionResult.error("人工审核被拒绝: " + humanData.getComments());
+            }
+        }
+
+        // 首次暂停，创建审核请求
+        HumanInterventionConfig hi = config.getHumanIntervention();
+        String checkMessage = hi.getCheckMessage() != null ? hi.getCheckMessage() : "请审核节点执行结果";
+
+        HumanInterventionRequest request = HumanInterventionRequest.builder()
+                .executionId(context.getExecutionId())
+                .nodeId(nodeId)
+                .nodeName(nodeName)
+                .conversationId(context.getConversationId())
+                .checkMessage(checkMessage)
+                .allowModifyOutput(hi.getAllowModifyOutput())
+                .nodeResults(context.getAllNodeResults())
+                .createTime(System.currentTimeMillis())
+                .reviewed(false)
+                .build();
+
+        humanData.setRequest(request);
+        humanData.setPaused(nodeId);
+
+        // 保存到 Redis + 数据库
+        try {
+            var repository = applicationContext.getBean(
+                    com.zj.aiagent.domain.agent.dag.repository.IHumanInterventionRepository.class);
+            repository.savePauseState(request);
+            log.info("已保存人工介入暂停状态: conversationId={}, nodeId={}",
+                    context.getConversationId(), nodeId);
+        } catch (Exception e) {
+            log.warn("保存人工介入状态失败，不影响执行", e);
+        }
+
+        log.info("节点 [{}] 等待人工介入，时机: {}", nodeName, timing);
+        return NodeExecutionResult.humanWait(checkMessage);
     }
 
     /**

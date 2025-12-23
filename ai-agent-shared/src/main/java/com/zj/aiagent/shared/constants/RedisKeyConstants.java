@@ -101,4 +101,42 @@ public class RedisKeyConstants {
             // 禁止实例化
         }
     }
+
+    /**
+     * 人工介入相关Redis Key常量
+     */
+    public static class HumanIntervention {
+
+        /**
+         * 人工介入暂停状态Key前缀
+         * <p>
+         * 格式: human_intervention:pause:{conversationId}:{nodeId}
+         * <p>
+         * 过期时间: 24小时
+         */
+        public static final String PAUSE_PREFIX = "human_intervention:pause:";
+
+        /**
+         * 执行上下文Key前缀
+         * <p>
+         * 格式: human_intervention:context:{conversationId}
+         * <p>
+         * 过期时间: 24小时
+         */
+        public static final String CONTEXT_PREFIX = "human_intervention:context:";
+
+        /**
+         * 默认过期时间: 24小时（秒）
+         */
+        public static final long DEFAULT_TTL_SECONDS = 24 * 60 * 60;
+
+        /**
+         * 已完成状态过期时间: 5分钟（秒）
+         */
+        public static final long COMPLETED_TTL_SECONDS = 5 * 60;
+
+        private HumanIntervention() {
+            // 禁止实例化
+        }
+    }
 }

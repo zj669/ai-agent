@@ -6,7 +6,6 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 import java.util.List;
-import java.util.Map;
 
 /**
  * 节点配置类 - 存储节点的可配置项
@@ -52,15 +51,17 @@ public class NodeConfig {
      */
     private List<McpToolConfig> mcpTools;
 
+    private List<String> nextNodes;
+
+    /**
+     * 人工介入配置（通用，适用于所有节点）
+     */
+    private HumanInterventionConfig humanIntervention;
+
     /**
      * 节点超时时间(毫秒)
      */
     private Long timeout;
-
-    /**
-     * 自定义配置(针对特定节点类型)
-     */
-    private Map<String, Object> customConfig;
 
     /**
      * 弹性配置（超时、重试、限流、降级）

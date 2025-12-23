@@ -33,8 +33,13 @@ public class NodeFactory {
     /**
      * 根据节点定义创建节点实例
      * 统一返回 AbstractConfigurableNode 类型
+     * 
+     * @param nodeDef 节点定义
+     * @param edges   边定义列表（用于自动推断 RouterNode 的候选节点）
      */
-    public AbstractConfigurableNode createNode(GraphJsonSchema.NodeDefinition nodeDef) {
+    public AbstractConfigurableNode createNode(
+            GraphJsonSchema.NodeDefinition nodeDef,
+            List<GraphJsonSchema.EdgeDefinition> edges) {
         String nodeType = nodeDef.getNodeType();
         String nodeId = nodeDef.getNodeId();
         String nodeName = nodeDef.getNodeName();
@@ -42,15 +47,41 @@ public class NodeFactory {
         // 解析NodeConfig
         NodeConfig config = parseNodeConfig(nodeDef.getConfig());
 
+        // 对于 ROUTER_NODE，从边中自动提取候选节点（前端不会传 nextNodes，完全由后端解析）
+        if ("ROUTER_NODE".equals(nodeType) && edges != null) {
+            List<String> candidateNodes = extractCandidateNodesFromEdges(nodeId, edges);
+            if (!candidateNodes.isEmpty()) {
+                config.setNextNodes(candidateNodes);
+                log.info("为 RouterNode {} 自动提取候选节点: {}", nodeId, candidateNodes);
+            } else {
+                log.warn("RouterNode {} 没有找到任何候选节点（没有出边）", nodeId);
+            }
+        }
+
         // 根据类型创建节点
         return switch (nodeType) {
             case "PLAN_NODE" -> new PlanNode(nodeId, nodeName, config, applicationContext);
             case "ACT_NODE" -> new ActNode(nodeId, nodeName, config, applicationContext);
-            case "HUMAN_NODE" -> new HumanNode(nodeId, nodeName, config, applicationContext);
+            // case "HUMAN_NODE" -> new HumanNode(nodeId, nodeName, config,
+            // applicationContext); // 已废弃
             case "ROUTER_NODE" -> new RouterNode(nodeId, nodeName, config, applicationContext);
             case "REACT_NODE" -> new ReactNode(nodeId, nodeName, config, applicationContext);
             default -> throw new NodeConfigException("Unknown node type: " + nodeType);
         };
+    }
+
+    /**
+     * 从边定义中提取候选节点
+     * 返回以指定节点为 source 的所有边的 target 节点
+     */
+    private List<String> extractCandidateNodesFromEdges(String nodeId, List<GraphJsonSchema.EdgeDefinition> edges) {
+        List<String> candidates = new ArrayList<>();
+        for (GraphJsonSchema.EdgeDefinition edge : edges) {
+            if (nodeId.equals(edge.getSource())) {
+                candidates.add(edge.getTarget());
+            }
+        }
+        return candidates;
     }
 
     /**
@@ -97,16 +128,27 @@ public class NodeFactory {
             builder.timeout(configJson.getLong("timeout"));
         }
 
-        // 自定义配置
-        Map<String, Object> customConfig = new HashMap<>();
-        for (String key : configJson.keySet()) {
-            if (!isStandardConfigKey(key)) {
-                customConfig.put(key, configJson.get(key));
-            }
+        // 人工介入配置
+        if (configJson.containsKey("humanIntervention")) {
+            builder.humanIntervention(parseHumanInterventionConfig(configJson.getJSONObject("humanIntervention")));
         }
-        if (!customConfig.isEmpty()) {
-            builder.customConfig(customConfig);
+
+        // 候选节点列表（用于 RouterNode）
+        if (configJson.containsKey("nextNodes")) {
+            List<String> nextNodes = configJson.getList("nextNodes", String.class);
+            builder.nextNodes(nextNodes);
         }
+
+        // 自定义配置（暂时禁用，避免空指针问题）
+        // Map<String, Object> customConfig = new HashMap<>();
+        // for (String key : configJson.keySet()) {
+        // if (!isStandardConfigKey(key)) {
+        // customConfig.put(key, configJson.get(key));
+        // }
+        // }
+        // if (!customConfig.isEmpty()) {
+        // builder.customConfig(customConfig);
+        // }
 
         return builder.build();
     }
@@ -201,6 +243,33 @@ public class NodeFactory {
         }
 
         return mcpTools;
+    }
+
+    /**
+     * 解析人工介入配置
+     */
+    private HumanInterventionConfig parseHumanInterventionConfig(JSONObject hiJson) {
+        if (hiJson == null) {
+            return null;
+        }
+
+        HumanInterventionConfig.HumanInterventionConfigBuilder builder = HumanInterventionConfig.builder()
+                .enabled(hiJson.getBoolean("enabled"))
+                .checkMessage(hiJson.getString("checkMessage"))
+                .allowModifyOutput(hiJson.getBoolean("allowModifyOutput"))
+                .timeout(hiJson.getLong("timeout"));
+
+        // 解析介入时机
+        String timingStr = hiJson.getString("timing");
+        if (timingStr != null) {
+            try {
+                builder.timing(HumanInterventionConfig.InterventionTiming.valueOf(timingStr));
+            } catch (IllegalArgumentException e) {
+                log.warn("Unknown intervention timing: {}, using default AFTER", timingStr);
+            }
+        }
+
+        return builder.build();
     }
 
     /**

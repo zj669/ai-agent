@@ -9,6 +9,7 @@ import com.zj.aiagent.domain.agent.config.repository.IAgentConfigRepository;
 import com.zj.aiagent.domain.agent.dag.entity.AiAgent;
 import com.zj.aiagent.domain.agent.dag.entity.DagGraph;
 import com.zj.aiagent.domain.agent.dag.repository.IDagRepository;
+import com.zj.aiagent.domain.agent.dag.repository.IHumanInterventionRepository;
 import com.zj.aiagent.domain.agent.dag.service.DagExecuteService;
 import com.zj.aiagent.domain.agent.dag.service.DagLoaderService;
 import com.zj.aiagent.domain.agent.dag.executor.DagExecutor;
@@ -38,6 +39,7 @@ public class AgentApplicationService {
     private final DagLoaderService dagLoaderService;
     private final IDagRepository dagRepository;
     private final IAgentConfigRepository agentConfigRepository;
+    private final IHumanInterventionRepository humanInterventionRepository;
 
     public DagExecutor.DagExecutionResult chat(ChatCommand command) {
         log.info("执行对话, user: {}", command.getUserMessage());
@@ -48,6 +50,100 @@ public class AgentApplicationService {
         }
         return dagExecuteService.executeDag(dagGraph, conversationId, command.getUserMessage(), command.getEmitter(),
                 command.getAgentId());
+    }
+
+    /**
+     * 人工介入审核并恢复执行
+     *
+     * @param command 审核命令
+     */
+    public void reviewAndResume(com.zj.aiagent.application.agent.command.ReviewCommand command) {
+        log.info("处理人工介入审核: conversationId={}, nodeId={}, approved={}",
+                command.getConversationId(), command.getNodeId(), command.getApproved());
+
+        // 1. 保存审核结果到 Redis + 数据库
+        humanInterventionRepository.saveReviewResult(
+                command.getConversationId(),
+                command.getNodeId(),
+                command.getApproved(),
+                command.getComments(),
+                command.getModifiedOutput());
+
+        // 2. 重新触发 DAG 执行（从暂停点恢复）
+        // TODO: 实现恢复执行逻辑
+        // 当前简化实现：审核结果已保存，前端需要重新发起 chat 请求
+        // 完整实现需要：
+        // - 从数据库加载 DagExecutionInstance
+        // - 恢复 DagExecutionContext
+        // - 从暂停的节点继续执行
+
+        log.info("人工介入审核完成: conversationId={}, nodeId={}",
+                command.getConversationId(), command.getNodeId());
+    }
+
+    /**
+     * 获取执行上下文
+     *
+     * @param query 查询对象
+     * @return 执行上下文DTO
+     */
+    public ExecutionContextDTO getExecutionContext(
+            com.zj.aiagent.application.agent.query.GetExecutionContextQuery query) {
+        log.info("查询执行上下文: conversationId={}", query.getConversationId());
+
+        try {
+            // 1. 查询暂停状态
+            com.zj.aiagent.domain.agent.dag.context.HumanInterventionRequest pausedState = humanInterventionRepository
+                    .findPausedState(query.getConversationId());
+
+            // 2. 加载完整上下文
+            java.util.Map<String, Object> nodeResults = humanInterventionRepository
+                    .loadFullContext(query.getConversationId());
+
+            // 3. 构建DTO
+            ExecutionContextDTO.ExecutionContextDTOBuilder builder = ExecutionContextDTO.builder()
+                    .conversationId(query.getConversationId())
+                    .nodeResults(nodeResults);
+
+            if (pausedState != null) {
+                builder.status("PAUSED")
+                        .pausedNodeId(pausedState.getNodeId())
+                        .pausedNodeName(pausedState.getNodeName())
+                        .pausedAt(pausedState.getCreateTime())
+                        .interventionRequest(pausedState);
+            } else {
+                // 根据节点结果判断状态
+                builder.status(nodeResults.isEmpty() ? "PENDING" : "COMPLETED");
+            }
+
+            return builder.build();
+
+        } catch (Exception e) {
+            log.error("查询执行上下文失败: conversationId={}", query.getConversationId(), e);
+            throw new RuntimeException("查询执行上下文失败: " + e.getMessage());
+        }
+    }
+
+    /**
+     * 更新执行上下文
+     *
+     * @param command 更新命令
+     */
+    public void updateExecutionContext(com.zj.aiagent.application.agent.command.UpdateExecutionContextCommand command) {
+        log.info("更新执行上下文: conversationId={}, modifications={}",
+                command.getConversationId(), command.getModifications().keySet());
+
+        try {
+            humanInterventionRepository.updateContext(
+                    command.getConversationId(),
+                    command.getModifications());
+
+            log.info("执行上下文更新成功: conversationId={}", command.getConversationId());
+
+        } catch (Exception e) {
+            log.error("更新执行上下文失败: conversationId={}", command.getConversationId(), e);
+            throw new RuntimeException("更新执行上下文失败: " + e.getMessage());
+        }
     }
 
     /**

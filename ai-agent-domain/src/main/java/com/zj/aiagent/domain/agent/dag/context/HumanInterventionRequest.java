@@ -50,4 +50,39 @@ public class HumanInterventionRequest {
      * 创建时间
      */
     private Long createTime;
+
+    /**
+     * 节点名称
+     */
+    private String nodeName;
+
+    /**
+     * 是否允许修改输出
+     */
+    private Boolean allowModifyOutput;
+
+    /**
+     * 是否已审核
+     */
+    private Boolean reviewed;
+
+    /**
+     * 是否批准
+     */
+    private Boolean approved;
+
+    /**
+     * 审核备注
+     */
+    private String comments;
+
+    /**
+     * 修改后的输出
+     */
+    private String modifiedOutput;
+
+    /**
+     * 审核时间
+     */
+    private Long reviewTime;
 }

@@ -33,9 +33,8 @@ public class RouterNode extends AbstractConfigurableNode {
             throw new NodeConfigException("NodeConfig cannot be null for node: " + nodeId);
         }
 
-        // 从配置中获取候选节点列表
-        @SuppressWarnings("unchecked")
-        List<String> candidates = (List<String>) config.getCustomConfig().get("candidateNodes");
+        // 从配置中获取候选节点列表（使用标准字段 nextNodes）
+        List<String> candidates = config.getNextNodes();
         this.candidateNodes = candidates != null ? new HashSet<>(candidates) : new HashSet<>();
     }
 
@@ -59,8 +58,8 @@ public class RouterNode extends AbstractConfigurableNode {
         try {
             log.info("路由节点开始执行，评估下一步执行路径");
 
-            // 获取路由策略
-            String routingStrategy = (String) config.getCustomConfig().getOrDefault("routingStrategy", "AI");
+            // 获取路由策略（默认使用 AI）
+            String routingStrategy = "AI";
 
             String selectedNode;
             if ("AI".equals(routingStrategy)) {
@@ -107,8 +106,8 @@ public class RouterNode extends AbstractConfigurableNode {
      */
     @SuppressWarnings("unchecked")
     private String evaluateByRules(DagExecutionContext context) {
-        // 获取规则列表
-        List<Map<String, String>> rules = (List<Map<String, String>>) config.getCustomConfig().get("routingRules");
+        // 规则路由已禁用，返回第一个候选节点
+        List<Map<String, String>> rules = null;
 
         if (rules == null || rules.isEmpty()) {
             log.warn("未配置路由规则，返回第一个候选节点");
@@ -135,8 +134,8 @@ public class RouterNode extends AbstractConfigurableNode {
     private String buildRoutingPrompt(DagExecutionContext context) {
         StringBuilder prompt = new StringBuilder();
 
-        // 添加自定义提示词（如果有）
-        String customPrompt = (String) config.getCustomConfig().get("routingPrompt");
+        // 自定义提示词（已禁用）
+        String customPrompt = null;
         if (customPrompt != null && !customPrompt.isEmpty()) {
             prompt.append(customPrompt).append("\n\n");
         }

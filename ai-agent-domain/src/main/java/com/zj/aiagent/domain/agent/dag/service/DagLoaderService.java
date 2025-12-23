@@ -59,7 +59,7 @@ public class DagLoaderService {
             // 构建节点映射（统一使用 AbstractConfigurableNode 类型）
             Map<String, AbstractConfigurableNode> nodeMap = new HashMap<>();
             for (GraphJsonSchema.NodeDefinition nodeDef : schema.getNodes()) {
-                AbstractConfigurableNode node = nodeFactory.createNode(nodeDef);
+                AbstractConfigurableNode node = nodeFactory.createNode(nodeDef, schema.getEdges());
                 nodeMap.put(nodeDef.getNodeId(), node);
                 log.info("创建节点: {} ({})", nodeDef.getNodeName(), nodeDef.getNodeId());
             }

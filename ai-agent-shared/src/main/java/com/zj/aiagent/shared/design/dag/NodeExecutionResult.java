@@ -36,6 +36,14 @@ public class NodeExecutionResult {
     }
 
     /**
+     * 创建普通内容结果（支持 Object 类型）
+     */
+    public static NodeExecutionResult content(Object content) {
+        String contentStr = content != null ? content.toString() : null;
+        return new NodeExecutionResult(contentStr, null, ResultType.NORMAL);
+    }
+
+    /**
      * 创建路由决策结果
      */
     public static NodeExecutionResult routing(NodeRouteDecision decision) {
@@ -54,6 +62,13 @@ public class NodeExecutionResult {
      */
     public static NodeExecutionResult humanWait(String message) {
         return new NodeExecutionResult("WAITING_FOR_HUMAN:" + message, null, ResultType.HUMAN_WAIT);
+    }
+
+    /**
+     * 创建错误结果
+     */
+    public static NodeExecutionResult error(String errorMessage) {
+        return new NodeExecutionResult("ERROR:" + errorMessage, null, ResultType.NORMAL);
     }
 
     /**

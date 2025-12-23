@@ -9,7 +9,6 @@ import com.zj.aiagent.shared.design.dag.DagNodeExecutionException;
 import com.zj.aiagent.shared.design.dag.NodeExecutionResult;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.ApplicationContext;
-import org.springframework.context.ApplicationContext;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -261,12 +260,14 @@ public class ReactNode extends AbstractConfigurableNode {
      * 获取可用行动列表
      */
     private List<String> getAvailableActions() {
-        @SuppressWarnings("unchecked")
-        List<String> customActions = (List<String>) config.getCustomConfig().get("availableActions");
-
-        if (customActions != null && !customActions.isEmpty()) {
-            return customActions;
-        }
+//        @SuppressWarnings("unchecked")
+//        List<String> customActions = config.getCustomConfig() != null
+//                ? (List<String>) config.getCustomConfig().get("availableActions")
+//                : null;
+//
+//        if (customActions != null && !customActions.isEmpty()) {
+//            return customActions;
+//        }
 
         // 默认行动
         return List.of(
@@ -279,10 +280,12 @@ public class ReactNode extends AbstractConfigurableNode {
      * 获取最大迭代次数
      */
     private int getMaxIterations() {
-        Object maxIter = config.getCustomConfig().get("maxIterations");
-        if (maxIter instanceof Number) {
-            return ((Number) maxIter).intValue();
-        }
+//        Object maxIter = config.getCustomConfig() != null
+//                ? config.getCustomConfig().get("maxIterations")
+//                : null;
+//        if (maxIter instanceof Number) {
+//            return ((Number) maxIter).intValue();
+//        }
         return DEFAULT_MAX_ITERATIONS;
     }
 

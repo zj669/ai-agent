@@ -30,6 +30,9 @@ public class HumanInterventionData {
     /** 暂停的节点ID */
     private String pausedNodeId;
 
+    /** 修改后的输出（用于允许修改输出的场景） */
+    private Object modifiedOutput;
+
     /**
      * 检查是否已审核通过
      */
@@ -59,6 +62,20 @@ public class HumanInterventionData {
     }
 
     /**
+     * 检查是否有修改后的输出
+     */
+    public boolean hasModifiedOutput() {
+        return modifiedOutput != null;
+    }
+
+    /**
+     * 获取修改后的输出
+     */
+    public Object getModifiedOutput() {
+        return modifiedOutput;
+    }
+
+    /**
      * 设置暂停状态
      */
     public void setPaused(String nodeId) {
@@ -72,5 +89,14 @@ public class HumanInterventionData {
     public void setReviewResult(boolean approved, String comments) {
         this.approved = approved;
         this.comments = comments;
+    }
+
+    /**
+     * 设置审核结果（带修改输出）
+     */
+    public void setReviewResult(boolean approved, String comments, Object modifiedOutput) {
+        this.approved = approved;
+        this.comments = comments;
+        this.modifiedOutput = modifiedOutput;
     }
 }

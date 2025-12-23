@@ -265,4 +265,46 @@ public class AgentConfigRepositoryImpl implements IAgentConfigRepository {
                 .map(this::convertToSystemPromptEntity)
                 .collect(Collectors.toList());
     }
+
+    @Resource
+    private com.zj.aiagent.infrastructure.persistence.mapper.AiConfigFieldDefinitionMapper aiConfigFieldDefinitionMapper;
+
+    @Override
+    public List<ConfigFieldDefinitionEntity> findConfigFieldDefinitions(String configType) {
+        log.debug("查询配置字段定义: configType={}", configType);
+
+        LambdaQueryWrapper<com.zj.aiagent.infrastructure.persistence.entity.AiConfigFieldDefinitionPO> queryWrapper = new LambdaQueryWrapper<>();
+        queryWrapper.eq(com.zj.aiagent.infrastructure.persistence.entity.AiConfigFieldDefinitionPO::getConfigType,
+                configType);
+        queryWrapper
+                .orderByAsc(com.zj.aiagent.infrastructure.persistence.entity.AiConfigFieldDefinitionPO::getSortOrder);
+
+        List<com.zj.aiagent.infrastructure.persistence.entity.AiConfigFieldDefinitionPO> fieldPOList = aiConfigFieldDefinitionMapper
+                .selectList(queryWrapper);
+
+        return fieldPOList.stream()
+                .map(this::convertToConfigFieldDefinitionEntity)
+                .collect(Collectors.toList());
+    }
+
+    /**
+     * 转换配置字段定义 PO 到实体
+     */
+    private ConfigFieldDefinitionEntity convertToConfigFieldDefinitionEntity(
+            com.zj.aiagent.infrastructure.persistence.entity.AiConfigFieldDefinitionPO po) {
+        return ConfigFieldDefinitionEntity.builder()
+                .id(po.getId())
+                .configType(po.getConfigType())
+                .fieldName(po.getFieldName())
+                .fieldLabel(po.getFieldLabel())
+                .fieldType(po.getFieldType())
+                .required(po.getRequired())
+                .description(po.getDescription())
+                .defaultValue(po.getDefaultValue())
+                .options(po.getOptions())
+                .sortOrder(po.getSortOrder())
+                .createTime(po.getCreateTime())
+                .updateTime(po.getUpdateTime())
+                .build();
+    }
 }
