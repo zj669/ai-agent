@@ -32,10 +32,4 @@ public class ReviewRequest {
     @NotNull(message = "审核结果不能为空")
     @Schema(description = "是否批准", required = true)
     private Boolean approved;
-
-    @Schema(description = "审核备注")
-    private String comments;
-
-    @Schema(description = "修改后的输出（仅当允许修改输出时有效）")
-    private String modifiedOutput;
 }

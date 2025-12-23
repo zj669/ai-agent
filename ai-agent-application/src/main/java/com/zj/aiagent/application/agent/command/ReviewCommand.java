@@ -31,14 +31,4 @@ public class ReviewCommand {
      * 是否批准
      */
     private Boolean approved;
-
-    /**
-     * 审核备注
-     */
-    private String comments;
-
-    /**
-     * 修改后的输出
-     */
-    private String modifiedOutput;
 }

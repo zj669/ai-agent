@@ -69,13 +69,13 @@ public class AgentApplicationService {
                 command.getConversationId(), command.getNodeId(), command.getApproved());
 
         try {
-            // 1. 保存审核结果到 Redis + 数据库
+            // 1. 保存审核结果到 Redis
             humanInterventionRepository.saveReviewResult(
                     command.getConversationId(),
                     command.getNodeId(),
                     command.getApproved(),
-                    command.getComments(),
-                    command.getModifiedOutput());
+                    null,
+                    null);
 
             log.info("审核结果已保存: conversationId={}, approved={}",
                     command.getConversationId(), command.getApproved());
@@ -99,8 +99,7 @@ public class AgentApplicationService {
                     command.getConversationId(),
                     emitter,
                     agentId,
-                    command.getApproved(),
-                    command.getModifiedOutput());
+                    command.getApproved());
 
             log.info("人工介入审核并恢复执行完成: conversationId={}, status={}",
                     command.getConversationId(), result.getStatus());

@@ -497,12 +497,48 @@ public abstract class AbstractConfigurableNode implements DagNode<DagExecutionCo
 
     @Override
     public NodeExecutionResult execute(DagExecutionContext context) throws DagNodeExecutionException {
-        // 检查是否需要执行前暂停
+        HumanInterventionData humanData = context.getHumanInterventionData();
+
+        // ===== BEFORE 时机处理 =====
         if (shouldPauseBefore()) {
-            return handleHumanIntervention(context, HumanInterventionConfig.InterventionTiming.BEFORE, null);
+            if (!humanData.isReviewed()) {
+                // 尚未审核，暂停等待人工介入
+                return handleHumanIntervention(context, HumanInterventionConfig.InterventionTiming.BEFORE, null);
+            }
+            if (!humanData.isApproved()) {
+                log.warn("BEFORE 人工审核被拒绝，节点: {}", nodeId);
+                return NodeExecutionResult.error("人工审核被拒绝: " + humanData.getComments());
+            }
+            // 审核通过，继续执行 doExecute
+            log.info("BEFORE 人工审核通过，继续执行节点: {}", nodeId);
         }
 
-        // 执行节点逻辑（带重试和超时）
+        // ===== AFTER 时机处理（恢复场景）=====
+        if (shouldPauseAfter() && humanData.isReviewed()) {
+            if (!humanData.isApproved()) {
+                log.warn("AFTER 人工审核被拒绝，节点: {}", nodeId);
+                return NodeExecutionResult.error("人工审核被拒绝: " + humanData.getComments());
+            }
+            // 从 PRELIMINARY_RESULT 获取之前保存的执行结果，避免重复执行 doExecute
+            Object savedResult = context.getValue(ContextKey.PRELIMINARY_RESULT.forNode(nodeId));
+            if (savedResult instanceof NodeExecutionResult result) {
+                log.info("AFTER 人工审核通过，返回之前保存的初步结果: {}", nodeId);
+                return result;
+            } else if (savedResult instanceof com.alibaba.fastjson.JSONObject) {
+                try {
+                    NodeExecutionResult res = ((com.alibaba.fastjson.JSONObject) savedResult)
+                            .toJavaObject(NodeExecutionResult.class);
+                    log.info("AFTER 人工审核通过，返回转换后的结果: {}", nodeId);
+                    return res;
+                } catch (Exception e) {
+                    log.warn("转换保存的初步结果失败: {}", nodeId, e);
+                }
+            }
+            // 未找到有效的保存结果，需要重新执行
+            log.warn("AFTER 审核通过但未找到有效保存结果，将重新执行: {}", nodeId);
+        }
+
+        // ===== 执行节点逻辑 =====
         ResilienceConfig resilience = getResilienceConfig();
         RetryStrategy retryStrategy = new RetryStrategy();
 
@@ -511,8 +547,9 @@ public abstract class AbstractConfigurableNode implements DagNode<DagExecutionCo
                 resilience,
                 nodeId);
 
-        // 检查是否需要执行后暂停
-        if (shouldPauseAfter()) {
+        // ===== AFTER 时机处理（首次暂停）=====
+        if (shouldPauseAfter() && !humanData.isReviewed()) {
+            // 暂停等待人工介入（preliminaryResult 会在 handleHumanIntervention 中保存）
             return handleHumanIntervention(context, HumanInterventionConfig.InterventionTiming.AFTER, result);
         }
 
@@ -551,10 +588,6 @@ public abstract class AbstractConfigurableNode implements DagNode<DagExecutionCo
         if (humanData.isReviewed()) {
             if (humanData.isApproved()) {
                 log.info("人工审核已通过，节点: {}", nodeId);
-                // 如果允许修改输出且用户提供了修改，使用修改后的结果
-                if (humanData.hasModifiedOutput()) {
-                    return NodeExecutionResult.content(humanData.getModifiedOutput());
-                }
                 // 返回原始结果（保留其类型，如 ROUTING 类型）
                 // 如果preliminaryResult为null，返回一个通用的成功结果
                 if (preliminaryResult == null) {
@@ -585,6 +618,13 @@ public abstract class AbstractConfigurableNode implements DagNode<DagExecutionCo
 
         humanData.setRequest(request);
         humanData.setPaused(nodeId);
+
+        // 【新增】如果是 AFTER 时机且有 preliminaryResult，保存到特殊 key
+        // 避免被 scheduler 的 context.setNodeResult 覆盖
+        if (timing == HumanInterventionConfig.InterventionTiming.AFTER && preliminaryResult != null) {
+            context.setValue(ContextKey.PRELIMINARY_RESULT.forNode(nodeId), preliminaryResult);
+            log.info("已保存 AFTER 时机初步执行结果到 PRELIMINARY_RESULT: {}", nodeId);
+        }
 
         // 保存到 Redis + 数据库
         try {

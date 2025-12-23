@@ -80,6 +80,46 @@ public class DagEventDrivenScheduler {
         for (AbstractConfigurableNode node : dagGraph.getNodes().values()) {
             if (context.isNodeExecuted(node.getNodeId())) {
                 String nodeId = node.getNodeId();
+                // 标记为完成，这将更新下游节点的依赖计数
+                // 检查结果类型，如果为 HUMAN_WAIT（暂停点），则视为未完成，需要重新执行
+                Object executionResult = context.getNodeResult(nodeId);
+                boolean isHumanWait = false;
+
+                // 处理 JSONObject
+                if (executionResult instanceof com.alibaba.fastjson.JSONObject) {
+                    try {
+                        NodeExecutionResult res = ((com.alibaba.fastjson.JSONObject) executionResult)
+                                .toJavaObject(NodeExecutionResult.class);
+                        if (res.isHumanWait()) {
+                            isHumanWait = true;
+                        } else {
+                            // 更新为 Java 对象，方便后续使用
+                            context.setNodeResult(nodeId, res);
+                        }
+                    } catch (Exception e) {
+                        log.warn("反序列化节点结果失败: {}", nodeId, e);
+                    }
+                } else if (executionResult instanceof NodeExecutionResult) {
+                    if (((NodeExecutionResult) executionResult).isHumanWait()) {
+                        isHumanWait = true;
+                    }
+                }
+
+                if (isHumanWait) {
+                    log.info("节点 {} 为暂停状态 (HUMAN_WAIT)，跳过恢复，将重新执行", nodeId);
+                    // 从 done 列表中移除，这样它会被 treated as incomplete
+                    // 并且不会触发 markCompleted，所以下游依赖不会被满足
+                    // 但是需要确保它能进入 readyQueue 吗？
+                    // 如果它是起始节点，或者它的依赖已经满足（前序已完成），它需要进入 readyQueue
+                    // 如果我们不在这里做任何事，下面 tracker.getReadyNodes() 会包含它吗？
+                    // tracker 初始化时计算了所有入度。
+                    // 前序节点在这里循环中被 markCompleted，会减少它的入度。
+                    // 如果前序都完成了，它就会变成 ready。
+                    // 如果没有前序（入度0），它初始就是 ready。
+                    // 所以：只要 continue 即可！
+                    continue;
+                }
+
                 log.info("恢复已执行节点状态: {}", nodeId);
 
                 // 如果是路由节点，需要重新应用路由决策（禁用未选中的路径）
@@ -351,6 +391,17 @@ public class DagEventDrivenScheduler {
         log.info("路由决策对象类型: {}, 内容: {}",
                 routeDecisionObj.getClass().getName(),
                 routeDecisionObj);
+
+        // 如果是 JSONObject，尝试转换为 NodeExecutionResult
+        if (routeDecisionObj instanceof com.alibaba.fastjson.JSONObject) {
+            try {
+                routeDecisionObj = ((com.alibaba.fastjson.JSONObject) routeDecisionObj)
+                        .toJavaObject(NodeExecutionResult.class);
+                log.info("JSONObject 已转换为 NodeExecutionResult");
+            } catch (Exception e) {
+                log.warn("无法将 JSONObject 转换为 NodeExecutionResult", e);
+            }
+        }
 
         // 解析路由决策
         String selectedNodeId = null;

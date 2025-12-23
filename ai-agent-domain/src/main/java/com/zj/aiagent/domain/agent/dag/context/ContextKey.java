@@ -37,6 +37,8 @@ public enum ContextKey {
     PAUSED_AT("paused_at"),
     /** 暂停节点ID */
     PAUSED_NODE_ID("paused_node_id"),
+    /** AFTER时机暂停前的初步执行结果（用于恢复时避免重新执行） */
+    PRELIMINARY_RESULT("__preliminary_result_"),
 
     // ==================== React 模式 ====================
     /** React 迭代记录 */

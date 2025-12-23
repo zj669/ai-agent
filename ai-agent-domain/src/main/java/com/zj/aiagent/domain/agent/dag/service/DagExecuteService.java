@@ -33,7 +33,6 @@ public class DagExecuteService {
      * @param emitter        SSE 响应流
      * @param agentId        Agent ID
      * @param approved       是否批准
-     * @param modifiedOutput 修改后的输出
      * @return 执行结果
      */
     public DagExecutor.DagExecutionResult resumeDag(
@@ -41,8 +40,7 @@ public class DagExecuteService {
             String conversationId,
             ResponseBodyEmitter emitter,
             String agentId,
-            boolean approved,
-            String modifiedOutput) {
+            boolean approved) {
 
         // 创建新的上下文
         DagExecutionContext context = new DagExecutionContext(conversationId, emitter, Long.valueOf(agentId));
@@ -64,11 +62,7 @@ public class DagExecuteService {
         }
 
         // 设置人工审核结果到上下文
-        if (modifiedOutput != null) {
-            context.getHumanInterventionData().setReviewResult(approved, null, modifiedOutput);
-        } else {
-            context.getHumanInterventionData().setReviewResult(approved, null);
-        }
+        context.getHumanInterventionData().setReviewResult(approved, null);
 
         // 调用执行器恢复执行
         return dagExecutor.resumeFromPause(dagGraph, context);

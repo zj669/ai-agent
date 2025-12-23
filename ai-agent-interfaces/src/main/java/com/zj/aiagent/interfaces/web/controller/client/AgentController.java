@@ -270,8 +270,6 @@ public class AgentController {
                     .conversationId(request.getConversationId())
                     .nodeId(request.getNodeId())
                     .approved(request.getApproved())
-                    .comments(request.getComments())
-                    .modifiedOutput(request.getModifiedOutput())
                     .build();
 
             // 异步执行审核并恢复，避免阻塞请求线程
