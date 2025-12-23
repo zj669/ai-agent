@@ -347,23 +347,33 @@ public class DagEventDrivenScheduler {
             return;
         }
 
+        // 调试日志：输出实际对象类型
+        log.info("路由决策对象类型: {}, 内容: {}",
+                routeDecisionObj.getClass().getName(),
+                routeDecisionObj);
+
         // 解析路由决策
         String selectedNodeId = null;
         if (routeDecisionObj instanceof String) {
             selectedNodeId = (String) routeDecisionObj;
+            log.info("解析为字符串: {}", selectedNodeId);
         } else if (routeDecisionObj instanceof NodeExecutionResult execResult) {
+            log.info("解析为 NodeExecutionResult, isRoutingDecision: {}", execResult.isRoutingDecision());
             if (execResult.isRoutingDecision()) {
                 NodeRouteDecision decision = execResult.getRouteDecision();
+                log.info("获取到 RouteDecision: {}", decision);
                 if (decision.isStopExecution()) {
                     log.info("路由决策: 停止执行");
                     return;
                 }
                 Set<String> nextNodeIds = decision.getNextNodeIds();
+                log.info("RouteDecision.getNextNodeIds: {}", nextNodeIds);
                 if (nextNodeIds != null && !nextNodeIds.isEmpty()) {
                     selectedNodeId = nextNodeIds.iterator().next();
                 }
             }
         } else if (routeDecisionObj instanceof NodeRouteDecision decision) {
+            log.info("解析为 NodeRouteDecision");
             if (decision.isStopExecution()) {
                 log.info("路由决策: 停止执行");
                 return;
@@ -372,6 +382,8 @@ public class DagEventDrivenScheduler {
             if (nextNodeIds != null && !nextNodeIds.isEmpty()) {
                 selectedNodeId = nextNodeIds.iterator().next();
             }
+        } else {
+            log.warn("未知的路由决策对象类型: {}", routeDecisionObj.getClass().getName());
         }
 
         if (selectedNodeId == null || selectedNodeId.isEmpty()) {

@@ -80,15 +80,7 @@ public class AgentApplicationService {
             log.info("审核结果已保存: conversationId={}, approved={}",
                     command.getConversationId(), command.getApproved());
 
-            // 2. 查询暂停状态获取必要信息
-            com.zj.aiagent.domain.agent.dag.context.HumanInterventionRequest pausedState = humanInterventionRepository
-                    .findPausedState(command.getConversationId());
-
-            if (pausedState == null) {
-                throw new RuntimeException("未找到暂停状态: conversationId=" + command.getConversationId());
-            }
-
-            // 3. 从实例获取 agentId
+            // 2. 从实例获取 agentId（不再依赖 findPausedState，因为快照机制已经完整）
             com.zj.aiagent.domain.agent.dag.entity.DagExecutionInstance instance = dagExecutionRepository
                     .findByConversationId(command.getConversationId());
 
@@ -98,10 +90,10 @@ public class AgentApplicationService {
 
             String agentId = String.valueOf(instance.getAgentId());
 
-            // 4. 加载 DAG 图
+            // 3. 加载 DAG 图
             DagGraph dagGraph = dagLoaderService.loadDagByAgentId(agentId);
 
-            // 5. 恢复执行
+            // 4. 恢复执行
             DagExecutor.DagExecutionResult result = dagExecuteService.resumeDag(
                     dagGraph,
                     command.getConversationId(),

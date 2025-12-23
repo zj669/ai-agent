@@ -555,8 +555,12 @@ public abstract class AbstractConfigurableNode implements DagNode<DagExecutionCo
                 if (humanData.hasModifiedOutput()) {
                     return NodeExecutionResult.content(humanData.getModifiedOutput());
                 }
-                // 否则返回原始结果
-                return preliminaryResult != null ? preliminaryResult : NodeExecutionResult.content("审核通过");
+                // 返回原始结果（保留其类型，如 ROUTING 类型）
+                // 如果preliminaryResult为null，返回一个通用的成功结果
+                if (preliminaryResult == null) {
+                    return NodeExecutionResult.content("审核通过");
+                }
+                return preliminaryResult;
             } else {
                 log.warn("人工审核被拒绝，节点: {}", nodeId);
                 return NodeExecutionResult.error("人工审核被拒绝: " + humanData.getComments());
