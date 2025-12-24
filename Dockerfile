@@ -1,5 +1,5 @@
 # 多阶段构建 - 构建阶段
-FROM maven:3.9-eclipse-temurin-21 AS builder
+FROM maven:3.9-openjdk-21 AS builder
 
 WORKDIR /app
 
@@ -25,7 +25,7 @@ COPY ai-agent-interfaces/src ai-agent-interfaces/src
 RUN mvn clean package -DskipTests -B
 
 # 运行阶段
-FROM eclipse-temurin:21-jre-alpine
+FROM openjdk:21-jre-slim
 
 WORKDIR /app
 
