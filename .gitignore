@@ -53,3 +53,7 @@ logs/
 *~
 .DS_Store
 Thumbs.db
+
+# ===== 前端项目排除 =====
+# app目录是独立的前端Git仓库，不纳入后端版本控制
+/app/
