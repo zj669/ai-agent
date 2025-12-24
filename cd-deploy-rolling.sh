@@ -9,8 +9,8 @@
 # ${PORT} - 服务端口，值为: 8080
 # ${STARTUP_WAIT} - 容器启动等待时间（秒），默认: 10
 
-# 设置默认值
-STARTUP_WAIT=${STARTUP_WAIT:-10}
+# 设置默认值(应用启动需要约15秒)
+STARTUP_WAIT=${STARTUP_WAIT:-20}
 
 # 登录阿里云镜像仓库
 echo ${DOCKERPASSWORD} | docker login --username ${DOCKERNAME} --password-stdin crpi-gj68k07wqq52fpxi.cn-chengdu.personal.cr.aliyuncs.com
@@ -42,8 +42,8 @@ sleep ${STARTUP_WAIT}
 HEALTH_CHECK_PASSED=false
 
 for i in {1..30}; do
-  # 使用docker exec在容器内部执行健康检查
-  if docker exec ${NEW_CONTAINER} curl -s -f http://localhost:8080/public/health > /dev/null 2>&1; then
+  # 从宿主机检查临时端口(更可靠,不依赖容器内工具)
+  if curl -s -f http://localhost:${TEMP_PORT}/public/health > /dev/null 2>&1; then
     echo "✅ 新容器健康检查通过"
     HEALTH_CHECK_PASSED=true
     break
@@ -84,7 +84,7 @@ docker run -d \
 # 验证生产端口
 echo "验证生产端口..."
 sleep ${STARTUP_WAIT}
-if docker exec ${CONTAINER_NAME} curl -s -f http://localhost:8080/public/health > /dev/null 2>&1; then
+if curl -s -f http://localhost:${PORT}/public/health > /dev/null 2>&1; then
   echo "✅ 滚动部署成功"
   # 清理旧容器
   docker stop ${CONTAINER_NAME}-old 2>/dev/null || true

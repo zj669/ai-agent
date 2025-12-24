@@ -29,6 +29,9 @@ FROM eclipse-temurin:21-jre-alpine
 
 WORKDIR /app
 
+# 安装 curl 用于健康检查
+RUN apk add --no-cache curl
+
 # 创建非root用户
 RUN addgroup -g 1001 appgroup && adduser -u 1001 -G appgroup -D appuser
 
