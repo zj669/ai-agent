@@ -459,6 +459,13 @@ public abstract class AbstractConfigurableNode implements DagNode<DagExecutionCo
 
             stream.subscribe(
                     chunk -> {
+                        // 检查是否已取消
+                        if (context.isCancelled()) {
+                            throw new com.zj.aiagent.domain.agent.dag.exception.DagCancelledException(
+                                    "DAG execution cancelled during streaming",
+                                    nodeId,
+                                    context.getExecutionId());
+                        }
                         // 推送每个 chunk
                         pushMessage(chunk, context);
                         fullResponse.append(chunk);
@@ -497,6 +504,14 @@ public abstract class AbstractConfigurableNode implements DagNode<DagExecutionCo
 
     @Override
     public NodeExecutionResult execute(DagExecutionContext context) throws DagNodeExecutionException {
+        // 检查是否已取消
+        if (context.isCancelled()) {
+            throw new com.zj.aiagent.domain.agent.dag.exception.DagCancelledException(
+                    "DAG execution cancelled by user",
+                    nodeId,
+                    context.getExecutionId());
+        }
+
         HumanInterventionData humanData = context.getHumanInterventionData();
 
         // ===== BEFORE 时机处理 =====
@@ -688,8 +703,14 @@ public abstract class AbstractConfigurableNode implements DagNode<DagExecutionCo
         }
         try {
             emitter.send(buildMessage(message, conversationId));
+        } catch (java.io.IOException e) {
+            // 客户端已关闭连接，标记为取消（兜底机制）
+            log.warn("Client disconnected, cancelling DAG execution: {}", e.getMessage());
+            context.cancel();
         } catch (Exception e) {
             log.error("Failed to push message to client", e);
+            // 其他异常也可能表示连接问题，标记为取消
+            context.cancel();
         }
     }
 

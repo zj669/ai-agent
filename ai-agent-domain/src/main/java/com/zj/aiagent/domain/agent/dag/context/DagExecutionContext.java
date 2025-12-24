@@ -4,6 +4,7 @@ import com.zj.aiagent.domain.agent.dag.entity.DagGraph;
 import com.zj.aiagent.shared.design.dag.DagContext;
 import lombok.Getter;
 import lombok.Setter;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.web.servlet.mvc.method.annotation.ResponseBodyEmitter;
 
 import java.util.ArrayList;
@@ -16,6 +17,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 /**
  * DAG执行上下文实现
  */
+@Slf4j
 public class DagExecutionContext implements DagContext {
     @Getter
     @Setter
@@ -77,6 +79,32 @@ public class DagExecutionContext implements DagContext {
     @Getter
     @Setter
     private DagGraph dagGraph;
+
+    // ==================== 取消执行管理 ====================
+
+    /**
+     * 取消标志（volatile 保证多线程可见性）
+     * 当用户取消执行或客户端断开连接时设置为 true
+     */
+    private volatile boolean cancelled = false;
+
+    /**
+     * 标记执行为已取消
+     */
+    public void cancel() {
+        this.cancelled = true;
+        log.info("DAG execution cancelled: executionId={}, conversationId={}",
+                executionId, conversationId);
+    }
+
+    /**
+     * 检查是否已取消
+     * 
+     * @return true 如果执行已被取消
+     */
+    public boolean isCancelled() {
+        return cancelled;
+    }
 
     public DagExecutionContext(String conversationId, ResponseBodyEmitter emitter, Long agentId) {
         this.emitter = emitter;

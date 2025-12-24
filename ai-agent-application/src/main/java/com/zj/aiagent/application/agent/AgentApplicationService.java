@@ -113,6 +113,32 @@ public class AgentApplicationService {
     }
 
     /**
+     * 取消 DAG 执行
+     *
+     * @param command 取消命令
+     */
+    public void cancelExecution(com.zj.aiagent.application.agent.command.CancelExecutionCommand command) {
+        String conversationId = command.getConversationId();
+        log.info("取消 DAG 执行: conversationId={}", conversationId);
+
+        try {
+            // 从领域服务获取执行上下文
+            com.zj.aiagent.domain.agent.dag.context.DagExecutionContext context = dagExecuteService
+                    .getExecutionContext(conversationId);
+
+            if (context != null) {
+                context.cancel();
+                log.info("DAG 执行已标记为取消: conversationId={}", conversationId);
+            } else {
+                log.warn("未找到执行上下文: conversationId={}", conversationId);
+            }
+        } catch (Exception e) {
+            log.error("取消 DAG 执行失败: conversationId={}", conversationId, e);
+            throw new RuntimeException("取消执行失败: " + e.getMessage(), e);
+        }
+    }
+
+    /**
      * 获取执行上下文
      *
      * @param query 查询对象
@@ -427,7 +453,7 @@ public class AgentApplicationService {
     private void processModelConfig(com.alibaba.fastjson.JSONObject modelConfig) {
         String modelId = modelConfig.getString("modelId");
         String modelSource = modelConfig.getString("modelSource");
-        if ( modelSource.equals("platform") && modelId != null && !modelId.isEmpty() && !"null".equals(modelId)) {
+        if (modelSource.equals("platform") && modelId != null && !modelId.isEmpty() && !"null".equals(modelId)) {
             // 模式1: 使用平台模型
             log.info("使用平台模型, modelId: {}", modelId);
 

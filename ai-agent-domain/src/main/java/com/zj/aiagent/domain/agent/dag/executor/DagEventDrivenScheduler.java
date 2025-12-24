@@ -154,6 +154,14 @@ public class DagEventDrivenScheduler {
         try {
             // 使用轮询检查是否所有任务都已完成
             while (true) {
+                // 检查是否取消
+                if (context.isCancelled()) {
+                    log.info("DAG execution cancelled, stopping scheduler");
+                    return SchedulerExecutionResult.cancelled(
+                            "Cancelled by user",
+                            System.currentTimeMillis() - startTime);
+                }
+
                 // 检查是否有失败
                 if (!failures.isEmpty()) {
                     log.error("检测到节点执行失败，停止调度");
@@ -229,6 +237,12 @@ public class DagEventDrivenScheduler {
             return;
         }
 
+        // 提交前检查是否已取消
+        if (context.isCancelled()) {
+            log.info("Skip submitting node {} due to cancellation", nodeId);
+            return;
+        }
+
         activeTaskCount.incrementAndGet();
 
         CompletableFuture.runAsync(() -> {
@@ -295,6 +309,15 @@ public class DagEventDrivenScheduler {
         String nodeId = node.getNodeId();
         String nodeName = node.getNodeName();
         long startTime = System.currentTimeMillis();
+
+        // 执行前检查是否已取消
+        if (context.isCancelled()) {
+            log.info("Skip executing node {} due to cancellation", nodeId);
+            throw new com.zj.aiagent.domain.agent.dag.exception.DagCancelledException(
+                    "DAG execution cancelled before node execution",
+                    nodeId,
+                    context.getExecutionId());
+        }
 
         // 推送节点开始事件
         pushNodeLifecycleEvent(context, nodeId, nodeName, "starting", null, null,
@@ -588,7 +611,7 @@ public class DagEventDrivenScheduler {
     @Data
     @AllArgsConstructor
     public static class SchedulerExecutionResult {
-        private String status; // SUCCESS, FAILED, PAUSED
+        private String status; // SUCCESS, FAILED, PAUSED, CANCELLED
         private String message;
         private String pausedNodeId;
         private Exception exception;
@@ -604,6 +627,10 @@ public class DagEventDrivenScheduler {
 
         public static SchedulerExecutionResult paused(String pausedNodeId) {
             return new SchedulerExecutionResult("PAUSED", "Waiting for human intervention", pausedNodeId, null, 0);
+        }
+
+        public static SchedulerExecutionResult cancelled(String message, long durationMs) {
+            return new SchedulerExecutionResult("CANCELLED", message, null, null, durationMs);
         }
     }
 }

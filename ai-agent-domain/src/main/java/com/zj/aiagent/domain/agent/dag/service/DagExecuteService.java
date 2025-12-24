@@ -9,6 +9,8 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.web.servlet.mvc.method.annotation.ResponseBodyEmitter;
 
+import java.util.concurrent.ConcurrentHashMap;
+
 @Slf4j
 @Service
 public class DagExecuteService {
@@ -18,11 +20,38 @@ public class DagExecuteService {
     @Resource
     private IHumanInterventionRepository humanInterventionRepository;
 
+    /**
+     * 保存正在执行的上下文（conversationId -> DagExecutionContext）
+     * 用于取消执行时查找对应的上下文
+     */
+    private final ConcurrentHashMap<String, DagExecutionContext> activeContexts = new ConcurrentHashMap<>();
+
+    /**
+     * 获取执行上下文
+     *
+     * @param conversationId 会话ID
+     * @return 执行上下文，如果不存在则返回 null
+     */
+    public DagExecutionContext getExecutionContext(String conversationId) {
+        return activeContexts.get(conversationId);
+    }
+
     public DagExecutor.DagExecutionResult executeDag(DagGraph dagGraph, String conversationId, String userMessage,
             ResponseBodyEmitter emitter, String agentId) {
         DagExecutionContext context = new DagExecutionContext(conversationId, emitter, Long.valueOf(agentId));
         context.setUserInput(userMessage);
-        return dagExecutor.execute(dagGraph, context);
+
+        // 注册上下文
+        activeContexts.put(conversationId, context);
+        log.debug("注册执行上下文: conversationId={}", conversationId);
+
+        try {
+            return dagExecutor.execute(dagGraph, context);
+        } finally {
+            // 清理上下文
+            activeContexts.remove(conversationId);
+            log.debug("清理执行上下文: conversationId={}", conversationId);
+        }
     }
 
     /**
@@ -64,7 +93,17 @@ public class DagExecuteService {
         // 设置人工审核结果到上下文
         context.getHumanInterventionData().setReviewResult(approved, null);
 
-        // 调用执行器恢复执行
-        return dagExecutor.resumeFromPause(dagGraph, context);
+        // 注册上下文
+        activeContexts.put(conversationId, context);
+        log.debug("注册恢复执行上下文: conversationId={}", conversationId);
+
+        try {
+            // 调用执行器恢复执行
+            return dagExecutor.resumeFromPause(dagGraph, context);
+        } finally {
+            // 清理上下文
+            activeContexts.remove(conversationId);
+            log.debug("清理恢复执行上下文: conversationId={}", conversationId);
+        }
     }
 }

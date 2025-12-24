@@ -325,6 +325,47 @@ public class AgentController {
     }
 
     /**
+     * 取消 Agent 执行
+     */
+    @PostMapping("/cancel")
+    @Operation(summary = "取消 Agent 执行", description = "取消正在执行的 DAG")
+    public Response<java.util.Map<String, Object>> cancelExecution(
+            @Valid @RequestBody CancelRequest request) {
+        try {
+            log.info("收到取消执行请求: conversationId={}", request.getConversationId());
+
+            // 构建命令
+            com.zj.aiagent.application.agent.command.CancelExecutionCommand command = new com.zj.aiagent.application.agent.command.CancelExecutionCommand();
+            command.setConversationId(request.getConversationId());
+
+            // 调用应用服务取消执行
+            agentApplicationService.cancelExecution(command);
+
+            // 构建响应
+            java.util.Map<String, Object> response = new java.util.HashMap<>();
+            response.put("success", true);
+            response.put("message", "Execution cancellation requested");
+
+            return Response.success(response);
+
+        } catch (Exception e) {
+            log.error("取消执行失败", e);
+            java.util.Map<String, Object> response = new java.util.HashMap<>();
+            response.put("success", false);
+            response.put("message", e.getMessage());
+            return Response.fail(e.getMessage());
+        }
+    }
+
+    /**
+     * 取消请求 DTO
+     */
+    @lombok.Data
+    public static class CancelRequest {
+        private String conversationId;
+    }
+
+    /**
      * 查询执行上下文
      */
     @GetMapping("/context/{conversationId}")

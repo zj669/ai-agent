@@ -140,7 +140,7 @@ public class NodeFactory {
         }
         if(configJson.containsKey("userPrompt") && configJson.getJSONObject("userPrompt") != null){
             JSONObject userPrompt = configJson.getJSONObject("userPrompt");
-            if(userPrompt.containsKey("userPrompt") && userPrompt.getJSONObject("userPrompt") != null) {
+            if(userPrompt.containsKey("userPrompt") && userPrompt.getString("userPrompt") != null) {
                 builder.userPrompt(userPrompt.getString("userPrompt"));
             }
         }
