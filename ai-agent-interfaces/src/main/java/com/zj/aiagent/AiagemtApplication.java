@@ -15,6 +15,7 @@ import org.springframework.scheduling.annotation.EnableScheduling;
 @MapperScan("com.zj.aiagent.infrastructure.persistence.mapper")
 public class AiagemtApplication {
 
+
 	public static void main(String[] args) {
 		SpringApplication.run(AiagemtApplication.class, args);
 	}
