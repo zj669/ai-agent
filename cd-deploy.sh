@@ -43,7 +43,7 @@ echo "等待容器启动..."
 sleep ${STARTUP_WAIT}
 for i in {1..30}; do
   # 使用docker exec在容器内部执行健康检查
-  if docker exec ${CONTAINER_NAME} curl -s -f http://localhost:8080/actuator/health > /dev/null 2>&1; then
+  if docker exec ${CONTAINER_NAME} curl -s -f http://localhost:8080/public/health > /dev/null 2>&1; then
     echo "✅ 部署成功"
     exit 0
   fi

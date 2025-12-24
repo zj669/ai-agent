@@ -43,7 +43,7 @@ HEALTH_CHECK_PASSED=false
 
 for i in {1..30}; do
   # 使用docker exec在容器内部执行健康检查
-  if docker exec ${NEW_CONTAINER} curl -s -f http://localhost:8080/actuator/health > /dev/null 2>&1; then
+  if docker exec ${NEW_CONTAINER} curl -s -f http://localhost:8080/public/health > /dev/null 2>&1; then
     echo "✅ 新容器健康检查通过"
     HEALTH_CHECK_PASSED=true
     break
@@ -84,7 +84,7 @@ docker run -d \
 # 验证生产端口
 echo "验证生产端口..."
 sleep ${STARTUP_WAIT}
-if docker exec ${CONTAINER_NAME} curl -s -f http://localhost:8080/actuator/health > /dev/null 2>&1; then
+if docker exec ${CONTAINER_NAME} curl -s -f http://localhost:8080/public/health > /dev/null 2>&1; then
   echo "✅ 滚动部署成功"
   # 清理旧容器
   docker stop ${CONTAINER_NAME}-old 2>/dev/null || true
