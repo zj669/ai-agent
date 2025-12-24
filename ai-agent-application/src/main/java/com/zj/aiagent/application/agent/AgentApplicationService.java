@@ -426,8 +426,8 @@ public class AgentApplicationService {
      */
     private void processModelConfig(com.alibaba.fastjson.JSONObject modelConfig) {
         String modelId = modelConfig.getString("modelId");
-
-        if (modelId != null && !modelId.isEmpty() && !"null".equals(modelId)) {
+        String modelSource = modelConfig.getString("modelSource");
+        if ( modelSource.equals("platform") && modelId != null && !modelId.isEmpty() && !"null".equals(modelId)) {
             // 模式1: 使用平台模型
             log.info("使用平台模型, modelId: {}", modelId);
 

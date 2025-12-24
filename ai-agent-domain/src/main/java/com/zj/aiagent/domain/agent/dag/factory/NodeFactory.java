@@ -138,6 +138,12 @@ public class NodeFactory {
             List<String> nextNodes = configJson.getList("nextNodes", String.class);
             builder.nextNodes(nextNodes);
         }
+        if(configJson.containsKey("userPrompt") && configJson.getJSONObject("userPrompt") != null){
+            JSONObject userPrompt = configJson.getJSONObject("userPrompt");
+            if(userPrompt.containsKey("userPrompt") && userPrompt.getJSONObject("userPrompt") != null) {
+                builder.userPrompt(userPrompt.getString("userPrompt"));
+            }
+        }
 
         if (configJson.containsKey("resilience") && configJson.getJSONObject("resilience") != null
                 && !configJson.getJSONObject("resilience").isEmpty()) {
