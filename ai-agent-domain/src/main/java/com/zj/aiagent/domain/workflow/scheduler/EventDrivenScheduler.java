@@ -16,6 +16,7 @@ import com.zj.aiagent.domain.workflow.interfaces.WorkflowStateListener;
 import com.zj.aiagent.shared.constants.WorkflowRunningConstants;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.stereotype.Component;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -30,15 +31,15 @@ import java.util.concurrent.atomic.AtomicReference;
 
 @Slf4j
 @RequiredArgsConstructor
+@Component
 public class EventDrivenScheduler implements WorkflowScheduler {
     private final ExecutorService executor;
     private final ContextProvider contextProvider;
-    private final WorkflowStateListener listener;
     private final Checkpointer checkpointer;
     private final ConditionalEdge conditionalEdge;
 
     @Override
-    public ExecutionResult execute(WorkflowGraph graph, WorkflowState initialState) {
+    public ExecutionResult execute(WorkflowGraph graph, WorkflowState initialState,  WorkflowStateListener listener) {
         log.info("事件驱动调度器开始执行, graphId: {}", graph.getDagId());
         DependencyTracker dependencyTracker = new DependencyTracker(graph);
         ConcurrentHashMap<String, Exception> failures = new ConcurrentHashMap<>();

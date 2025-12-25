@@ -1,10 +1,17 @@
 package com.zj.aiagent.application.agent;
 
+import cn.hutool.core.util.IdUtil;
+import com.zj.aiagent.application.agent.command.ChatCommand;
 import com.zj.aiagent.domain.agent.chat.entity.ChatMessageEntity;
 import com.zj.aiagent.domain.agent.chat.repository.IChatMessageRepository;
+import com.zj.aiagent.domain.workflow.IWorkflowService;
+import com.zj.aiagent.domain.workflow.entity.WorkflowGraph;
+import com.zj.aiagent.infrastructure.listener.SSEWorkflowStateListener;
+import com.zj.aiagent.infrastructure.parse.WorkflowGraphFactory;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
+import org.springframework.web.servlet.mvc.method.annotation.ResponseBodyEmitter;
 
 import java.util.List;
 
@@ -17,7 +24,18 @@ import java.util.List;
 public class ChatMessageApplicationService {
 
     private final IChatMessageRepository chatMessageRepository;
+    private final WorkflowGraphFactory workflowGraphFactory;
+    private final IWorkflowService workflowService;
 
+    public void chat(ChatCommand command) {
+        WorkflowGraph graph = workflowGraphFactory.loadDagByAgentId(command.getAgentId());
+        String conversationId = command.getConversationId();
+        ResponseBodyEmitter emitter = command.getEmitter();
+        if (conversationId == null) {
+            conversationId = String.valueOf(IdUtil.getSnowflake(1, 1).nextId());
+        }
+        workflowService.execute(graph, conversationId, new SSEWorkflowStateListener(emitter));
+    }
     /**
      * 保存用户消息
      */
