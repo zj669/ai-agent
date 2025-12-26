@@ -1,6 +1,6 @@
 package com.zj.aiagent.infrastructure.parse.entity;
 
-import com.zj.aiagent.domain.agent.dag.entity.EdgeType;
+
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;

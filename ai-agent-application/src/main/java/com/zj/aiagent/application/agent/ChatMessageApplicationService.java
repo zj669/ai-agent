@@ -34,8 +34,9 @@ public class ChatMessageApplicationService {
         if (conversationId == null) {
             conversationId = String.valueOf(IdUtil.getSnowflake(1, 1).nextId());
         }
-        workflowService.execute(graph, conversationId, new SSEWorkflowStateListener(emitter));
+        workflowService.execute(graph, conversationId, new SSEWorkflowStateListener(emitter, conversationId));
     }
+
     /**
      * 保存用户消息
      */

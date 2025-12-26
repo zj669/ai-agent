@@ -1,11 +1,11 @@
 package com.zj.aiagent.infrastructure.parse;
 
 import com.alibaba.fastjson2.JSON;
-import com.zj.aiagent.domain.agent.dag.entity.GraphJsonSchema;
-import com.zj.aiagent.domain.agent.dag.exception.NodeConfigException;
 import com.zj.aiagent.domain.toolbox.parse.AgentConfigParseFactory;
+import com.zj.aiagent.domain.toolbox.parse.entity.GraphNodeEntity;
 import com.zj.aiagent.domain.workflow.entity.EdgeDefinitionEntity;
 import com.zj.aiagent.domain.workflow.entity.WorkflowGraph;
+import com.zj.aiagent.infrastructure.parse.entity.GraphJsonSchema;
 import com.zj.aiagent.infrastructure.persistence.entity.AiAgentPO;
 import com.zj.aiagent.infrastructure.persistence.repository.IAiAgentRepository;
 import com.zj.aiagent.shared.design.workflow.NodeExecutor;
@@ -28,11 +28,11 @@ public class WorkflowGraphFactory {
     public WorkflowGraph loadDagByAgentId(String agentId){
         AiAgentPO aiAgent = agentRepository.getById(agentId);
         if (aiAgent == null) {
-            throw new NodeConfigException("Agent not found: agentId=" + agentId);
+            throw new RuntimeException("Agent not found: agentId=" + agentId);
         }
 
         if (aiAgent.getGraphJson() == null || aiAgent.getGraphJson().isEmpty()) {
-            throw new NodeConfigException("Agent graph_json is empty: agentId=" + agentId);
+            throw new RuntimeException("Agent graph_json is empty: agentId=" + agentId);
         }
 
         return loadDagFromJson(aiAgent.getGraphJson());
@@ -47,13 +47,13 @@ public class WorkflowGraphFactory {
             GraphJsonSchema schema = JSON.parseObject(graphJson, GraphJsonSchema.class);
 
             if (schema == null || schema.getNodes() == null || schema.getNodes().isEmpty()) {
-                throw new NodeConfigException("Invalid graph_json: nodes cannot be empty");
+                throw new RuntimeException("Invalid graph_json: nodes cannot be empty");
             }
 
-            // 构建节点映射（统一使用 AbstractConfigurableNode 类型）
+            // 构建节点映射
             Map<String, NodeExecutor> nodeMap = new HashMap<>();
             for (GraphJsonSchema.NodeDefinition nodeDef : schema.getNodes()) {
-                NodeExecutor node = agentConfigParseFactory.createNode(nodeDef);
+                NodeExecutor node = agentConfigParseFactory.createNode(convert(nodeDef));
                 nodeMap.put(nodeDef.getNodeId(), node);
                 log.info("创建节点: {} ({})", nodeDef.getNodeName(), nodeDef.getNodeId());
             }
@@ -75,7 +75,7 @@ public class WorkflowGraphFactory {
             return dagGraph;
 
         } catch (Exception e) {
-            throw new NodeConfigException("Failed to load DAG from JSON: " + e.getMessage(), e);
+            throw new RuntimeException("Failed to load DAG from JSON: " + e.getMessage(), e);
         }
     }
 
@@ -83,14 +83,13 @@ public class WorkflowGraphFactory {
         List<EdgeDefinitionEntity> edgeDefinitionEntities = new ArrayList<>();
         for (GraphJsonSchema.EdgeDefinition edge : edges) {
             edgeDefinitionEntities.add(new EdgeDefinitionEntity(edge.getEdgeId(), edge.getSource(), edge.getTarget(),
-                    edge.getCondition(), edge.getEdgeType()));
+                    edge.getCondition(), edge.getEdgeType().name()));
         }
         return edgeDefinitionEntities;
     }
 
     private Map<String, List<String>> buildDependencies(List<GraphJsonSchema.EdgeDefinition> edges) {
         Map<String, List<String>> dependencies = new HashMap<>();
-
         if (edges != null) {
             for (GraphJsonSchema.EdgeDefinition edge : edges) {
                 dependencies.computeIfAbsent(edge.getTarget(), k -> new ArrayList<>())
@@ -100,4 +99,9 @@ public class WorkflowGraphFactory {
 
         return dependencies;
     }
+
+    private GraphNodeEntity convert(GraphJsonSchema.NodeDefinition node){
+        return null;
+    }
+
 }

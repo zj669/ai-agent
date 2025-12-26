@@ -12,13 +12,6 @@ public enum EdgeType {
     DEPENDENCY,
 
     /**
-     * 循环边（回路边）
-     * 不参与拓扑排序，在运行时触发节点重新入队
-     * 用于实现 ReAct 等需要循环执行的模式
-     */
-    LOOP_BACK,
-
-    /**
      * 条件边
      * 由 RouterNode 等节点动态决定是否激活
      * 可以与 DEPENDENCY 或 LOOP_BACK 结合使用

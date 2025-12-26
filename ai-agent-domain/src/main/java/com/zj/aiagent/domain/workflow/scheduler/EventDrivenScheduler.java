@@ -112,7 +112,7 @@ public class EventDrivenScheduler implements WorkflowScheduler {
                 List<String> conditionalNext = new ArrayList<>();
                 for (Map.Entry<String, EdgeDefinitionEntity> entry : edgeMap.entrySet()) {
                     EdgeDefinitionEntity edge = entry.getValue();
-                    if (edge.getEdgeType() == EdgeType.CONDITIONAL) {
+                    if (EdgeType.CONDITIONAL.name().equals(edge.getEdgeType())) {
                         routerEntities.add(RouterEntity.builder()
                                 .condition(edge.getCondition())
                                 .nodeId(edge.getTarget())
@@ -149,9 +149,4 @@ public class EventDrivenScheduler implements WorkflowScheduler {
             }
         }, executor);
     }
-
-    private void updateListenerState(WorkflowState state, AtomicInteger activeCount){
-        // todo
-    }
-
 }

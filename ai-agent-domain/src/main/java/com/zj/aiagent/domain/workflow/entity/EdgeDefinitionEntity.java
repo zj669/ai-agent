@@ -1,6 +1,6 @@
 package com.zj.aiagent.domain.workflow.entity;
 
-import com.zj.aiagent.domain.agent.dag.entity.EdgeType;
+
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -35,10 +35,6 @@ public class EdgeDefinitionEntity {
      * LOOP_BACK: 循环边，不参与拓扑排序
      * CONDITIONAL: 条件边，由节点动态决定是否激活
      */
-    private EdgeType edgeType ;
+    private String edgeType ;
 
-
-    public EdgeType getEdgeType() {
-        return edgeType != null ? edgeType : EdgeType.DEPENDENCY;
-    }
 }
