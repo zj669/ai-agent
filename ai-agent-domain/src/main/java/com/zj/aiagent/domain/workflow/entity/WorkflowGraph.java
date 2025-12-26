@@ -1,6 +1,6 @@
 package com.zj.aiagent.domain.workflow.entity;
 
-import com.zj.aiagent.domain.workflow.base.NodeExecutor;
+import com.zj.aiagent.shared.design.workflow.NodeExecutor;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;

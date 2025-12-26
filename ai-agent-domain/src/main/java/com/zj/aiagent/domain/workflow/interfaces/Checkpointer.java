@@ -1,6 +1,6 @@
 package com.zj.aiagent.domain.workflow.interfaces;
 
-import com.zj.aiagent.domain.workflow.base.WorkflowState;
+import com.zj.aiagent.shared.design.workflow.WorkflowState;
 
 /**
  * 检查点接口

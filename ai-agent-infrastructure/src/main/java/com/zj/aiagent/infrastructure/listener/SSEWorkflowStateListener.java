@@ -1,7 +1,7 @@
 package com.zj.aiagent.infrastructure.listener;
 
-import com.zj.aiagent.domain.workflow.base.WorkflowState;
-import com.zj.aiagent.domain.workflow.interfaces.WorkflowStateListener;
+import com.zj.aiagent.shared.design.workflow.WorkflowState;
+import com.zj.aiagent.shared.design.workflow.WorkflowStateListener;
 import lombok.AllArgsConstructor;
 import org.springframework.web.servlet.mvc.method.annotation.ResponseBodyEmitter;
 

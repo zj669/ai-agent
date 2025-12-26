@@ -1,10 +1,6 @@
 package com.zj.aiagent.domain.workflow.scheduler;
 
 import com.zj.aiagent.domain.agent.dag.entity.EdgeType;
-import com.zj.aiagent.domain.workflow.base.ControlSignal;
-import com.zj.aiagent.domain.workflow.base.NodeExecutor;
-import com.zj.aiagent.domain.workflow.base.StateUpdate;
-import com.zj.aiagent.domain.workflow.base.WorkflowState;
 import com.zj.aiagent.domain.workflow.entity.EdgeDefinitionEntity;
 import com.zj.aiagent.domain.workflow.entity.ExecutionResult;
 import com.zj.aiagent.domain.workflow.entity.RouterEntity;
@@ -12,8 +8,8 @@ import com.zj.aiagent.domain.workflow.entity.WorkflowGraph;
 import com.zj.aiagent.domain.workflow.interfaces.Checkpointer;
 import com.zj.aiagent.domain.workflow.interfaces.ConditionalEdge;
 import com.zj.aiagent.domain.workflow.interfaces.ContextProvider;
-import com.zj.aiagent.domain.workflow.interfaces.WorkflowStateListener;
 import com.zj.aiagent.shared.constants.WorkflowRunningConstants;
+import com.zj.aiagent.shared.design.workflow.*;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
@@ -39,7 +35,7 @@ public class EventDrivenScheduler implements WorkflowScheduler {
     private final ConditionalEdge conditionalEdge;
 
     @Override
-    public ExecutionResult execute(WorkflowGraph graph, WorkflowState initialState,  WorkflowStateListener listener) {
+    public ExecutionResult execute(WorkflowGraph graph, WorkflowState initialState) {
         log.info("事件驱动调度器开始执行, graphId: {}", graph.getDagId());
         DependencyTracker dependencyTracker = new DependencyTracker(graph);
         ConcurrentHashMap<String, Exception> failures = new ConcurrentHashMap<>();
@@ -75,6 +71,7 @@ public class EventDrivenScheduler implements WorkflowScheduler {
             CountDownLatch completionLatch,
             AtomicReference<ExecutionResult> resultRef) {
         activeCount.incrementAndGet();
+        WorkflowStateListener listener = state.getWorkflowStateListener();
         CompletableFuture.runAsync(() -> {
             try {
                 NodeExecutor node = graph.getNodes().get(nodeId);
@@ -84,7 +81,7 @@ public class EventDrivenScheduler implements WorkflowScheduler {
                 // 加载上下文
                 ConcurrentHashMap<String, Object> context = contextProvider.loadContext(executionId, state.getAll());
                 state.update(context);
-                StateUpdate update = node.execute(state, listener);
+                StateUpdate update = node.execute(state);
                 // 更新上下文
                 state.apply(update);
                 contextProvider.saveContext(executionId, state.getAll());

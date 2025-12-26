@@ -1,4 +1,5 @@
-package com.zj.aiagent.domain.workflow.base;
+package com.zj.aiagent.shared.design.workflow;
+
 
 import lombok.Data;
 

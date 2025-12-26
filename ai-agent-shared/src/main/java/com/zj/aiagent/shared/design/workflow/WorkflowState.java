@@ -1,4 +1,7 @@
-package com.zj.aiagent.domain.workflow.base;
+package com.zj.aiagent.shared.design.workflow;
+
+import lombok.AllArgsConstructor;
+import lombok.Getter;
 
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
@@ -9,18 +12,17 @@ import java.util.concurrent.ConcurrentHashMap;
  * 借鉴 LangGraph 的统一 State 模型，所有节点共享同一个状态对象
  * 节点执行时读取状态，返回状态更新
  */
+@AllArgsConstructor
 public class WorkflowState {
 
     private final ConcurrentHashMap<String, Object> data;
+    @Getter
+    private final WorkflowStateListener workflowStateListener;
 
-    public WorkflowState() {
+    public WorkflowState(WorkflowStateListener workflowStateListener) {
         this.data = new ConcurrentHashMap<>();
+        this.workflowStateListener = workflowStateListener;
     }
-
-    public WorkflowState(Map<String, Object> initialData) {
-        this.data = new ConcurrentHashMap<>(initialData);
-    }
-
     /**
      * 获取状态值
      */
@@ -75,7 +77,7 @@ public class WorkflowState {
      * 创建状态副本
      */
     public WorkflowState copy() {
-        return new WorkflowState(this.data);
+        return new WorkflowState(this.data, workflowStateListener);
     }
 
     /**
@@ -97,4 +99,5 @@ public class WorkflowState {
     public void update(ConcurrentHashMap<String, Object> initialData){
         this.data.putAll(initialData);
     }
+
 }

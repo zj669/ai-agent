@@ -1,6 +1,4 @@
-package com.zj.aiagent.domain.workflow.interfaces;
-
-import com.zj.aiagent.domain.workflow.base.WorkflowState;
+package com.zj.aiagent.shared.design.workflow;
 
 public interface WorkflowStateListener {
     // 节点开始执行

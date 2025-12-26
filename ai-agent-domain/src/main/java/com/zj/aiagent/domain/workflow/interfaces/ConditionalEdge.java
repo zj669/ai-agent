@@ -1,8 +1,8 @@
 package com.zj.aiagent.domain.workflow.interfaces;
 
 
-import com.zj.aiagent.domain.workflow.base.WorkflowState;
 import com.zj.aiagent.domain.workflow.entity.RouterEntity;
+import com.zj.aiagent.shared.design.workflow.WorkflowState;
 
 import java.util.List;
 

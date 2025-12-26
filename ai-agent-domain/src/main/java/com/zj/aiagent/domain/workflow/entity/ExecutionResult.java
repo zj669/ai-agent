@@ -1,6 +1,6 @@
 package com.zj.aiagent.domain.workflow.entity;
 
-import com.zj.aiagent.domain.workflow.base.WorkflowState;
+import com.zj.aiagent.shared.design.workflow.WorkflowState;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
