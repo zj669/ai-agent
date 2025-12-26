@@ -1,10 +1,15 @@
 package com.zj.aiagent.infrastructure.parse;
 
 import com.alibaba.fastjson2.JSON;
-import com.zj.aiagent.domain.toolbox.parse.AgentConfigParseFactory;
-import com.zj.aiagent.domain.toolbox.parse.entity.GraphNodeEntity;
+import com.zj.aiagent.domain.model.parse.ModelConfigParseFactory;
+import com.zj.aiagent.domain.model.parse.entity.ModelConfigResult;
+import com.zj.aiagent.domain.prompt.parse.PromptConfigParseFactory;
+import com.zj.aiagent.domain.prompt.parse.entity.PromptConfigResult;
+import com.zj.aiagent.domain.toolbox.parse.McpConfigParseFactory;
+import com.zj.aiagent.domain.toolbox.parse.entity.McpConfigResult;
 import com.zj.aiagent.domain.workflow.entity.EdgeDefinitionEntity;
 import com.zj.aiagent.domain.workflow.entity.WorkflowGraph;
+import com.zj.aiagent.infrastructure.parse.convert.ConfigConvert;
 import com.zj.aiagent.infrastructure.parse.entity.GraphJsonSchema;
 import com.zj.aiagent.infrastructure.persistence.entity.AiAgentPO;
 import com.zj.aiagent.infrastructure.persistence.repository.IAiAgentRepository;
@@ -23,7 +28,9 @@ import java.util.Map;
 @Repository
 public class WorkflowGraphFactory {
     private final IAiAgentRepository agentRepository;
-    private final AgentConfigParseFactory agentConfigParseFactory;
+    private final McpConfigParseFactory mcpConfigParseFactory;
+    private final PromptConfigParseFactory promptConfigParseFactory;
+    private final ModelConfigParseFactory modelConfigParseFactory;
 
     public WorkflowGraph loadDagByAgentId(String agentId){
         AiAgentPO aiAgent = agentRepository.getById(agentId);
@@ -53,7 +60,11 @@ public class WorkflowGraphFactory {
             // 构建节点映射
             Map<String, NodeExecutor> nodeMap = new HashMap<>();
             for (GraphJsonSchema.NodeDefinition nodeDef : schema.getNodes()) {
-                NodeExecutor node = agentConfigParseFactory.createNode(convert(nodeDef));
+                McpConfigResult mcpConfigResult = mcpConfigParseFactory.parseConfig(ConfigConvert.convertMcp(nodeDef));
+                PromptConfigResult promptConfigResult = promptConfigParseFactory.parseConfig(ConfigConvert.convertPrompt(nodeDef));
+                ModelConfigResult modelConfigResult = modelConfigParseFactory.parseConfig(ConfigConvert.convertModel(nodeDef));
+
+                NodeExecutor node = null;
                 nodeMap.put(nodeDef.getNodeId(), node);
                 log.info("创建节点: {} ({})", nodeDef.getNodeName(), nodeDef.getNodeId());
             }
@@ -100,8 +111,8 @@ public class WorkflowGraphFactory {
         return dependencies;
     }
 
-    private GraphNodeEntity convert(GraphJsonSchema.NodeDefinition node){
-        return null;
-    }
+//    private GraphNodeEntity convert(GraphJsonSchema.NodeDefinition node){
+//        return null;
+//    }
 
 }

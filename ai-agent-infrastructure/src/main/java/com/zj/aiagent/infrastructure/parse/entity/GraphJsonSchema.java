@@ -75,7 +75,7 @@ public class GraphJsonSchema {
         /**
          * 节点配置(JSON对象)
          */
-        private Object config;
+        private String config;
     }
 
     /**
