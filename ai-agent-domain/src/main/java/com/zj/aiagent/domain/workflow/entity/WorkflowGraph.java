@@ -1,5 +1,6 @@
 package com.zj.aiagent.domain.workflow.entity;
 
+import com.alibaba.fastjson2.JSONObject;
 import com.zj.aiagent.shared.design.workflow.NodeExecutor;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -28,6 +29,14 @@ public class WorkflowGraph {
      * 节点映射 (nodeId -> node)
      */
     private Map<String, NodeExecutor> nodes;
+
+    /**
+     * 节点配置映射 (nodeId -> config)
+     * <p>
+     * 包含拦截器配置等
+     * </p>
+     */
+    private Map<String, JSONObject> nodeConfigs;
 
     /**
      * 边列表

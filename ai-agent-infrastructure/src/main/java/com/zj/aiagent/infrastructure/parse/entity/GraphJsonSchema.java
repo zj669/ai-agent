@@ -1,6 +1,5 @@
 package com.zj.aiagent.infrastructure.parse.entity;
 
-
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -68,13 +67,33 @@ public class GraphJsonSchema {
         private String nodeName;
 
         /**
+         * 【新增】模板ID - 引用 ai_node_template 表的 template_id
+         * <p>
+         * 如果指定了 templateId，则优先使用模板配置
+         */
+        private String templateId;
+
+        /**
+         * 【新增】用户自定义配置 (JSON对象)
+         * <p>
+         * 只包含用户可编辑的字段，会覆盖模板的默认配置
+         * 例如: {"maxLoops": 3, "timeout": 30}
+         */
+        private String userConfig;
+
+        /**
          * 位置信息(前端可视化)
          */
         private Position position;
 
         /**
-         * 节点配置(JSON对象)
+         * 【保留兼容】节点配置(JSON对象)
+         * <p>
+         * 仅用于向后兼容，新版本应使用 templateId + userConfig
+         * 
+         * @deprecated 使用 templateId 和 userConfig 替代
          */
+        @Deprecated
         private String config;
     }
 

@@ -1,0 +1,123 @@
+# ReAct 节点占位符映射配置
+# 用于提示词领域系统理解各个占位符的含义和数据来源
+
+react:
+  nodes:
+    plan:
+      template_file: react-plan-node.txt
+      placeholders:
+        - name: userQuestion
+          description: 用户原始问题
+          source: WorkflowState
+          state_key: userQuestion
+          type: String
+          required: true
+          default_value: "未提供用户问题"
+          
+        - name: executionHistory
+          description: 格式化的执行历史记录
+          source: WorkflowState
+          state_key: executionHistory
+          type: String
+          required: false
+          default_value: "暂无执行历史"
+          formatter: formatExecutionHistory
+          
+        - name: reflectionReason
+          description: Summary 节点的反思结果
+          source: WorkflowState
+          state_key: reflectionReason
+          type: String
+          required: false
+          default_value: ""
+          
+        - name: availableTools
+          description: MCP 可用工具列表
+          source: McpClients
+          type: String
+          required: true
+          formatter: formatAvailableTools
+          
+        - name: loopCount
+          description: 当前 ReAct 循环次数
+          source: WorkflowState
+          state_key: reactLoopCount
+          type: Integer
+          required: false
+          default_value: 0
+          
+    act:
+      template_file: react-act-node.txt
+      placeholders:
+        - name: currentStepNumber
+          description: 当前步骤编号
+          source: PlanStep
+          field: stepNumber
+          type: Integer
+          required: true
+          
+        - name: currentStepDescription
+          description: 当前步骤描述
+          source: PlanStep
+          field: description
+          type: String
+          required: true
+          
+        - name: toolName
+          description: 要调用的工具名称
+          source: PlanStep
+          field: toolName
+          type: String
+          required: true
+          
+        - name: toolParams
+          description: 工具调用参数
+          source: PlanStep
+          field: toolParams
+          type: JSON
+          required: true
+          formatter: formatToolParams
+          
+        - name: expectedOutput
+          description: 预期输出说明
+          source: PlanStep
+          field: expectedOutput
+          type: String
+          required: false
+          default_value: ""
+          
+    summary:
+      template_file: react-summary-node.txt
+      placeholders:
+        - name: userQuestion
+          description: 用户原始问题
+          source: WorkflowState
+          state_key: userQuestion
+          type: String
+          required: true
+          default_value: "未提供用户问题"
+          
+        - name: executionHistory
+          description: 格式化的执行历史记录
+          source: WorkflowState
+          state_key: executionHistory
+          type: String
+          required: false
+          default_value: "暂无执行历史"
+          formatter: formatExecutionHistory
+          
+        - name: loopCount
+          description: 当前 ReAct 循环次数
+          source: WorkflowState
+          state_key: reactLoopCount
+          type: Integer
+          required: false
+          default_value: 0
+          
+        - name: maxLoops
+          description: 最大循环次数限制
+          source: WorkflowState
+          state_key: maxReactLoops
+          type: Integer
+          required: false
+          default_value: 5

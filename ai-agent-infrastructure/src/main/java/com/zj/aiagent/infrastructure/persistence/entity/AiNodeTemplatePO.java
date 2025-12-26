@@ -11,7 +11,6 @@ import lombok.NoArgsConstructor;
 
 import java.time.LocalDateTime;
 
-
 @Data
 @Builder
 @AllArgsConstructor
@@ -27,18 +26,40 @@ public class AiNodeTemplatePO {
     private Long id;
 
     /**
-     * 节点类型 (PLAN, ACT, REFLECT, HUMAN, ROUTER, END)
+     * 模板唯一ID
+     */
+    @Schema(description = "模板唯一ID")
+    private String templateId;
+
+    /**
+     * 节点类型 (PLAN_NODE, ACT_NODE, SUMMARY_NODE, ROUTER_NODE)
      */
     @Schema(description = "节点类型")
     private String nodeType;
 
-    @Schema(description = "节点描述")
-    private String description;
     /**
-     * 节点展示名称
+     * 节点展示名称（如 PlanNode）
      */
     @Schema(description = "节点展示名称")
     private String nodeName;
+
+    /**
+     * 模板显示标签（中文，如"规划节点"）
+     */
+    @Schema(description = "模板显示标签")
+    private String templateLabel;
+
+    /**
+     * 节点描述
+     */
+    @Schema(description = "节点描述")
+    private String description;
+
+    /**
+     * 基础节点类型 (LLM_NODE, TOOL_NODE, ROUTER_NODE)
+     */
+    @Schema(description = "基础节点类型")
+    private String baseType;
 
     /**
      * 前端图标标识
@@ -47,16 +68,34 @@ public class AiNodeTemplatePO {
     private String icon;
 
     /**
-     * 默认系统提示词 (用于初始化)
+     * System Prompt 模板（支持 {state.fieldName} 变量占位符）
      */
-    @Schema(description = "默认系统提示词")
-    private String defaultSystemPrompt;
+    @Schema(description = "System Prompt 模板")
+    private String systemPromptTemplate;
 
     /**
-     * 前端表单配置Schema (JSON格式)
+     * 输出 Schema 定义 (JSON 格式)
      */
-    @Schema(description = "前端表单配置Schema")
-    private String configSchema;
+    @Schema(description = "输出 Schema 定义")
+    private String outputSchema;
+
+    /**
+     * 用户可编辑字段列表 (JSON 数组格式)
+     */
+    @Schema(description = "用户可编辑字段列表")
+    private String editableFields;
+
+    /**
+     * 是否系统内置模板
+     */
+    @Schema(description = "是否系统内置模板")
+    private Boolean isBuiltIn;
+
+    /**
+     * 是否已废弃
+     */
+    @Schema(description = "是否已废弃")
+    private Boolean isDeprecated;
 
     /**
      * 创建时间

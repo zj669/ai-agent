@@ -1,6 +1,6 @@
 package com.zj.aiagent.infrastructure.user.auth;
 
-import com.zj.aiagent.domain.user.service.TokenService;
+import com.zj.aiagent.domain.user.interfaces.TokenService;
 import com.zj.aiagent.infrastructure.redis.IRedisService;
 import com.zj.aiagent.shared.constants.RedisKeyConstants;
 import io.jsonwebtoken.Claims;

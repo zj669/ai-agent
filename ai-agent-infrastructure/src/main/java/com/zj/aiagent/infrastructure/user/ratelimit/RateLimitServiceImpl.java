@@ -1,13 +1,11 @@
 package com.zj.aiagent.infrastructure.user.ratelimit;
 
 import com.zj.aiagent.domain.user.service.RateLimitDomainService;
-import com.zj.aiagent.domain.user.service.RateLimitService;
+import com.zj.aiagent.domain.user.interfaces.RateLimitService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import com.zj.aiagent.infrastructure.redis.IRedisService;
 import org.springframework.stereotype.Service;
-
-import java.util.concurrent.TimeUnit;
 
 /**
  * 限流服务实现 - 基础设施层

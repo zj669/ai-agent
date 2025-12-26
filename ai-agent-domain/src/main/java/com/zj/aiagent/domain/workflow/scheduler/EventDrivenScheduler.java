@@ -1,23 +1,20 @@
 package com.zj.aiagent.domain.workflow.scheduler;
 
-import com.zj.aiagent.domain.agent.dag.entity.EdgeType;
-import com.zj.aiagent.domain.workflow.entity.EdgeDefinitionEntity;
-import com.zj.aiagent.domain.workflow.entity.ExecutionResult;
-import com.zj.aiagent.domain.workflow.entity.RouterEntity;
-import com.zj.aiagent.domain.workflow.entity.WorkflowGraph;
+import com.alibaba.fastjson2.JSONObject;
+import com.zj.aiagent.domain.workflow.entity.*;
+import com.zj.aiagent.domain.workflow.entity.config.FallbackConfig;
+import com.zj.aiagent.domain.workflow.entity.config.RetryConfig;
 import com.zj.aiagent.domain.workflow.interfaces.Checkpointer;
 import com.zj.aiagent.domain.workflow.interfaces.ConditionalEdge;
 import com.zj.aiagent.domain.workflow.interfaces.ContextProvider;
+import com.zj.aiagent.domain.workflow.interfaces.NodeExecutionInterceptor;
 import com.zj.aiagent.shared.constants.WorkflowRunningConstants;
 import com.zj.aiagent.shared.design.workflow.*;
-import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+import jakarta.annotation.PostConstruct;
+import java.util.*;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CountDownLatch;
@@ -26,17 +23,40 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 
 @Slf4j
-@RequiredArgsConstructor
 @Component
 public class EventDrivenScheduler implements WorkflowScheduler {
     private final ExecutorService executor;
     private final ContextProvider contextProvider;
     private final Checkpointer checkpointer;
     private final ConditionalEdge conditionalEdge;
+    private final List<NodeExecutionInterceptor> interceptors;
+
+    public EventDrivenScheduler(ExecutorService executor,
+            ContextProvider contextProvider,
+            Checkpointer checkpointer,
+            ConditionalEdge conditionalEdge,
+            List<NodeExecutionInterceptor> interceptors) {
+        this.executor = executor;
+        this.contextProvider = contextProvider;
+        this.checkpointer = checkpointer;
+        this.conditionalEdge = conditionalEdge;
+        this.interceptors = interceptors != null ? interceptors : new ArrayList<>();
+    }
+
+    @PostConstruct
+    private void init() {
+        // 按优先级排序拦截器
+        interceptors.sort(Comparator.comparingInt(NodeExecutionInterceptor::getOrder));
+        log.info("已注册 {} 个拦截器", interceptors.size());
+    }
 
     @Override
     public ExecutionResult execute(WorkflowGraph graph, WorkflowState initialState) {
         log.info("事件驱动调度器开始执行, graphId: {}", graph.getDagId());
+
+        // 注册 Reducer（根据 StateSchema 或默认配置）
+        registerDefaultReducers(initialState);
+
         DependencyTracker dependencyTracker = new DependencyTracker(graph);
         ConcurrentHashMap<String, Exception> failures = new ConcurrentHashMap<>();
         AtomicReference<String> pausedNodeId = new AtomicReference<>();
@@ -75,31 +95,63 @@ public class EventDrivenScheduler implements WorkflowScheduler {
         CompletableFuture.runAsync(() -> {
             try {
                 NodeExecutor node = graph.getNodes().get(nodeId);
-                String executionId = state.get(WorkflowRunningConstants.Workflow.EXECUTION_ID_KEY, String.class);
-                // 1. 执行节点
+                JSONObject nodeConfig = graph.getNodeConfigs().getOrDefault(nodeId, new JSONObject());
+
+                // 构建执行上下文
+                NodeExecutionContext context = NodeExecutionContext.builder()
+                        .nodeId(nodeId)
+                        .nodeName(node.getNodeName())
+                        .nodeType(node.getClass().getSimpleName())
+                        .state(state)
+                        .executor(node)
+                        .nodeConfig(nodeConfig)
+                        .currentRetryCount(0)
+                        .build();
+
+                // ========== 前置拦截器链 ==========
+                for (NodeExecutionInterceptor interceptor : interceptors) {
+                    InterceptResult result = interceptor.beforeExecution(context);
+                    if (result.shouldPause()) {
+                        handlePause(nodeId, result, pausedNodeId, resultRef, completionLatch);
+                        return;
+                    }
+                    if (result.shouldSkip()) {
+                        log.info("节点 {} 被跳过: {}", nodeId, result.getReason());
+                        // 跳过节点，直接标记完成
+                        tracker.markCompleted(nodeId);
+                        return;
+                    }
+                    if (result.getAction() == InterceptResult.InterceptAction.ERROR) {
+                        handleInterceptError(nodeId, result, failures, resultRef, completionLatch);
+                        return;
+                    }
+                }
+
+                // ========== 执行节点（带重试） ==========
                 listener.onNodeStarted(nodeId, node.getNodeName());
-                // 加载上下文
-                ConcurrentHashMap<String, Object> context = contextProvider.loadContext(executionId, state.getAll());
-                state.update(context);
-                StateUpdate update = node.execute(state);
-                // 更新上下文
-                state.apply(update);
-                contextProvider.saveContext(executionId, state.getAll());
-                // 检查点
-                checkpointer.save(executionId, nodeId, state);
+                StateUpdate update = executeWithRetry(context);
                 listener.onNodeCompleted(nodeId, state);
 
-                // 2. 检查信号
+                // ========== 后置拦截器链 ==========
+                for (NodeExecutionInterceptor interceptor : interceptors) {
+                    InterceptResult result = interceptor.afterExecution(context, update);
+                    if (result.shouldPause()) {
+                        handlePause(nodeId, result, pausedNodeId, resultRef, completionLatch);
+                        return;
+                    }
+                }
+
+                // ========== 检查节点自身的信号 ==========
                 if (update.getSignal() == ControlSignal.PAUSE) {
                     pausedNodeId.set(nodeId);
                     resultRef.set(ExecutionResult.pause(nodeId));
-                    completionLatch.countDown(); // 立即唤醒主线程
+                    completionLatch.countDown();
                     return;
                 }
                 if (update.getSignal() == ControlSignal.ERROR) {
                     failures.put(nodeId, new RuntimeException(update.getMessage()));
                     resultRef.set(ExecutionResult.error(nodeId, update.getMessage()));
-                    completionLatch.countDown(); // 立即唤醒主线程
+                    completionLatch.countDown();
                     return;
                 }
 
@@ -110,19 +162,23 @@ public class EventDrivenScheduler implements WorkflowScheduler {
                 Map<String, EdgeDefinitionEntity> edgeMap = graph.getNextNodes(nodeId);
                 List<RouterEntity> routerEntities = new ArrayList<>();
                 List<String> conditionalNext = new ArrayList<>();
-                for (Map.Entry<String, EdgeDefinitionEntity> entry : edgeMap.entrySet()) {
-                    EdgeDefinitionEntity edge = entry.getValue();
-                    if (EdgeType.CONDITIONAL.name().equals(edge.getEdgeType())) {
+                if (edgeMap.size() > 1) {
+                    for (Map.Entry<String, EdgeDefinitionEntity> entry : edgeMap.entrySet()) {
+                        EdgeDefinitionEntity edge = entry.getValue();
+                        String condition = edge.getCondition();
+                        if (condition == null) {
+                            condition = graph.getNodes().get(edge.getTarget()).getDescription();
+                        }
                         routerEntities.add(RouterEntity.builder()
-                                .condition(edge.getCondition())
+                                .condition(condition)
                                 .nodeId(edge.getTarget())
                                 .build());
-                    } else {
-                        conditionalNext.add(entry.getKey());
                     }
+                    List<String> evaluate = conditionalEdge.evaluate(state, routerEntities);
+                    conditionalNext.addAll(new ArrayList<>(evaluate));
+                } else {
+                    conditionalNext.addAll(new ArrayList<>(edgeMap.keySet()));
                 }
-                List<String> evaluate = conditionalEdge.evaluate(state, routerEntities);
-                conditionalNext.addAll(new ArrayList<>(evaluate));
                 for (String next : conditionalNext) {
                     if (tracker.isCompleted(next)) {
                         tracker.resetForLoop(next); // 循环
@@ -148,5 +204,146 @@ public class EventDrivenScheduler implements WorkflowScheduler {
                 }
             }
         }, executor);
+    }
+
+    /**
+     * 带重试的节点执行
+     */
+    private StateUpdate executeWithRetry(NodeExecutionContext context) {
+        RetryConfig retryConfig = context.getConfig("RETRY", RetryConfig.class);
+
+        if (retryConfig == null || !Boolean.TRUE.equals(retryConfig.getEnabled())) {
+            // 无重试配置，直接执行
+            return executeNodeOnce(context);
+        }
+
+        int maxRetries = retryConfig.getMaxRetries() != null ? retryConfig.getMaxRetries() : 3;
+        long backoffMs = retryConfig.getBackoffMs() != null ? retryConfig.getBackoffMs() : 1000L;
+        Exception lastException = null;
+
+        for (int attempt = 0; attempt <= maxRetries; attempt++) {
+            try {
+                context.setCurrentRetryCount(attempt);
+                return executeNodeOnce(context);
+            } catch (Exception e) {
+                lastException = e;
+                log.warn("节点 {} 执行失败（第 {}/{} 次）: {}",
+                        context.getNodeId(), attempt + 1, maxRetries + 1, e.getMessage());
+
+                if (attempt < maxRetries) {
+                    try {
+                        Thread.sleep(backoffMs * (attempt + 1));
+                    } catch (InterruptedException ie) {
+                        Thread.currentThread().interrupt();
+                        break;
+                    }
+                }
+            }
+        }
+
+        // 重试耗尽，尝试兜底
+        FallbackConfig fallbackConfig = context.getConfig("FALLBACK", FallbackConfig.class);
+        if (fallbackConfig != null && Boolean.TRUE.equals(fallbackConfig.getEnabled())) {
+            return executeFallback(fallbackConfig, context);
+        }
+
+        String errorMsg = lastException != null ? lastException.getMessage() : "Unknown error";
+        return StateUpdate.error("节点执行失败，已重试 " + maxRetries + " 次: " + errorMsg);
+    }
+
+    /**
+     * 执行一次节点
+     */
+    private StateUpdate executeNodeOnce(NodeExecutionContext context) {
+        String executionId = context.getState().get(WorkflowRunningConstants.Workflow.EXECUTION_ID_KEY, String.class);
+
+        // 加载上下文
+        ConcurrentHashMap<String, Object> stateData = contextProvider.loadContext(executionId,
+                context.getState().getAll());
+        context.getState().update(stateData);
+
+        // 执行节点
+        StateUpdate update = context.getExecutor().execute(context.getState());
+
+        // 更新上下文
+        context.getState().apply(update);
+        contextProvider.saveContext(executionId, context.getState().getAll());
+
+        // 检查点
+        checkpointer.save(executionId, context.getNodeId(), context.getState());
+
+        return update;
+    }
+
+    /**
+     * 执行兜底策略
+     */
+    private StateUpdate executeFallback(FallbackConfig config, NodeExecutionContext context) {
+        log.info("节点 {} 执行兜底策略: {}", context.getNodeId(), config.getStrategy());
+
+        if ("DEFAULT_RESPONSE".equals(config.getStrategy())) {
+            return StateUpdate.of(Map.of("fallback_message", config.getDefaultMessage()));
+        }
+
+        // 未来可以支持切换到备用节点
+        return StateUpdate.error("兜底策略未实现: " + config.getStrategy());
+    }
+
+    /**
+     * 处理暂停
+     */
+    private void handlePause(String nodeId, InterceptResult result,
+            AtomicReference<String> pausedNodeId,
+            AtomicReference<ExecutionResult> resultRef,
+            CountDownLatch completionLatch) {
+        pausedNodeId.set(nodeId);
+        resultRef.set(ExecutionResult.builder()
+                .nodeId(nodeId)
+                .pauseReason(result.getReason())
+                .metadata(result.getMetadata())
+                .build());
+        completionLatch.countDown();
+    }
+
+    /**
+     * 处理拦截错误
+     */
+    private void handleInterceptError(String nodeId, InterceptResult result,
+            ConcurrentHashMap<String, Exception> failures,
+            AtomicReference<ExecutionResult> resultRef,
+            CountDownLatch completionLatch) {
+        failures.put(nodeId, new RuntimeException(result.getReason()));
+        resultRef.set(ExecutionResult.error(nodeId, result.getReason()));
+        completionLatch.countDown();
+    }
+
+    /**
+     * 注册默认 Reducer
+     * <p>
+     * 为常见的 State Key 注册合并策略
+     * <p>
+     * 未来可以根据 WorkflowGraph.getStateSchema() 动态注册
+     */
+    private void registerDefaultReducers(WorkflowState state) {
+        // 执行历史：追加列表
+        state.registerReducer(WorkflowRunningConstants.ReAct.EXECUTION_HISTORY_KEY,
+                BuiltInReducers.appendList());
+
+        // 思考历史：追加列表
+        state.registerReducer(WorkflowRunningConstants.Reflection.THOUGHT_HISTORY_KEY,
+                BuiltInReducers.appendList());
+
+        // 行动历史：追加列表
+        state.registerReducer(WorkflowRunningConstants.Reflection.ACTION_HISTORY_KEY,
+                BuiltInReducers.appendList());
+
+        // 循环计数：累加
+        state.registerReducer(WorkflowRunningConstants.Reflection.LOOP_COUNT_KEY,
+                BuiltInReducers.increment());
+
+        state.registerReducer(WorkflowRunningConstants.ReAct.REACT_LOOP_COUNT_KEY,
+                BuiltInReducers.increment());
+
+        log.debug("已注册 {} 个默认 Reducer", 5);
     }
 }

@@ -3,7 +3,7 @@ package com.zj.aiagent.auth.filter;
 
 import com.zj.aiagent.auth.base.AuthenticationFilter;
 import com.zj.aiagent.auth.exception.AuthenticationException;
-import com.zj.aiagent.domain.user.service.TokenService;
+import com.zj.aiagent.domain.user.interfaces.TokenService;
 import jakarta.annotation.Resource;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.extern.slf4j.Slf4j;

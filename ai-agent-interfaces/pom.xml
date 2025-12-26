@@ -27,6 +27,15 @@
             <artifactId>ai-agent-domain</artifactId>
         </dependency>
 
+        <dependency>
+            <groupId>com.zj</groupId>
+            <artifactId>ai-agent-infrastructure</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>com.zj</groupId>
+            <artifactId>ai-agent-shared</artifactId>
+        </dependency>
         <!-- Spring Boot Web -->
         <dependency>
             <groupId>org.springframework.boot</groupId>
