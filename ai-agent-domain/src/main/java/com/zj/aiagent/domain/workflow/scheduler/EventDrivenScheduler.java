@@ -19,6 +19,7 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 
@@ -43,6 +44,19 @@ public class EventDrivenScheduler implements WorkflowScheduler {
         this.interceptors = interceptors != null ? interceptors : new ArrayList<>();
     }
 
+    private final ConcurrentHashMap<String, ExecutionControl> activeExecutions = new ConcurrentHashMap<>();
+
+    private static class ExecutionControl {
+        final CountDownLatch latch;
+        final AtomicBoolean cancelled = new AtomicBoolean(false);
+        final AtomicReference<ExecutionResult> resultRef;
+
+        ExecutionControl(CountDownLatch latch, AtomicReference<ExecutionResult> resultRef) {
+            this.latch = latch;
+            this.resultRef = resultRef;
+        }
+    }
+
     @PostConstruct
     private void init() {
         // 按优先级排序拦截器
@@ -64,17 +78,33 @@ public class EventDrivenScheduler implements WorkflowScheduler {
         CountDownLatch completionLatch = new CountDownLatch(1);
         AtomicReference<ExecutionResult> resultRef = new AtomicReference<>();
 
-        for (String nodeId : dependencyTracker.getReadyNodes()) {
-            submitNode(nodeId, graph, initialState, dependencyTracker, failures, pausedNodeId,
-                    activeCount, completionLatch, resultRef);
+        String conversationId = initialState.get(WorkflowRunningConstants.Workflow.EXECUTION_ID_KEY, String.class);
+        if (conversationId != null) {
+            activeExecutions.put(conversationId, new ExecutionControl(completionLatch, resultRef));
         }
 
         try {
+            Set<String> readyNodes = dependencyTracker.getReadyNodes();
+
+            if (readyNodes.isEmpty()) {
+                log.error("没有可执行的起始节点，工作流无法启动");
+                return ExecutionResult.error(null, "No ready nodes found - workflow cannot start");
+            }
+
+            for (String nodeId : readyNodes) {
+                submitNode(nodeId, graph, initialState, dependencyTracker, failures, pausedNodeId,
+                        activeCount, completionLatch, resultRef);
+            }
+
             completionLatch.await();
             return resultRef.get();
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
             return ExecutionResult.error(null, "Execution interrupted");
+        } finally {
+            if (conversationId != null) {
+                activeExecutions.remove(conversationId);
+            }
         }
     }
 
@@ -99,15 +129,44 @@ public class EventDrivenScheduler implements WorkflowScheduler {
         AtomicReference<ExecutionResult> resultRef = new AtomicReference<>();
 
         // 5. 从指定节点开始执行
-        submitNode(fromNodeId, graph, state, dependencyTracker, failures, pausedNodeId,
-                activeCount, completionLatch, resultRef);
+        // 5. 从指定节点开始执行
+        String conversationId = state.get(WorkflowRunningConstants.Workflow.EXECUTION_ID_KEY, String.class);
+        if (conversationId != null) {
+            activeExecutions.put(conversationId, new ExecutionControl(completionLatch, resultRef));
+        }
 
         try {
+            // 验证恢复节点是否存在
+            if (!dependencyTracker.hasNode(fromNodeId)) {
+                log.error("恢复节点不存在: fromNodeId={}", fromNodeId);
+                return ExecutionResult.error(fromNodeId, "Resume node not found: " + fromNodeId);
+            }
+
+            submitNode(fromNodeId, graph, state, dependencyTracker, failures, pausedNodeId,
+                    activeCount, completionLatch, resultRef);
+
             completionLatch.await();
             return resultRef.get();
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
             return ExecutionResult.error(fromNodeId, "Resume execution interrupted");
+        } finally {
+            if (conversationId != null) {
+                activeExecutions.remove(conversationId);
+            }
+        }
+    }
+
+    @Override
+    public void cancel(String conversationId) {
+        ExecutionControl control = activeExecutions.get(conversationId);
+        if (control != null) {
+            log.info("取消工作流执行: {}", conversationId);
+            control.cancelled.set(true);
+            control.resultRef.set(ExecutionResult.error(null, "Execution cancelled by user"));
+            control.latch.countDown();
+        } else {
+            log.warn("尝试取消不存在或已结束的工作流: {}", conversationId);
         }
     }
 
@@ -157,6 +216,16 @@ public class EventDrivenScheduler implements WorkflowScheduler {
                 NodeExecutor node = graph.getNodes().get(nodeId);
                 JSONObject nodeConfig = graph.getNodeConfigs().getOrDefault(nodeId, new JSONObject());
 
+                // 检查是否已取消
+                String conversationId = state.get(WorkflowRunningConstants.Workflow.EXECUTION_ID_KEY, String.class);
+                if (conversationId != null) {
+                    ExecutionControl control = activeExecutions.get(conversationId);
+                    if (control != null && control.cancelled.get()) {
+                        log.info("节点 {} 取消执行: 工作流已被取消", nodeId);
+                        return;
+                    }
+                }
+
                 // 构建执行上下文
                 NodeExecutionContext context = NodeExecutionContext.builder()
                         .nodeId(nodeId)
@@ -189,6 +258,16 @@ public class EventDrivenScheduler implements WorkflowScheduler {
 
                 // ========== 执行节点（带重试） ==========
                 listener.onNodeStarted(nodeId, node.getNodeName());
+
+                // 再次检查取消状态
+                if (conversationId != null) {
+                    ExecutionControl control = activeExecutions.get(conversationId);
+                    if (control != null && control.cancelled.get()) {
+                        log.info("节点 {} 取消执行: 工作流已被取消", nodeId);
+                        return;
+                    }
+                }
+
                 StateUpdate update = executeWithRetry(context);
                 listener.onNodeCompleted(nodeId, state);
 

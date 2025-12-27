@@ -105,6 +105,7 @@ public class ChatHistorySaveListener implements WorkflowStateListener {
                     .nodeName(context.nodeName)
                     .executeStatus("SUCCESS") // 到这里说明执行成功
                     .startTime(context.startTime)
+                    .agentId(result.get(WorkflowRunningConstants.Workflow.AGENT_ID_KEY))
                     .endTime(endTime)
                     .durationMs(durationMs)
                     .outputData(buildOutputData(context, result))

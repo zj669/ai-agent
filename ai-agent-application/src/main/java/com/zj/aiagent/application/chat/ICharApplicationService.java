@@ -56,4 +56,11 @@ public interface ICharApplicationService {
      */
     void review(Long userId, String conversationId, String nodeId, Boolean approved, String agentId,
             ResponseBodyEmitter emitter);
+
+    /**
+     * 取消执行
+     *
+     * @param command 取消命令
+     */
+    void cancelExecution(com.zj.aiagent.application.agent.command.CancelExecutionCommand command);
 }

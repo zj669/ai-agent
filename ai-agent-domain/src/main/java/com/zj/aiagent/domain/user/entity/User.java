@@ -152,15 +152,14 @@ public class User {
      * @return 哈希后的密码
      */
     private static String hashPassword(String password, String salt) {
-//        try {
-//            java.security.MessageDigest digest = java.security.MessageDigest.getInstance("SHA-256");
-//            String saltedPassword = password + salt;
-//            byte[] hash = digest.digest(saltedPassword.getBytes(java.nio.charset.StandardCharsets.UTF_8));
-//            return bytesToHex(hash);
-//        } catch (java.security.NoSuchAlgorithmException e) {
-//            throw new RuntimeException("密码加密失败", e);
-//        }
-        return password;
+        try {
+            java.security.MessageDigest digest = java.security.MessageDigest.getInstance("SHA-256");
+            String saltedPassword = password + salt;
+            byte[] hash = digest.digest(saltedPassword.getBytes(java.nio.charset.StandardCharsets.UTF_8));
+            return bytesToHex(hash);
+        } catch (java.security.NoSuchAlgorithmException e) {
+            throw new RuntimeException("密码加密失败", e);
+        }
     }
 
     /**

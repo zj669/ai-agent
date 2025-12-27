@@ -62,8 +62,11 @@ public class WorkflowCheckpointer implements Checkpointer {
             log.debug("保存检查点到 Redis Map: executionId={}, nodeId={}, mapSize={}",
                     executionId, nodeId, checkpointMap.size());
 
-            // 5. 异步写入数据库（备份）
-            asyncSaveToDatabase(executionId, nodeId, stateJson);
+            // 5. 提取 agentId（如果存在）
+            String agentId = extractAgentId(stateData);
+
+            // 6. 异步写入数据库（备份）
+            asyncSaveToDatabase(executionId, nodeId, stateJson, agentId);
 
         } catch (Exception e) {
             log.error("保存检查点失败: executionId={}, nodeId={}", executionId, nodeId, e);
@@ -224,7 +227,7 @@ public class WorkflowCheckpointer implements Checkpointer {
      * 将检查点数据和最后节点ID保存到 AiAgentInstancePO
      */
     @Async
-    protected void asyncSaveToDatabase(String executionId, String nodeId, String stateJson) {
+    protected void asyncSaveToDatabase(String executionId, String nodeId, String stateJson, String agentId) {
         try {
             // 1. 查询现有记录
             AiAgentInstancePO instance = agentInstanceRepository.findByConversationId(executionId);
@@ -236,6 +239,7 @@ public class WorkflowCheckpointer implements Checkpointer {
                         .currentNodeId(nodeId)
                         .status("RUNNING")
                         .runtimeContextJson(buildRuntimeContextJson(nodeId, stateJson))
+                        .agentId(agentId != null ? Long.parseLong(agentId) : null)
                         .build();
             } else {
                 // 3. 存在，更新记录
@@ -261,6 +265,17 @@ public class WorkflowCheckpointer implements Checkpointer {
         context.put("lastNodeState", JSON.parse(stateJson));
         context.put("timestamp", System.currentTimeMillis());
         return JSON.toJSONString(context);
+    }
+
+    /**
+     * 从 WorkflowState 数据中提取 agentId
+     */
+    private String extractAgentId(ConcurrentHashMap<String, Object> stateData) {
+        if (stateData == null) {
+            return null;
+        }
+        Object agentId = stateData.get(com.zj.aiagent.shared.constants.WorkflowRunningConstants.Workflow.AGENT_ID_KEY);
+        return agentId != null ? agentId.toString() : null;
     }
 
     /**

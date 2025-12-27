@@ -28,6 +28,8 @@ public class NodeExecutionRecord {
      */
     private Long instanceId;
 
+    private String agentId;
+
     /**
      * 节点ID
      */

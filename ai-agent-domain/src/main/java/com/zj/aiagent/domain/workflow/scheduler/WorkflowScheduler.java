@@ -15,4 +15,9 @@ public interface WorkflowScheduler {
      * 从暂停状态恢复执行
      */
     ExecutionResult resume(WorkflowGraph graph, WorkflowState state, String fromNodeId);
+
+    /**
+     * 取消执行
+     */
+    void cancel(String conversationId);
 }

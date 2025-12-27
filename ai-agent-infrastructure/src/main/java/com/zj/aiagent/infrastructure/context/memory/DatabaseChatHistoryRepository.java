@@ -134,6 +134,7 @@ public class DatabaseChatHistoryRepository implements ChatHistoryRepository {
                 AgentExecutionLogPO po = converter.toExecutionLogPO(record);
                 po.setConversationId(conversationId);
                 po.setInstanceId(instanceId);
+                po.setAgentId(record.getAgentId());
 
                 executionLogMapper.insert(po);
                 record.setId(po.getId());

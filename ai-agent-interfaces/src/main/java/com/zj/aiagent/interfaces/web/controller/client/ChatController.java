@@ -4,8 +4,9 @@ import cn.hutool.core.util.IdUtil;
 import com.zj.aiagent.application.chat.ICharApplicationService;
 import com.zj.aiagent.application.chat.command.ChatCommand;
 import com.zj.aiagent.interfaces.common.Response;
-import com.zj.aiagent.interfaces.web.dto.request.chat.ReviewRequest;
+import com.zj.aiagent.interfaces.web.dto.request.chat.CancelRequest;
 import com.zj.aiagent.interfaces.web.dto.request.chat.ChatRequest;
+import com.zj.aiagent.interfaces.web.dto.request.chat.ReviewRequest;
 import com.zj.aiagent.interfaces.web.dto.response.agent.ExecutionContextResponse;
 import com.zj.aiagent.interfaces.web.dto.response.chat.ChatHistoryResponse;
 import com.zj.aiagent.shared.utils.UserContext;
@@ -13,6 +14,7 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.annotation.Resource;
 import jakarta.servlet.http.HttpServletResponse;
+import jakarta.validation.Valid;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.mvc.method.annotation.ResponseBodyEmitter;
@@ -173,4 +175,30 @@ public class ChatController {
 
         return Response.success();
     }
+
+    /**
+     * 取消 Agent 执行
+     */
+    @PostMapping("/cancel")
+    @Operation(summary = "取消 Agent 执行", description = "取消正在执行的 DAG")
+    public Response<Void> cancelExecution(
+            @Valid @RequestBody CancelRequest request) {
+        try {
+            log.info("收到取消执行请求: conversationId={}", request.getConversationId());
+
+            // 构建命令
+            com.zj.aiagent.application.agent.command.CancelExecutionCommand command = new com.zj.aiagent.application.agent.command.CancelExecutionCommand();
+            command.setConversationId(request.getConversationId());
+
+            // 调用应用服务取消执行
+            charApplicationService.cancelExecution(command);
+
+            return Response.success();
+
+        } catch (Exception e) {
+            log.error("取消执行失败", e);
+            return Response.fail(e.getMessage());
+        }
+    }
+
 }

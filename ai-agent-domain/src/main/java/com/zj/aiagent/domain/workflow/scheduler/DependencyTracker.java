@@ -34,10 +34,35 @@ public class DependencyTracker {
 
     public void init(WorkflowGraph graph) {
         Map<String, List<String>> dependencies = graph.getDependencies();
-        for (String nodeId : dependencies.keySet()) {
-            pendingDependencies.put(nodeId, new AtomicInteger(dependencies.get(nodeId).size()));
-            downstreamNodes.put(nodeId, new HashSet<>(dependencies.get(nodeId)));
+
+        log.info("开始初始化 DependencyTracker, 节点总数={}, dependencies.size={}",
+                graph.getNodes().size(), dependencies.size());
+
+        // 初始化所有节点的依赖计数
+        for (String nodeId : graph.getNodes().keySet()) {
+            List<String> nodeDeps = dependencies.getOrDefault(nodeId, new ArrayList<>());
+            pendingDependencies.put(nodeId, new AtomicInteger(nodeDeps.size()));
+            log.debug("节点 {} 的依赖数: {}, 依赖列表: {}", nodeId, nodeDeps.size(), nodeDeps);
         }
+
+        // 反向构建下游节点映射：对于每个节点的每个依赖，在依赖节点的下游列表中添加当前节点
+        for (Map.Entry<String, List<String>> entry : dependencies.entrySet()) {
+            String nodeId = entry.getKey();
+            List<String> nodeDeps = entry.getValue();
+
+            for (String dependency : nodeDeps) {
+                downstreamNodes.computeIfAbsent(dependency, k -> new HashSet<>()).add(nodeId);
+            }
+        }
+
+        // 查找起始节点
+        List<String> startNodes = pendingDependencies.entrySet().stream()
+                .filter(e -> e.getValue().get() == 0)
+                .map(Map.Entry::getKey)
+                .toList();
+
+        log.info("DependencyTracker 初始化完成: 节点总数={}, 起始节点数={}, 起始节点={}",
+                pendingDependencies.size(), startNodes.size(), startNodes);
     }
 
     public Set<String> getReadyNodes() {
@@ -47,6 +72,8 @@ public class DependencyTracker {
                 readyNodes.add(nodeId);
             }
         }
+        log.debug("getReadyNodes() 返回: {} (总节点数={}, 已完成数={})",
+                readyNodes, pendingDependencies.size(), completedNodes.size());
         return readyNodes;
     }
 
@@ -100,6 +127,13 @@ public class DependencyTracker {
      */
     public boolean isCompleted(String nodeId) {
         return completedNodes.contains(nodeId);
+    }
+
+    /**
+     * 检查节点是否存在于跟踪器中
+     */
+    public boolean hasNode(String nodeId) {
+        return pendingDependencies.containsKey(nodeId);
     }
 
     /**

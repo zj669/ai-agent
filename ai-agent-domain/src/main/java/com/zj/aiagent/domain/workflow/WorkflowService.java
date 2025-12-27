@@ -18,14 +18,16 @@ public class WorkflowService implements IWorkflowService {
     private final Checkpointer checkpointer;
 
     @Override
-    public void execute(WorkflowGraph graph, String conversationId, WorkflowStateListener listener) {
+    public void execute(WorkflowGraph graph, String conversationId, WorkflowStateListener listener, String agentId) {
         WorkflowState workflowState = new WorkflowState(listener);
         workflowState.put(WorkflowRunningConstants.Workflow.EXECUTION_ID_KEY, conversationId);
+        workflowState.put(WorkflowRunningConstants.Workflow.AGENT_ID_KEY, agentId);
         workflowScheduler.execute(graph, workflowState);
     }
 
     @Override
-    public void resume(WorkflowGraph graph, String conversationId, String fromNodeId, WorkflowStateListener listener) {
+    public void resume(WorkflowGraph graph, String conversationId, String fromNodeId, WorkflowStateListener listener,
+            String agentId) {
         log.info("恢复工作流执行, conversationId={}, fromNodeId={}", conversationId, fromNodeId);
 
         try {
@@ -44,7 +46,12 @@ public class WorkflowService implements IWorkflowService {
             // 2. 设置监听器（用于SSE推送）
             workflowState.setWorkflowStateListener(listener);
 
-            // 3. 调用调度器的resume方法
+            // 3. 确保 agentId 存在
+            if (workflowState.get(WorkflowRunningConstants.Workflow.AGENT_ID_KEY, String.class) == null) {
+                workflowState.put(WorkflowRunningConstants.Workflow.AGENT_ID_KEY, agentId);
+            }
+
+            // 4. 调用调度器的resume方法
             workflowScheduler.resume(graph, workflowState, fromNodeId);
 
             log.info("工作流恢复执行成功: conversationId={}", conversationId);
@@ -109,5 +116,11 @@ public class WorkflowService implements IWorkflowService {
             log.error("更新执行快照失败: conversationId={}, nodeId={}", conversationId, nodeId, e);
             throw new RuntimeException("更新执行快照失败: " + e.getMessage(), e);
         }
+    }
+
+    @Override
+    public void cancel(String conversationId) {
+        log.info("领域服务: 取消工作流执行, conversationId={}", conversationId);
+        workflowScheduler.cancel(conversationId);
     }
 }

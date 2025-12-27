@@ -1,6 +1,7 @@
 package com.zj.aiagent.application.chat;
 
 import com.alibaba.fastjson.JSON;
+import com.zj.aiagent.application.agent.command.CancelExecutionCommand;
 import com.zj.aiagent.application.chat.command.ChatCommand;
 import com.zj.aiagent.domain.workflow.IWorkflowService;
 import com.zj.aiagent.domain.workflow.entity.WorkflowGraph;
@@ -53,9 +54,9 @@ public class CharApplicationService implements ICharApplicationService {
         }
         executorService.submit(() -> {
             try {
-                workflowService.execute(graph, command.getConversationId(), listener);
+                workflowService.execute(graph, command.getConversationId(), listener, command.getAgentId());
             } catch (Exception e) {
-                log.error("人工审核处理失败: conversationId={}",  command.getConversationId(), e);
+                log.error("人工审核处理失败: conversationId={}", command.getConversationId(), e);
                 sendErrorEvent(command.getEmitter(), command.getConversationId(), e.getMessage());
             }
         });
@@ -194,7 +195,7 @@ public class CharApplicationService implements ICharApplicationService {
         }
 
         // 恢复执行
-        workflowService.resume(graph, conversationId, nodeId, listener);
+        workflowService.resume(graph, conversationId, nodeId, listener, agentId);
 
         log.info("工作流恢复执行完成: conversationId={}", conversationId);
     }
@@ -255,5 +256,11 @@ public class CharApplicationService implements ICharApplicationService {
         } catch (Exception e) {
             log.warn("发送错误事件失败: {}", e.getMessage());
         }
+    }
+
+    @Override
+    public void cancelExecution(CancelExecutionCommand command) {
+        log.info("应用服务: 取消执行, conversationId={}", command.getConversationId());
+        workflowService.cancel(command.getConversationId());
     }
 }
