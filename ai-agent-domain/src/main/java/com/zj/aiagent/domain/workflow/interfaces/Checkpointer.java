@@ -45,6 +45,17 @@ public interface Checkpointer {
     String getLastNodeId(String executionId);
 
     /**
+     * 更新检查点
+     * <p>
+     * 先更新 Redis，然后异步更新数据库
+     * 
+     * @param executionId 执行ID
+     * @param nodeId      节点ID
+     * @param state       更新后的状态
+     */
+    void update(String executionId, String nodeId, WorkflowState state);
+
+    /**
      * 清除检查点
      * 
      * @param executionId 执行ID

@@ -31,11 +31,19 @@ public class MemoryService implements MemoryProvider {
     }
 
     @Override
+    public List<ChatMessage> loadChatHistoryWithNodeExecutions(String conversationId, int maxMessages) {
+        log.debug("[{}] 加载带节点执行详情的对话历史，最多 {} 条", conversationId, maxMessages);
+        return chatHistoryRepository.loadWithNodeExecutions(conversationId, maxMessages);
+    }
+
+    @Override
     public void saveChatMessage(String executionId, ChatMessage message) {
         log.debug("[{}] 保存对话消息: {} - {}",
                 executionId,
                 message.getRole(),
-                message.getContent().substring(0, Math.min(50, message.getContent().length())));
+                message.getContent() != null && message.getContent().length() > 50
+                        ? message.getContent().substring(0, 50)
+                        : message.getContent());
         chatHistoryRepository.save(executionId, message);
     }
 
@@ -56,5 +64,11 @@ public class MemoryService implements MemoryProvider {
     public void clearChatHistory(String executionId) {
         log.info("[{}] 清除对话历史", executionId);
         chatHistoryRepository.clear(executionId);
+    }
+
+    @Override
+    public List<String> queryConversationIds(Long userId, String agentId) {
+        log.debug("查询用户 {} 在 Agent {} 的会话ID列表", userId, agentId);
+        return chatHistoryRepository.queryConversationIds(userId, agentId);
     }
 }

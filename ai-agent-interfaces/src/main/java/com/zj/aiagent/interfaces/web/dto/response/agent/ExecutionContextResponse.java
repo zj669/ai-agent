@@ -25,37 +25,24 @@ public class ExecutionContextResponse {
     private String conversationId;
 
     /**
-     * 执行状态
+     * 最后执行的节点ID
+     */
+    private String lastNodeId;
+
+    /**
+     * 执行状态 (RUNNING, PAUSED, COMPLETED, ERROR)
      */
     private String status;
 
     /**
-     * 暂停的节点ID
+     * 快照时间戳
      */
-    private String pausedNodeId;
+    private Long timestamp;
 
     /**
-     * 暂停的节点名称
+     * 工作流状态数据
+     * <p>
+     * 包含所有状态键值对，如用户输入、执行历史、思考历史等
      */
-    private String pausedNodeName;
-
-    /**
-     * 暂停时间戳
-     */
-    private Long pausedAt;
-
-    /**
-     * 所有节点执行结果
-     */
-    private Map<String, Object> nodeResults;
-
-    /**
-     * 是否允许修改输出
-     */
-    private Boolean allowModifyOutput;
-
-    /**
-     * 审核提示消息
-     */
-    private String checkMessage;
+    private Map<String, Object> stateData;
 }

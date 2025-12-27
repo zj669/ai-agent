@@ -1,4 +1,4 @@
-package com.zj.aiagent.domain.memory.entity;
+package com.zj.aiagent.infrastructure.persistence.entity;
 
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -6,19 +6,20 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 import java.time.LocalDateTime;
-import java.util.List;
 
 /**
- * 聊天消息实体
+ * 聊天消息持久化对象
+ * <p>
+ * 对应表: ai_chat_message
  */
 @Data
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-public class ChatMessage {
+public class ChatMessagePO {
 
     /**
-     * 消息ID（数据库主键）
+     * 主键ID
      */
     private Long id;
 
@@ -43,7 +44,7 @@ public class ChatMessage {
     private Long instanceId;
 
     /**
-     * 消息角色: user, assistant, system
+     * 消息角色: user, assistant
      */
     private String role;
 
@@ -58,11 +59,6 @@ public class ChatMessage {
     private String finalResponse;
 
     /**
-     * 消息时间戳
-     */
-    private LocalDateTime timestamp;
-
-    /**
      * 是否有错误
      */
     private Boolean isError;
@@ -73,14 +69,17 @@ public class ChatMessage {
     private String errorMessage;
 
     /**
-     * 消息元数据
+     * 消息时间戳（毫秒）
      */
-    private java.util.Map<String, Object> metadata;
+    private Long timestamp;
 
     /**
-     * 关联的节点执行记录（懒加载）
-     * <p>
-     * 仅在需要详细执行信息时加载
+     * 创建时间
      */
-    private List<NodeExecutionRecord> nodeExecutions;
+    private LocalDateTime createTime;
+
+    /**
+     * 更新时间
+     */
+    private LocalDateTime updateTime;
 }

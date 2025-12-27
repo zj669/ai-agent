@@ -41,7 +41,8 @@ public class WorkflowGraphFactory {
     private final AiNodeTemplateMapper nodeTemplateMapper;
 
     public WorkflowGraph loadDagByAgentId(String agentId) {
-        AiAgentPO aiAgent = agentRepository.getById(agentId);
+        Long agentIdLong = Long.parseLong(agentId);
+        AiAgentPO aiAgent = agentRepository.getById(agentIdLong);
         if (aiAgent == null) {
             throw new RuntimeException("Agent not found: agentId=" + agentId);
         }

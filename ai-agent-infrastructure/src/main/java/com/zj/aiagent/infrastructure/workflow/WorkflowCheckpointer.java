@@ -149,6 +149,25 @@ public class WorkflowCheckpointer implements Checkpointer {
     }
 
     @Override
+    public void update(String executionId, String nodeId, WorkflowState state) {
+        if (executionId == null || nodeId == null || state == null) {
+            log.warn("更新检查点参数为空，跳过: executionId={}, nodeId={}", executionId, nodeId);
+            return;
+        }
+
+        try {
+            log.info("更新检查点: executionId={}, nodeId={}", executionId, nodeId);
+
+            // 更新逻辑与保存相同，复用 save 方法
+            save(executionId, nodeId, state);
+
+        } catch (Exception e) {
+            log.error("更新检查点失败: executionId={}, nodeId={}", executionId, nodeId, e);
+            throw new RuntimeException("更新检查点失败: " + e.getMessage(), e);
+        }
+    }
+
+    @Override
     public void clear(String executionId) {
         if (executionId == null) {
             log.warn("清除检查点 executionId 为空");

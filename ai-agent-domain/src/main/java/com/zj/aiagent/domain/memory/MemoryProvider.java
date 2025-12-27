@@ -20,6 +20,15 @@ public interface MemoryProvider {
     List<ChatMessage> loadChatHistory(String executionId, int maxMessages);
 
     /**
+     * 加载带节点执行详情的对话历史
+     *
+     * @param conversationId 会话ID
+     * @param maxMessages    最大消息数
+     * @return 包含节点执行详情的对话历史列表
+     */
+    List<ChatMessage> loadChatHistoryWithNodeExecutions(String conversationId, int maxMessages);
+
+    /**
      * 保存消息到对话历史
      * 
      * @param executionId 执行ID
@@ -50,4 +59,13 @@ public interface MemoryProvider {
      * @param executionId 执行ID
      */
     void clearChatHistory(String executionId);
+
+    /**
+     * 查询用户的会话ID列表
+     *
+     * @param userId  用户ID
+     * @param agentId Agent ID
+     * @return 会话ID列表
+     */
+    List<String> queryConversationIds(Long userId, String agentId);
 }

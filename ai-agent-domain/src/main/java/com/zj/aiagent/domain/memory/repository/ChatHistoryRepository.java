@@ -1,7 +1,7 @@
 package com.zj.aiagent.domain.memory.repository;
 
 import com.zj.aiagent.domain.memory.entity.ChatMessage;
-import com.zj.aiagent.domain.memory.entity.Memory;
+import com.zj.aiagent.domain.memory.entity.NodeExecutionRecord;
 
 import java.util.List;
 
@@ -36,4 +36,39 @@ public interface ChatHistoryRepository {
      * @param executionId 执行ID
      */
     void clear(String executionId);
+
+    /**
+     * 加载带节点执行详情的完整消息
+     *
+     * @param conversationId 会话ID
+     * @param maxMessages    最大消息数
+     * @return 包含节点执行详情的消息列表
+     */
+    List<ChatMessage> loadWithNodeExecutions(String conversationId, int maxMessages);
+
+    /**
+     * 保存节点执行日志
+     *
+     * @param conversationId 会话ID
+     * @param instanceId     实例ID
+     * @param record         节点执行记录
+     */
+    void saveNodeExecution(String conversationId, Long instanceId, NodeExecutionRecord record);
+
+    /**
+     * 根据实例ID查询节点执行日志
+     *
+     * @param instanceId 实例ID
+     * @return 节点执行记录列表
+     */
+    List<NodeExecutionRecord> loadNodeExecutions(Long instanceId);
+
+    /**
+     * 查询用户的会话ID列表
+     *
+     * @param userId  用户ID
+     * @param agentId Agent ID
+     * @return 会话ID列表
+     */
+    List<String> queryConversationIds(Long userId, String agentId);
 }

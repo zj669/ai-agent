@@ -35,4 +35,13 @@ public interface IWorkflowService {
      * @return 执行上下文快照，如果不存在则返回null
      */
     ExecutionContextSnapshot getExecutionSnapshot(String conversationId);
+
+    /**
+     * 更新执行快照
+     *
+     * @param conversationId 会话ID
+     * @param nodeId         节点ID
+     * @param stateData      更新后的状态数据
+     */
+    void updateExecutionSnapshot(String conversationId, String nodeId, java.util.Map<String, Object> stateData);
 }

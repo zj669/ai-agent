@@ -85,4 +85,29 @@ public class WorkflowService implements IWorkflowService {
             throw new RuntimeException("获取执行快照失败: " + e.getMessage(), e);
         }
     }
+
+    @Override
+    public void updateExecutionSnapshot(String conversationId, String nodeId,
+            java.util.Map<String, Object> stateData) {
+        log.info("领域服务: 更新执行快照, conversationId={}, nodeId={}", conversationId, nodeId);
+
+        try {
+            // 1. 创建 WorkflowState 对象
+            WorkflowState workflowState = new WorkflowState(null);
+
+            // 2. 填充状态数据
+            if (stateData != null && !stateData.isEmpty()) {
+                stateData.forEach(workflowState::put);
+            }
+
+            // 3. 调用 Checkpointer 更新
+            checkpointer.update(conversationId, nodeId, workflowState);
+
+            log.info("执行快照更新成功: conversationId={}, nodeId={}", conversationId, nodeId);
+
+        } catch (Exception e) {
+            log.error("更新执行快照失败: conversationId={}, nodeId={}", conversationId, nodeId, e);
+            throw new RuntimeException("更新执行快照失败: " + e.getMessage(), e);
+        }
+    }
 }
