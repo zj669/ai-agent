@@ -188,3 +188,5 @@ info:
     encoding: "UTF-8"
     java:
       version: ${java.version}
+memory:
+  storage: database  # 可选值: memory, database

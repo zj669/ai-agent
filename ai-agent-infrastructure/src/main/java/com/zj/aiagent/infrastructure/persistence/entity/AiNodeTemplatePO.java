@@ -109,4 +109,7 @@ public class AiNodeTemplatePO {
     @Schema(description = "更新时间")
     private LocalDateTime updateTime;
 
+    @Schema(description = "模型ID")
+    private String modelId;
+
 }

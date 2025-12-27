@@ -4,10 +4,13 @@ import com.alibaba.fastjson.JSON;
 import com.zj.aiagent.application.chat.command.ChatCommand;
 import com.zj.aiagent.domain.workflow.IWorkflowService;
 import com.zj.aiagent.domain.workflow.entity.WorkflowGraph;
+import com.zj.aiagent.infrastructure.listener.ChatHistorySaveListener;
+import com.zj.aiagent.infrastructure.listener.CompositeWorkflowStateListener;
 import com.zj.aiagent.infrastructure.listener.SSEWorkflowStateListener;
 import com.zj.aiagent.infrastructure.parse.WorkflowGraphFactory;
 import jakarta.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.web.servlet.mvc.method.annotation.ResponseBodyEmitter;
 
@@ -27,8 +30,8 @@ public class CharApplicationService implements ICharApplicationService {
     private ExecutorService executorService;
     @Resource
     private com.zj.aiagent.domain.memory.MemoryProvider memoryService;
-    @org.springframework.beans.factory.annotation.Autowired(required = false)
-    private com.zj.aiagent.infrastructure.listener.ChatHistorySaveListener chatHistorySaveListener;
+    @Autowired(required = false)
+    private ChatHistorySaveListener chatHistorySaveListener;
 
     @Override
     public void chat(ChatCommand command) {
@@ -41,15 +44,21 @@ public class CharApplicationService implements ICharApplicationService {
         // 如果启用了数据库存储，创建复合监听器
         com.zj.aiagent.shared.design.workflow.WorkflowStateListener listener;
         if (chatHistorySaveListener != null) {
-            listener = new com.zj.aiagent.infrastructure.listener.CompositeWorkflowStateListener(
+            listener = new CompositeWorkflowStateListener(
                     sseListener, chatHistorySaveListener);
             log.debug("[{}] 使用复合监听器: SSE + ChatHistorySave", command.getConversationId());
         } else {
             listener = sseListener;
             log.debug("[{}] 仅使用 SSE 监听器", command.getConversationId());
         }
-
-        workflowService.execute(graph, command.getConversationId(), listener);
+        executorService.submit(() -> {
+            try {
+                workflowService.execute(graph, command.getConversationId(), listener);
+            } catch (Exception e) {
+                log.error("人工审核处理失败: conversationId={}",  command.getConversationId(), e);
+                sendErrorEvent(command.getEmitter(), command.getConversationId(), e.getMessage());
+            }
+        });
     }
 
     @Override

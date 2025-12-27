@@ -4,6 +4,7 @@ import com.alibaba.fastjson2.JSON;
 import com.alibaba.fastjson2.JSONObject;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.zj.aiagent.domain.model.parse.ModelConfigParseFactory;
+import com.zj.aiagent.domain.model.parse.entity.ModelConfigEntity;
 import com.zj.aiagent.domain.model.parse.entity.ModelConfigResult;
 import com.zj.aiagent.domain.prompt.parse.PromptConfigParseFactory;
 import com.zj.aiagent.domain.prompt.parse.entity.PromptConfigResult;
@@ -15,9 +16,13 @@ import com.zj.aiagent.infrastructure.parse.adpater.NodeExecutorFactory;
 import com.zj.aiagent.infrastructure.parse.convert.ConfigConvert;
 import com.zj.aiagent.infrastructure.parse.entity.GraphJsonSchema;
 import com.zj.aiagent.infrastructure.persistence.entity.AiAgentPO;
+import com.zj.aiagent.infrastructure.persistence.entity.AiApiPO;
+import com.zj.aiagent.infrastructure.persistence.entity.AiModelPO;
 import com.zj.aiagent.infrastructure.persistence.entity.AiNodeTemplatePO;
 import com.zj.aiagent.infrastructure.persistence.mapper.AiNodeTemplateMapper;
 import com.zj.aiagent.infrastructure.persistence.repository.IAiAgentRepository;
+import com.zj.aiagent.infrastructure.persistence.repository.IAiApiRepository;
+import com.zj.aiagent.infrastructure.persistence.repository.IAiModelRepository;
 import com.zj.aiagent.shared.design.workflow.NodeExecutor;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -39,6 +44,8 @@ public class WorkflowGraphFactory {
     private final ModelConfigParseFactory modelConfigParseFactory;
     private final NodeExecutorFactory nodeExecutorFactory;
     private final AiNodeTemplateMapper nodeTemplateMapper;
+    private final IAiModelRepository aiModelRepository;
+    private final IAiApiRepository aiApiRepository;
 
     public WorkflowGraph loadDagByAgentId(String agentId) {
         Long agentIdLong = Long.parseLong(agentId);
@@ -161,12 +168,10 @@ public class WorkflowGraphFactory {
                 .build();
 
         // 2. 解析配置
-        McpConfigResult mcpConfigResult = mcpConfigParseFactory.parseConfig(
-                ConfigConvert.convertMcp(tempNodeDef));
         PromptConfigResult promptConfigResult = promptConfigParseFactory.parseConfig(
                 buildPromptConfigEntity(template, mergedConfig));
         ModelConfigResult modelConfigResult = modelConfigParseFactory.parseConfig(
-                ConfigConvert.convertModel(tempNodeDef));
+                buildModelConfigEntity(template, mergedConfig));
 
         // 3. 创建节点
         return nodeExecutorFactory.createNodeExecutor(
@@ -176,6 +181,26 @@ public class WorkflowGraphFactory {
                 template.getDescription(),
                 modelConfigResult.getChatModel(),
                 promptConfigResult.getPrompt());
+    }
+
+    private ModelConfigEntity buildModelConfigEntity( AiNodeTemplatePO template, JSONObject mergedConfig) {
+        JSONObject modelConfig = new JSONObject();
+        if(mergedConfig.containsKey("MODEL")){
+            modelConfig.put("baseUrl", mergedConfig.getJSONObject("MODEL").getString("baseUrl"));
+            modelConfig.put("apiKey", mergedConfig.getJSONObject("MODEL").getString("apiKey"));
+            modelConfig.put("modelName", mergedConfig.getJSONObject("MODEL").getInteger("modelName"));
+        }else{
+            AiModelPO aiModelPO = aiModelRepository.getById(template.getModelId());
+            AiApiPO aiApiPO = aiApiRepository.getById(aiModelPO.getApiId());
+            modelConfig.put("baseUrl", aiApiPO.getBaseUrl());
+            modelConfig.put("apiKey", aiApiPO.getApiKey());
+            modelConfig.put("modelName", aiModelPO.getModelName());
+        }
+
+        return ModelConfigEntity.builder()
+                .config(modelConfig.toJSONString())
+                .build();
+
     }
 
     /**
@@ -236,13 +261,13 @@ public class WorkflowGraphFactory {
 
                 // 合并各个模块的配置
                 if (userConfigJson.containsKey("MCP_TOOL")) {
-                    mergedConfig.put("mcpConfig", userConfigJson.getJSONObject("MCP_TOOL"));
+                    mergedConfig.put("MCP_TOOL", userConfigJson.getJSONObject("MCP_TOOL"));
                 }
-                if (userConfigJson.containsKey("MODEL_CONFIG")) {
-                    mergedConfig.put("modelConfig", userConfigJson.getJSONObject("MODEL_CONFIG"));
+                if (userConfigJson.containsKey("MODEL")) {
+                    mergedConfig.put("MODEL", userConfigJson.getJSONObject("MODEL"));
                 }
-                if (userConfigJson.containsKey("USER_PROMPT")) {
-                    mergedConfig.put("userPrompt", userConfigJson.getJSONObject("USER_PROMPT"));
+                if (userConfigJson.containsKey("HUMAN_INTERVENTION")) {
+                    mergedConfig.put("HUMAN_INTERVENTION", userConfigJson.getJSONObject("HUMAN_INTERVENTION"));
                 }
                 // 其他模块...
 
