@@ -12,8 +12,10 @@ public interface IWorkflowService {
      * @param conversationId 会话ID
      * @param listener       状态监听器
      * @param agentId        Agent ID
+     * @param userMessage    用户消息
      */
-    void execute(WorkflowGraph graph, String conversationId, WorkflowStateListener listener, String agentId);
+    void execute(WorkflowGraph graph, String conversationId, WorkflowStateListener listener, String agentId,
+            String userMessage);
 
     /**
      * 恢复工作流执行

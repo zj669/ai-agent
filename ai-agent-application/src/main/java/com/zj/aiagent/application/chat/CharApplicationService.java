@@ -54,7 +54,8 @@ public class CharApplicationService implements ICharApplicationService {
         }
         executorService.submit(() -> {
             try {
-                workflowService.execute(graph, command.getConversationId(), listener, command.getAgentId());
+                workflowService.execute(graph, command.getConversationId(), listener, command.getAgentId(),
+                        command.getUserMessage());
             } catch (Exception e) {
                 log.error("人工审核处理失败: conversationId={}", command.getConversationId(), e);
                 sendErrorEvent(command.getEmitter(), command.getConversationId(), e.getMessage());

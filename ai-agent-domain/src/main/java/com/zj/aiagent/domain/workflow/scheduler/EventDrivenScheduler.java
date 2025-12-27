@@ -83,6 +83,12 @@ public class EventDrivenScheduler implements WorkflowScheduler {
             activeExecutions.put(conversationId, new ExecutionControl(completionLatch, resultRef));
         }
 
+        // 通知工作流开始
+        WorkflowStateListener listener = initialState.getWorkflowStateListener();
+        if (listener != null) {
+            listener.onWorkflowStarted(graph.getNodes().size());
+        }
+
         try {
             Set<String> readyNodes = dependencyTracker.getReadyNodes();
 
@@ -97,9 +103,22 @@ public class EventDrivenScheduler implements WorkflowScheduler {
             }
 
             completionLatch.await();
-            return resultRef.get();
+
+            // 获取执行结果
+            ExecutionResult result = resultRef.get();
+
+            // 通知工作流完成（error为null表示成功）
+            if (listener != null) {
+                boolean success = (result != null && result.getError() == null);
+                listener.onWorkflowCompleted(success);
+            }
+
+            return result;
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
+            if (listener != null) {
+                listener.onWorkflowFailed(e);
+            }
             return ExecutionResult.error(null, "Execution interrupted");
         } finally {
             if (conversationId != null) {
@@ -257,6 +276,7 @@ public class EventDrivenScheduler implements WorkflowScheduler {
                 }
 
                 // ========== 执行节点（带重试） ==========
+                long startTime = System.currentTimeMillis();
                 listener.onNodeStarted(nodeId, node.getNodeName());
 
                 // 再次检查取消状态
@@ -269,7 +289,8 @@ public class EventDrivenScheduler implements WorkflowScheduler {
                 }
 
                 StateUpdate update = executeWithRetry(context);
-                listener.onNodeCompleted(nodeId, state);
+                long durationMs = System.currentTimeMillis() - startTime;
+                listener.onNodeCompleted(nodeId, node.getNodeName(), state, durationMs);
 
                 // ========== 后置拦截器链 ==========
                 for (NodeExecutionInterceptor interceptor : interceptors) {

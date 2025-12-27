@@ -18,10 +18,20 @@ public class WorkflowService implements IWorkflowService {
     private final Checkpointer checkpointer;
 
     @Override
-    public void execute(WorkflowGraph graph, String conversationId, WorkflowStateListener listener, String agentId) {
+    public void execute(WorkflowGraph graph, String conversationId, WorkflowStateListener listener, String agentId,
+            String userMessage) {
         WorkflowState workflowState = new WorkflowState(listener);
         workflowState.put(WorkflowRunningConstants.Workflow.EXECUTION_ID_KEY, conversationId);
         workflowState.put(WorkflowRunningConstants.Workflow.AGENT_ID_KEY, agentId);
+
+        // 存储用户消息
+        if (userMessage != null && !userMessage.isEmpty()) {
+            workflowState.put(WorkflowRunningConstants.Context.USER_QUESTION_KEY, userMessage);
+            workflowState.put(WorkflowRunningConstants.Prompt.USER_MESSAGE_KEY, userMessage);
+            log.info("存储用户消息到 WorkflowState: {}",
+                    userMessage.length() > 50 ? userMessage.substring(0, 50) + "..." : userMessage);
+        }
+
         workflowScheduler.execute(graph, workflowState);
     }
 

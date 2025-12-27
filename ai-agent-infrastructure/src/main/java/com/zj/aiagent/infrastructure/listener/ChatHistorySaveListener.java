@@ -49,6 +49,28 @@ public class ChatHistorySaveListener implements WorkflowStateListener {
     private final Map<String, NodeExecutionContext> contextMap = new ConcurrentHashMap<>();
 
     @Override
+    public void onWorkflowStarted(int totalNodes) {
+        // 聊天历史保存不需要处理工作流级别事件
+        log.debug("[ChatHistorySave] 工作流开始: totalNodes={}", totalNodes);
+    }
+
+    @Override
+    public void onWorkflowCompleted(boolean success) {
+        // 清理所有上下文
+        int size = contextMap.size();
+        contextMap.clear();
+        log.debug("[ChatHistorySave] 工作流完成，清理 {} 个节点上下文", size);
+    }
+
+    @Override
+    public void onWorkflowFailed(Throwable t) {
+        // 清理所有上下文
+        int size = contextMap.size();
+        contextMap.clear();
+        log.warn("[ChatHistorySave] 工作流失败，清理 {} 个节点上下文", size);
+    }
+
+    @Override
     public void onNodeStarted(String nodeId, String nodeName) {
         NodeExecutionContext context = new NodeExecutionContext();
         context.nodeId = nodeId;
@@ -62,7 +84,7 @@ public class ChatHistorySaveListener implements WorkflowStateListener {
     }
 
     @Override
-    public void onNodeStreaming(String nodeId, String contentChunk) {
+    public void onNodeStreaming(String nodeId, String nodeName, String contentChunk) {
         NodeExecutionContext context = contextMap.get(nodeId);
         if (context != null) {
             context.streamingContent.append(contentChunk);
@@ -70,7 +92,7 @@ public class ChatHistorySaveListener implements WorkflowStateListener {
     }
 
     @Override
-    public void onNodeCompleted(String nodeId, WorkflowState result) {
+    public void onNodeCompleted(String nodeId, String nodeName, WorkflowState result, long durationMs) {
         NodeExecutionContext context = contextMap.get(nodeId);
         if (context == null) {
             log.warn("[ChatHistorySave] 节点完成但无上下文: nodeId={}", nodeId);
@@ -98,16 +120,15 @@ public class ChatHistorySaveListener implements WorkflowStateListener {
 
             // 构建节点执行记录
             LocalDateTime endTime = LocalDateTime.now();
-            long durationMs = java.time.Duration.between(context.startTime, endTime).toMillis();
 
             NodeExecutionRecord record = NodeExecutionRecord.builder()
                     .nodeId(nodeId)
-                    .nodeName(context.nodeName)
+                    .nodeName(nodeName) // 使用参数传入的nodeName
                     .executeStatus("SUCCESS") // 到这里说明执行成功
                     .startTime(context.startTime)
                     .agentId(result.get(WorkflowRunningConstants.Workflow.AGENT_ID_KEY))
                     .endTime(endTime)
-                    .durationMs(durationMs)
+                    .durationMs(durationMs) // 使用参数传入的duration
                     .outputData(buildOutputData(context, result))
                     .build();
 
@@ -126,11 +147,22 @@ public class ChatHistorySaveListener implements WorkflowStateListener {
     }
 
     @Override
-    public void onWorkflowFailed(Throwable t) {
-        // 清理所有上下文
-        int size = contextMap.size();
-        contextMap.clear();
-        log.warn("[ChatHistorySave] 工作流失败，清理 {} 个节点上下文", size);
+    public void onNodeFailed(String nodeId, String nodeName, String error, long durationMs) {
+        // 可以选择保存失败记录
+        log.warn("[ChatHistorySave] 节点失败: nodeId={}, nodeName={}, error={}", nodeId, nodeName, error);
+        contextMap.remove(nodeId);
+    }
+
+    @Override
+    public void onNodePaused(String nodeId, String nodeName, String message) {
+        // 暂停状态不需要保存
+        log.debug("[ChatHistorySave] 节点暂停: nodeId={}, nodeName={}, message={}", nodeId, nodeName, message);
+    }
+
+    @Override
+    public void onFinalAnswer(String contentChunk) {
+        // 最终回复由SSE监听器处理，这里不需要保存
+        log.trace("[ChatHistorySave] 最终回复 chunk: {} 字符", contentChunk.length());
     }
 
     /**

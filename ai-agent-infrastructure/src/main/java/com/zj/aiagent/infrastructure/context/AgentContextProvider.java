@@ -92,7 +92,6 @@ public class AgentContextProvider implements ContextProvider {
             }
         }
 
-
         // 4. 【新增】智能推荐工具
         if (mcpProvider != null) {
             try {
@@ -236,52 +235,212 @@ public class AgentContextProvider implements ContextProvider {
             String promptTemplate,
             WorkflowState state) {
 
-        StringBuilder completePrompt = new StringBuilder();
+        log.info("[{}] 开始构建完整 Prompt", executionId);
+        StringBuilder prompt = new StringBuilder();
 
-        // 1. 替换系统提示词模板中的变量
-        String systemPrompt = replaceVariables(promptTemplate, state);
-        completePrompt.append(systemPrompt);
+        // ==================== SYSTEM CONTEXT & GROUNDING LAYER ====================
+        prompt.append("# [SYSTEM: CONTEXT & GROUNDING LAYER]\n");
+        prompt.append(
+                "(The following information is the objective runtime environment. You must execute based on this context.)\n\n");
 
-        // 2. 追加对话历史（如果有 Memory）
-        if (memoryProvider != null) {
-            try {
-                List<ChatMessage> chatHistory = memoryProvider.loadChatHistory(executionId, 10);
-                if (chatHistory != null && !chatHistory.isEmpty()) {
-                    completePrompt.append("\n\n## 对话历史\n");
-                    for (ChatMessage msg : chatHistory) {
-                        completePrompt.append(String.format("[%s]: %s\n",
-                                msg.getRole(), msg.getContent()));
-                    }
-                }
-            } catch (Exception e) {
-                log.warn("[{}] 加载对话历史失败: {}", executionId, e.getMessage());
-            }
-        }
+        // 1. Runtime Environment
+        prompt.append("## 1. 🕒 Runtime Environment\n");
+        prompt.append(String.format("- **Current Time**: %s\n", java.time.LocalDateTime.now()
+                .format(java.time.format.DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"))));
+        prompt.append(String.format("- **Execution ID**: %s\n", executionId));
+        prompt.append(String.format("- **Agent ID**: %s\n",
+                state.get(WorkflowRunningConstants.Workflow.AGENT_ID_KEY, String.class)));
 
-        // 3. 追加 RAG 相关知识（如果有相关查询）
+        // 添加全局变量
+        appendWorkflowStateContext(prompt, state);
+        prompt.append("\n");
+
+        log.debug("[{}] 添加运行时环境信息", executionId);
+
+        // 2. Retrieved Knowledge (RAG)
+        boolean hasRAG = false;
         if (ragProvider != null && state.get(WorkflowRunningConstants.Context.USER_QUESTION_KEY) != null) {
             try {
                 String query = state.get(WorkflowRunningConstants.Context.USER_QUESTION_KEY, String.class);
-                List<KnowledgeChunk> knowledge = ragProvider.retrieveKnowledge(executionId, query, 3);
+                List<KnowledgeChunk> knowledge = ragProvider.retrieveKnowledge(executionId, query, 5);
                 if (knowledge != null && !knowledge.isEmpty()) {
-                    completePrompt.append("\n\n## 相关知识\n");
+                    prompt.append("## 2. 📚 Retrieved Knowledge (RAG)\n");
+                    prompt.append("(Facts retrieved from the knowledge base. **High Priority**.)\n\n");
+                    int idx = 1;
                     for (KnowledgeChunk chunk : knowledge) {
-                        completePrompt.append(String.format("- %s\n", chunk.getContent()));
+                        prompt.append(String.format("### Document %d\n%s\n\n", idx++, chunk.getContent()));
                     }
+                    prompt.append(
+                            "> **Instruction**: If the user's question is related to the content above, answer strictly based on these facts. ");
+                    prompt.append("If contradictory, trust the RAG content over your internal knowledge.\n\n");
+                    hasRAG = true;
+                    log.debug("[{}] 检索到 {} 个RAG知识片段", executionId, knowledge.size());
                 }
             } catch (Exception e) {
                 log.warn("[{}] 检索知识失败: {}", executionId, e.getMessage());
             }
         }
+        if (!hasRAG) {
+            prompt.append("## 2. 📚 Retrieved Knowledge (RAG)\n");
+            prompt.append("(No relevant documents retrieved from knowledge base.)\n\n");
+        }
 
-        // 4. 【新增】追加推荐的工具
-        appendRecommendedTools(completePrompt, state);
+        // 3. Memory Context - Long-term
+        prompt.append("## 3. 🧠 Memory Context\n");
+        prompt.append("(Relevant information recalled from long-term memory or user profile.)\n\n");
+        Object longTermMemory = state.get(WorkflowRunningConstants.Context.LONG_TERM_MEMORY_KEY);
+        if (longTermMemory != null) {
+            prompt.append(formatValue(longTermMemory));
+            prompt.append("\n\n");
+        } else {
+            prompt.append("(No long-term memory available for this session.)\n\n");
+        }
 
-        // 5. 【新增】追加工具执行结果
-        appendToolResults(completePrompt, state);
+        // 4. Action Space (Available Tools)
+        Object recommendedTools = state.get(WorkflowRunningConstants.Context.RECOMMENDED_TOOLS_KEY);
+        if (recommendedTools != null) {
+            prompt.append("## 4. 🛠️ Action Space (Available MCP Tools)\n");
+            prompt.append("(You have the ability to call these tools if necessary.)\n\n");
+            appendRecommendedTools(prompt, state);
+            prompt.append("> **Instruction**: To use a tool, output the specific JSON format: ");
+            prompt.append("{\"pendingToolCalls\": [{\"tool\": \"name\", \"params\": {...}}]}\n\n");
+        } else {
+            prompt.append("## 4. 🛠️ Action Space (Available MCP Tools)\n");
+            prompt.append("(No tools available for this task.)\n\n");
+        }
 
-        log.debug("[{}] 构建完整 Prompt: {} 字符", executionId, completePrompt.length());
-        return completePrompt.toString();
+        // 5. Recent Execution History (Tool Results)
+        Object toolResults = state.get(WorkflowRunningConstants.Context.TOOL_RESULTS_KEY);
+        if (toolResults != null) {
+            prompt.append("## 5. ⚡ Recent Execution History (Tool Outputs)\n");
+            prompt.append("(Results from previous tool executions. These are established facts.)\n\n");
+            appendToolResults(prompt, state);
+            prompt.append("> **Instruction**: Use these results to answer the user's question or plan the next step. ");
+            prompt.append("Do not hallucinate results if they are not listed here.\n\n");
+        } else {
+            prompt.append("## 5. ⚡ Recent Execution History (Tool Outputs)\n");
+            prompt.append("(No tool executions in this session yet.)\n\n");
+        }
+
+        // 6. Conversation History (Short-term Memory)
+        prompt.append("## 6. 💬 Conversation History (Short-term Memory)\n");
+        boolean hasHistory = false;
+        if (memoryProvider != null) {
+            try {
+                List<ChatMessage> chatHistory = memoryProvider.loadChatHistory(executionId, 10);
+                if (chatHistory != null && !chatHistory.isEmpty()) {
+                    for (ChatMessage msg : chatHistory) {
+                        prompt.append(String.format("**%s**: %s\n",
+                                msg.getRole().equals("user") ? "User" : "Assistant",
+                                msg.getContent()));
+                    }
+                    prompt.append("\n");
+                    hasHistory = true;
+                    log.debug("[{}] 加载了 {} 条历史消息", executionId, chatHistory.size());
+                }
+            } catch (Exception e) {
+                log.warn("[{}] 加载对话历史失败: {}", executionId, e.getMessage());
+            }
+        }
+        if (!hasHistory) {
+            prompt.append("(This is the beginning of the conversation.)\n\n");
+        }
+
+        // 7. Current User Query
+        String userQuestion = state.get(WorkflowRunningConstants.Context.USER_QUESTION_KEY, String.class);
+        if (userQuestion == null) {
+            userQuestion = state.get(WorkflowRunningConstants.Prompt.USER_MESSAGE_KEY, String.class);
+        }
+
+        prompt.append("## 7. 🎯 Current User Query\n");
+        if (userQuestion != null && !userQuestion.trim().isEmpty()) {
+            prompt.append(userQuestion);
+            prompt.append("\n\n");
+            log.info("[{}] 用户问题: {}", executionId,
+                    userQuestion.length() > 100 ? userQuestion.substring(0, 100) + "..." : userQuestion);
+        } else {
+            prompt.append("(No specific user query provided.)\n\n");
+            log.warn("[{}] 警告: 未找到用户问题！State keys: {}", executionId, state.getAll().keySet());
+        }
+
+        // End of System Context
+        prompt.append("---\n");
+        prompt.append("[END OF SYSTEM CONTEXT]\n\n");
+
+        // Role/Persona Instructions
+        String systemPrompt = replaceVariables(promptTemplate, state);
+        prompt.append("# Your Role\n");
+        prompt.append(systemPrompt);
+        prompt.append("\n\n");
+        prompt.append(
+                "> Now, strictly follow your role to process the \"Current User Query\" based on the context above.\n");
+
+        log.debug("[{}] System Prompt 长度: {} 字符", executionId, systemPrompt.length());
+
+        String finalPrompt = prompt.toString();
+        log.info("[{}] 完整 Prompt 构建完成: {} 字符", executionId, finalPrompt.length());
+        log.debug("[{}] 完整 Prompt 内容:\n{}", executionId,
+                finalPrompt.length() > 500 ? finalPrompt.substring(0, 500) + "\n..." : finalPrompt);
+
+        return finalPrompt;
+    }
+
+    /**
+     * 追加 WorkflowState 中的重要上下文变量
+     */
+    private void appendWorkflowStateContext(StringBuilder prompt, WorkflowState state) {
+        Map<String, Object> contextVars = new HashMap<>();
+
+        // 检查常用的上下文字段
+        String[] contextKeys = {
+                WorkflowRunningConstants.ReAct.PLAN_STEPS_KEY,
+                WorkflowRunningConstants.ReAct.EXECUTION_HISTORY_KEY,
+                WorkflowRunningConstants.ReAct.CURRENT_TOOL_RESULT_KEY,
+                WorkflowRunningConstants.Reflection.THOUGHT_HISTORY_KEY,
+                WorkflowRunningConstants.Reflection.ACTION_HISTORY_KEY
+        };
+
+        for (String key : contextKeys) {
+            Object value = state.get(key);
+            if (value != null) {
+                contextVars.put(key, value);
+            }
+        }
+
+        if (!contextVars.isEmpty()) {
+            prompt.append("## 工作流上下文\n");
+            prompt.append("当前工作流的执行状态：\n\n");
+            for (Map.Entry<String, Object> entry : contextVars.entrySet()) {
+                String displayName = getDisplayName(entry.getKey());
+                String value = formatValue(entry.getValue());
+                if (value.length() > 200) {
+                    value = value.substring(0, 200) + "...";
+                }
+                prompt.append(String.format("- **%s**: %s\n", displayName, value));
+            }
+            prompt.append("\n");
+            log.debug("追加了 {} 个工作流上下文变量", contextVars.size());
+        }
+    }
+
+    /**
+     * 获取字段的可读显示名称
+     */
+    private String getDisplayName(String key) {
+        switch (key) {
+            case "planSteps":
+                return "规划步骤";
+            case "executionHistory":
+                return "执行历史";
+            case "currentToolResult":
+                return "当前工具结果";
+            case "thoughtHistory":
+                return "思考历史";
+            case "actionHistory":
+                return "行动历史";
+            default:
+                return key;
+        }
     }
 
     /**

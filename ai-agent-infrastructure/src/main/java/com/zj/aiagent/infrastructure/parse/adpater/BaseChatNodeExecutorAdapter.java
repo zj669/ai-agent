@@ -51,6 +51,7 @@ public abstract class BaseChatNodeExecutorAdapter implements NodeExecutor {
             // 1. 构建提示词（由子类实现）
             String prompt = buildPrompt(state);
 
+            log.info("节点 {} 构建提示词: {}", nodeId, prompt);
             // 2. 调用 AI
             ChatClient chatClient = buildChatClient();
             String aiResponse = callAIStream(chatClient, prompt, state);
@@ -89,9 +90,16 @@ public abstract class BaseChatNodeExecutorAdapter implements NodeExecutor {
      * 构建 ChatClient（通用逻辑）
      */
     protected ChatClient buildChatClient() {
-        ChatClient.Builder builder = ChatClient.builder(chatModel)
-                .defaultSystem(systemPrompt);
+        ChatClient.Builder builder = ChatClient.builder(chatModel);
 
+        // 只有在 systemPrompt 不为空时才设置
+        if (systemPrompt != null && !systemPrompt.trim().isEmpty()) {
+            builder.defaultSystem(systemPrompt);
+        } else {
+            log.warn("节点 {} 的 systemPrompt 为空，使用默认配置", nodeId);
+            // 可以设置一个默认的 system prompt
+            builder.defaultSystem("You are a helpful AI assistant.");
+        }
 
         return builder.build();
     }
@@ -117,7 +125,7 @@ public abstract class BaseChatNodeExecutorAdapter implements NodeExecutor {
             stream.subscribe(
                     chunk -> {
                         // 推送流式内容
-                        listener.onNodeStreaming(nodeId, chunk);
+                        listener.onNodeStreaming(nodeId, nodeName, chunk);
                         fullResponse.append(chunk);
                     },
                     error -> {
