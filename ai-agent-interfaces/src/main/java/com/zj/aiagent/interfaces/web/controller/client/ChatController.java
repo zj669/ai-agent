@@ -31,7 +31,6 @@ public class ChatController {
     @Resource
     private ICharApplicationService charApplicationService;
 
-
     @PostMapping()
     public ResponseBodyEmitter autoAgent(@RequestBody ChatRequest request, HttpServletResponse response) {
         response.setContentType("text/event-stream");
@@ -39,52 +38,79 @@ public class ChatController {
         response.setHeader("Cache-Control", "no-cache");
         response.setHeader("Connection", "keep-alive");
         ResponseBodyEmitter emitter = new ResponseBodyEmitter(Long.MAX_VALUE);
-        ChatCommand command =  ChatCommand.builder()
+        ChatCommand command = ChatCommand.builder()
                 .agentId(request.getAgentId())
                 .userMessage(request.getUserMessage())
                 .conversationId(request.getConversationId())
                 .emitter(emitter)
                 .build();
         charApplicationService.chat(command);
-        return  emitter;
+        return emitter;
     }
 
     @GetMapping("newChat")
     @Operation(summary = "发起流式问答前生成会话ID")
-    public Response<String> newChat(){
+    public Response<String> newChat() {
         return Response.success(String.valueOf(IdUtil.getSnowflake(1, 1).nextId()));
     }
 
     @GetMapping("/conversations/{agentId}")
     @Operation(summary = "历史会话ID")
-    public Response<List<String>> oldChat(@PathVariable("agentId") String agentId){
+    public Response<List<String>> oldChat(@PathVariable("agentId") String agentId) {
         Long userId = UserContext.getUserId();
         return Response.success(charApplicationService.queryHistoryId(userId, agentId));
     }
 
-     @GetMapping("/{agentId}/{conversationId}")
-     @Operation(summary = "聊天历史消息")
-     public Response<List<ChatHistoryResponse>> chatHistory(@PathVariable("agentId") String agentId,
-                                                            @PathVariable("conversationId") String conversationId){
+    @GetMapping("/history/{agentId}/{conversationId}")
+    @Operation(summary = "聊天历史消息")
+    public Response<List<ChatHistoryResponse>> chatHistory(@PathVariable("agentId") String agentId,
+            @PathVariable("conversationId") String conversationId) {
         Long userId = UserContext.getUserId();
-//         charApplicationService.queryHistory(userId, agentId, conversationId)
+        // charApplicationService.queryHistory(userId, agentId, conversationId)
         return Response.success(null);
     }
 
     @PostMapping("/review")
-     @Operation(summary = "人工审核")
-     public Response<Void> review(@RequestBody ReviewRequest request){
+    @Operation(summary = "人工审核")
+    public ResponseBodyEmitter review(@RequestBody ReviewRequest request, HttpServletResponse response) {
+        // 设置 SSE 响应头
+        response.setContentType("text/event-stream");
+        response.setCharacterEncoding("UTF-8");
+        response.setHeader("Cache-Control", "no-cache");
+        response.setHeader("Connection", "keep-alive");
+
+        ResponseBodyEmitter emitter = new ResponseBodyEmitter(Long.MAX_VALUE);
         Long userId = UserContext.getUserId();
-        charApplicationService.review(userId, request.getConversationId(), request.getNodeId(), request.getApproved(), request.getAgentId());
+
+        charApplicationService.review(
+                userId,
+                request.getConversationId(),
+                request.getNodeId(),
+                request.getApproved(),
+                request.getAgentId(),
+                emitter);
+
+        return emitter;
+    }
+
+    @GetMapping("/snapshot/{agentId}/{conversationId}")
+    @Operation(summary = "获取会话快照")
+    public Response<String> snapshot(@PathVariable("agentId") String agentId,
+            @PathVariable("conversationId") String conversationId) {
+        Long userId = UserContext.getUserId();
+        // return Response.success(charApplicationService.snapshot(userId, agentId,
+        // conversationId));
         return Response.success();
     }
 
-     @GetMapping("/snapshot/{agentId}/{conversationId}")
-      @Operation(summary = "获取会话快照")
-       public Response<String> snapshot(@PathVariable("agentId") String agentId,
-                                      @PathVariable("conversationId") String conversationId){
+    @PostMapping("/snapshot/{agentId}/{conversationId}")
+    @Operation(summary = "更新会话快照")
+    public Response<String> updateSnapshot(@PathVariable("agentId") String agentId,
+            @PathVariable("conversationId") String conversationId,
+            @RequestBody String snapshot) {
         Long userId = UserContext.getUserId();
-//        return Response.success(charApplicationService.snapshot(userId, agentId, conversationId));
-         return  Response.success();
+        // return Response.success(charApplicationService.snapshot(userId, agentId,
+        // conversationId));
+        return Response.success();
     }
 }

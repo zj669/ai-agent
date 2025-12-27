@@ -81,6 +81,21 @@ public class DependencyTracker {
     }
 
     /**
+     * 仅标记节点为已完成，不传播到下游节点
+     * <p>
+     * 用于恢复执行时标记已经完成的上游节点，
+     * 避免重复触发下游节点的依赖计数变化
+     */
+    public void markCompletedWithoutPropagate(String nodeId) {
+        if (completedNodes.contains(nodeId)) {
+            log.debug("节点已标记为完成（无传播）: {}", nodeId);
+            return;
+        }
+        completedNodes.add(nodeId);
+        log.debug("标记节点完成（无传播）: {}", nodeId);
+    }
+
+    /**
      * 检查节点是否已完成
      */
     public boolean isCompleted(String nodeId) {

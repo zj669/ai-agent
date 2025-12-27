@@ -80,7 +80,67 @@ public class EventDrivenScheduler implements WorkflowScheduler {
 
     @Override
     public ExecutionResult resume(WorkflowGraph graph, WorkflowState state, String fromNodeId) {
-        return null;
+        log.info("事件驱动调度器恢复执行, graphId: {}, fromNodeId: {}", graph.getDagId(), fromNodeId);
+
+        // 1. 注册默认 Reducer（确保状态合并策略一致）
+        registerDefaultReducers(state);
+
+        // 2. 创建依赖跟踪器并重建状态
+        DependencyTracker dependencyTracker = new DependencyTracker(graph);
+
+        // 3. 标记 fromNodeId 之前的所有上游节点为已完成
+        markUpstreamCompleted(graph, fromNodeId, dependencyTracker);
+
+        // 4. 初始化并发控制
+        ConcurrentHashMap<String, Exception> failures = new ConcurrentHashMap<>();
+        AtomicReference<String> pausedNodeId = new AtomicReference<>();
+        AtomicInteger activeCount = new AtomicInteger(0);
+        CountDownLatch completionLatch = new CountDownLatch(1);
+        AtomicReference<ExecutionResult> resultRef = new AtomicReference<>();
+
+        // 5. 从指定节点开始执行
+        submitNode(fromNodeId, graph, state, dependencyTracker, failures, pausedNodeId,
+                activeCount, completionLatch, resultRef);
+
+        try {
+            completionLatch.await();
+            return resultRef.get();
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            return ExecutionResult.error(fromNodeId, "Resume execution interrupted");
+        }
+    }
+
+    /**
+     * 标记指定节点的所有上游节点为已完成
+     * <p>
+     * 使用 BFS 反向遍历依赖图，找出所有需要标记为完成的节点
+     */
+    private void markUpstreamCompleted(WorkflowGraph graph, String targetNodeId, DependencyTracker tracker) {
+        Set<String> visited = new HashSet<>();
+        Queue<String> queue = new LinkedList<>();
+
+        // 从目标节点的依赖开始
+        List<String> dependencies = graph.getNodeDependencies(targetNodeId);
+        queue.addAll(dependencies);
+
+        while (!queue.isEmpty()) {
+            String nodeId = queue.poll();
+            if (visited.contains(nodeId)) {
+                continue;
+            }
+            visited.add(nodeId);
+
+            // 标记为已完成（不触发下游节点）
+            tracker.markCompletedWithoutPropagate(nodeId);
+            log.debug("恢复执行: 标记节点 {} 为已完成", nodeId);
+
+            // 继续遍历该节点的依赖
+            List<String> upstreamNodes = graph.getNodeDependencies(nodeId);
+            queue.addAll(upstreamNodes);
+        }
+
+        log.info("恢复执行: 已标记 {} 个上游节点为完成状态", visited.size());
     }
 
     private void submitNode(String nodeId, WorkflowGraph graph, WorkflowState state,
