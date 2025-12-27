@@ -3,7 +3,7 @@ package com.zj.aiagent.infrastructure.context.memory;
 import com.zj.aiagent.domain.memory.entity.ChatMessage;
 import com.zj.aiagent.domain.memory.entity.NodeExecutionRecord;
 import com.zj.aiagent.domain.memory.repository.ChatHistoryRepository;
-import com.zj.aiagent.infrastructure.converter.ChatMessageConverter;
+import com.zj.aiagent.infrastructure.context.memory.convert.ChatMessageConverter;
 import com.zj.aiagent.infrastructure.persistence.entity.AgentExecutionLogPO;
 import com.zj.aiagent.infrastructure.persistence.entity.ChatMessagePO;
 import com.zj.aiagent.infrastructure.persistence.mapper.AgentExecutionLogMapper;

@@ -1,4 +1,4 @@
-package com.zj.aiagent.infrastructure.converter;
+package com.zj.aiagent.infrastructure.context.memory.convert;
 
 import com.zj.aiagent.domain.memory.entity.ChatMessage;
 import com.zj.aiagent.domain.memory.entity.NodeExecutionRecord;

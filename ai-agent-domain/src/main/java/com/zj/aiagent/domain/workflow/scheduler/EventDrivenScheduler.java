@@ -6,7 +6,7 @@ import com.zj.aiagent.domain.workflow.entity.config.FallbackConfig;
 import com.zj.aiagent.domain.workflow.entity.config.RetryConfig;
 import com.zj.aiagent.domain.workflow.interfaces.Checkpointer;
 import com.zj.aiagent.domain.workflow.interfaces.ConditionalEdge;
-import com.zj.aiagent.domain.workflow.interfaces.ContextProvider;
+import com.zj.aiagent.domain.context.IContextProvider;
 import com.zj.aiagent.domain.workflow.interfaces.NodeExecutionInterceptor;
 import com.zj.aiagent.shared.constants.WorkflowRunningConstants;
 import com.zj.aiagent.shared.design.workflow.*;
@@ -27,17 +27,18 @@ import java.util.concurrent.atomic.AtomicReference;
 @Component
 public class EventDrivenScheduler implements WorkflowScheduler {
     private final ExecutorService executor;
-    private final ContextProvider contextProvider;
+    private final IContextProvider contextProvider;
     private final Checkpointer checkpointer;
     private final ConditionalEdge conditionalEdge;
     private final List<NodeExecutionInterceptor> interceptors;
 
-    public EventDrivenScheduler(ExecutorService executor,
-            ContextProvider contextProvider,
+    public EventDrivenScheduler(
+            ExecutorService executorService,
+            IContextProvider contextProvider,
             Checkpointer checkpointer,
             ConditionalEdge conditionalEdge,
             List<NodeExecutionInterceptor> interceptors) {
-        this.executor = executor;
+        this.executor = executorService;
         this.contextProvider = contextProvider;
         this.checkpointer = checkpointer;
         this.conditionalEdge = conditionalEdge;
@@ -292,6 +293,11 @@ public class EventDrivenScheduler implements WorkflowScheduler {
                 long durationMs = System.currentTimeMillis() - startTime;
                 listener.onNodeCompleted(nodeId, node.getNodeName(), state, durationMs);
 
+                // 【优化】保存节点元数据，用于上下文展示
+                state.put(nodeId + "_name", node.getNodeName());
+                state.put(nodeId + "_timestamp", System.currentTimeMillis());
+                log.debug("[{}] 保存节点元数据: name={}, timestamp={}",
+                        conversationId, node.getNodeName(), System.currentTimeMillis());
                 // ========== 后置拦截器链 ==========
                 for (NodeExecutionInterceptor interceptor : interceptors) {
                     InterceptResult result = interceptor.afterExecution(context, update);

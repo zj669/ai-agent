@@ -56,11 +56,27 @@ public abstract class BaseChatNodeExecutorAdapter implements NodeExecutor {
             ChatClient chatClient = buildChatClient();
             String aiResponse = callAIStream(chatClient, prompt, state);
 
+            // 验证响应不为空
+            if (aiResponse == null || aiResponse.trim().isEmpty()) {
+                log.error("节点 {} 收到空响应！Prompt长度: {}, Prompt预览: {}",
+                        nodeId, prompt.length(),
+                        prompt.length() > 200 ? prompt.substring(0, 200) + "..." : prompt);
+                return StateUpdate.error("LLM返回空响应，可能是prompt格式问题或API限制");
+            }
+
             // 3. 处理响应（由子类实现）
             return processResponse(aiResponse, state);
 
         } catch (Exception e) {
-            log.error("节点 {} 执行失败", nodeId, e);
+            log.error("节点 {} 执行失败: {}", nodeId, e.getMessage(), e);
+            // 记录更详细的错误信息
+            String errorMsg = e.getMessage();
+            if (errorMsg != null && errorMsg.contains("model output must contain")) {
+                log.error("LLM返回空响应或格式错误。这可能是由于：\n" +
+                        "1. Prompt过长超过token限制\n" +
+                        "2. Prompt格式导致LLM无法生成内容\n" +
+                        "3. API配置问题");
+            }
             return StateUpdate.error("节点执行失败: " + e.getMessage());
         }
     }

@@ -61,6 +61,11 @@ public class WorkflowRunningConstants {
         public static final String EXECUTION_ID_KEY = "executionId";
 
         /**
+         * 用户 ID
+         */
+        public static final String USER_ID_KEY = "userId";
+
+        /**
          * Agent ID
          */
         public static final String AGENT_ID_KEY = "agentId";

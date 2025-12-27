@@ -1,14 +1,16 @@
 package com.zj.aiagent.infrastructure.context;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.zj.aiagent.domain.context.IContextProvider;
+
 import com.zj.aiagent.domain.knowledge.RagProvider;
 import com.zj.aiagent.domain.knowledge.entity.KnowledgeChunk;
+
 import com.zj.aiagent.domain.memory.MemoryProvider;
 import com.zj.aiagent.domain.memory.entity.ChatMessage;
 import com.zj.aiagent.domain.memory.entity.Memory;
 import com.zj.aiagent.domain.prompt.PromptProvider;
 import com.zj.aiagent.domain.toolbox.McpProvider;
-import com.zj.aiagent.domain.workflow.interfaces.ContextProvider;
 import com.zj.aiagent.shared.constants.WorkflowRunningConstants;
 import com.zj.aiagent.shared.design.workflow.WorkflowState;
 import lombok.extern.slf4j.Slf4j;
@@ -26,11 +28,14 @@ import java.util.regex.Pattern;
 /**
  * Agent 上下文Provider - 统一管理所有上下文相关功能
  * <p>
- * 聚合了 Memory、RAG、Prompt、MCP 等子Provider
+ * 职责重构（DDD）：
+ * 1. 加载上下文：调用各领域Provider获取数据（loadContext）
+ * 2. 组装Prompt：从State读取数据并格式化（buildCompletePrompt）
+ * 3. 保存上下文：将State变更保存到各领域Provider（saveContext）
  */
 @Slf4j
 @Component
-public class AgentContextProvider implements ContextProvider {
+public class AgentContextProvider implements IContextProvider {
 
     private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
 
@@ -69,14 +74,29 @@ public class AgentContextProvider implements ContextProvider {
 
         ConcurrentHashMap<String, Object> context = new ConcurrentHashMap<>(initialInput);
 
+        // 获取 User ID 用于长期记忆检索
+        String userId = (String) initialInput.get(WorkflowRunningConstants.Workflow.USER_ID_KEY);
+
         // 1. 加载对话历史(Memory)
         if (memoryProvider != null) {
             try {
+                // Short-term Memory: 加载 50 条最近消息，供其他节点分析
                 List<ChatMessage> chatHistory = memoryProvider.loadChatHistory(executionId, 50);
                 context.put(WorkflowRunningConstants.Context.CHAT_HISTORY_KEY, chatHistory);
                 log.debug("[{}] 加载对话历史: {} 条消息", executionId, chatHistory.size());
+
+//                // Long-term Memory: 如果有用户问题和UserId，检索相关长期记忆
+//                if (userId != null && context.containsKey(WorkflowRunningConstants.Context.USER_QUESTION_KEY)) {
+//                    String userQuestion = (String) context.get(WorkflowRunningConstants.Context.USER_QUESTION_KEY);
+//                    List<Memory> longTermMemories = memoryProvider.searchMemories(userId, userQuestion, 3);
+//
+//                    if (longTermMemories != null && !longTermMemories.isEmpty()) {
+//                        context.put(WorkflowRunningConstants.Context.LONG_TERM_MEMORY_KEY, longTermMemories);
+//                        log.debug("[{}] 检索长期记忆: {} 条", executionId, longTermMemories.size());
+//                    }
+//                }
             } catch (Exception e) {
-                log.warn("[{}] 加载对话历史失败: {}", executionId, e.getMessage());
+                log.warn("[{}] 加载记忆失败: {}", executionId, e.getMessage());
             }
         }
 
@@ -257,30 +277,23 @@ public class AgentContextProvider implements ContextProvider {
 
         log.debug("[{}] 添加运行时环境信息", executionId);
 
-        // 2. Retrieved Knowledge (RAG)
-        boolean hasRAG = false;
-        if (ragProvider != null && state.get(WorkflowRunningConstants.Context.USER_QUESTION_KEY) != null) {
-            try {
-                String query = state.get(WorkflowRunningConstants.Context.USER_QUESTION_KEY, String.class);
-                List<KnowledgeChunk> knowledge = ragProvider.retrieveKnowledge(executionId, query, 5);
-                if (knowledge != null && !knowledge.isEmpty()) {
-                    prompt.append("## 2. 📚 Retrieved Knowledge (RAG)\n");
-                    prompt.append("(Facts retrieved from the knowledge base. **High Priority**.)\n\n");
-                    int idx = 1;
-                    for (KnowledgeChunk chunk : knowledge) {
-                        prompt.append(String.format("### Document %d\n%s\n\n", idx++, chunk.getContent()));
-                    }
-                    prompt.append(
-                            "> **Instruction**: If the user's question is related to the content above, answer strictly based on these facts. ");
-                    prompt.append("If contradictory, trust the RAG content over your internal knowledge.\n\n");
-                    hasRAG = true;
-                    log.debug("[{}] 检索到 {} 个RAG知识片段", executionId, knowledge.size());
-                }
-            } catch (Exception e) {
-                log.warn("[{}] 检索知识失败: {}", executionId, e.getMessage());
+        // 2. Retrieved Knowledge (RAG) - 从State读取
+        @SuppressWarnings("unchecked")
+        List<KnowledgeChunk> knowledge = (List<KnowledgeChunk>) state.get(
+                WorkflowRunningConstants.Context.RELEVANT_KNOWLEDGE_KEY);
+
+        if (knowledge != null && !knowledge.isEmpty()) {
+            prompt.append("## 2. 📚 Retrieved Knowledge (RAG)\n");
+            prompt.append("(Facts retrieved from the knowledge base. **High Priority**.)\n\n");
+            int idx = 1;
+            for (KnowledgeChunk chunk : knowledge) {
+                prompt.append(String.format("### Document %d\n%s\n\n", idx++, chunk.getContent()));
             }
-        }
-        if (!hasRAG) {
+            prompt.append(
+                    "> **Instruction**: If the user's question is related to the content above, answer strictly based on these facts. ");
+            prompt.append("If contradictory, trust the RAG content over your internal knowledge.\n\n");
+            log.debug("[{}] 使用了 {} 个RAG知识片段", executionId, knowledge.size());
+        } else {
             prompt.append("## 2. 📚 Retrieved Knowledge (RAG)\n");
             prompt.append("(No relevant documents retrieved from knowledge base.)\n\n");
         }
@@ -288,10 +301,25 @@ public class AgentContextProvider implements ContextProvider {
         // 3. Memory Context - Long-term
         prompt.append("## 3. 🧠 Memory Context\n");
         prompt.append("(Relevant information recalled from long-term memory or user profile.)\n\n");
-        Object longTermMemory = state.get(WorkflowRunningConstants.Context.LONG_TERM_MEMORY_KEY);
-        if (longTermMemory != null) {
-            prompt.append(formatValue(longTermMemory));
-            prompt.append("\n\n");
+        Object longTermMemoryObj = state.get(WorkflowRunningConstants.Context.LONG_TERM_MEMORY_KEY);
+
+        if (longTermMemoryObj != null) {
+            if (longTermMemoryObj instanceof List) {
+                @SuppressWarnings("unchecked")
+                List<com.zj.aiagent.domain.memory.entity.Memory> memories = (List<com.zj.aiagent.domain.memory.entity.Memory>) longTermMemoryObj;
+                if (!memories.isEmpty()) {
+                    for (com.zj.aiagent.domain.memory.entity.Memory m : memories) {
+                        prompt.append(String.format("- [%s] %s\n", m.getType(), m.getContent()));
+                    }
+                    prompt.append("\n");
+                } else {
+                    prompt.append("(No relevant long-term memory found.)\n\n");
+                }
+            } else {
+                // 兼容旧格式
+                prompt.append(formatValue(longTermMemoryObj));
+                prompt.append("\n\n");
+            }
         } else {
             prompt.append("(No long-term memory available for this session.)\n\n");
         }
@@ -309,37 +337,90 @@ public class AgentContextProvider implements ContextProvider {
             prompt.append("(No tools available for this task.)\n\n");
         }
 
-        // 5. Recent Execution History (Tool Results)
+        // 5. Recent Execution History (Tool Results + Node Outputs)
+        prompt.append("## 5. ⚡ Recent Execution History (Tool Outputs)\n");
+
+        boolean hasExecutionHistory = false;
+
+        // 5.1 Tool Results
         Object toolResults = state.get(WorkflowRunningConstants.Context.TOOL_RESULTS_KEY);
         if (toolResults != null) {
-            prompt.append("## 5. ⚡ Recent Execution History (Tool Outputs)\n");
             prompt.append("(Results from previous tool executions. These are established facts.)\n\n");
             appendToolResults(prompt, state);
             prompt.append("> **Instruction**: Use these results to answer the user's question or plan the next step. ");
             prompt.append("Do not hallucinate results if they are not listed here.\n\n");
-        } else {
-            prompt.append("## 5. ⚡ Recent Execution History (Tool Outputs)\n");
+            hasExecutionHistory = true;
+        }
+
+        // 5.2 Node Outputs - 自动收集所有以 "_output" 结尾的状态
+        Map<String, Object> allState = state.getAll();
+        StringBuilder nodeOutputs = new StringBuilder();
+        int nodeOutputCount = 0;
+
+        for (Map.Entry<String, Object> entry : allState.entrySet()) {
+            String key = entry.getKey();
+            // 收集所有节点输出（格式：nodeId_output）
+            if (key.endsWith("_output") && entry.getValue() != null) {
+                String nodeId = key.substring(0, key.length() - 7); // 移除 "_output"
+                Object value = entry.getValue();
+
+                nodeOutputs.append(String.format("**Node [%s] Output**:\n", nodeId));
+                nodeOutputs.append(formatValue(value)).append("\n\n");
+                nodeOutputCount++;
+                hasExecutionHistory = true;
+            }
+        }
+
+        if (nodeOutputCount > 0) {
+            if (toolResults == null) {
+                prompt.append("**Previous Node Outputs**:\n\n");
+            } else {
+                prompt.append("\n**Previous Node Outputs**:\n\n");
+            }
+            prompt.append(nodeOutputs);
+        }
+
+        if (!hasExecutionHistory) {
             prompt.append("(No tool executions in this session yet.)\n\n");
         }
 
         // 6. Conversation History (Short-term Memory)
         prompt.append("## 6. 💬 Conversation History (Short-term Memory)\n");
         boolean hasHistory = false;
-        if (memoryProvider != null) {
+
+        // 优化：从 State 读取已加载的对话历史，不重复调用 Provider
+        @SuppressWarnings("unchecked")
+        List<ChatMessage> chatHistory = (List<ChatMessage>) state
+                .get(WorkflowRunningConstants.Context.CHAT_HISTORY_KEY);
+
+        if (chatHistory != null && !chatHistory.isEmpty()) {
+            // 只显示最近的 10 条（Token 优化）
+            int startIdx = Math.max(0, chatHistory.size() - 10);
+            List<ChatMessage> recentMessages = chatHistory.subList(startIdx, chatHistory.size());
+
+            for (ChatMessage msg : recentMessages) {
+                prompt.append(String.format("**%s**: %s\n",
+                        msg.getRole().equals("user") ? "User" : "Assistant",
+                        msg.getContent()));
+            }
+            prompt.append("\n");
+            hasHistory = true;
+            log.debug("[{}] Prompt 包含 {} 条近期消息 (Total loaded: {})", executionId, recentMessages.size(),
+                    chatHistory.size());
+        } else if (memoryProvider != null) {
+            // Fallback: 如果 State 中没有，尝试加载 (兼容旧逻辑)
             try {
-                List<ChatMessage> chatHistory = memoryProvider.loadChatHistory(executionId, 10);
-                if (chatHistory != null && !chatHistory.isEmpty()) {
-                    for (ChatMessage msg : chatHistory) {
+                List<ChatMessage> loadedHistory = memoryProvider.loadChatHistory(executionId, 10);
+                if (loadedHistory != null && !loadedHistory.isEmpty()) {
+                    for (ChatMessage msg : loadedHistory) {
                         prompt.append(String.format("**%s**: %s\n",
                                 msg.getRole().equals("user") ? "User" : "Assistant",
                                 msg.getContent()));
                     }
-                    prompt.append("\n");
                     hasHistory = true;
-                    log.debug("[{}] 加载了 {} 条历史消息", executionId, chatHistory.size());
                 }
             } catch (Exception e) {
-                log.warn("[{}] 加载对话历史失败: {}", executionId, e.getMessage());
+                log.warn("Fallback load history failed: {}", e.getMessage());
             }
         }
         if (!hasHistory) {
