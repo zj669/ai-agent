@@ -9,7 +9,6 @@ import com.zj.aiagent.domain.model.parse.entity.ModelConfigResult;
 import com.zj.aiagent.domain.prompt.parse.PromptConfigParseFactory;
 import com.zj.aiagent.domain.prompt.parse.entity.PromptConfigResult;
 import com.zj.aiagent.domain.toolbox.parse.McpConfigParseFactory;
-import com.zj.aiagent.domain.toolbox.parse.entity.McpConfigResult;
 import com.zj.aiagent.domain.workflow.entity.EdgeDefinitionEntity;
 import com.zj.aiagent.domain.workflow.entity.WorkflowGraph;
 import com.zj.aiagent.infrastructure.parse.adpater.NodeExecutorFactory;
@@ -208,8 +207,6 @@ public class WorkflowGraphFactory {
      */
     private NodeExecutor createNodeFromLegacyConfig(GraphJsonSchema.NodeDefinition nodeDef) {
         // 解析节点配置
-        McpConfigResult mcpConfigResult = mcpConfigParseFactory.parseConfig(
-                ConfigConvert.convertMcp(nodeDef));
         PromptConfigResult promptConfigResult = promptConfigParseFactory.parseConfig(
                 ConfigConvert.convertPrompt(nodeDef));
         ModelConfigResult modelConfigResult = modelConfigParseFactory.parseConfig(
