@@ -85,16 +85,20 @@ public class AgentContextProvider implements IContextProvider {
                 context.put(WorkflowRunningConstants.Context.CHAT_HISTORY_KEY, chatHistory);
                 log.debug("[{}] 加载对话历史: {} 条消息", executionId, chatHistory.size());
 
-//                // Long-term Memory: 如果有用户问题和UserId，检索相关长期记忆
-//                if (userId != null && context.containsKey(WorkflowRunningConstants.Context.USER_QUESTION_KEY)) {
-//                    String userQuestion = (String) context.get(WorkflowRunningConstants.Context.USER_QUESTION_KEY);
-//                    List<Memory> longTermMemories = memoryProvider.searchMemories(userId, userQuestion, 3);
-//
-//                    if (longTermMemories != null && !longTermMemories.isEmpty()) {
-//                        context.put(WorkflowRunningConstants.Context.LONG_TERM_MEMORY_KEY, longTermMemories);
-//                        log.debug("[{}] 检索长期记忆: {} 条", executionId, longTermMemories.size());
-//                    }
-//                }
+                // // Long-term Memory: 如果有用户问题和UserId，检索相关长期记忆
+                // if (userId != null &&
+                // context.containsKey(WorkflowRunningConstants.Context.USER_QUESTION_KEY)) {
+                // String userQuestion = (String)
+                // context.get(WorkflowRunningConstants.Context.USER_QUESTION_KEY);
+                // List<Memory> longTermMemories = memoryProvider.searchMemories(userId,
+                // userQuestion, 3);
+                //
+                // if (longTermMemories != null && !longTermMemories.isEmpty()) {
+                // context.put(WorkflowRunningConstants.Context.LONG_TERM_MEMORY_KEY,
+                // longTermMemories);
+                // log.debug("[{}] 检索长期记忆: {} 条", executionId, longTermMemories.size());
+                // }
+                // }
             } catch (Exception e) {
                 log.warn("[{}] 加载记忆失败: {}", executionId, e.getMessage());
             }
@@ -170,20 +174,93 @@ public class AgentContextProvider implements IContextProvider {
         if (memoryProvider != null) {
             if (delta.containsKey(WorkflowRunningConstants.Context.USER_MESSAGE_KEY)) {
                 try {
-                    ChatMessage userMsg = (ChatMessage) delta.get(WorkflowRunningConstants.Context.USER_MESSAGE_KEY);
-                    memoryProvider.saveChatMessage(executionId, userMsg);
+                    Object userMsgObj = delta.get(WorkflowRunningConstants.Context.USER_MESSAGE_KEY);
+                    ChatMessage userMsg;
+
+                    if (userMsgObj instanceof String) {
+                        // 如果是 String,创建 ChatMessage 对象
+                        // 从 delta 中获取 agentId
+                        Object agentIdObj = delta.get(WorkflowRunningConstants.Workflow.AGENT_ID_KEY);
+                        Long agentId = null;
+                        if (agentIdObj instanceof Long) {
+                            agentId = (Long) agentIdObj;
+                        } else if (agentIdObj instanceof String) {
+                            try {
+                                agentId = Long.parseLong((String) agentIdObj);
+                            } catch (NumberFormatException e) {
+                                log.warn("[{}] agentId 格式错误: {}", executionId, agentIdObj);
+                            }
+                        }
+
+                        userMsg = ChatMessage.builder()
+                                .conversationId(executionId)
+                                .agentId(agentId)
+                                .role("user")
+                                .content((String) userMsgObj)
+                                .timestamp(java.time.LocalDateTime.now())
+                                .isError(false)
+                                .build();
+                        log.debug("[{}] 从 String 创建用户消息对象, agentId={}", executionId, agentId);
+                    } else if (userMsgObj instanceof ChatMessage) {
+                        // 如果已经是 ChatMessage,直接使用
+                        userMsg = (ChatMessage) userMsgObj;
+                    } else {
+                        log.warn("[{}] 用户消息类型不支持: {}", executionId,
+                                userMsgObj != null ? userMsgObj.getClass().getName() : "null");
+                        userMsg = null;
+                    }
+
+                    if (userMsg != null) {
+                        memoryProvider.saveChatMessage(executionId, userMsg);
+                    }
                 } catch (Exception e) {
-                    log.warn("[{}] 保存用户消息失败: {}", executionId, e.getMessage());
+                    log.warn("[{}] 保存用户消息失败: {}", executionId, e.getMessage(), e);
                 }
             }
 
             if (delta.containsKey(WorkflowRunningConstants.Context.ASSISTANT_MESSAGE_KEY)) {
                 try {
-                    ChatMessage assistantMsg = (ChatMessage) delta
-                            .get(WorkflowRunningConstants.Context.ASSISTANT_MESSAGE_KEY);
-                    memoryProvider.saveChatMessage(executionId, assistantMsg);
+                    Object assistantMsgObj = delta.get(WorkflowRunningConstants.Context.ASSISTANT_MESSAGE_KEY);
+                    ChatMessage assistantMsg;
+
+                    if (assistantMsgObj instanceof String) {
+                        // 如果是 String,创建 ChatMessage 对象
+                        // 从 delta 中获取 agentId
+                        Object agentIdObj = delta.get(WorkflowRunningConstants.Workflow.AGENT_ID_KEY);
+                        Long agentId = null;
+                        if (agentIdObj instanceof Long) {
+                            agentId = (Long) agentIdObj;
+                        } else if (agentIdObj instanceof String) {
+                            try {
+                                agentId = Long.parseLong((String) agentIdObj);
+                            } catch (NumberFormatException e) {
+                                log.warn("[{}] agentId 格式错误: {}", executionId, agentIdObj);
+                            }
+                        }
+
+                        assistantMsg = ChatMessage.builder()
+                                .conversationId(executionId)
+                                .agentId(agentId)
+                                .role("assistant")
+                                .content((String) assistantMsgObj)
+                                .timestamp(java.time.LocalDateTime.now())
+                                .isError(false)
+                                .build();
+                        log.debug("[{}] 从 String 创建助手消息对象, agentId={}", executionId, agentId);
+                    } else if (assistantMsgObj instanceof ChatMessage) {
+                        // 如果已经是 ChatMessage,直接使用
+                        assistantMsg = (ChatMessage) assistantMsgObj;
+                    } else {
+                        log.warn("[{}] 助手消息类型不支持: {}", executionId,
+                                assistantMsgObj != null ? assistantMsgObj.getClass().getName() : "null");
+                        assistantMsg = null;
+                    }
+
+                    if (assistantMsg != null) {
+                        memoryProvider.saveChatMessage(executionId, assistantMsg);
+                    }
                 } catch (Exception e) {
-                    log.warn("[{}] 保存助手消息失败: {}", executionId, e.getMessage());
+                    log.warn("[{}] 保存助手消息失败: {}", executionId, e.getMessage(), e);
                 }
             }
 

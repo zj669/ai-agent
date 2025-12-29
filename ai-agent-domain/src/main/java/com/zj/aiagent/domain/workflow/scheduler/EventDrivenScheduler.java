@@ -1,21 +1,20 @@
 package com.zj.aiagent.domain.workflow.scheduler;
 
 import com.alibaba.fastjson2.JSONObject;
+import com.zj.aiagent.domain.context.IContextProvider;
 import com.zj.aiagent.domain.workflow.entity.*;
 import com.zj.aiagent.domain.workflow.entity.config.FallbackConfig;
 import com.zj.aiagent.domain.workflow.entity.config.RetryConfig;
 import com.zj.aiagent.domain.workflow.interfaces.Checkpointer;
 import com.zj.aiagent.domain.workflow.interfaces.ConditionalEdge;
-import com.zj.aiagent.domain.context.IContextProvider;
 import com.zj.aiagent.domain.workflow.interfaces.NodeExecutionInterceptor;
 import com.zj.aiagent.shared.constants.WorkflowRunningConstants;
 import com.zj.aiagent.shared.design.workflow.*;
+import jakarta.annotation.PostConstruct;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 
-import jakarta.annotation.PostConstruct;
 import java.util.*;
-import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
@@ -231,7 +230,7 @@ public class EventDrivenScheduler implements WorkflowScheduler {
             AtomicReference<ExecutionResult> resultRef) {
         activeCount.incrementAndGet();
         WorkflowStateListener listener = state.getWorkflowStateListener();
-        CompletableFuture.runAsync(() -> {
+//        CompletableFuture.runAsync(() -> {
             try {
                 NodeExecutor node = graph.getNodes().get(nodeId);
                 JSONObject nodeConfig = graph.getNodeConfigs().getOrDefault(nodeId, new JSONObject());
@@ -369,7 +368,7 @@ public class EventDrivenScheduler implements WorkflowScheduler {
                     completionLatch.countDown();
                 }
             }
-        }, executor);
+//        }, executor);
     }
 
     /**

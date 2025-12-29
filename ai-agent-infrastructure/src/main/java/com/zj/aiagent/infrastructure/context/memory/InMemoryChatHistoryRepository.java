@@ -20,7 +20,7 @@ import java.util.concurrent.ConcurrentHashMap;
  */
 @Slf4j
 @Repository
-@ConditionalOnProperty(name = "memory.storage", havingValue = "memory", matchIfMissing = true)
+@ConditionalOnProperty(name = "memory.storage", havingValue = "memory", matchIfMissing = false)
 public class InMemoryChatHistoryRepository implements ChatHistoryRepository {
 
     // 临时存储: executionId -> 消息列表

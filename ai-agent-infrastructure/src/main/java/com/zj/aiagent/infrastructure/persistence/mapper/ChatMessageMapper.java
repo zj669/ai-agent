@@ -50,7 +50,7 @@ public interface ChatMessageMapper {
          * 根据用户ID和Agent ID查询会话ID列表（按最新消息时间倒序）
          */
         @Select("SELECT conversation_id FROM ai_chat_message " +
-                        "WHERE user_id = #{userId} AND agent_id = #{agentId} " +
+                        "WHERE agent_id = #{agentId} " +
                         "GROUP BY conversation_id " +
                         "ORDER BY MAX(timestamp) DESC")
         List<String> selectConversationIdsByUserAndAgent(@Param("userId") Long userId,

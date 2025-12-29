@@ -29,7 +29,7 @@ import java.util.stream.Collectors;
 @Slf4j
 @Repository
 @Primary
-@ConditionalOnProperty(name = "memory.storage", havingValue = "database", matchIfMissing = false)
+@ConditionalOnProperty(name = "memory.storage", havingValue = "database", matchIfMissing = true)
 @AllArgsConstructor
 public class DatabaseChatHistoryRepository implements ChatHistoryRepository {
 
@@ -85,7 +85,8 @@ public class DatabaseChatHistoryRepository implements ChatHistoryRepository {
 
                 // 2. 提取所有 instanceId（避免 N+1 查询）
                 List<Long> instanceIds = messagePOs.stream()
-                                .map(ChatMessagePO::getInstanceId)
+                        .sorted(Comparator.comparing(ChatMessagePO::getCreateTime))
+                        .map(ChatMessagePO::getInstanceId)
                                 .filter(Objects::nonNull)
                                 .distinct()
                                 .collect(Collectors.toList());
