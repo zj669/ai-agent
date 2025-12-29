@@ -172,51 +172,57 @@ public class AgentContextProvider implements IContextProvider {
 
         // 1. 保存对话消息
         if (memoryProvider != null) {
-            if (delta.containsKey(WorkflowRunningConstants.Context.USER_MESSAGE_KEY)) {
-                try {
-                    Object userMsgObj = delta.get(WorkflowRunningConstants.Context.USER_MESSAGE_KEY);
-                    ChatMessage userMsg;
-
-                    if (userMsgObj instanceof String) {
-                        // 如果是 String,创建 ChatMessage 对象
-                        // 从 delta 中获取 agentId
-                        Object agentIdObj = delta.get(WorkflowRunningConstants.Workflow.AGENT_ID_KEY);
-                        Long agentId = null;
-                        if (agentIdObj instanceof Long) {
-                            agentId = (Long) agentIdObj;
-                        } else if (agentIdObj instanceof String) {
-                            try {
-                                agentId = Long.parseLong((String) agentIdObj);
-                            } catch (NumberFormatException e) {
-                                log.warn("[{}] agentId 格式错误: {}", executionId, agentIdObj);
-                            }
-                        }
-
-                        userMsg = ChatMessage.builder()
-                                .conversationId(executionId)
-                                .agentId(agentId)
-                                .role("user")
-                                .content((String) userMsgObj)
-                                .timestamp(java.time.LocalDateTime.now())
-                                .isError(false)
-                                .build();
-                        log.debug("[{}] 从 String 创建用户消息对象, agentId={}", executionId, agentId);
-                    } else if (userMsgObj instanceof ChatMessage) {
-                        // 如果已经是 ChatMessage,直接使用
-                        userMsg = (ChatMessage) userMsgObj;
-                    } else {
-                        log.warn("[{}] 用户消息类型不支持: {}", executionId,
-                                userMsgObj != null ? userMsgObj.getClass().getName() : "null");
-                        userMsg = null;
-                    }
-
-                    if (userMsg != null) {
-                        memoryProvider.saveChatMessage(executionId, userMsg);
-                    }
-                } catch (Exception e) {
-                    log.warn("[{}] 保存用户消息失败: {}", executionId, e.getMessage(), e);
-                }
-            }
+            // 用户消息不在这里保存,避免重复
+            // 用户消息会在工作流开始前由调用方保存,或者在ChatHistorySaveListener中统一处理
+            /*
+             * if (delta.containsKey(WorkflowRunningConstants.Context.USER_MESSAGE_KEY)) {
+             * try {
+             * Object userMsgObj =
+             * delta.get(WorkflowRunningConstants.Context.USER_MESSAGE_KEY);
+             * ChatMessage userMsg;
+             * 
+             * if (userMsgObj instanceof String) {
+             * // 如果是 String,创建 ChatMessage 对象
+             * // 从 delta 中获取 agentId
+             * Object agentIdObj =
+             * delta.get(WorkflowRunningConstants.Workflow.AGENT_ID_KEY);
+             * Long agentId = null;
+             * if (agentIdObj instanceof Long) {
+             * agentId = (Long) agentIdObj;
+             * } else if (agentIdObj instanceof String) {
+             * try {
+             * agentId = Long.parseLong((String) agentIdObj);
+             * } catch (NumberFormatException e) {
+             * log.warn("[{}] agentId 格式错误: {}", executionId, agentIdObj);
+             * }
+             * }
+             * 
+             * userMsg = ChatMessage.builder()
+             * .conversationId(executionId)
+             * .agentId(agentId)
+             * .role("user")
+             * .content((String) userMsgObj)
+             * .timestamp(java.time.LocalDateTime.now())
+             * .isError(false)
+             * .build();
+             * log.debug("[{}] 从 String 创建用户消息对象, agentId={}", executionId, agentId);
+             * } else if (userMsgObj instanceof ChatMessage) {
+             * // 如果已经是 ChatMessage,直接使用
+             * userMsg = (ChatMessage) userMsgObj;
+             * } else {
+             * log.warn("[{}] 用户消息类型不支持: {}", executionId,
+             * userMsgObj != null ? userMsgObj.getClass().getName() : "null");
+             * userMsg = null;
+             * }
+             * 
+             * if (userMsg != null) {
+             * memoryProvider.saveChatMessage(executionId, userMsg);
+             * }
+             * } catch (Exception e) {
+             * log.warn("[{}] 保存用户消息失败: {}", executionId, e.getMessage(), e);
+             * }
+             * }
+             */
 
             if (delta.containsKey(WorkflowRunningConstants.Context.ASSISTANT_MESSAGE_KEY)) {
                 try {

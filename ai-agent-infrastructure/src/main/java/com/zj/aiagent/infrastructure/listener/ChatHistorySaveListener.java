@@ -44,12 +44,13 @@ public class ChatHistorySaveListener implements WorkflowStateListener {
     }
 
     /**
-     * 工作流执行上下文（临时存储,用于在工作流完成时保存最终回答）
+     * 工作流执行上下文(临时存储,用于在工作流完成时保存最终回答)
      */
     private static class WorkflowExecutionContext {
         String conversationId;
         WorkflowState finalState;
         Long agentId;
+        Long instanceId; // 新增:用于关联节点执行记录
     }
 
     /**
@@ -139,6 +140,7 @@ public class ChatHistorySaveListener implements WorkflowStateListener {
                     conversationId, k -> new WorkflowExecutionContext());
             workflowContext.conversationId = conversationId;
             workflowContext.finalState = result;
+            workflowContext.instanceId = instanceId; // 保存instanceId
             if (agentId != null) {
                 try {
                     workflowContext.agentId = Long.parseLong(agentId);
@@ -234,6 +236,7 @@ public class ChatHistorySaveListener implements WorkflowStateListener {
                 .builder()
                 .conversationId(workflowContext.conversationId)
                 .agentId(workflowContext.agentId)
+                .instanceId(workflowContext.instanceId)
                 .role("assistant")
                 .content(finalAnswer)
                 .timestamp(LocalDateTime.now())
