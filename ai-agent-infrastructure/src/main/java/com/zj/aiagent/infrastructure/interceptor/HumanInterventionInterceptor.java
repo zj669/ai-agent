@@ -21,7 +21,7 @@ public class HumanInterventionInterceptor implements NodeExecutionInterceptor {
 
     @Override
     public InterceptResult beforeExecution(NodeExecutionContext context) {
-        HumanInterventionConfig config = context.getConfig("HUMAN_INTERVENTION", HumanInterventionConfig.class);
+        HumanInterventionConfig config = context.getConfig("humanIntervention", HumanInterventionConfig.class);
 
         if (config != null && Boolean.TRUE.equals(config.getEnabled())
                 && "BEFORE".equalsIgnoreCase(config.getTiming())) {
@@ -34,7 +34,7 @@ public class HumanInterventionInterceptor implements NodeExecutionInterceptor {
 
     @Override
     public InterceptResult afterExecution(NodeExecutionContext context, StateUpdate update) {
-        HumanInterventionConfig config = context.getConfig("HUMAN_INTERVENTION", HumanInterventionConfig.class);
+        HumanInterventionConfig config = context.getConfig("humanIntervention", HumanInterventionConfig.class);
 
         if (config != null && Boolean.TRUE.equals(config.getEnabled())
                 && "AFTER".equalsIgnoreCase(config.getTiming())

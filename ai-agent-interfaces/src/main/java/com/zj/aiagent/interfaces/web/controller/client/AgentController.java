@@ -1,17 +1,17 @@
 package com.zj.aiagent.interfaces.web.controller.client;
 
+import com.zj.aiagent.application.agent.IAgentApplicationService;
+import com.zj.aiagent.infrastructure.persistence.entity.AiAgentPO;
+import com.zj.aiagent.interfaces.common.Response;
+import com.zj.aiagent.interfaces.web.dto.request.agent.SaveAgentRequest;
+import com.zj.aiagent.interfaces.web.dto.response.agent.AgentDetailResponse;
+import com.zj.aiagent.interfaces.web.dto.response.agent.AgentResponse;
+import com.zj.aiagent.shared.utils.UserContext;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.web.bind.annotation.*;
-
-import com.zj.aiagent.application.agent.IAgentApplicationService;
-import com.zj.aiagent.infrastructure.persistence.entity.AiAgentPO;
-import com.zj.aiagent.interfaces.common.Response;
-import com.zj.aiagent.interfaces.web.dto.request.agent.SaveAgentRequest;
-import com.zj.aiagent.interfaces.web.dto.response.agent.AgentResponse;
-import com.zj.aiagent.shared.utils.UserContext;
 
 import java.util.List;
 import java.util.stream.Collectors;
@@ -43,10 +43,10 @@ public class AgentController {
 
         @GetMapping("/detail/{agentId}")
         @Operation(summary = "获取agent详情")
-        public Response<AgentResponse> detail(@PathVariable("agentId") Long agentId) {
+        public Response<AgentDetailResponse> detail(@PathVariable("agentId") Long agentId) {
                 Long userId = UserContext.getUserId();
                 AiAgentPO agent = agentApplicationService.getAgentDetail(userId, agentId);
-                return Response.success(toAgentResponse(agent));
+                return Response.success(toAgentResponseDetail(agent));
         }
 
         @PostMapping("/save")
@@ -78,6 +78,18 @@ public class AgentController {
                 return Response.success();
         }
 
+
+        private AgentDetailResponse toAgentResponseDetail(AiAgentPO po) {
+                return AgentDetailResponse.builder()
+                                .agentId(String.valueOf(po.getId()))
+                                .agentName(po.getAgentName())
+                                .description(po.getDescription())
+                                .graphJson(po.getGraphJson())
+                                .status(po.getStatus())
+                                .statusDesc(getStatusDesc(po.getStatus()))
+                                .createTime(po.getCreateTime())
+                        .build();
+        }
         /**
          * PO 转 DTO
          */
