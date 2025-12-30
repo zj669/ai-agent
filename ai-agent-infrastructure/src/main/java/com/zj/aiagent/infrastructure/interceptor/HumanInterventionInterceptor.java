@@ -1,5 +1,6 @@
 package com.zj.aiagent.infrastructure.interceptor;
 
+import com.alibaba.fastjson.JSON;
 import com.zj.aiagent.domain.workflow.entity.InterceptResult;
 import com.zj.aiagent.domain.workflow.entity.NodeExecutionContext;
 import com.zj.aiagent.domain.workflow.entity.config.HumanInterventionConfig;
@@ -22,11 +23,16 @@ public class HumanInterventionInterceptor implements NodeExecutionInterceptor {
     @Override
     public InterceptResult beforeExecution(NodeExecutionContext context) {
         HumanInterventionConfig config = context.getConfig("humanIntervention", HumanInterventionConfig.class);
+        System.out.println("humanIntervention: " + JSON.toJSONString(config));
 
-        if (config != null && Boolean.TRUE.equals(config.getEnabled())
-                && "BEFORE".equalsIgnoreCase(config.getTiming())) {
-            log.info("节点 {} 需要人工介入（执行前）", context.getNodeId());
-            return InterceptResult.pause("等待人工审核（执行前）");
+        if (config != null && Boolean.TRUE.equals(config.getEnabled())) {
+            // timing 默认为 BEFORE（执行前暂停）
+            String timing = config.getTiming() != null ? config.getTiming() : "BEFORE";
+
+            if ("BEFORE".equalsIgnoreCase(timing)) {
+                log.info("节点 {} 需要人工介入（执行前）", context.getNodeId());
+                return InterceptResult.pause("等待人工审核（执行前）");
+            }
         }
 
         return InterceptResult.proceed();
