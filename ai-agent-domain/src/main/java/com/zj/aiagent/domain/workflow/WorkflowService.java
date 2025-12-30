@@ -61,7 +61,12 @@ public class WorkflowService implements IWorkflowService {
                 workflowState.put(WorkflowRunningConstants.Workflow.AGENT_ID_KEY, agentId);
             }
 
-            // 4. 调用调度器的resume方法
+            // 4. ⭐ 添加标记：这次执行是从人工审核恢复的，拦截器应该跳过
+            workflowState.put("_SKIP_HUMAN_INTERVENTION_NODE_", fromNodeId);
+            log.info("设置跳过人工干预标记，避免重复暂停: conversationId={}, nodeId={}",
+                    conversationId, fromNodeId);
+
+            // 5. 调用调度器的resume方法
             workflowScheduler.resume(graph, workflowState, fromNodeId);
 
             log.info("工作流恢复执行成功: conversationId={}", conversationId);
@@ -109,15 +114,27 @@ public class WorkflowService implements IWorkflowService {
         log.info("领域服务: 更新执行快照, conversationId={}, nodeId={}", conversationId, nodeId);
 
         try {
-            // 1. 创建 WorkflowState 对象
-            WorkflowState workflowState = new WorkflowState(null);
+            // 1. ⭐ 先加载现有的快照数据（如果存在）
+            WorkflowState workflowState = checkpointer.loadAt(conversationId, nodeId);
 
-            // 2. 填充状态数据
-            if (stateData != null && !stateData.isEmpty()) {
-                stateData.forEach(workflowState::put);
+            // 2. 如果不存在，尝试加载最新的
+            if (workflowState == null) {
+                workflowState = checkpointer.load(conversationId);
             }
 
-            // 3. 调用 Checkpointer 更新
+            // 3. 如果仍然不存在，创建新的
+            if (workflowState == null) {
+                log.warn("未找到现有快照，创建新的: conversationId={}", conversationId);
+                workflowState = new WorkflowState(null);
+            }
+
+            // 4. ⭐ 合并更新：将新数据覆盖到现有状态中
+            if (stateData != null && !stateData.isEmpty()) {
+                stateData.forEach(workflowState::put);
+                log.info("合并更新了 {} 个字段", stateData.size());
+            }
+
+            // 5. 调用 Checkpointer 保存更新后的状态
             checkpointer.update(conversationId, nodeId, workflowState);
 
             log.info("执行快照更新成功: conversationId={}, nodeId={}", conversationId, nodeId);

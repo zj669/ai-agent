@@ -1,6 +1,5 @@
 package com.zj.aiagent.domain.workflow.scheduler;
 
-import com.alibaba.fastjson2.JSON;
 import com.alibaba.fastjson2.JSONObject;
 import com.zj.aiagent.domain.context.IContextProvider;
 import com.zj.aiagent.domain.workflow.entity.*;
@@ -232,145 +231,151 @@ public class EventDrivenScheduler implements WorkflowScheduler {
             AtomicReference<ExecutionResult> resultRef) {
         activeCount.incrementAndGet();
         WorkflowStateListener listener = state.getWorkflowStateListener();
-         CompletableFuture.runAsync(() -> {
-        try {
-            NodeExecutor node = graph.getNodes().get(nodeId);
-            JSONObject nodeConfig = graph.getNodeConfigs().getOrDefault(nodeId, new JSONObject());
+        CompletableFuture.runAsync(() -> {
+            try {
+                NodeExecutor node = graph.getNodes().get(nodeId);
+                JSONObject nodeConfig = graph.getNodeConfigs().getOrDefault(nodeId, new JSONObject());
 
-            // 检查是否已取消
-            String conversationId = state.get(WorkflowRunningConstants.Workflow.EXECUTION_ID_KEY, String.class);
-            if (conversationId != null) {
-                ExecutionControl control = activeExecutions.get(conversationId);
-                if (control != null && control.cancelled.get()) {
-                    log.info("节点 {} 取消执行: 工作流已被取消", nodeId);
-                    return;
-                }
-            }
-
-            // 构建执行上下文
-            NodeExecutionContext context = NodeExecutionContext.builder()
-                    .nodeId(nodeId)
-                    .nodeName(node.getNodeName())
-                    .nodeType(node.getClass().getSimpleName())
-                    .state(state)
-                    .executor(node)
-                    .nodeConfig(nodeConfig)
-                    .currentRetryCount(0)
-                    .build();
-            System.out.println("配置熟悉 ；" + JSON.toJSONString(context));
-            // ========== 前置拦截器链 ==========
-            for (NodeExecutionInterceptor interceptor : interceptors) {
-                InterceptResult result = interceptor.beforeExecution(context);
-                if (result.shouldPause()) {
-                    handlePause(nodeId, result, pausedNodeId, resultRef, completionLatch, state, graph);
-                    return;
-                }
-                if (result.shouldSkip()) {
-                    log.info("节点 {} 被跳过: {}", nodeId, result.getReason());
-                    // 跳过节点，直接标记完成
-                    tracker.markCompleted(nodeId);
-                    return;
-                }
-                if (result.getAction() == InterceptResult.InterceptAction.ERROR) {
-                    handleInterceptError(nodeId, result, failures, resultRef, completionLatch);
-                    return;
-                }
-            }
-
-            // ========== 执行节点（带重试） ==========
-            long startTime = System.currentTimeMillis();
-            listener.onNodeStarted(nodeId, node.getNodeName());
-
-            // 再次检查取消状态
-            if (conversationId != null) {
-                ExecutionControl control = activeExecutions.get(conversationId);
-                if (control != null && control.cancelled.get()) {
-                    log.info("节点 {} 取消执行: 工作流已被取消", nodeId);
-                    return;
-                }
-            }
-
-            StateUpdate update = executeWithRetry(context);
-            long durationMs = System.currentTimeMillis() - startTime;
-            listener.onNodeCompleted(nodeId, node.getNodeName(), state, durationMs);
-
-            // 【优化】保存节点元数据，用于上下文展示
-            state.put(nodeId + "_name", node.getNodeName());
-            state.put(nodeId + "_timestamp", System.currentTimeMillis());
-            log.debug("[{}] 保存节点元数据: name={}, timestamp={}",
-                    conversationId, node.getNodeName(), System.currentTimeMillis());
-            // ========== 后置拦截器链 ==========
-            for (NodeExecutionInterceptor interceptor : interceptors) {
-                InterceptResult result = interceptor.afterExecution(context, update);
-                if (result.shouldPause()) {
-                    handlePause(nodeId, result, pausedNodeId, resultRef, completionLatch, state, graph);
-                    return;
-                }
-            }
-
-            // ========== 检查节点自身的信号 ==========
-            if (update.getSignal() == ControlSignal.PAUSE) {
-                pausedNodeId.set(nodeId);
-                resultRef.set(ExecutionResult.pause(nodeId));
-                completionLatch.countDown();
-                return;
-            }
-            if (update.getSignal() == ControlSignal.ERROR) {
-                failures.put(nodeId, new RuntimeException(update.getMessage()));
-                resultRef.set(ExecutionResult.error(nodeId, update.getMessage()));
-                completionLatch.countDown();
-                return;
-            }
-
-            // 3. 标记完成，获取下游节点
-            Set<String> nextNodes = tracker.markCompleted(nodeId);
-
-            // 4. 处理条件边
-            Map<String, EdgeDefinitionEntity> edgeMap = graph.getNextNodes(nodeId);
-            List<RouterEntity> routerEntities = new ArrayList<>();
-            List<String> conditionalNext = new ArrayList<>();
-            if (edgeMap.size() > 1) {
-                for (Map.Entry<String, EdgeDefinitionEntity> entry : edgeMap.entrySet()) {
-                    EdgeDefinitionEntity edge = entry.getValue();
-                    String condition = edge.getCondition();
-                    if (condition == null) {
-                        condition = graph.getNodes().get(edge.getTarget()).getDescription();
+                // 检查是否已取消
+                String conversationId = state.get(WorkflowRunningConstants.Workflow.EXECUTION_ID_KEY, String.class);
+                if (conversationId != null) {
+                    ExecutionControl control = activeExecutions.get(conversationId);
+                    if (control != null && control.cancelled.get()) {
+                        log.info("节点 {} 取消执行: 工作流已被取消", nodeId);
+                        return;
                     }
-                    routerEntities.add(RouterEntity.builder()
-                            .condition(condition)
-                            .nodeId(edge.getTarget())
-                            .build());
                 }
-                List<String> evaluate = conditionalEdge.evaluate(state, routerEntities);
-                conditionalNext.addAll(new ArrayList<>(evaluate));
-            } else {
-                conditionalNext.addAll(new ArrayList<>(edgeMap.keySet()));
-            }
-            for (String next : conditionalNext) {
-                if (tracker.isCompleted(next)) {
-                    tracker.resetForLoop(next); // 循环
-                }
-                nextNodes.add(next);
-            }
-            // 5. 递归提交下游节点
-            for (String next : nextNodes) {
-                submitNode(next, graph, state, tracker, failures,
-                        pausedNodeId, activeCount, completionLatch, resultRef);
-            }
 
-        } catch (Exception e) {
-            failures.put(nodeId, e);
-            resultRef.set(ExecutionResult.error(nodeId, e.getMessage()));
-            completionLatch.countDown(); // 异常时唤醒主线程
-        } finally {
-            int remaining = activeCount.decrementAndGet();
-            // 所有任务完成时唤醒主线程
-            if (remaining == 0 && tracker.isAllCompleted()) {
-                resultRef.set(ExecutionResult.success(state));
-                completionLatch.countDown();
+                // 构建执行上下文
+                NodeExecutionContext context = NodeExecutionContext.builder()
+                        .nodeId(nodeId)
+                        .nodeName(node.getNodeName())
+                        .nodeType(node.getClass().getSimpleName())
+                        .state(state)
+                        .executor(node)
+                        .nodeConfig(nodeConfig)
+                        .currentRetryCount(0)
+                        .build();
+                // ========== 前置拦截器链 ==========
+                for (NodeExecutionInterceptor interceptor : interceptors) {
+                    InterceptResult result = interceptor.beforeExecution(context);
+                    if (result.shouldPause()) {
+                        handlePause(nodeId, result, pausedNodeId, resultRef, completionLatch, state, graph);
+                        return;
+                    }
+                    if (result.shouldSkip()) {
+                        log.info("节点 {} 被跳过: {}", nodeId, result.getReason());
+                        // 跳过节点，直接标记完成
+                        tracker.markCompleted(nodeId);
+                        return;
+                    }
+                    if (result.getAction() == InterceptResult.InterceptAction.ERROR) {
+                        handleInterceptError(nodeId, result, failures, resultRef, completionLatch);
+                        return;
+                    }
+                }
+
+                // ========== 执行节点（带重试） ==========
+                log.info("拦截器检查通过，开始执行节点: nodeId={}, nodeName={}", nodeId, node.getNodeName());
+                long startTime = System.currentTimeMillis();
+                listener.onNodeStarted(nodeId, node.getNodeName());
+
+                // 再次检查取消状态
+                if (conversationId != null) {
+                    ExecutionControl control = activeExecutions.get(conversationId);
+                    if (control != null && control.cancelled.get()) {
+                        log.info("节点 {} 取消执行: 工作流已被取消", nodeId);
+                        return;
+                    }
+                }
+
+                StateUpdate update = executeWithRetry(context);
+                long durationMs = System.currentTimeMillis() - startTime;
+                listener.onNodeCompleted(nodeId, node.getNodeName(), state, durationMs);
+
+                // 【优化】保存节点元数据，用于上下文展示
+                state.put(nodeId + "_name", node.getNodeName());
+                state.put(nodeId + "_timestamp", System.currentTimeMillis());
+                log.debug("[{}] 保存节点元数据: name={}, timestamp={}",
+                        conversationId, node.getNodeName(), System.currentTimeMillis());
+                // ========== 后置拦截器链 ==========
+                for (NodeExecutionInterceptor interceptor : interceptors) {
+                    InterceptResult result = interceptor.afterExecution(context, update);
+                    if (result.shouldPause()) {
+                        handlePause(nodeId, result, pausedNodeId, resultRef, completionLatch, state, graph);
+                        return;
+                    }
+                }
+
+                // ========== 检查节点自身的信号 ==========
+                if (update.getSignal() == ControlSignal.PAUSE) {
+                    pausedNodeId.set(nodeId);
+                    resultRef.set(ExecutionResult.pause(nodeId));
+                    completionLatch.countDown();
+                    return;
+                }
+                if (update.getSignal() == ControlSignal.ERROR) {
+                    failures.put(nodeId, new RuntimeException(update.getMessage()));
+                    resultRef.set(ExecutionResult.error(nodeId, update.getMessage()));
+                    completionLatch.countDown();
+                    return;
+                }
+
+                // 3. 标记完成，获取下游节点
+                Set<String> nextNodes = tracker.markCompleted(nodeId);
+
+                // 4. 处理条件边
+                Map<String, EdgeDefinitionEntity> edgeMap = graph.getNextNodes(nodeId);
+                List<RouterEntity> routerEntities = new ArrayList<>();
+                List<String> conditionalNext = new ArrayList<>();
+                if (edgeMap.size() > 1) {
+                    for (Map.Entry<String, EdgeDefinitionEntity> entry : edgeMap.entrySet()) {
+                        EdgeDefinitionEntity edge = entry.getValue();
+                        String condition = edge.getCondition();
+                        if (condition == null) {
+                            condition = graph.getNodes().get(edge.getTarget()).getDescription();
+                        }
+                        routerEntities.add(RouterEntity.builder()
+                                .condition(condition)
+                                .nodeId(edge.getTarget())
+                                .build());
+                    }
+                    List<String> evaluate = conditionalEdge.evaluate(state, routerEntities);
+                    conditionalNext.addAll(new ArrayList<>(evaluate));
+                } else {
+                    conditionalNext.addAll(new ArrayList<>(edgeMap.keySet()));
+                }
+                for (String next : conditionalNext) {
+                    if (tracker.isCompleted(next)) {
+                        tracker.resetForLoop(next); // 循环
+                    }
+                    nextNodes.add(next);
+                }
+                // 5. 递归提交下游节点
+                for (String next : nextNodes) {
+                    submitNode(next, graph, state, tracker, failures,
+                            pausedNodeId, activeCount, completionLatch, resultRef);
+                }
+
+            } catch (Exception e) {
+                log.error("❗ 节点执行异常: nodeId={}, error={}", nodeId, e.getMessage(), e);
+                failures.put(nodeId, e);
+                resultRef.set(ExecutionResult.error(nodeId, e.getMessage()));
+                completionLatch.countDown(); // 异常时唤醒主线程
+            } finally {
+                int remaining = activeCount.decrementAndGet();
+                boolean allCompleted = tracker.isAllCompleted();
+                log.info("❌ 进入 finally 块: nodeId={}, remaining={}, allCompleted={}",
+                        nodeId, remaining, allCompleted);
+
+                // 所有任务完成时唤醒主线程
+                if (remaining == 0 && allCompleted) {
+                    log.info("✅ 所有任务完成，唤醒主线程");
+                    resultRef.set(ExecutionResult.success(state));
+                    completionLatch.countDown();
+                }
             }
-        }
-         }, executor);
+        }, executor);
     }
 
     /**
@@ -481,6 +486,13 @@ public class EventDrivenScheduler implements WorkflowScheduler {
 
             listener.onNodePaused(nodeId, nodeName, result.getReason());
             log.info("已通知前端节点暂停: {} ({}) - {}", nodeName, nodeId, result.getReason());
+        }
+
+        // ⭐ 保存快照 - 暂停时也需要保存当前状态，以便前端查看/编辑执行上下文
+        String executionId = state.get(WorkflowRunningConstants.Workflow.EXECUTION_ID_KEY, String.class);
+        if (executionId != null && checkpointer != null) {
+            checkpointer.save(executionId, nodeId, state);
+            log.info("已保存暂停节点的快照: executionId={}, nodeId={}", executionId, nodeId);
         }
 
         completionLatch.countDown();

@@ -148,15 +148,193 @@ public class ChatController {
         }
 
         // 转换为 Response DTO
-        ExecutionContextResponse response = ExecutionContextResponse.builder()
+        ExecutionContextResponse.ExecutionContextResponseBuilder builder = ExecutionContextResponse.builder()
                 .conversationId(snapshot.getExecutionId())
                 .lastNodeId(snapshot.getLastNodeId())
                 .status(snapshot.getStatus())
                 .timestamp(snapshot.getTimestamp())
-                .stateData(snapshot.getStateData())
-                .build();
+                .stateData(snapshot.getStateData());
 
-        return Response.success(response);
+        // 如果是暂停状态,提取人工介入信息
+        if ("PAUSED".equals(snapshot.getStatus())) {
+            builder.humanIntervention(buildHumanInterventionInfo(snapshot));
+        }
+
+        // 转换执行历史
+        builder.executionHistory(buildExecutionHistory(snapshot));
+
+        // 构建可编辑字段元数据
+        builder.editableFields(buildEditableFields(snapshot));
+
+        return Response.success(builder.build());
+    }
+
+    /**
+     * 从快照中提取人工介入信息
+     */
+    private com.zj.aiagent.interfaces.web.dto.response.agent.HumanInterventionInfo buildHumanInterventionInfo(
+            com.zj.aiagent.domain.workflow.entity.ExecutionContextSnapshot snapshot) {
+
+        java.util.Map<String, Object> stateData = snapshot.getStateData();
+        if (stateData == null) {
+            return null;
+        }
+
+        return com.zj.aiagent.interfaces.web.dto.response.agent.HumanInterventionInfo.builder()
+                .nodeId(snapshot.getLastNodeId())
+                .nodeName((String) stateData.getOrDefault("current_node_name", "未知节点"))
+                .nodeType((String) stateData.getOrDefault("current_node_type", "UNKNOWN"))
+                .checkMessage((String) stateData.getOrDefault("check_message", "请审核此内容"))
+                .allowModifyOutput(true)
+                .build();
+    }
+
+    /**
+     * 从快照中提取执行历史
+     */
+    private java.util.List<com.zj.aiagent.interfaces.web.dto.response.agent.NodeExecutionRecord> buildExecutionHistory(
+            com.zj.aiagent.domain.workflow.entity.ExecutionContextSnapshot snapshot) {
+
+        java.util.Map<String, Object> stateData = snapshot.getStateData();
+        if (stateData == null) {
+            return java.util.Collections.emptyList();
+        }
+
+        // 尝试从 stateData 中提取 execution_history
+        Object executionHistoryObj = stateData.get("execution_history");
+        if (executionHistoryObj instanceof java.util.List) {
+            @SuppressWarnings("unchecked")
+            java.util.List<java.util.Map<String, Object>> historyList = (java.util.List<java.util.Map<String, Object>>) executionHistoryObj;
+
+            return historyList.stream()
+                    .map(this::convertToNodeExecutionRecord)
+                    .collect(java.util.stream.Collectors.toList());
+        }
+
+        return java.util.Collections.emptyList();
+    }
+
+    /**
+     * 转换单个执行记录
+     */
+    private com.zj.aiagent.interfaces.web.dto.response.agent.NodeExecutionRecord convertToNodeExecutionRecord(
+            java.util.Map<String, Object> record) {
+
+        return com.zj.aiagent.interfaces.web.dto.response.agent.NodeExecutionRecord.builder()
+                .nodeId((String) record.get("node_id"))
+                .nodeName((String) record.get("node_name"))
+                .nodeType((String) record.get("node_type"))
+                .status((String) record.getOrDefault("status", "COMPLETED"))
+                .startTime(getLongValue(record, "start_time"))
+                .endTime(getLongValue(record, "end_time"))
+                .duration(getLongValue(record, "duration"))
+                .input(record.get("input"))
+                .output(record.get("output"))
+                .error((String) record.get("error"))
+                .build();
+    }
+
+    /**
+     * 安全获取 Long 值
+     */
+    private Long getLongValue(java.util.Map<String, Object> map, String key) {
+        Object value = map.get(key);
+        if (value instanceof Number) {
+            return ((Number) value).longValue();
+        }
+        return null;
+    }
+
+    /**
+     * 构建可编辑字段元数据
+     * <p>
+     * 动态检测 stateData 中实际存在的字段，为每个字段生成相应的元数据
+     */
+    private java.util.List<com.zj.aiagent.interfaces.web.dto.response.agent.EditableFieldMeta> buildEditableFields(
+            com.zj.aiagent.domain.workflow.entity.ExecutionContextSnapshot snapshot) {
+
+        java.util.List<com.zj.aiagent.interfaces.web.dto.response.agent.EditableFieldMeta> fields = new java.util.ArrayList<>();
+
+        java.util.Map<String, Object> stateData = snapshot.getStateData();
+        if (stateData == null || stateData.isEmpty()) {
+            return fields;
+        }
+
+        // 遍历 stateData 中的所有键，为每个字段生成元数据
+        for (String key : stateData.keySet()) {
+            Object value = stateData.get(key);
+
+            // 跳过 null 值
+            if (value == null) {
+                continue;
+            }
+
+            // 根据字段名和值类型推断字段类型和描述
+            String type = inferFieldType(key, value);
+            String label = generateFieldLabel(key);
+            String description = generateFieldDescription(key);
+
+            fields.add(com.zj.aiagent.interfaces.web.dto.response.agent.EditableFieldMeta.builder()
+                    .key(key)
+                    .label(label)
+                    .type(type)
+                    .description(description)
+                    .editable(true)
+                    .build());
+        }
+
+        return fields;
+    }
+
+    /**
+     * 推断字段类型
+     */
+    private String inferFieldType(String key, Object value) {
+        // 根据字段名特殊处理
+        if (key.contains("message") || key.contains("history") && value instanceof java.util.List) {
+            // 检查是否是消息历史
+            return "messages";
+        }
+
+        if (key.contains("input") || key.contains("prompt") || key.contains("query")) {
+            return "text";
+        }
+
+        // 根据值类型推断
+        if (value instanceof String) {
+            return "text";
+        } else if (value instanceof java.util.List || value instanceof java.util.Map) {
+            return "json";
+        } else if (value instanceof Number || value instanceof Boolean) {
+            return "text";
+        }
+
+        return "json";
+    }
+
+    /**
+     * 生成字段显示标签
+     */
+    private String generateFieldLabel(String key) {
+        // 直接使用原始字段名
+        return key;
+    }
+
+    /**
+     * 生成字段描述
+     */
+    private String generateFieldDescription(String key) {
+        // 预定义的常见字段描述
+        java.util.Map<String, String> descMap = java.util.Map.ofEntries(
+                java.util.Map.entry("user_input", "用户的原始输入内容"),
+                java.util.Map.entry("execution_history", "各个节点的执行结果记录"),
+                java.util.Map.entry("custom_variables", "工作流中的自定义变量"),
+                java.util.Map.entry("message_history", "对话历史记录"),
+                java.util.Map.entry("thought_history", "Agent 的思考过程记录"),
+                java.util.Map.entry("action_history", "Agent 的行动记录"),
+                java.util.Map.entry("loop_count", "当前循环执行次数"));
+
+        return descMap.getOrDefault(key, "工作流状态数据");
     }
 
     @PostMapping("/snapshot/{agentId}/{conversationId}")

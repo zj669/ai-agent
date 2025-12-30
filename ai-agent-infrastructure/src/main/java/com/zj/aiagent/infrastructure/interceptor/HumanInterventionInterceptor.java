@@ -22,6 +22,15 @@ public class HumanInterventionInterceptor implements NodeExecutionInterceptor {
 
     @Override
     public InterceptResult beforeExecution(NodeExecutionContext context) {
+        // ⭐ 检查是否需要跳过人工干预（从审核恢复时，只跳过特定节点）
+        String skipNodeId = context.getState().get("_SKIP_HUMAN_INTERVENTION_NODE_", String.class);
+        if (skipNodeId != null && skipNodeId.equals(context.getNodeId())) {
+            log.info("检测到跳过人工干预标记，本次执行跳过暂停: nodeId={}", context.getNodeId());
+            // 清除标记，避免影响同一节点的下次执行（使用 remove 而不是 put null）
+            context.getState().remove("_SKIP_HUMAN_INTERVENTION_NODE_");
+            return InterceptResult.proceed();
+        }
+
         HumanInterventionConfig config = context.getConfig("humanIntervention", HumanInterventionConfig.class);
         System.out.println("humanIntervention: " + JSON.toJSONString(config));
 

@@ -148,13 +148,29 @@ public class DependencyTracker {
 
     /**
      * 检查是否所有节点都已完成
+     * <p>
+     * ⭐ 修改逻辑以支持条件分支：
+     * - 原逻辑：检查图中定义的所有节点是否都完成（不适合条件分支）
+     * - 新逻辑：检查是否还有可执行的节点（依赖已满足但未完成的节点）
+     * <p>
+     * 工作流完成条件：没有就绪节点 && 没有运行中的节点
      */
     public boolean isAllCompleted() {
-        for (String nodeId : pendingDependencies.keySet()) {
-            if (!completedNodes.contains(nodeId)) {
+        // 检查是否还有依赖已满足但未完成的节点
+        for (Map.Entry<String, AtomicInteger> entry : pendingDependencies.entrySet()) {
+            String nodeId = entry.getKey();
+            int dependencyCount = entry.getValue().get();
+
+            // 如果节点依赖已满足（dependencyCount == 0）但还未完成，说明有节点可执行
+            if (dependencyCount == 0 && !completedNodes.contains(nodeId)) {
+                log.debug("节点 {} 依赖已满足但未完成，工作流未完成", nodeId);
                 return false;
             }
         }
+
+        // 所有依赖已满足的节点都已完成，工作流完成
+        log.debug("所有可执行节点都已完成，工作流完成。已完成节点: {}/{}",
+                completedNodes.size(), pendingDependencies.size());
         return true;
     }
 }

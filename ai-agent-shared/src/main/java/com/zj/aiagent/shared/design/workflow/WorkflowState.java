@@ -29,7 +29,7 @@ public class WorkflowState {
 
     @Getter
     @Setter
-    private  WorkflowStateListener workflowStateListener;
+    private WorkflowStateListener workflowStateListener;
 
     public WorkflowState(WorkflowStateListener workflowStateListener) {
         this.data = new ConcurrentHashMap<>();
@@ -85,6 +85,13 @@ public class WorkflowState {
      */
     public boolean contains(String key) {
         return data.containsKey(key);
+    }
+
+    /**
+     * 移除指定的键
+     */
+    public Object remove(String key) {
+        return data.remove(key);
     }
 
     /**
