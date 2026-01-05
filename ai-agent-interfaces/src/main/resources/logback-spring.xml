@@ -23,7 +23,7 @@
             <level>debug</level>
         </filter>
         <encoder>
-            <pattern>%d{yy-MM-dd.HH:mm:ss.SSS} [%-16t] %-5p %-22c{0}%X{ServiceId} -%X{trace-id} %m%n</pattern>
+            <pattern>%clr(%d{yyyy-MM-dd HH:mm:ss.SSS}){faint} %clr(%-5level){blue} %clr([%15.15t]){faint} %clr(%-40.40logger{39}){cyan} %clr(:){faint} %m%clr(%X{trace-id}){magenta}%n%wEx</pattern>
             <charset>UTF-8</charset>
         </encoder>
     </appender>
@@ -32,8 +32,7 @@
     <!-- 时间滚动输出 level为 INFO 日志 -->
     <appender name="INFO_FILE" class="ch.qos.logback.core.rolling.RollingFileAppender">
         <!-- 正在记录的日志文件的路径及文件名 -->
-<!--        <file>D:/java/log/${APP_NAME}/data/log/log_info.log</file>-->
-        <file>./data/log/log_info.log</file>
+        <file>./logs/log_info.log</file>
         <!--日志文件输出格式-->
         <encoder>
             <pattern>%d{yy-MM-dd.HH:mm:ss.SSS} [%-16t] %-5p %-22c{0}%X{ServiceId} -%X{trace-id} %m%n</pattern>
@@ -42,7 +41,7 @@
         <!-- 日志记录器的滚动策略，按日期，按大小记录 -->
         <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
             <!-- 每天日志归档路径以及格式 -->
-            <fileNamePattern>./data/log/log-info-%d{yyyy-MM-dd}.%i.log</fileNamePattern>
+            <fileNamePattern>./logs/log-info-%d{yyyy-MM-dd}.%i.log</fileNamePattern>
             <timeBasedFileNamingAndTriggeringPolicy class="ch.qos.logback.core.rolling.SizeAndTimeBasedFNATP">
                 <maxFileSize>100MB</maxFileSize>
             </timeBasedFileNamingAndTriggeringPolicy>
@@ -55,8 +54,7 @@
     <!-- 时间滚动输出 level为 ERROR 日志 -->
     <appender name="ERROR_FILE" class="ch.qos.logback.core.rolling.RollingFileAppender">
         <!-- 正在记录的日志文件的路径及文件名 -->
-<!--        <file>D:/java/log/${APP_NAME}/data/log/log_error.log</file>-->
-        <file>./data/log/log_error.log</file>
+        <file>./logs/log_error.log</file>
         <!--日志文件输出格式-->
         <encoder>
             <pattern>%d{yy-MM-dd.HH:mm:ss.SSS} [%-16t] %-5p %-22c{0}%X{ServiceId} -%X{trace-id} %m%n</pattern>
@@ -64,7 +62,7 @@
         </encoder>
         <!-- 日志记录器的滚动策略，按日期，按大小记录 -->
         <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
-            <fileNamePattern>D:/java/log/${APP_NAME}/data/log/log-error-%d{yyyy-MM-dd}.%i.log</fileNamePattern>
+            <fileNamePattern>./logs/log-error-%d{yyyy-MM-dd}.%i.log</fileNamePattern>
             <timeBasedFileNamingAndTriggeringPolicy class="ch.qos.logback.core.rolling.SizeAndTimeBasedFNATP">
                 <maxFileSize>100MB</maxFileSize>
             </timeBasedFileNamingAndTriggeringPolicy>
@@ -108,15 +106,53 @@
         <logger name="com.nmys.view" level="debug"/>
     </springProfile>
 
-<!--    &lt;!&ndash;输出到logstash的appender&ndash;&gt;-->
-<!--    <appender name="LOGSTASH" class="net.logstash.logback.appender.LogstashTcpSocketAppender">-->
-<!--        &lt;!&ndash;可以访问的logstash日志收集端口&ndash;&gt;-->
-<!--        <destination>81.69.37.254:4560</destination>-->
-<!--        <encoder charset="UTF-8" class="net.logstash.logback.encoder.LogstashEncoder">-->
-<!--            &lt;!&ndash; 通过 customFields 定义应用标识 &ndash;&gt;-->
-<!--            <customFields>{"appname": "${APP_NAME}"}</customFields>-->
-<!--        </encoder>-->
-<!--    </appender>-->
+<!-- <shutdownHook class="ch.qos.logback.core.hook.DelayingShutdownHook"/>
+ <appender name="JDCloudAppender" class="com.jdcloud.logs.JDCloudLogbackAppender">
+        <!-- 必选配置项start -->
+        <!-- 认证标识 -->
+        <accessKeyId>${accessKeyId}</accessKeyId>
+        <!-- 认证秘钥 -->
+        <secretAccessKey>${secretAccessKey}</secretAccessKey>
+        <!-- 地域标识 -->
+        <regionId>${regionId}</regionId>
+        <!-- 日志发送地址，可选值： -->
+        <!-- 华北-北京：logs.internal.cn-north-1.jdcloud-api.com -->
+        <!-- 华南-广州：logs.internal.cn-south-1.jdcloud-api.com -->
+        <!-- 华东-宿迁：logs.internal.cn-east-1.jdcloud-api.com -->
+        <!-- 华东-上海：logs.internal.cn-east-2.jdcloud-api.com -->
+        <endpoint>${endpoint}</endpoint>
+        <!-- 日志主题 -->
+        <logTopic>${logTopic}</logTopic>
+        <!-- 必选配置项end -->
+
+        <!-- 可选配置项start -->
+        <!-- 日志来源，默认为机器ip -->
+        <source></source>
+        <!-- 日志文件名 -->
+        <fileName></fileName>
+        <!-- 日志缓存的内存占用字节数上限，默认为100M -->
+        <totalSizeInBytes>104857600</totalSizeInBytes>
+        <!-- 日志缓存达到上限后，获取可用内存的最大阻塞等待时间，默认为0，表示不等待。等待超时后丢弃日志，由于会阻塞日志线程，建议设置为0 -->
+        <maxBlockMillis>0</maxBlockMillis>
+        <!-- 日志发送线程数，默认为可用处理器个数 -->
+        <sendThreads>4</sendThreads>
+        <!-- 每批次发送的日志数，默认为4096，最大不能超过32768 -->
+        <batchSize>4096</batchSize>
+        <!-- 每批次发送的日志字节数，默认2MB，最大不能超过4MB -->
+        <batchSizeInBytes>2097152</batchSizeInBytes>
+        <!-- 批次发送时间间隔毫秒数，默认为2秒，表示每隔2秒发送一个批次日志，最小不少于100毫秒 -->
+        <batchMillis>2000</batchMillis>
+        <!-- 发送失败后重试次数，0为不重试 -->
+        <retries>10</retries>
+        <!-- 发送失败后首次重试时间毫秒数 -->
+        <initRetryBackoffMillis>100</initRetryBackoffMillis>
+        <!-- 发送失败后最大退避时间毫秒数，默认为50秒 -->
+        <maxRetryBackoffMillis>50000</maxRetryBackoffMillis>
+        <!-- 自定义日志字段，格式为：key=value -->
+        <customLogProperty>customKey1=value1</customLogProperty>
+        <customLogProperty>customKey2=value2</customLogProperty>
+        <!-- 可选配置项end -->
+    </appender> -->
 
     <root level="info">
         <appender-ref ref="CONSOLE"/>

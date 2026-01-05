@@ -79,9 +79,9 @@
         
         <!-- Logstash Logback -->
         <dependency>
-            <groupId>net.logstash.logback</groupId>
-            <artifactId>logstash-logback-encoder</artifactId>
-            <version>${logstash-logback.version}</version>
+            <groupId>com.jdcloud.logs</groupId>
+            <artifactId>logback-appender</artifactId>
+            <version>0.2.0</version>
         </dependency>
 
         <!-- Lombok -->
