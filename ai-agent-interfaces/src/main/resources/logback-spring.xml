@@ -10,11 +10,11 @@
     <!-- 应用名称 -->
     <springProperty name="APP_NAME" scope="context" source="spring.application.name" defaultValue="aiagemt"/>
     <!-- 日志格式 -->
-    <conversionRule conversionWord="clr" converterClass="org.springframework.boot.logging.logback.ColorConverter"/>
-    <conversionRule conversionWord="wex"
-                    converterClass="org.springframework.boot.logging.logback.WhitespaceThrowableProxyConverter"/>
-    <conversionRule conversionWord="wEx"
-                    converterClass="org.springframework.boot.logging.logback.ExtendedWhitespaceThrowableProxyConverter"/>
+    <conversionRule conversionWord="clr" class="org.springframework.boot.logging.logback.ColorConverter"/>
+    <conversionRule conversionWord="wex" class="org.springframework.boot.logging.logback.WhitespaceThrowableProxyConverter"/>
+    <conversionRule conversionWord="wEx" class="org.springframework.boot.logging.logback.ExtendedWhitespaceThrowableProxyConverter"/>
+    <!-- 自定义Trace-ID转换器 -->
+    <conversionRule conversionWord="traceId" class="com.zj.aiagent.infrastructure.logging.TraceIdConverter"/>
 
     <!-- 输出到控制台 -->
     <appender name="CONSOLE" class="ch.qos.logback.core.ConsoleAppender">
@@ -23,144 +23,227 @@
             <level>debug</level>
         </filter>
         <encoder>
-            <pattern>%clr(%d{yyyy-MM-dd HH:mm:ss.SSS}){faint} %clr(%-5level){blue} %clr([%15.15t]){faint} %clr(%-40.40logger{39}){cyan} %clr(:){faint} %m%clr(%X{trace-id}){magenta}%n%wEx</pattern>
+            <pattern>%clr(%d{yyyy-MM-dd HH:mm:ss.SSS}){faint} %clr(%-5level){blue} %clr([%15.15t]){faint} %clr(%-40.40logger{39}.%method:%line){cyan} %clr(:){faint} %m%clr(%traceId){magenta}%n%wEx</pattern>
             <charset>UTF-8</charset>
         </encoder>
     </appender>
 
     <!--输出到文件-->
-    <!-- 时间滚动输出 level为 INFO 日志 -->
-    <appender name="INFO_FILE" class="ch.qos.logback.core.rolling.RollingFileAppender">
-        <!-- 正在记录的日志文件的路径及文件名 -->
-        <file>./logs/log_info.log</file>
-        <!--日志文件输出格式-->
+    <!-- DEBUG级别日志 (仅开发环境) -->
+    <appender name="DEBUG_FILE" class="ch.qos.logback.core.rolling.RollingFileAppender">
+        <file>./logs/log_debug.log</file>
         <encoder>
-            <pattern>%d{yy-MM-dd.HH:mm:ss.SSS} [%-16t] %-5p %-22c{0}%X{ServiceId} -%X{trace-id} %m%n</pattern>
+            <pattern>%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level %logger{50}.%method:%line - %msg%traceId%n</pattern>
             <charset>UTF-8</charset>
         </encoder>
-        <!-- 日志记录器的滚动策略，按日期，按大小记录 -->
-        <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
-            <!-- 每天日志归档路径以及格式 -->
+        <rollingPolicy class="ch.qos.logback.core.rolling.SizeAndTimeBasedRollingPolicy">
+            <fileNamePattern>./logs/log-debug-%d{yyyy-MM-dd}.%i.log</fileNamePattern>
+            <maxFileSize>100MB</maxFileSize>
+            <maxHistory>3</maxHistory>
+            <totalSizeCap>2GB</totalSizeCap>
+        </rollingPolicy>
+        <!-- 只记录DEBUG级别 -->
+        <filter class="ch.qos.logback.classic.filter.LevelFilter">
+            <level>DEBUG</level>
+            <onMatch>ACCEPT</onMatch>
+            <onMismatch>DENY</onMismatch>
+        </filter>
+    </appender>
+
+    <!-- INFO级别日志 -->
+    <appender name="INFO_FILE" class="ch.qos.logback.core.rolling.RollingFileAppender">
+        <file>./logs/log_info.log</file>
+        <encoder>
+            <pattern>%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level %logger{50}.%method:%line - %msg%traceId%n</pattern>
+            <charset>UTF-8</charset>
+        </encoder>
+        <rollingPolicy class="ch.qos.logback.core.rolling.SizeAndTimeBasedRollingPolicy">
             <fileNamePattern>./logs/log-info-%d{yyyy-MM-dd}.%i.log</fileNamePattern>
-            <timeBasedFileNamingAndTriggeringPolicy class="ch.qos.logback.core.rolling.SizeAndTimeBasedFNATP">
-                <maxFileSize>100MB</maxFileSize>
-            </timeBasedFileNamingAndTriggeringPolicy>
-            <!--日志文件保留天数-->
+            <maxFileSize>100MB</maxFileSize>
             <maxHistory>15</maxHistory>
             <totalSizeCap>10GB</totalSizeCap>
         </rollingPolicy>
+        <!-- 只记录INFO级别 -->
+        <filter class="ch.qos.logback.classic.filter.LevelFilter">
+            <level>INFO</level>
+            <onMatch>ACCEPT</onMatch>
+            <onMismatch>DENY</onMismatch>
+        </filter>
     </appender>
 
-    <!-- 时间滚动输出 level为 ERROR 日志 -->
-    <appender name="ERROR_FILE" class="ch.qos.logback.core.rolling.RollingFileAppender">
-        <!-- 正在记录的日志文件的路径及文件名 -->
-        <file>./logs/log_error.log</file>
-        <!--日志文件输出格式-->
+    <!-- WARN级别日志 -->
+    <appender name="WARN_FILE" class="ch.qos.logback.core.rolling.RollingFileAppender">
+        <file>./logs/log_warn.log</file>
         <encoder>
-            <pattern>%d{yy-MM-dd.HH:mm:ss.SSS} [%-16t] %-5p %-22c{0}%X{ServiceId} -%X{trace-id} %m%n</pattern>
+            <pattern>%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level %logger{50}.%method:%line - %msg%traceId%n</pattern>
             <charset>UTF-8</charset>
         </encoder>
-        <!-- 日志记录器的滚动策略，按日期，按大小记录 -->
-        <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
-            <fileNamePattern>./logs/log-error-%d{yyyy-MM-dd}.%i.log</fileNamePattern>
-            <timeBasedFileNamingAndTriggeringPolicy class="ch.qos.logback.core.rolling.SizeAndTimeBasedFNATP">
-                <maxFileSize>100MB</maxFileSize>
-            </timeBasedFileNamingAndTriggeringPolicy>
-            <!-- 日志文件保留天数【根据服务器预留，可自行调整】 -->
-            <maxHistory>7</maxHistory>
+        <rollingPolicy class="ch.qos.logback.core.rolling.SizeAndTimeBasedRollingPolicy">
+            <fileNamePattern>./logs/log-warn-%d{yyyy-MM-dd}.%i.log</fileNamePattern>
+            <maxFileSize>100MB</maxFileSize>
+            <maxHistory>30</maxHistory>
             <totalSizeCap>5GB</totalSizeCap>
         </rollingPolicy>
-        <!-- WARN 级别及以上 -->
-        <filter class="ch.qos.logback.classic.filter.ThresholdFilter">
+        <!-- 只记录WARN级别 -->
+        <filter class="ch.qos.logback.classic.filter.LevelFilter">
             <level>WARN</level>
+            <onMatch>ACCEPT</onMatch>
+            <onMismatch>DENY</onMismatch>
+        </filter>
+    </appender>
+
+    <!-- ERROR级别日志 -->
+    <appender name="ERROR_FILE" class="ch.qos.logback.core.rolling.RollingFileAppender">
+        <file>./logs/log_error.log</file>
+        <encoder>
+            <pattern>%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level %logger{50}.%method:%line - %msg%traceId%n</pattern>
+            <charset>UTF-8</charset>
+        </encoder>
+        <rollingPolicy class="ch.qos.logback.core.rolling.SizeAndTimeBasedRollingPolicy">
+            <fileNamePattern>./logs/log-error-%d{yyyy-MM-dd}.%i.log</fileNamePattern>
+            <maxFileSize>100MB</maxFileSize>
+            <maxHistory>30</maxHistory>
+            <totalSizeCap>5GB</totalSizeCap>
+        </rollingPolicy>
+        <!-- 只记录ERROR级别 -->
+        <filter class="ch.qos.logback.classic.filter.LevelFilter">
+            <level>ERROR</level>
+            <onMatch>ACCEPT</onMatch>
+            <onMismatch>DENY</onMismatch>
         </filter>
     </appender>
 
     <!-- 异步输出 -->
-    <appender name="ASYNC_FILE_INFO" class="ch.qos.logback.classic.AsyncAppender">
-        <!-- 队列剩余容量小于discardingThreshold,则会丢弃TRACT、DEBUG、INFO级别的日志;默认值-1,为queueSize的20%;0不丢失日志 -->
+    <appender name="ASYNC_DEBUG_FILE" class="ch.qos.logback.classic.AsyncAppender">
         <discardingThreshold>0</discardingThreshold>
-        <!-- 更改默认的队列的深度,该值会影响性能.默认值为256 -->
-        <queueSize>8192</queueSize>
-        <!-- neverBlock:true 会丢失日志,但业务性能不受影响 -->
+        <queueSize>4096</queueSize>
         <neverBlock>true</neverBlock>
-        <!--是否提取调用者数据-->
+        <includeCallerData>false</includeCallerData>
+        <appender-ref ref="DEBUG_FILE"/>
+    </appender>
+
+    <appender name="ASYNC_INFO_FILE" class="ch.qos.logback.classic.AsyncAppender">
+        <discardingThreshold>0</discardingThreshold>
+        <queueSize>8192</queueSize>
+        <neverBlock>true</neverBlock>
         <includeCallerData>false</includeCallerData>
         <appender-ref ref="INFO_FILE"/>
     </appender>
 
-    <appender name="ASYNC_FILE_ERROR" class="ch.qos.logback.classic.AsyncAppender">
-        <!-- 队列剩余容量小于discardingThreshold,则会丢弃TRACT、DEBUG、INFO级别的日志;默认值-1,为queueSize的20%;0不丢失日志 -->
+    <appender name="ASYNC_WARN_FILE" class="ch.qos.logback.classic.AsyncAppender">
         <discardingThreshold>0</discardingThreshold>
-        <!-- 更改默认的队列的深度,该值会影响性能.默认值为256 -->
-        <queueSize>1024</queueSize>
-        <!-- neverBlock:true 会丢失日志,但业务性能不受影响 -->
+        <queueSize>2048</queueSize>
         <neverBlock>true</neverBlock>
-        <!--是否提取调用者数据-->
         <includeCallerData>false</includeCallerData>
+        <appender-ref ref="WARN_FILE"/>
+    </appender>
+
+    <appender name="ASYNC_ERROR_FILE" class="ch.qos.logback.classic.AsyncAppender">
+        <discardingThreshold>0</discardingThreshold>
+        <queueSize>1024</queueSize>
+        <neverBlock>true</neverBlock>
+        <!-- ERROR日志启用调用者数据,便于定位问题 -->
+        <includeCallerData>true</includeCallerData>
         <appender-ref ref="ERROR_FILE"/>
     </appender>
 
-    <!-- 开发环境：控制台打印 -->
+    <!-- 框架日志级别控制,减少噪音 -->
+    <logger name="org.springframework" level="WARN"/>
+    <logger name="org.apache" level="WARN"/>
+    <logger name="com.zaxxer.hikari" level="INFO"/>
+    <logger name="org.mybatis" level="INFO"/>
+    <logger name="com.baomidou" level="INFO"/>
+    
+    <!-- 业务包日志配置 -->
+    <logger name="com.nmys" level="DEBUG"/>
+
+    <!-- 环境差异化配置 -->
+    <!-- 开发环境: DEBUG级别,输出所有日志文件 -->
     <springProfile name="dev">
-        <logger name="com.nmys.view" level="debug"/>
+        <root level="DEBUG">
+            <appender-ref ref="CONSOLE"/>
+            <appender-ref ref="ASYNC_DEBUG_FILE"/>
+            <appender-ref ref="ASYNC_INFO_FILE"/>
+            <appender-ref ref="ASYNC_WARN_FILE"/>
+            <appender-ref ref="ASYNC_ERROR_FILE"/>
+        </root>
+    </springProfile>
+
+    <!-- 测试环境: INFO级别,输出INFO/WARN/ERROR -->
+    <springProfile name="test">
+        <root level="INFO">
+            <appender-ref ref="CONSOLE"/>
+            <appender-ref ref="ASYNC_INFO_FILE"/>
+            <appender-ref ref="ASYNC_WARN_FILE"/>
+            <appender-ref ref="ASYNC_ERROR_FILE"/>
+        </root>
+    </springProfile>
+
+    <!-- 生产环境: INFO级别,只输出INFO/WARN/ERROR,控制台可选 -->
+    <springProfile name="prod">
+        <root level="INFO">
+            <!-- 生产环境建议关闭控制台输出 -->
+            <!-- <appender-ref ref="CONSOLE"/> -->
+            <appender-ref ref="ASYNC_INFO_FILE"/>
+            <appender-ref ref="ASYNC_WARN_FILE"/>
+            <appender-ref ref="ASYNC_ERROR_FILE"/>
+        </root>
     </springProfile>
 
 <!-- <shutdownHook class="ch.qos.logback.core.hook.DelayingShutdownHook"/>
  <appender name="JDCloudAppender" class="com.jdcloud.logs.JDCloudLogbackAppender">
-        <!-- 必选配置项start -->
+        <!- 必选配置项start -->
         <!-- 认证标识 -->
-        <accessKeyId>${accessKeyId}</accessKeyId>
-        <!-- 认证秘钥 -->
-        <secretAccessKey>${secretAccessKey}</secretAccessKey>
-        <!-- 地域标识 -->
-        <regionId>${regionId}</regionId>
-        <!-- 日志发送地址，可选值： -->
-        <!-- 华北-北京：logs.internal.cn-north-1.jdcloud-api.com -->
-        <!-- 华南-广州：logs.internal.cn-south-1.jdcloud-api.com -->
-        <!-- 华东-宿迁：logs.internal.cn-east-1.jdcloud-api.com -->
-        <!-- 华东-上海：logs.internal.cn-east-2.jdcloud-api.com -->
-        <endpoint>${endpoint}</endpoint>
-        <!-- 日志主题 -->
-        <logTopic>${logTopic}</logTopic>
-        <!-- 必选配置项end -->
+<!--        <accessKeyId>${accessKeyId}</accessKeyId>-->
+<!--        &lt;!&ndash; 认证秘钥 &ndash;&gt;-->
+<!--        <secretAccessKey>${secretAccessKey}</secretAccessKey>-->
+<!--        &lt;!&ndash; 地域标识 &ndash;&gt;-->
+<!--        <regionId>${regionId}</regionId>-->
+<!--        &lt;!&ndash; 日志发送地址，可选值： &ndash;&gt;-->
+<!--        &lt;!&ndash; 华北-北京：logs.internal.cn-north-1.jdcloud-api.com &ndash;&gt;-->
+<!--        &lt;!&ndash; 华南-广州：logs.internal.cn-south-1.jdcloud-api.com &ndash;&gt;-->
+<!--        &lt;!&ndash; 华东-宿迁：logs.internal.cn-east-1.jdcloud-api.com &ndash;&gt;-->
+<!--        &lt;!&ndash; 华东-上海：logs.internal.cn-east-2.jdcloud-api.com &ndash;&gt;-->
+<!--        <endpoint>${endpoint}</endpoint>-->
+<!--        &lt;!&ndash; 日志主题 &ndash;&gt;-->
+<!--        <logTopic>${logTopic}</logTopic>-->
+<!--        &lt;!&ndash; 必选配置项end &ndash;&gt;-->
 
-        <!-- 可选配置项start -->
-        <!-- 日志来源，默认为机器ip -->
-        <source></source>
-        <!-- 日志文件名 -->
-        <fileName></fileName>
-        <!-- 日志缓存的内存占用字节数上限，默认为100M -->
-        <totalSizeInBytes>104857600</totalSizeInBytes>
-        <!-- 日志缓存达到上限后，获取可用内存的最大阻塞等待时间，默认为0，表示不等待。等待超时后丢弃日志，由于会阻塞日志线程，建议设置为0 -->
-        <maxBlockMillis>0</maxBlockMillis>
-        <!-- 日志发送线程数，默认为可用处理器个数 -->
-        <sendThreads>4</sendThreads>
-        <!-- 每批次发送的日志数，默认为4096，最大不能超过32768 -->
-        <batchSize>4096</batchSize>
-        <!-- 每批次发送的日志字节数，默认2MB，最大不能超过4MB -->
-        <batchSizeInBytes>2097152</batchSizeInBytes>
-        <!-- 批次发送时间间隔毫秒数，默认为2秒，表示每隔2秒发送一个批次日志，最小不少于100毫秒 -->
-        <batchMillis>2000</batchMillis>
-        <!-- 发送失败后重试次数，0为不重试 -->
-        <retries>10</retries>
-        <!-- 发送失败后首次重试时间毫秒数 -->
-        <initRetryBackoffMillis>100</initRetryBackoffMillis>
-        <!-- 发送失败后最大退避时间毫秒数，默认为50秒 -->
-        <maxRetryBackoffMillis>50000</maxRetryBackoffMillis>
-        <!-- 自定义日志字段，格式为：key=value -->
-        <customLogProperty>customKey1=value1</customLogProperty>
-        <customLogProperty>customKey2=value2</customLogProperty>
-        <!-- 可选配置项end -->
-    </appender> -->
+<!--        &lt;!&ndash; 可选配置项start &ndash;&gt;-->
+<!--        &lt;!&ndash; 日志来源，默认为机器ip &ndash;&gt;-->
+<!--        <source></source>-->
+<!--        &lt;!&ndash; 日志文件名 &ndash;&gt;-->
+<!--        <fileName></fileName>-->
+<!--        &lt;!&ndash; 日志缓存的内存占用字节数上限，默认为100M &ndash;&gt;-->
+<!--        <totalSizeInBytes>104857600</totalSizeInBytes>-->
+<!--        &lt;!&ndash; 日志缓存达到上限后，获取可用内存的最大阻塞等待时间，默认为0，表示不等待。等待超时后丢弃日志，由于会阻塞日志线程，建议设置为0 &ndash;&gt;-->
+<!--        <maxBlockMillis>0</maxBlockMillis>-->
+<!--        &lt;!&ndash; 日志发送线程数，默认为可用处理器个数 &ndash;&gt;-->
+<!--        <sendThreads>4</sendThreads>-->
+<!--        &lt;!&ndash; 每批次发送的日志数，默认为4096，最大不能超过32768 &ndash;&gt;-->
+<!--        <batchSize>4096</batchSize>-->
+<!--        &lt;!&ndash; 每批次发送的日志字节数，默认2MB，最大不能超过4MB &ndash;&gt;-->
+<!--        <batchSizeInBytes>2097152</batchSizeInBytes>-->
+<!--        &lt;!&ndash; 批次发送时间间隔毫秒数，默认为2秒，表示每隔2秒发送一个批次日志，最小不少于100毫秒 &ndash;&gt;-->
+<!--        <batchMillis>2000</batchMillis>-->
+<!--        &lt;!&ndash; 发送失败后重试次数，0为不重试 &ndash;&gt;-->
+<!--        <retries>10</retries>-->
+<!--        &lt;!&ndash; 发送失败后首次重试时间毫秒数 &ndash;&gt;-->
+<!--        <initRetryBackoffMillis>100</initRetryBackoffMillis>-->
+<!--        &lt;!&ndash; 发送失败后最大退避时间毫秒数，默认为50秒 &ndash;&gt;-->
+<!--        <maxRetryBackoffMillis>50000</maxRetryBackoffMillis>-->
+<!--        &lt;!&ndash; 自定义日志字段，格式为：key=value &ndash;&gt;-->
+<!--        <customLogProperty>customKey1=value1</customLogProperty>-->
+<!--        <customLogProperty>customKey2=value2</customLogProperty>-->
+<!--        &lt;!&ndash; 可选配置项end &ndash;&gt;-->
+<!--    </appender> &ndash;&gt;-->
 
-    <root level="info">
+    <!-- 默认配置(无profile时使用): INFO级别 -->
+    <root level="INFO">
         <appender-ref ref="CONSOLE"/>
-        <!-- 异步日志-INFO -->
-        <appender-ref ref="ASYNC_FILE_INFO"/>
-        <!-- 异步日志-ERROR -->
-        <appender-ref ref="ASYNC_FILE_ERROR"/>
-<!--        <appender-ref ref="LOGSTASH"/>-->
+        <appender-ref ref="ASYNC_INFO_FILE"/>
+        <appender-ref ref="ASYNC_WARN_FILE"/>
+        <appender-ref ref="ASYNC_ERROR_FILE"/>
     </root>
 
 </configuration>

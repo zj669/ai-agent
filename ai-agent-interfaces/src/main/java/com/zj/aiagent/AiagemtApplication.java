@@ -17,6 +17,7 @@ public class AiagemtApplication {
 
 	public static void main(String[] args) {
 		SpringApplication.run(AiagemtApplication.class, args);
+
 	}
 
 }
