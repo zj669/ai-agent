@@ -4,4 +4,195 @@ spring:
   config:
     name: aiagemt
   profiles:
-    active: dev
+    active: local
+
+  # 数据源配置
+  datasource:
+    dynamic:
+      datasource:
+        # 主库数据源 - MyBatis Plus
+        primary:
+          driver-class-name: ${PRIMARY_DB_DRIVER}
+          url: jdbc:mysql://${PRIMARY_DB_HOST}:${PRIMARY_DB_PORT}/${PRIMARY_DB_NAME}?useUnicode=true&characterEncoding=utf8&zeroDateTimeBehavior=convertToNull&useSSL=false&serverTimezone=GMT%2B8
+          username: ${PRIMARY_DB_USER}
+          password: ${PRIMARY_DB_PASSWORD}
+          type: com.zaxxer.hikari.HikariDataSource
+          hikari:
+            minimum-idle: ${PRIMARY_DB_MIN_IDLE}
+            maximum-pool-size: ${PRIMARY_DB_MAX_POOL_SIZE}
+            idle-timeout: ${PRIMARY_DB_IDLE_TIMEOUT}
+            pool-name: PrimaryHikariCP
+            max-lifetime: ${PRIMARY_DB_MAX_LIFETIME}
+            connection-timeout: ${PRIMARY_DB_CONNECTION_TIMEOUT}
+            connection-test-query: SELECT 1
+#        # readonly数据源 - JDBC (PostgreSQL with pgvector)
+#        pgvector:
+#          url: jdbc:postgresql://${PGVECTOR_DB_HOST}:${PGVECTOR_DB_PORT}/${PGVECTOR_DB_NAME}
+#          driver-class-name: ${PGVECTOR_DB_DRIVER}
+#          username: ${PGVECTOR_DB_USER}
+#          password: ${PGVECTOR_DB_PASSWORD}
+#          type: com.zaxxer.hikari.HikariDataSource
+#          hikari:
+#            minimum-idle: ${PGVECTOR_DB_MIN_IDLE}
+#            maximum-pool-size: ${PGVECTOR_DB_MAX_POOL_SIZE}
+#            idle-timeout: ${PGVECTOR_DB_IDLE_TIMEOUT}
+#            pool-name: PgvectorHikariCP
+#            max-lifetime: ${PGVECTOR_DB_MAX_LIFETIME}
+#            connection-timeout: ${PGVECTOR_DB_CONNECTION_TIMEOUT}
+#            connection-test-query: SELECT 1
+
+  # AI 配置
+  ai:
+    openai:
+      base-url: ${OPENAI_BASE_URL}
+      api-key: ${OPENAI_API_KEY}
+      embedding:
+        base-url: ${EMBEDDING_BASE_URL}
+        endpoint: ${EMBEDDING_ENDPOINT}
+        model: ${EMBEDDING_MODEL}
+        options:
+          num_ctx: ${EMBEDDING_NUM_CTX}
+    agent:
+      auto-config:
+        enabled: ${AGENT_AUTO_CONFIG_ENABLED}
+        client-ids: ${AGENT_CLIENT_IDS}
+    # 降级模型配置
+    fallback:
+      enabled: ${FALLBACK_ENABLED}
+      base-url: ${FALLBACK_BASE_URL}
+      api-key: ${FALLBACK_API_KEY}
+      model-name: ${FALLBACK_MODEL}
+      temperature: ${FALLBACK_TEMPERATURE}
+      max-tokens: ${FALLBACK_MAX_TOKENS}
+
+  # 邮件配置
+  mail:
+    host: ${MAIL_HOST}
+    port: ${MAIL_PORT}
+    username: ${MAIL_USERNAME}
+    password: ${MAIL_PASSWORD}
+    protocol: smtp
+    default-encoding: UTF-8
+    properties:
+      mail:
+        smtp:
+          auth: true
+          ssl:
+            enable: true
+          socketFactory:
+            class: javax.net.ssl.SSLSocketFactory
+            port: ${MAIL_PORT}
+          connectiontimeout: 10000
+          timeout: 10000
+          writetimeout: 10000
+
+server:
+  port: 8080
+
+# 线程池配置
+thread:
+  pool:
+    executor:
+      config:
+        core-pool-size: 20
+        max-pool-size: 50
+        keep-alive-time: 5000
+        block-queue-size: 5000
+        policy: CallerRunsPolicy
+
+# MyBatis-Plus配置
+mybatis-plus:
+  configuration:
+    map-underscore-to-camel-case: true
+    log-impl: org.apache.ibatis.logging.stdout.StdOutImpl
+  global-config:
+    db-config:
+      logic-delete-field: deleted
+      logic-delete-value: 1
+      logic-not-delete-value: 0
+
+# Redis配置
+redis:
+  sdk:
+    config:
+      host: ${REDIS_HOST}
+      port: ${REDIS_PORT}
+      pool-size: ${REDIS_POOL_SIZE}
+      password: ${REDIS_PASSWORD}
+      min-idle-size: ${REDIS_MIN_IDLE_SIZE}
+      idle-timeout: ${REDIS_IDLE_TIMEOUT}
+      connect-timeout: ${REDIS_CONNECT_TIMEOUT}
+      retry-attempts: ${REDIS_RETRY_ATTEMPTS}
+      retry-interval: ${REDIS_RETRY_INTERVAL}
+      ping-interval: ${REDIS_PING_INTERVAL}
+      keep-alive: ${REDIS_KEEP_ALIVE}
+
+# 认证配置
+auth:
+  debug:
+    enabled: ${AUTH_DEBUG_ENABLED}
+    header-name: ${AUTH_DEBUG_HEADER_NAME}
+
+# JWT配置
+jwt:
+  secret: aiagent-your-secret-key-change-in-production-please-make-it-long-enough
+  expiration: 604800000  # 7天,单位毫秒
+
+# 日志
+logging:
+  level:
+    root: info
+  config: classpath:logback-spring.xml
+
+# Actuator 监控配置
+management:
+  # 端点配置
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics,prometheus,env,configprops
+      base-path: /actuator
+      cors:
+        allowed-origins: "*"
+        allowed-methods: GET,POST
+
+  # 端点详细配置
+  endpoint:
+    health:
+      show-details: always
+      show-components: always
+    prometheus:
+      access: unrestricted
+    info:
+      access: unrestricted
+    env:
+      access: unrestricted
+
+  # 指标配置
+  metrics:
+    # 分布式指标配置
+    distribution:
+      percentiles-histogram:
+        http.server.requests: true
+        spring.data.repository.invocations: true
+      percentiles:
+        http.server.requests: 0.5, 0.95, 0.99
+
+    # 标签配置
+    tags:
+      application: ${spring.application.name}
+      environment: ${spring.profiles.active:default}
+
+# 应用信息配置
+info:
+  app:
+    name: ${spring.application.name}
+    description: "agent Application with Prometheus Monitoring"
+    version: "1.0.0"
+    encoding: "UTF-8"
+    java:
+      version: ${java.version}
+
+# 内存存储配置
+memory:
+  storage: database  # 可选值: memory, database
