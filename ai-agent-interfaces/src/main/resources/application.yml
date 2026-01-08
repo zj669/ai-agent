@@ -4,7 +4,7 @@ spring:
   config:
     name: aiagemt
   profiles:
-    active: local
+    active: dev
 
   # 数据源配置
   datasource:
