@@ -3,24 +3,20 @@ package com.zj.aiagent.config;
 import com.baomidou.mybatisplus.core.config.GlobalConfig;
 import com.baomidou.mybatisplus.extension.plugins.MybatisPlusInterceptor;
 import com.baomidou.mybatisplus.extension.spring.MybatisSqlSessionFactoryBean;
-
-import com.zaxxer.hikari.HikariDataSource;
 import org.apache.ibatis.session.SqlSessionFactory;
 import org.mybatis.spring.SqlSessionTemplate;
-import org.mybatis.spring.annotation.MapperScan;
 import org.springframework.beans.factory.annotation.Qualifier;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.autoconfigure.jdbc.DataSourceProperties;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Primary;
 import org.springframework.core.io.support.PathMatchingResourcePatternResolver;
-import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.datasource.DataSourceTransactionManager;
 import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.transaction.annotation.EnableTransactionManagement;
 import org.springframework.transaction.support.TransactionTemplate;
+
 import javax.sql.DataSource;
 
 /**
@@ -88,26 +84,26 @@ public class DataSourceConfig {
     }
 
 
-    /**
-     * ========================= 数据源配置（ReadOnly） =========================
-     */
-    @Bean(name = "pgVectorDataSourceProperties")
-    @ConfigurationProperties("spring.datasource.dynamic.datasource.pgvector")
-    public DataSourceProperties readonlyDataSourceProperties() {
-        return new DataSourceProperties();
-    }
-
-    @Bean(name ="pgVectorDataSource")
-    @ConfigurationProperties("spring.datasource.dynamic.datasource.pgvector.hikari")
-    public DataSource readOnlyDataSource(
-            @Qualifier("pgVectorDataSourceProperties") DataSourceProperties properties) {
-        return properties.initializeDataSourceBuilder().build();
-    }
-
-
-    @Bean("pgVectorJdbcTemplate")
-    public JdbcTemplate pgVectorJdbcTemplate(@Qualifier("pgVectorDataSource") DataSource dataSource) {
-        return new JdbcTemplate(dataSource);
-    }
+//    /**
+//     * ========================= 数据源配置（ReadOnly） =========================
+//     */
+//    @Bean(name = "pgVectorDataSourceProperties")
+//    @ConfigurationProperties("spring.datasource.dynamic.datasource.pgvector")
+//    public DataSourceProperties readonlyDataSourceProperties() {
+//        return new DataSourceProperties();
+//    }
+//
+//    @Bean(name ="pgVectorDataSource")
+//    @ConfigurationProperties("spring.datasource.dynamic.datasource.pgvector.hikari")
+//    public DataSource readOnlyDataSource(
+//            @Qualifier("pgVectorDataSourceProperties") DataSourceProperties properties) {
+//        return properties.initializeDataSourceBuilder().build();
+//    }
+//
+//
+//    @Bean("pgVectorJdbcTemplate")
+//    public JdbcTemplate pgVectorJdbcTemplate(@Qualifier("pgVectorDataSource") DataSource dataSource) {
+//        return new JdbcTemplate(dataSource);
+//    }
 
 }

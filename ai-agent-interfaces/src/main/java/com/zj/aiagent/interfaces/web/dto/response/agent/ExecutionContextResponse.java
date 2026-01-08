@@ -5,6 +5,7 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -25,37 +26,45 @@ public class ExecutionContextResponse {
     private String conversationId;
 
     /**
-     * 执行状态
+     * 最后执行的节点ID
+     */
+    private String lastNodeId;
+
+    /**
+     * 执行状态 (RUNNING, PAUSED, COMPLETED, ERROR)
      */
     private String status;
 
     /**
-     * 暂停的节点ID
+     * 快照时间戳
      */
-    private String pausedNodeId;
+    private Long timestamp;
 
     /**
-     * 暂停的节点名称
+     * 工作流状态数据
+     * <p>
+     * 包含所有状态键值对，如用户输入、执行历史、思考历史等
      */
-    private String pausedNodeName;
+    private Map<String, Object> stateData;
 
     /**
-     * 暂停时间戳
+     * 人工介入信息
+     * <p>
+     * 仅当 status=PAUSED 时有值，提供人工介入相关的详细信息
      */
-    private Long pausedAt;
+    private HumanInterventionInfo humanIntervention;
 
     /**
-     * 所有节点执行结果
+     * 节点执行历史
+     * <p>
+     * 标准化的节点执行记录列表，包含每个节点的执行状态、耗时等信息
      */
-    private Map<String, Object> nodeResults;
+    private List<NodeExecutionRecord> executionHistory;
 
     /**
-     * 是否允许修改输出
+     * 可编辑字段元数据
+     * <p>
+     * 后端驱动的字段定义，告诉前端哪些 stateData 字段可以编辑以及如何展示
      */
-    private Boolean allowModifyOutput;
-
-    /**
-     * 审核提示消息
-     */
-    private String checkMessage;
+    private List<EditableFieldMeta> editableFields;
 }

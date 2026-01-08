@@ -48,3 +48,10 @@ CREATE TABLE IF NOT EXISTS `todo_list` (
 
 ## 使用说明
 （更多使用说明待补充）
+
+https://sub01.fkknet.cn/api/v1/client/subscribe?token=08d3b4bc52311d8d922e919887632e1c
+
+
+https://drfytjmjhggnrgergergergerg6555.saojc.xyz/api/v1/client/subscribe?token=bea2ab4e717ea290480ea539187bf647
+
+https://s1.byte77.com/api/v1/client/subscribe?token=2f1105aa6e8d1def2cac62e51ebd016d

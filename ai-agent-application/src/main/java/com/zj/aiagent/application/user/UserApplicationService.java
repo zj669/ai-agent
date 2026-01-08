@@ -2,14 +2,13 @@ package com.zj.aiagent.application.user;
 
 import com.zj.aiagent.application.user.command.LoginCommand;
 import com.zj.aiagent.application.user.command.RegisterByEmailCommand;
-import com.zj.aiagent.application.user.command.RegisterUserCommand;
 import com.zj.aiagent.application.user.command.SendEmailCodeCommand;
 import com.zj.aiagent.application.user.query.GetUserInfoQuery;
 import com.zj.aiagent.domain.user.entity.User;
 import com.zj.aiagent.domain.user.repository.UserRepository;
-import com.zj.aiagent.domain.user.service.EmailService;
-import com.zj.aiagent.domain.user.service.RateLimitService;
-import com.zj.aiagent.domain.user.service.TokenService;
+import com.zj.aiagent.domain.user.interfaces.EmailService;
+import com.zj.aiagent.domain.user.interfaces.RateLimitService;
+import com.zj.aiagent.domain.user.interfaces.TokenService;
 import com.zj.aiagent.domain.user.service.UserAuthenticationDomainService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -34,31 +33,6 @@ public class UserApplicationService {
     private final TokenService tokenService;
     private final EmailService emailService;
     private final RateLimitService rateLimitService;
-
-    /**
-     * 用户注册
-     * 
-     * @param command 注册命令
-     * @return 用户信息（包含Token）
-     */
-    @Transactional(rollbackFor = Exception.class)
-    public UserDTO register(RegisterUserCommand command) {
-        log.info("执行用户注册, username: {}", command.getUsername());
-
-        // 1. 调用领域服务执行注册
-        User user = authenticationDomainService.register(
-                command.getUsername(),
-                command.getPassword(),
-                command.getEmail(),
-                command.getPhone());
-
-        // 2. 生成Token
-        String token = tokenService.generateToken(user.getId());
-
-        // 3. 返回用户信息
-        return buildUserDTO(user, token);
-    }
-
     /**
      * 邮箱注册
      * 

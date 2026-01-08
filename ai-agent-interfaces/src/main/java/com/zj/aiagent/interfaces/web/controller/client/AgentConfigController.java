@@ -1,17 +1,11 @@
 package com.zj.aiagent.interfaces.web.controller.client;
 
-import com.zj.aiagent.application.agent.config.AgentConfigApplicationService;
-import com.zj.aiagent.application.agent.config.dto.AdvisorDTO;
-import com.zj.aiagent.application.agent.config.dto.McpToolDTO;
-import com.zj.aiagent.application.agent.config.dto.ModelDTO;
-import com.zj.aiagent.application.agent.config.dto.NodeTypeDTO;
+import com.zj.aiagent.application.config.IAgentConfigApplicationService;
+import com.zj.aiagent.infrastructure.persistence.entity.AiConfigFieldDefinitionPO;
+import com.zj.aiagent.infrastructure.persistence.entity.AiNodeTemplatePO;
 import com.zj.aiagent.interfaces.common.Response;
-import com.zj.aiagent.interfaces.web.dto.response.agent.config.AdvisorResponse;
-import com.zj.aiagent.interfaces.web.dto.response.agent.config.McpToolResponse;
-import com.zj.aiagent.interfaces.web.dto.response.agent.config.ModelResponse;
-import com.zj.aiagent.interfaces.web.dto.response.agent.config.NodeTypeResponse;
-import com.zj.aiagent.interfaces.web.dto.response.config.ConfigDefinitionResponse;
-import com.zj.aiagent.interfaces.web.dto.response.config.ConfigFieldDefinitionResponse;
+import com.zj.aiagent.interfaces.web.dto.response.config.ConfigFieldResponse;
+import com.zj.aiagent.interfaces.web.dto.response.config.NodeTemplateResponse;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.annotation.Resource;
@@ -21,156 +15,72 @@ import org.springframework.web.bind.annotation.*;
 import java.util.List;
 import java.util.stream.Collectors;
 
-/**
- * Agent 配置控制器
- *
- * @author zj
- * @since 2025-12-21
- */
 @Slf4j
 @RestController
 @RequestMapping("/client/agent/config")
-@Tag(name = "Agent 配置管理", description = "Agent 拖拽配置相关接口")
+@Tag(name = "agent表单配置", description = "agent表单配置")
 @CrossOrigin(origins = "*", allowedHeaders = "*", methods = {
-        RequestMethod.GET,
-        RequestMethod.POST,
-        RequestMethod.OPTIONS
+                RequestMethod.GET,
+                RequestMethod.POST,
+                RequestMethod.OPTIONS
 })
 public class AgentConfigController {
 
-    @Resource
-    private AgentConfigApplicationService agentConfigApplicationService;
+        @Resource
+        private IAgentConfigApplicationService agentConfigApplicationService;
 
-    /**
-     * 查询所有节点类型
-     *
-     * @return 节点类型列表
-     */
-    @GetMapping("/node-types")
-    @Operation(summary = "查询节点类型列表", description = "获取所有可用的节点类型及其支持的配置项")
-    public Response<List<NodeTypeResponse>> getNodeTypes() {
-        try {
-            log.info("查询节点类型列表");
-
-            List<NodeTypeDTO> nodeTypeDTOList = agentConfigApplicationService.getNodeTypes();
-
-            List<NodeTypeResponse> responseList = nodeTypeDTOList.stream()
-                    .map(this::convertToNodeTypeResponse)
-                    .collect(Collectors.toList());
-
-            return Response.success(responseList);
-
-        } catch (Exception e) {
-            log.error("查询节点类型列表失败", e);
-            return Response.fail("查询失败: " + e.getMessage());
+        @GetMapping("/node-templates")
+        @Operation(summary = "获取所有可用的节点模板")
+        public Response<List<NodeTemplateResponse>> getNodeTemplates() {
+                List<AiNodeTemplatePO> templates = agentConfigApplicationService.getNodeTemplates();
+                List<NodeTemplateResponse> responses = templates.stream()
+                                .map(this::toNodeTemplateResponse)
+                                .collect(Collectors.toList());
+                return Response.success(responses);
         }
-    }
 
-    /**
-     * 转换节点类型 DTO 到响应
-     */
-    private NodeTypeResponse convertToNodeTypeResponse(NodeTypeDTO dto) {
-        return NodeTypeResponse.builder()
-                .nodeType(dto.getNodeType())
-                .nodeTypeValue(dto.getNodeTypeValue())
-                .nodeName(dto.getNodeName())
-                .description(dto.getDescription())
-                .icon(dto.getIcon())
-                .supportedConfigs(dto.getSupportedConfigs())
-                .build();
-    }
-
-
-    @GetMapping("/config-definitions")
-    @Operation(summary = "查询配置项定义", description = "获取配置项的类型定义和表单 Schema")
-    public Response<List<com.zj.aiagent.interfaces.web.dto.response.config.ConfigDefinitionResponse>> getConfigDefinitions(
-            @RequestParam(required = false) String configType) {
-        try {
-            log.info("查询配置项定义，节点类型: {}", configType);
-
-            List<AgentConfigApplicationService.ConfigDefinitionDTO> dtoList = agentConfigApplicationService
-                    .getConfigDefinitions(configType);
-
-            List<ConfigDefinitionResponse> responseList = dtoList
-                    .stream()
-                    .map(this::convertToConfigDefinitionResponse)
-                    .collect(Collectors.toList());
-
-            return Response.success(responseList);
-
-        } catch (Exception e) {
-            log.error("查询配置项定义失败", e);
-            return Response.fail("查询失败: " + e.getMessage());
+        @GetMapping("/config-schema/{module}")
+        @Operation(summary = "获取配置字段Schema")
+        public Response<List<ConfigFieldResponse>> getConfigSchema(@PathVariable("module") String module) {
+                List<AiConfigFieldDefinitionPO> fields = agentConfigApplicationService.getConfigSchema(module);
+                List<ConfigFieldResponse> responses = fields.stream()
+                                .map(this::toConfigFieldResponse)
+                                .collect(Collectors.toList());
+                return Response.success(responses);
         }
-    }
 
-    /**
-     * 转换配置定义 DTO 到响应
-     */
-    private ConfigDefinitionResponse convertToConfigDefinitionResponse(
-            AgentConfigApplicationService.ConfigDefinitionDTO dto) {
-
-        List<ConfigDefinitionResponse.ConfigOption> options = dto.getOptions().stream()
-                .map(opt -> ConfigDefinitionResponse.ConfigOption.builder()
-                        .id(opt.getId())
-                        .name(opt.getName())
-                        .type(opt.getType())
-                        .extra(opt.getExtra())
-                        .build())
-                .collect(Collectors.toList());
-
-        return ConfigDefinitionResponse.builder()
-                .configType(dto.getConfigType())
-                .configName(dto.getConfigName())
-                .options(options)
-                .build();
-    }
-
-    /**
-     * 查询配置字段属性定义
-     *
-     * @param configType 配置类型（MODEL、ADVISOR、MCP_TOOL、USER_PROMPT、TIMEOUT等）
-     * @return 配置字段属性定义列表
-     */
-    @GetMapping("/config-field-definitions")
-    @Operation(summary = "查询配置字段属性定义", description = "获取指定配置类型的可自定义字段列表")
-    public Response<List<ConfigFieldDefinitionResponse>> getConfigFieldDefinitions(
-            @RequestParam(required = true) String configType) {
-        try {
-            log.info("查询配置字段属性定义，配置类型: {}", configType);
-
-            List<AgentConfigApplicationService.ConfigFieldDefinitionDTO> dtoList = agentConfigApplicationService
-                    .getConfigFieldDefinitions(configType);
-
-            List<ConfigFieldDefinitionResponse> responseList = dtoList
-                    .stream()
-                    .map(this::convertToConfigFieldDefinitionResponse)
-                    .collect(Collectors.toList());
-
-            return Response.success(responseList);
-
-        } catch (IllegalArgumentException e) {
-            log.warn("配置类型参数错误: {}", e.getMessage());
-            return Response.fail("参数错误: " + e.getMessage());
-        } catch (Exception e) {
-            log.error("查询配置字段属性定义失败", e);
-            return Response.fail("查询失败: " + e.getMessage());
+        /**
+         * PO 转 DTO
+         */
+        private NodeTemplateResponse toNodeTemplateResponse(AiNodeTemplatePO po) {
+                return NodeTemplateResponse.builder()
+                                .templateId(po.getTemplateId())
+                                .nodeType(po.getNodeType())
+                                .nodeName(po.getNodeName())
+                                .templateLabel(po.getTemplateLabel())
+                                .description(po.getDescription())
+                                .baseType(po.getBaseType())
+                                .icon(po.getIcon())
+                                .systemPromptTemplate(po.getSystemPromptTemplate())
+                                .outputSchema(po.getOutputSchema())
+                                .editableFields(po.getEditableFields())
+                                .isBuiltIn(po.getIsBuiltIn())
+                                .build();
         }
-    }
 
-    /**
-     * 转换配置字段定义 DTO 到响应
-     */
-    private ConfigFieldDefinitionResponse convertToConfigFieldDefinitionResponse(
-            AgentConfigApplicationService.ConfigFieldDefinitionDTO dto) {
-        return ConfigFieldDefinitionResponse.builder()
-                .fieldName(dto.getFieldName())
-                .fieldLabel(dto.getFieldLabel())
-                .fieldType(dto.getFieldType())
-                .required(dto.getRequired())
-                .description(dto.getDescription())
-                .defaultValue(dto.getDefaultValue())
-                .options(dto.getOptions())
-                .build();
-    }
+        /**
+         * PO 转 DTO
+         */
+        private ConfigFieldResponse toConfigFieldResponse(AiConfigFieldDefinitionPO po) {
+                return ConfigFieldResponse.builder()
+                                .fieldName(po.getFieldName())
+                                .fieldLabel(po.getFieldLabel())
+                                .fieldType(po.getFieldType())
+                                .required(po.getRequired())
+                                .description(po.getDescription())
+                                .defaultValue(po.getDefaultValue())
+                                .options(po.getOptions())
+                                .sortOrder(po.getSortOrder())
+                                .build();
+        }
 }

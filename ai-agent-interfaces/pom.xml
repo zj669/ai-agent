@@ -27,6 +27,15 @@
             <artifactId>ai-agent-domain</artifactId>
         </dependency>
 
+        <dependency>
+            <groupId>com.zj</groupId>
+            <artifactId>ai-agent-infrastructure</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>com.zj</groupId>
+            <artifactId>ai-agent-shared</artifactId>
+        </dependency>
         <!-- Spring Boot Web -->
         <dependency>
             <groupId>org.springframework.boot</groupId>
@@ -70,9 +79,9 @@
         
         <!-- Logstash Logback -->
         <dependency>
-            <groupId>net.logstash.logback</groupId>
-            <artifactId>logstash-logback-encoder</artifactId>
-            <version>${logstash-logback.version}</version>
+            <groupId>com.jdcloud.logs</groupId>
+            <artifactId>logback-appender</artifactId>
+            <version>0.2.0</version>
         </dependency>
 
         <!-- Lombok -->

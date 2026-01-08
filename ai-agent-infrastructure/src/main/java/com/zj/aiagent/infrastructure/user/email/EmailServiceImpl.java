@@ -1,6 +1,6 @@
 package com.zj.aiagent.infrastructure.user.email;
 
-import com.zj.aiagent.domain.user.service.EmailService;
+import com.zj.aiagent.domain.user.interfaces.EmailService;
 import com.zj.aiagent.domain.user.service.EmailVerificationDomainService;
 import com.zj.aiagent.infrastructure.persistence.entity.EmailSendLogPO;
 import com.zj.aiagent.infrastructure.persistence.mapper.EmailSendLogMapper;
@@ -15,8 +15,6 @@ import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.mail.javamail.MimeMessageHelper;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
-
-import java.util.concurrent.TimeUnit;
 
 /**
  * 邮箱服务实现 - 基础设施层

@@ -1,190 +1,74 @@
-server:
-  port: 8080
+# ==========================================
+# Dev 测试环境配置 (Key-Value 格式)
+# ==========================================
 
-# 线程池配置
-thread:
-  pool:
-    executor:
-      config:
-        core-pool-size: 20
-        max-pool-size: 50
-        keep-alive-time: 5000
-        block-queue-size: 5000
-        policy: CallerRunsPolicy
+# 主数据库配置 (MySQL)
+PRIMARY_DB_DRIVER: com.mysql.cj.jdbc.Driver
+PRIMARY_DB_HOST: 117.72.152.117
+PRIMARY_DB_PORT: 13306
+PRIMARY_DB_NAME: ai_agent_station_study
+PRIMARY_DB_USER: root
+PRIMARY_DB_PASSWORD: 123456
+PRIMARY_DB_MIN_IDLE: 5
+PRIMARY_DB_MAX_POOL_SIZE: 15
+PRIMARY_DB_IDLE_TIMEOUT: 30000
+PRIMARY_DB_MAX_LIFETIME: 28740000
+PRIMARY_DB_CONNECTION_TIMEOUT: 30000
 
+# PgVector数据库配置 (PostgreSQL)
+PGVECTOR_DB_DRIVER: org.postgresql.Driver
+PGVECTOR_DB_HOST: 117.72.152.117
+PGVECTOR_DB_PORT: 5432
+PGVECTOR_DB_NAME: postgres
+PGVECTOR_DB_USER: root
+PGVECTOR_DB_PASSWORD: 123456
+PGVECTOR_DB_MIN_IDLE: 5
+PGVECTOR_DB_MAX_POOL_SIZE: 15
+PGVECTOR_DB_IDLE_TIMEOUT: 30000
+PGVECTOR_DB_MAX_LIFETIME: 28740000
+PGVECTOR_DB_CONNECTION_TIMEOUT: 30000
 
+# OpenAI配置
+OPENAI_BASE_URL: https://globalai.vip
+OPENAI_API_KEY: sk-igZGYZBslPs4UxqU1r8BuprgCFzD388sk36Mwnp95jxsfgKp
 
-# 数据库配置；启动时配置数据库资源信息
-spring:
-  datasource:
-    dynamic:
-      datasource:
-        # 主库数据源 - MyBatis Plus
-        primary:
-          driver-class-name: ${PRIMARY_DB_DRIVER:com.mysql.cj.jdbc.Driver}
-          url: jdbc:mysql://${PRIMARY_DB_HOST:117.72.152.117}:${PRIMARY_DB_PORT:13306}/${PRIMARY_DB_NAME:ai_agent_station_study}?useUnicode=true&characterEncoding=utf8&zeroDateTimeBehavior=convertToNull&useSSL=false&serverTimezone=GMT%2B8
-          username: ${PRIMARY_DB_USER:root}
-          password: ${PRIMARY_DB_PASSWORD:123456}
-          type: com.zaxxer.hikari.HikariDataSource
-          hikari:
-            minimum-idle: ${PRIMARY_DB_MIN_IDLE:5}
-            maximum-pool-size: ${PRIMARY_DB_MAX_POOL_SIZE:15}
-            idle-timeout: ${PRIMARY_DB_IDLE_TIMEOUT:30000}
-            pool-name: PrimaryHikariCP
-            max-lifetime: ${PRIMARY_DB_MAX_LIFETIME:28740000}
-            connection-timeout: ${PRIMARY_DB_CONNECTION_TIMEOUT:30000}
-            connection-test-query: SELECT 1
-        # readonly数据源 - JDBC
-        pgvector:
-          url: jdbc:postgresql://${READONLY_DB_HOST:117.72.152.117}:${READONLY_DB_PORT:5432}/${READONLY_DB_NAME:postgres}
-          driver-class-name: ${READONLY_DB_DRIVER:org.postgresql.Driver}
-          username: ${READONLY_DB_USERNAME:root}
-          password: ${READONLY_DB_PASSWORD:123456}
-          type: com.zaxxer.hikari.HikariDataSource
-          hikari:
-            minimum-idle: ${READONLY_DB_MIN_IDLE:5}
-            maximum-pool-size: ${READONLY_DB_MAX_POOL_SIZE:15}
-            idle-timeout: ${READONLY_DB_IDLE_TIMEOUT:30000}
-            pool-name: PgvectorHikariCP
-            max-lifetime: ${READONLY_DB_MAX_LIFETIME:28740000}
-            connection-timeout: ${READONLY_DB_CONNECTION_TIMEOUT:30000}
-            connection-test-query: SELECT 1
-  ai:
-    openai:
-      base-url: https://globalai.vip
-      api-key: sk-igZGYZBslPs4UxqU1r8BuprgCFzD388sk36Mwnp95jxsfgKp
-      embedding:
-        base-url: https://dashscope.aliyuncs.com/compatible-mode
-        endpoint: https://dashscope.aliyuncs.com/compatible-mode/v1/embeddings
-        model: text-embedding-v4
-        options:
-          num_ctx: 512
-    agent:
-      auto-config:
-        enabled: true
-        client-ids: 6001,3101,3102,3103,3104
-  # 降级模型配置
-  fallback:
-    enabled: true
-    base-url: ${FALLBACK_BASE_URL:https://globalai.vip}
-    api-key: ${FALLBACK_API_KEY:sk-igZGYZBslPs4UxqU1r8BuprgCFzD388sk36Mwnp95jxsfgKp}
-    model-name: ${FALLBACK_MODEL:gpt-3.5-turbo}
-    temperature: 0.7
-    max-tokens: 2000
-  # 邮件配置
-  mail:
-    host: ${MAIL_HOST:smtp.qq.com}
-    port: ${MAIL_PORT:465}
-    username: ${MAIL_USERNAME:zj-669@qq.com}
-    password: ${MAIL_PASSWORD:romspgyuovtqddgh}
-    protocol: smtp
-    default-encoding: UTF-8
-    properties:
-      mail:
-        smtp:
-          auth: true
-          # 使用 SSL 连接（端口 465）
-          ssl:
-            enable: true
-          # 配置 SSL Socket Factory
-          socketFactory:
-            class: javax.net.ssl.SSLSocketFactory
-            port: 465
-          # 超时配置（增加到 10 秒）
-          connectiontimeout: 10000
-          timeout: 10000
-          writetimeout: 10000
+# Embedding配置
+EMBEDDING_BASE_URL: https://dashscope.aliyuncs.com/compatible-mode
+EMBEDDING_ENDPOINT: https://dashscope.aliyuncs.com/compatible-mode/v1/embeddings
+EMBEDDING_MODEL: text-embedding-v4
+EMBEDDING_NUM_CTX: 512
 
+# Agent配置
+AGENT_AUTO_CONFIG_ENABLED: true
+AGENT_CLIENT_IDS: 6001,3101,3102,3103,3104
 
-# MyBatis-Plus配置
-mybatis-plus:
-  configuration:
-    map-underscore-to-camel-case: true
-    log-impl: org.apache.ibatis.logging.stdout.StdOutImpl
-  global-config:
-    db-config:
-      logic-delete-field: deleted
-      logic-delete-value: 1
-      logic-not-delete-value: 0
-# Redis
-redis:
-  sdk:
-    config:
-      host: 117.72.152.117
-      port: 16379
-      pool-size: 10
-      password: 123456
-      min-idle-size: 5
-      idle-timeout: 30000
-      connect-timeout: 5000
-      retry-attempts: 3
-      retry-interval: 1000
-      ping-interval: 60000
-      keep-alive: true
+# 降级模型配置
+FALLBACK_ENABLED: true
+FALLBACK_BASE_URL: https://globalai.vip
+FALLBACK_API_KEY: sk-igZGYZBslPs4UxqU1r8BuprgCFzD388sk36Mwnp95jxsfgKp
+FALLBACK_MODEL: gpt-3.5-turbo
+FALLBACK_TEMPERATURE: 0.7
+FALLBACK_MAX_TOKENS: 2000
 
-# JWT配置
-jwt:
-  secret: aiagent-your-secret-key-change-in-production-please-make-it-long-enough
-  expiration: 604800000  # 7天,单位毫秒
+# 邮件配置
+MAIL_HOST: smtp.qq.com
+MAIL_PORT: 465
+MAIL_USERNAME: zj-669@qq.com
+MAIL_PASSWORD: romspgyuovtqddgh
+
+# Redis配置
+REDIS_HOST: 117.72.152.117
+REDIS_PORT: 16379
+REDIS_POOL_SIZE: 10
+REDIS_PASSWORD: 123456
+REDIS_MIN_IDLE_SIZE: 5
+REDIS_IDLE_TIMEOUT: 30000
+REDIS_CONNECT_TIMEOUT: 5000
+REDIS_RETRY_ATTEMPTS: 3
+REDIS_RETRY_INTERVAL: 1000
+REDIS_PING_INTERVAL: 60000
+REDIS_KEEP_ALIVE: true
 
 # 认证配置
-auth:
-  debug:
-    enabled: true  # 开发环境启用debug模式
-    header-name: debug-user  # debug模式的header名称
-
-# 日志
-logging:
-  level:
-    root: info
-  config: classpath:logback-spring.xml
-
-
-# Actuator 监控配置
-management:
-  # 端点配置
-  endpoints:
-    web:
-      exposure:
-        include: health,info,metrics,prometheus,env,configprops
-      base-path: /actuator
-      cors:
-        allowed-origins: "*"
-        allowed-methods: GET,POST
-
-  # 端点详细配置
-  endpoint:
-    health:
-      show-details: always
-      show-components: always
-    prometheus:
-      access: unrestricted
-    info:
-      access: unrestricted
-    env:
-      access: unrestricted
-
-  # 指标配置
-  metrics:
-    # 分布式指标配置
-    distribution:
-      percentiles-histogram:
-        http.server.requests: true
-        spring.data.repository.invocations: true
-      percentiles:
-        http.server.requests: 0.5, 0.95, 0.99
-
-    # 标签配置
-    tags:
-      application: ${spring.application.name}
-      environment: development
-
-# 应用信息配置
-info:
-  app:
-    name: ${spring.application.name}
-    description: "agent Application with Prometheus Monitoring"
-    version: "1.0.0"
-    encoding: "UTF-8"
-    java:
-      version: ${java.version}
+AUTH_DEBUG_ENABLED: true
+AUTH_DEBUG_HEADER_NAME: debug-user

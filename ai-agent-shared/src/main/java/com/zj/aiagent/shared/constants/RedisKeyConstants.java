@@ -14,7 +14,6 @@ public class RedisKeyConstants {
     private RedisKeyConstants() {
         // 工具类,禁止实例化
     }
-
     /**
      * 邮件相关Redis Key常量
      */
@@ -145,6 +144,20 @@ public class RedisKeyConstants {
         public static final long COMPLETED_TTL_SECONDS = 5 * 60;
 
         private HumanIntervention() {
+            // 禁止实例化
+        }
+    }
+
+    /**
+     * 工作流检查点相关Redis Key常量
+     */
+    public static class WorkflowCheckpoint {
+
+        public static final String CHECKPOINT_MAP_PREFIX = "workflow:checkpoint:";
+
+        public static final long DEFAULT_TTL_SECONDS = 24 * 60 * 60;
+
+        private WorkflowCheckpoint() {
             // 禁止实例化
         }
     }

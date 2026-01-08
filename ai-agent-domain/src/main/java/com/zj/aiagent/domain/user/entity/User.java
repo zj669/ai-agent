@@ -1,7 +1,6 @@
 package com.zj.aiagent.domain.user.entity;
 
 import lombok.Data;
-import lombok.EqualsAndHashCode;
 
 import java.time.LocalDateTime;
 
