@@ -16,8 +16,9 @@ STARTUP_WAIT=${STARTUP_WAIT:-20}
 echo ${DOCKERPASSWORD} | docker login --username ${DOCKERNAME} --password-stdin crpi-gj68k07wqq52fpxi.cn-chengdu.personal.cr.aliyuncs.com
 
 # 创建数据目录并设置权限（容器内使用UID 1001）
-mkdir -p /app/data/log
+mkdir -p /app/logs
 mkdir -p /app/data
+chown -R 1001:1001 /app/logs
 chown -R 1001:1001 /app/data
 
 # 拉取最新镜像
@@ -32,7 +33,7 @@ docker run -d \
   -p ${TEMP_PORT}:8080 \
   -e SPRING_PROFILES_ACTIVE=prod \
   -e JAVA_OPTS="-Xms512m -Xmx1024m -XX:+UseG1GC" \
-  -v /app/data/log:/app/data/log \
+  -v /app/logs:/app/logs \
   -v /app/data:/app/data \
   crpi-gj68k07wqq52fpxi.cn-chengdu.personal.cr.aliyuncs.com/${NAMESPACE}/${REPO}:${BUILD_TAG}
 
@@ -76,7 +77,7 @@ docker run -d \
   -p ${PORT}:8080 \
   -e SPRING_PROFILES_ACTIVE=prod \
   -e JAVA_OPTS="-Xms512m -Xmx1024m -XX:+UseG1GC" \
-  -v /app/data/log:/app/data/log \
+  -v /app/logs:/app/logs \
   -v /app/data:/app/data \
   --restart unless-stopped \
   crpi-gj68k07wqq52fpxi.cn-chengdu.personal.cr.aliyuncs.com/${NAMESPACE}/${REPO}:${BUILD_TAG}

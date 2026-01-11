@@ -59,7 +59,7 @@ public class DataSourceConfig {
         factoryBean.setPlugins(mybatisPlusInterceptor);
         // AutoFill 手动注入
         GlobalConfig globalConfig = new GlobalConfig();
-        globalConfig.setMetaObjectHandler(new AutoFillConfig());
+//        globalConfig.setMetaObjectHandler(new AutoFillConfig());
         factoryBean.setGlobalConfig(globalConfig);
         return factoryBean.getObject();
     }
