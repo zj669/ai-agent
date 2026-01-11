@@ -1,289 +1,369 @@
-
-
-```markdown
-# AI-Agent 智能对话模块需求文档 (v2.0)
+# AI-Agent Agent管理模块需求文档
 
 ## 1. 模块概述
 
 ### 1.1 模块名称
-智能对话模块（Conversation Context）
+Agent管理模块（Agent Context）
 
 ### 1.2 模块定位
-**交互域（Interaction Domain）** - 负责用户与 Agent 的实时交互、状态推送与调试观测。
+支撑域（Supporting Domain）- 管理智能代理的配置与生命周期
 
 ### 1.3 核心价值
-- **流式对话体验**：基于 SSE 实现打字机效果。
-- **深度思考可视化**：支持类似 o1 模型的“思维链”折叠展示。
-- **全链路观测（Debug）**：支持在调试模式下查看节点输入/输出、状态流转 DAG。
-- **会话状态管理**：维护多轮对话上下文与历史记录。
+- 用户可视化创建和配置 AI Agent
+- 管理 Agent 从草稿到发布的完整生命周期
+- 提供工作流图的定义与存储能力
 
 ---
 
 ## 2. 功能需求
 
-### 2.1 发起对话（核心）
+### 2.1 查询用户Agent列表
 
-**功能描述**：用户发送消息触发工作流，支持“正常模式”和“调试模式”。
-
-**业务规则**：
-- **模式区分**：
-    - `debug=false`（默认）：仅推送 `visibility != HIDDEN` 的节点事件。
-    - `debug=true`：推送所有节点事件，且包含详细的 `input/output` 数据。
-- **可见性控制**：后端根据节点配置的 `VisibilityConfig` 决定 SSE 事件中的 `renderMode`（HIDDEN/THOUGHT/MESSAGE）。
-- **流式响应**：通过 SSE 实时推送节点状态变更（Started/Streaming/Completed）。
-
-**输入参数**：
-| 参数 | 类型 | 必填 | 说明 |
-|------|------|------|------|
-| agentId | String | 是 | Agent ID |
-| conversationId | String | 否 | 会话ID（新会话可不传） |
-| message | String | 是 | 用户消息内容 |
-| **debug** | Boolean | 否 | **是否开启调试模式**（默认 false） |
-| inputs | Map | 否 | 额外的开始节点参数（用于测试） |
-
-**输出**：SSE 事件流 (Content-Type: text/event-stream)
-
-**SSE 事件类型概览**：
-| 事件类型 | 说明 | 触发时机 |
-|----------|------|----------|
-| `dag_start` | 工作流启动 | 收到请求并开始执行时 |
-| `node_start` | 节点开始运行 | 调度器选中节点开始执行时 |
-| `node_chunk` | 节点流式输出 | LLM 生成 Token 时 |
-| `node_end` | 节点执行完成 | 节点执行成功并产出 Output 时 |
-| `dag_end` | 工作流结束 | 所有节点执行完毕时 |
-| `error` | 异常 | 发生阻断性错误时 |
-
-**接口路径**：`POST /client/chat/agent`
-
----
-
-### 2.2 查询对话历史（含执行细节）
-
-**功能描述**：获取历史消息列表。支持“普通视图”和“调试视图”。
+**功能描述**：获取当前登录用户创建的所有 Agent 列表。
 
 **业务规则**：
-- **普通视图**：仅返回 `renderMode` 为 `MESSAGE` 的最终回复，以及 `THOUGHT` 类型的思考过程摘要。
-- **调试视图**：返回该次对话触发的所有节点执行日志（`workflow_node_execution_log`），包含输入输出。
+- 只返回当前用户拥有的 Agent
+- 按更新时间倒序排列
 
-**输入参数**：
-| 参数 | 类型 | 必填 | 说明 |
-|------|------|------|------|
-| conversationId | String | 是 | 会话ID |
-| withDebugDetails | Boolean | 否 | 是否包含节点详细 I/O 数据（默认 false） |
-
-**输出结构**：
-```json
-[
-  {
-    "messageId": "msg-001",
-    "role": "USER",
-    "content": "帮我分析财报",
-    "createdAt": "..."
-  },
-  {
-    "messageId": "msg-002",
-    "role": "ASSISTANT",
-    "content": "根据分析...", 
-    "createdAt": "...",
-    // 执行轨迹（用于渲染思考过程或调试图）
-    "traceLog": [
-      {
-        "nodeId": "node-reasoning",
-        "nodeName": "深度思考",
-        "renderMode": "THOUGHT", // 前端据此渲染为折叠框
-        "content": "正在读取数据库...\n发现异常数据...",
-        "status": "SUCCEEDED",
-        "duration": 1200
-      },
-      {
-        "nodeId": "node-final",
-        "renderMode": "MESSAGE",
-        "content": "根据分析..."
-      }
-    ]
-  }
-]
-
-```
-
-**接口路径**：`GET /client/chat/history/{conversationId}`
-
----
-
-### 2.3 获取单节点执行详情（调试用）
-
-**功能描述**：在调试模式下，用户点击 DAG 图上的节点，异步加载该节点的完整输入输出（避免列表接口报文过大）。
-
-**业务规则**：
-
-* 查询 `workflow_node_execution_log` 表。
-* 返回完整的 JSON 结构输入输出。
-
-**输入参数**：
-| 参数 | 类型 | 必填 | 说明 |
-|------|------|------|------|
-| executionId | String | 是 | 工作流执行ID |
-| nodeId | String | 是 | 节点ID |
+**输入参数**：无（从 Token 解析用户ID）
 
 **输出**：
+| 字段 | 类型 | 说明 |
+|------|------|------|
+| id | Long | Agent ID |
+| name | String | Agent 名称 |
+| description | String | Agent 描述 |
+| status | Integer | 状态（0:草稿 1:已发布 2:已停用） |
+| createTime | DateTime | 创建时间 |
+| updateTime | DateTime | 更新时间 |
 
-```json
-{
-  "nodeId": "tool-weather",
-  "status": "SUCCEEDED",
-  "inputs": { "city": "Beijing", "date": "today" },
-  "outputs": { "temp": 25, "condition": "Sunny" },
-  "error": null,
-  "startTime": 1704866400000,
-  "endTime": 1704866400500
-}
-
-```
-
-**接口路径**：`GET /client/chat/execution/{executionId}/node/{nodeId}`
+**接口路径**：`GET /client/agent/list`
 
 ---
 
-## 3. SSE 事件协议详细定义
+### 2.2 查询Agent详情
 
-为了支持“思考模式”和“调试模式”，SSE 协议负载（Payload）必须携带 **渲染配置（RenderConfig）**。
+**功能描述**：获取指定 Agent 的完整配置信息，包含工作流图定义。
 
-### 3.1 通用字段定义
+**业务规则**：
+- 鉴权：只有 Agent 所有者可查看
+- 返回完整的 graphJson（工作流图 JSON 定义）
 
-所有 SSE `data` 字段均包含以下元数据：
+**输入参数**：
+| 参数 | 类型 | 必填 | 说明 |
+|------|------|------|------|
+| agentId | Long | 是 | Agent ID |
 
-```json
-{
-  "executionId": "exec-123", // 执行实例ID
-  "nodeId": "llm-node-1",    // 当前节点ID
-  "nodeType": "LLM",         // 节点类型
-  "timestamp": 1700000000,
-  
-  // 【核心】前端渲染控制
-  "renderConfig": {
-    // 显示模式：
-    // - HIDDEN: 隐藏（调试模式下可见灰度节点）
-    // - THOUGHT: 思考过程（前端渲染为折叠/流式输出）
-    // - MESSAGE: 正式回复（前端追加到气泡）
-    "mode": "THOUGHT", 
-    "title": "正在分析意图..." // 思考框的标题
-  }
-}
+**输出**：Agent 完整信息 + graphJson
 
-```
-
-### 3.2 关键事件示例
-
-#### (1) `node_start` - 节点开始
-
-*前端动作：调试模式下点亮 DAG 节点；正常模式下如果 mode=THOUGHT，显示“正在思考”加载条。*
-
-```json
-event: node_start
-data: {
-  "nodeId": "step-1",
-  "nodeName": "意图识别",
-  "renderConfig": { "mode": "HIDDEN" }, // 用户不可见，仅后台跑
-  "inputs": { ... } // 仅 debug=true 时返回
-}
-
-```
-
-#### (2) `node_chunk` - 流式输出
-
-*前端动作：在对应的思考框或消息气泡中追加文本。*
-
-```json
-event: node_chunk
-data: {
-  "nodeId": "step-2",
-  "renderConfig": { "mode": "THOUGHT", "title": "深度思考中" },
-  "delta": "需要查询...", // 增量文本
-  "content": "需要查询数据库" // (可选) 当前全量文本
-}
-
-```
-
-#### (3) `node_end` - 节点完成
-
-*前端动作：调试模式下标记节点成功；正常模式下将思考框标记为完成/折叠。*
-
-```json
-event: node_end
-data: {
-  "nodeId": "step-2",
-  "status": "SUCCEEDED",
-  "renderConfig": { "mode": "THOUGHT" },
-  "outputs": { ... }, // 仅 debug=true 时返回
-  "usage": { "tokens": 150 }
-}
-
-```
+**接口路径**：`GET /client/agent/{agentId}`
 
 ---
 
-## 4. 数据库设计要求（支撑运行时）
+### 2.3 保存Agent
 
-为支持上述 API，需要记录详细的流水日志。
+**功能描述**：创建新 Agent 或更新现有 Agent 的配置。
 
-### 4.1 表结构：`workflow_node_execution_log`
+**业务规则**：
+- 新建：agentId 为空时创建新 Agent，状态默认为"草稿"
+- 更新：agentId 有值时更新现有 Agent
+- 鉴权：只有所有者可更新
+- graphJson 包含完整的 DAG 工作流定义
+
+**输入参数**：
+| 参数 | 类型 | 必填 | 说明 |
+|------|------|------|------|
+| agentId | String | 否 | Agent ID（更新时必填） |
+| name | String | 是 | Agent 名称 |
+| description | String | 否 | Agent 描述 |
+| graphJson | String | 是 | 工作流图 JSON 定义 |
+| status | Integer | 否 | 状态 |
+
+**输出**：Agent ID
+
+**接口路径**：`POST /client/agent/save`
+
+---
+
+### 2.4 删除Agent
+
+**功能描述**：删除指定的 Agent。
+
+**业务规则**：
+- 鉴权：只有所有者可删除
+- 物理删除（非软删除）
+- 删除后相关对话历史保留
+
+**输入参数**：
+| 参数 | 类型 | 必填 | 说明 |
+|------|------|------|------|
+| agentId | Long | 是 | Agent ID |
+
+**输出**：成功/失败状态
+
+**接口路径**：`DELETE /client/agent/{agentId}`
+
+---
+
+### 2.5 发布Agent
+
+**功能描述**：将 Agent 从草稿状态发布为可执行状态。
+
+**业务规则**：
+- 只有草稿状态可发布
+- 发布前校验 graphJson 有效性
+- 发布后 Agent 可被用于对话
+
+**输入参数**：
+| 参数 | 类型 | 必填 | 说明 |
+|------|------|------|------|
+| agentId | Long | 是 | Agent ID |
+
+**输出**：成功/失败状态
+
+**接口路径**：`POST /client/agent/{agentId}/publish`
+
+---
+
+## 3. 工作流图定义（graphJson）
+
+### 3.1 整体结构
+
+```json
+{
+  "dagId": "dag-xxx",
+  "version": "3.0",
+  "description": "Agent描述",
+  "startNodeId": "start",
+  "nodes": [...],
+  "edges": [...]
+}
+```
+
+### 3.2 节点定义（NodeDefinition）
+
+每个节点包含 **5 个核心配置层**：
+
+| 层级 | 字段 | 类型 | 说明 |
+|------|------|------|------|
+| 1️⃣ | nodeId | String | 节点唯一标识 |
+| 2️⃣ | nodeName | String | 节点显示名称 |
+| 3️⃣ | inputSchema | List\<FieldSchema\> | 输入字段定义（声明节点期望的输入） |
+| 4️⃣ | outputSchema | List\<FieldSchema\> | 输出字段定义（声明节点产出的输出） |
+| 5️⃣ | userConfig | NodeUserConfig | 用户可配置项 |
+
+**附加字段**：
+| 字段 | 类型 | 说明 |
+|------|------|------|
+| nodeType | String | 节点类型枚举 |
+| templateId | String | 可选，引用节点模板 |
+| position | Position | 前端可视化位置 |
+
+---
+
+### 3.3 FieldSchema 定义
+
+`inputSchema` 和 `outputSchema` 中的字段结构：
+
+| 字段 | 类型 | 必填 | 说明 |
+|------|------|------|------|
+| key | String | 是 | 字段键名 |
+| label | String | 是 | 显示标签 |
+| type | String | 是 | 数据类型：`string`、`number`、`boolean`、`array`、`object` |
+| description | String | 否 | 字段描述 |
+| required | Boolean | 否 | 是否必填，默认 false |
+| defaultValue | Any | 否 | 默认值 |
+| sourceRef | String | 否 | 数据来源引用（仅 inputSchema），如 `state.user_input`、`node.llm-1.output.result` |
+| reducerType | String | 否 | 合并策略：`overwrite`、`append`、`addMessages` |
+
+---
+
+### 3.4 NodeUserConfig 定义
+
+用户可配置的节点参数，按节点类型区分：
+
+#### 通用配置
 
 | 字段 | 类型 | 说明 |
-| --- | --- | --- |
-| id | Long | 主键 |
-| execution_id | String | 关联一次对话执行 |
-| node_id | String | 节点ID |
-| node_name | String | 节点快照名称 |
-| **render_mode** | String | 快照当时的显示模式 (HIDDEN/THOUGHT/MESSAGE) |
-| status | Integer | 0:Running, 1:Success, 2:Failed |
-| **inputs** | JSON | **完整输入参数** (调试用) |
-| **outputs** | JSON | **完整输出结果** (调试用) |
-| start_time | DateTime | 开始时间 |
-| end_time | DateTime | 结束时间 |
+|------|------|------|
+| timeout | Integer | 超时时间（秒） |
+| maxRetries | Integer | 最大重试次数 |
+
+#### LLM 节点配置
+
+| 字段 | 类型 | 说明 |
+|------|------|------|
+| model | String | 模型名称（如 gpt-4） |
+| temperature | Double | 温度（0-1） |
+| maxTokens | Integer | 最大 token 数 |
+| systemPrompt | String | 系统提示词 |
+| userPromptTemplate | String | 用户提示词模板，支持 `{{fieldKey}}` 变量 |
+
+#### 工具节点配置
+
+| 字段 | 类型 | 说明 |
+|------|------|------|
+| mcpTools | List\<String\> | MCP 工具列表 |
+| toolParameters | Map | 工具调用参数 |
+
+#### 人工审核节点配置
+
+| 字段 | 类型 | 说明 |
+|------|------|------|
+| reviewTitle | String | 审核标题 |
+| reviewDescription | String | 审核说明 |
+| editableFields | List\<String\> | 可编辑字段列表 |
+| timeoutAction | String | 超时处理：`REJECT`、`APPROVE`、`SKIP` |
+
+#### 条件节点配置
+
+| 字段 | 类型 | 说明 |
+|------|------|------|
+| conditionExpression | String | 条件表达式 |
+| branches | List\<Branch\> | 分支定义 |
 
 ---
 
-## 5. 前端交互逻辑参考
+### 3.5 节点类型枚举
 
-### 5.1 正常模式 (Normal Mode)
-
-* **监听**：只关注 `renderConfig.mode` 为 `THOUGHT` 或 `MESSAGE` 的事件。
-* **UI展示**：
-* `THOUGHT`：在消息流中插入一个 `<Accordion title="模型思考中...">`，将 `node_chunk` 内容打入其中。节点完成后自动收起。
-* `MESSAGE`：标准的对话气泡追加。
-
-
-
-### 5.2 调试模式 (Debug Mode)
-
-* **布局**：左侧显示 DAG 流程图，右侧显示对话窗口。
-* **左侧 DAG**：
-* 监听 `node_start` / `node_end` 事件，实时变更节点颜色（灰->蓝->绿/红）。
-* 鼠标点击节点，调用 `2.3` 接口获取详情，侧边弹窗显示 Input/Output JSON。
-
-
-* **右侧 对话**：
-* 显示**所有**节点产生的文本（包括 HIDDEN 节点产生的中间日志），通常以灰色小字或系统提示的形式展示，方便开发者追踪中间变量。
-
-
+| 类型 | 说明 |
+|------|------|
+| START | 开始节点 |
+| END | 结束节点 |
+| LLM | 大模型节点 |
+| TOOL | 工具节点 |
+| HUMAN | 人工介入节点 |
+| CONDITION | 条件分支节点 |
+| PARALLEL | 并行节点 |
 
 ---
 
-## 6. 非功能需求
+### 3.6 完整节点示例
 
-### 6.1 实时性
-
-* 节点状态变更事件延迟 < 50ms。
-* 流式 Token 推送不丢包、不乱序（需前端通过 index 排序或后端保证顺序）。
-
-### 6.2 数据存储
-
-* `workflow_node_execution_log` 数据量较大，建议设置保留策略（如保留 7 天），或将历史数据归档至对象存储/冷备库。
-
-### 6.3 安全性
-
-* 在非 Debug 模式下，**严禁**将节点的 `inputs/outputs` 敏感数据推送到前端 SSE 流中，必须在后端进行字段过滤。
-
+```json
+{
+  "nodeId": "analysis-001",
+  "nodeName": "数据分析节点",
+  "nodeType": "LLM",
+  "inputSchema": [
+    {
+      "key": "userMessage",
+      "label": "用户消息",
+      "type": "string",
+      "required": true,
+      "sourceRef": "state.user_input",
+      "description": "用户输入的原始消息"
+    },
+    {
+      "key": "context",
+      "label": "历史上下文",
+      "type": "array",
+      "required": false,
+      "sourceRef": "state.messages",
+      "reducerType": "addMessages"
+    }
+  ],
+  "outputSchema": [
+    {
+      "key": "analysisResult",
+      "label": "分析结果",
+      "type": "string",
+      "description": "AI 生成的分析结果"
+    },
+    {
+      "key": "confidence",
+      "label": "置信度",
+      "type": "number",
+      "description": "分析置信度 0-1"
+    }
+  ],
+  "userConfig": {
+    "model": "gpt-4",
+    "temperature": 0.7,
+    "maxTokens": 2000,
+    "systemPrompt": "你是一个数据分析专家...",
+    "userPromptTemplate": "请分析以下内容：{{userMessage}}"
+  },
+  "position": { "x": 300, "y": 200 }
+}
 ```
 
+---
+
+### 3.7 边定义（EdgeDefinition）
+
+```json
+{
+  "edgeId": "edge-001",
+  "source": "node1",
+  "target": "node2",
+  "label": "成功",
+  "condition": "可选的条件表达式",
+  "edgeType": "DEPENDENCY"
+}
 ```
+
+**edgeType 枚举**：
+| 类型 | 说明 |
+|------|------|
+| DEPENDENCY | 标准依赖边（默认） |
+| LOOP_BACK | 循环边，不参与拓扑排序 |
+| CONDITIONAL | 条件边，由节点动态决定是否激活 |
+
+---
+
+
+## 4. 非功能需求
+
+### 4.1 安全性
+- 所有操作需鉴权，确保用户只能操作自己的 Agent
+
+### 4.2 数据校验
+- graphJson 格式校验（JSON 解析有效性）
+- 图结构校验（无孤立节点、有明确开始结束节点）
+
+### 4.3 性能
+- 列表查询响应时间 < 100ms
+- 详情查询响应时间 < 50ms
+
+---
+
+## 5. 领域模型
+
+### 5.1 聚合根：Agent
+
+```java
+Agent {
+    id: Long              // Agent ID
+    userId: Long          // 所有者用户ID
+    name: String          // Agent 名称
+    description: String   // Agent 描述
+    graphJson: String     // 工作流图 JSON
+    status: AgentStatus   // 状态枚举
+    createTime: DateTime  // 创建时间
+    updateTime: DateTime  // 更新时间
+    
+    // 领域行为
+    publish()             // 发布
+    disable()             // 停用
+    updateConfiguration() // 更新配置
+    isOwnedBy(userId)     // 权限校验
+}
+```
+
+### 5.2 值对象
+
+| 值对象 | 说明 |
+|--------|------|
+| AgentStatus | 枚举：DRAFT(0), PUBLISHED(1), DISABLED(2) |
+| GraphDefinition | 封装 graphJson 解析，提供节点/边访问方法 |
+
+---
+
+## 6. 依赖关系
+
+### 6.1 对外提供
+- IAgentRepository：Agent 数据访问接口
+
+### 6.2 依赖外部
+- 用户认证模块：获取当前用户身份

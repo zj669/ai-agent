@@ -12,13 +12,11 @@ import org.springframework.scheduling.annotation.EnableScheduling;
 @SpringBootApplication
 @EnableScheduling
 @EnableAsync
-@MapperScan("com.zj.aiagent.infrastructure.persistence.mapper")
-public class AiagemtApplication {
+@MapperScan("com.zj.aiagent.infrastructure.**.mapper")
+public class AiAgentApplication {
 
-
-	public static void main(String[] args) {
-		SpringApplication.run(AiagemtApplication.class, args);
-
-	}
+    public static void main(String[] args) {
+        SpringApplication.run(AiAgentApplication.class, args);
+    }
 
 }

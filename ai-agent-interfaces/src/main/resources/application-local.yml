@@ -6,7 +6,7 @@
 PRIMARY_DB_DRIVER: com.mysql.cj.jdbc.Driver
 PRIMARY_DB_HOST: localhost
 PRIMARY_DB_PORT: 13306
-PRIMARY_DB_NAME: ai_agent_station_study
+PRIMARY_DB_NAME: agent_engine
 PRIMARY_DB_USER: root
 PRIMARY_DB_PASSWORD: 123456
 PRIMARY_DB_MIN_IDLE: 5
@@ -72,3 +72,8 @@ REDIS_KEEP_ALIVE: true
 # 认证配置
 AUTH_DEBUG_ENABLED: true
 AUTH_DEBUG_HEADER_NAME: debug-user
+
+auth:
+  debug:
+    enabled: ${AUTH_DEBUG_ENABLED:false}
+    header-name: ${AUTH_DEBUG_HEADER_NAME:debug-user}

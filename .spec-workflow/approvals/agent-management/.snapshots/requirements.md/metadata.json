@@ -1,0 +1,14 @@
+{
+  "filePath": ".spec-workflow/specs/agent-management/requirements.md",
+  "currentVersion": 1,
+  "snapshots": [
+    {
+      "version": 1,
+      "filename": "snapshot-001.json",
+      "timestamp": "2026-01-11T07:54:44.390Z",
+      "trigger": "initial",
+      "approvalId": "approval_1768118084358_9lp5pc0ts",
+      "approvalTitle": "Agent Management Requirements Spec"
+    }
+  ]
+}

@@ -1,0 +1,14 @@
+{
+  "filePath": ".spec-workflow/specs/agent-management/tasks.md",
+  "currentVersion": 1,
+  "snapshots": [
+    {
+      "version": 1,
+      "filename": "snapshot-001.json",
+      "timestamp": "2026-01-11T08:11:20.149Z",
+      "trigger": "initial",
+      "approvalId": "approval_1768119080133_fzyo6ktpm",
+      "approvalTitle": "Agent Management Tasks Spec"
+    }
+  ]
+}
