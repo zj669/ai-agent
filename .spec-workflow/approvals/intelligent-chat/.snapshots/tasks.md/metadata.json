@@ -1,0 +1,14 @@
+{
+  "filePath": ".spec-workflow/specs/intelligent-chat/tasks.md",
+  "currentVersion": 1,
+  "snapshots": [
+    {
+      "version": 1,
+      "filename": "snapshot-001.json",
+      "timestamp": "2026-01-11T10:09:28.142Z",
+      "trigger": "initial",
+      "approvalId": "approval_1768126168075_crinvo9oa",
+      "approvalTitle": "Intelligent Chat Tasks (Refactored to Standard)"
+    }
+  ]
+}

@@ -1,0 +1,14 @@
+{
+  "filePath": ".spec-workflow/specs/workflow-orchestration/tasks.md",
+  "currentVersion": 1,
+  "snapshots": [
+    {
+      "version": 1,
+      "filename": "snapshot-001.json",
+      "timestamp": "2026-01-11T09:24:13.717Z",
+      "trigger": "initial",
+      "approvalId": "approval_1768123453608_o46fjnz2i",
+      "approvalTitle": "Workflow Orchestration Tasks"
+    }
+  ]
+}

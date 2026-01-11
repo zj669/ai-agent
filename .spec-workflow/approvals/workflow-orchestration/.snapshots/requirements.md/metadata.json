@@ -1,0 +1,14 @@
+{
+  "filePath": ".spec-workflow/specs/workflow-orchestration/requirements.md",
+  "currentVersion": 1,
+  "snapshots": [
+    {
+      "version": 1,
+      "filename": "snapshot-001.json",
+      "timestamp": "2026-01-11T08:55:02.915Z",
+      "trigger": "initial",
+      "approvalId": "approval_1768121702880_k83f44kh3",
+      "approvalTitle": "Workflow Orchestration Requirements"
+    }
+  ]
+}
