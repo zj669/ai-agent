@@ -1,4 +1,4 @@
-package com.zj.aiagent.interfaces.user.web;
+package com.zj.aiagent.interfaces.user;
 
 import com.zj.aiagent.application.user.UserApplicationService;
 import com.zj.aiagent.application.user.dto.UserDetailDTO;

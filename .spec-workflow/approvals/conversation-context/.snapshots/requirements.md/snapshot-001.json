@@ -1,0 +1,16 @@
+{
+  "id": "snapshot_1768182096032_5zwq3k3j4",
+  "approvalId": "approval_1768182095997_64fk6wa3n",
+  "approvalTitle": "Conversation Context Requirements",
+  "version": 1,
+  "timestamp": "2026-01-12T01:41:36.032Z",
+  "trigger": "initial",
+  "status": "pending",
+  "content": "# Requirements Document - Conversation Context Service\r\n\r\n## Introduction\r\n\r\nConversation Context 是 AI-Agent 平台的会话管理核心模块，用于提供对话历史的存储、查询与管理能力。它将作为 Orchestration Context（工作流执行）的下游记录者，和前端界面的上游数据源，从独立的视角管理会话（Conversation）与消息（Message）。\r\n\r\n## Alignment with Product Vision\r\n\r\n该模块支持 AI-Agent 的核心价值：\r\n- **历史回溯**：用户需要查看与 Agent 的过往对话。\r\n- **上下文增强**：Agent 执行时需要加载历史对话作为 Context。\r\n- **数据分析**：为后续的对话分析、质量评估提供结构化数据基础。\r\n\r\n符合 `ddd-design.md` 中的战略划分，将 Conversation 独立为支撑域，解耦执行逻辑与记录逻辑。\r\n\r\n## Requirements\r\n\r\n### Requirement 1: 会话管理 (Conversation Management)\r\n\r\n**User Story:** 作为用户，我希望能够查看我的历史会话列表，并能创建新会话或删除旧会话，以便管理我与 Agent 的交互。\r\n\r\n#### Acceptance Criteria\r\n\r\n1. **创建会话**:\r\n   - WHEN 用户发起新对话 (或首次进入 Agent 页面) THEN 系统 SHALL 创建一个新的 `Conversation` 实体。\r\n   - IF 会话创建成功 THEN SHALL 返回会话 ID、创建时间、Agent ID 等元数据。\r\n\r\n2. **查询会话列表**:\r\n   - WHEN 用户查看历史记录 THEN 系统 SHALL 返回当前 Agent 下该用户的会话列表。\r\n   - 列表 SHALL 支持分页，按最近更新时间倒序排列。\r\n\r\n3. **删除会话**:\r\n   - WHEN 用户请求删除会话 THEN 系统 SHALL 软删除该会话及其关联的所有消息。\r\n   - IF 尝试访问已删除会话 THEN SHALL 返回 404 或权限错误。\r\n\r\n### Requirement 2: 消息存储 (Message Persistence)\r\n\r\n**User Story:** 作为系统，我需要在工作流执行过程中自动记录用户输入和 Agent 输出，以便构建完整的对话历史。\r\n\r\n#### Acceptance Criteria\r\n\r\n1. **记录用户消息**:\r\n   - WHEN 用户发送消息 THEN 系统 SHALL 记录一条 Role 为 `USER` 的消息。\r\n\r\n2. **记录 Agent 消息**:\r\n   - WHEN 工作流执行产生最终输出 (Final Output) THEN 系统 SHALL 记录一条 Role 为 `ASSISTANT` 的消息。\r\n   - 消息内容 SHALL 包含生成的文本，以及可选的节点执行引用（NodeExecutionRecord，保留扩展性）。\r\n\r\n3. **异步/解耦写入**:\r\n   - 消息的写入与工作流执行核心逻辑应解耦（建议通过领域事件 `ExecutionCompletedEvent` 触发）。\r\n\r\n### Requirement 3: 历史消息查询 (History/Context Retrieval)\r\n\r\n**User Story:** 作为工作流引擎/前端，我需要获取指定会话的历史消息，以便构建 LLM 的 Prompt 上下文或在界面展示。\r\n\r\n#### Acceptance Criteria\r\n\r\n1. **查询会话详情**:\r\n   - WHEN 前端加载会话 THEN 系统 SHALL 返回该会话内的消息列表。\r\n   - 消息列表 SHALL 按时间正序排列。\r\n\r\n2. **构建上下文 (Context Window)**:\r\n   - WHEN 工作流引擎请求上下文 THEN 系统 SHALL 提供最近 N 条消息（Token 限制或数量限制）。\r\n\r\n## Non-Functional Requirements\r\n\r\n### Code Architecture and Modularity\r\n- **Domain-Driven Design**: 严格遵循 DDD，定义 `Conversation` 聚合根和 `Message` 实体。\r\n- **Repository Pattern**: 使用仓储模式隔离数据库实现。\r\n- **Separation of Concerns**: 独立于 Execution 模块，仅通过 ID 关联。\r\n\r\n### Performance\r\n- **Query Latency**: 会话列表和详情查询 P99 < 100ms。\r\n- **Write Throughput**: 支持高并发消息写入。\r\n\r\n### Security\r\n- **Data Isolation**: 严格校验 `userId`，用户只能访问自己的会话数据。\r\n\r\n### Reliability\r\n- **Eventual Consistency**: 允许消息记录在执行完成后有毫秒级延迟（最终一致性）。\r\n",
+  "fileStats": {
+    "size": 3851,
+    "lines": 81,
+    "lastModified": "2026-01-12T01:41:27.110Z"
+  },
+  "comments": []
+}

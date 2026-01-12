@@ -1,0 +1,14 @@
+{
+  "filePath": ".spec-workflow/specs/conversation-context/tasks.md",
+  "currentVersion": 1,
+  "snapshots": [
+    {
+      "version": 1,
+      "filename": "snapshot-001.json",
+      "timestamp": "2026-01-12T01:57:57.327Z",
+      "trigger": "initial",
+      "approvalId": "approval_1768183077296_v795pot2f",
+      "approvalTitle": "Conversation Context Tasks"
+    }
+  ]
+}

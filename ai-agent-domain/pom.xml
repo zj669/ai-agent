@@ -21,6 +21,13 @@
             <groupId>com.zj</groupId>
             <artifactId>ai-agent-shared</artifactId>
         </dependency>
+        
+        <!-- Spring Data (for Pageable in Port interfaces) -->
+        <dependency>
+            <groupId>org.springframework.data</groupId>
+            <artifactId>spring-data-commons</artifactId>
+        </dependency>
+
         <!-- Spring AI - OpenAI -->
         <dependency>
             <groupId>org.springframework.ai</groupId>
