@@ -4,6 +4,7 @@ import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.zj.aiagent.domain.user.entity.User;
 import com.zj.aiagent.domain.user.repository.IUserRepository;
 import com.zj.aiagent.domain.user.valobj.Email;
+import com.zj.aiagent.infrastructure.user.mapper.EmailLogMapper;
 import com.zj.aiagent.infrastructure.user.mapper.UserMapper;
 import com.zj.aiagent.infrastructure.user.po.UserPO;
 import lombok.RequiredArgsConstructor;
@@ -14,6 +15,7 @@ import org.springframework.stereotype.Repository;
 public class UserRepositoryImpl implements IUserRepository {
 
     private final UserMapper userMapper;
+    private final EmailLogMapper emailLogMapper;
 
     @Override
     public User save(User user) {
@@ -43,6 +45,11 @@ public class UserRepositoryImpl implements IUserRepository {
     public boolean existsByEmail(Email email) {
         return userMapper.exists(new LambdaQueryWrapper<UserPO>()
                 .eq(UserPO::getEmail, email.getValue()));
+    }
+
+    @Override
+    public void saveEmailLog(Email email, String code) {
+
     }
 
     private UserPO toPO(User user) {

@@ -42,6 +42,13 @@ public class AgentCommand {
     }
 
     @Data
+    public static class DeleteVersionCmd {
+        private Long agentId;
+        private Long userId;
+        private Integer version;
+    }
+
+    @Data
     public static class DebugAgentCmd {
         private Long agentId;
         private Long userId;

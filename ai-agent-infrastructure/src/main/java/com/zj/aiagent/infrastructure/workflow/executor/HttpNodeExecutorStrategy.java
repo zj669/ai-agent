@@ -1,6 +1,6 @@
 package com.zj.aiagent.infrastructure.workflow.executor;
 
-import com.zj.aiagent.domain.workflow.config.HttpNodeConfig;
+import com.zj.aiagent.domain.workflow.config.NodeConfig;
 import com.zj.aiagent.domain.workflow.entity.Node;
 import com.zj.aiagent.domain.workflow.port.NodeExecutorStrategy;
 import com.zj.aiagent.domain.workflow.port.StreamPublisher;
@@ -47,11 +47,12 @@ public class HttpNodeExecutorStrategy implements NodeExecutorStrategy {
 
         return CompletableFuture.supplyAsync(() -> {
             try {
-                HttpNodeConfig config = (HttpNodeConfig) node.getConfig();
+                NodeConfig config = node.getConfig();
 
                 // 解析 URL
-                String url = resolveTemplate(config.getUrl(), resolvedInputs);
-                HttpMethod method = HttpMethod.valueOf(config.getMethod().toUpperCase());
+                String url = resolveTemplate(config.getString("url"), resolvedInputs);
+                String methodStr = config.getString("method", "GET");
+                HttpMethod method = HttpMethod.valueOf(methodStr.toUpperCase());
 
                 log.info("[HTTP Node {}] {} {}", node.getNodeId(), method, url);
 
@@ -62,15 +63,20 @@ public class HttpNodeExecutorStrategy implements NodeExecutorStrategy {
                         .uri(url);
 
                 // 设置 Headers
-                if (config.getHeaders() != null) {
-                    config.getHeaders()
-                            .forEach((key, value) -> requestSpec.header(key, resolveTemplate(value, resolvedInputs)));
+                Map<String, Object> headers = config.getMap("headers");
+                if (headers != null) {
+                    headers.forEach((key, value) -> {
+                        if (value != null) {
+                            requestSpec.header(key, resolveTemplate(value.toString(), resolvedInputs));
+                        }
+                    });
                 }
 
                 // 设置 Body
                 WebClient.ResponseSpec responseSpec;
-                if (config.getBodyTemplate() != null && !config.getBodyTemplate().isEmpty()) {
-                    String body = resolveTemplate(config.getBodyTemplate(), resolvedInputs);
+                String bodyTemplate = config.getString("bodyTemplate");
+                if (bodyTemplate != null && !bodyTemplate.isEmpty()) {
+                    String body = resolveTemplate(bodyTemplate, resolvedInputs);
                     responseSpec = requestSpec
                             .contentType(MediaType.APPLICATION_JSON)
                             .bodyValue(body)
@@ -80,7 +86,10 @@ public class HttpNodeExecutorStrategy implements NodeExecutorStrategy {
                 }
 
                 // 执行请求
-                Long timeout = config.getReadTimeoutMs() != null ? config.getReadTimeoutMs() : 30000L;
+                Long timeout = config.getLong("readTimeout");
+                if (timeout == null) {
+                    timeout = 30000L;
+                }
                 String response = responseSpec
                         .bodyToMono(String.class)
                         .timeout(Duration.ofMillis(timeout))

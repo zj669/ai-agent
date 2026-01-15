@@ -41,11 +41,26 @@ public class WorkflowGraph {
 
     /**
      * 边定义 (sourceNodeId -> Set<targetNodeId>)
+     * 用于快速查找下游节点
      */
     @Builder.Default
     private Map<String, Set<String>> edges = new HashMap<>();
 
+    /**
+     * 边详情映射 (sourceNodeId -> List<Edge>)
+     * 存储边的完整信息，包括条件表达式
+     */
+    @Builder.Default
+    private Map<String, List<Edge>> edgeDetails = new HashMap<>();
+
     // --- 业务方法 ---
+
+    /**
+     * 获取节点的所有出边（包含条件信息）
+     */
+    public List<Edge> getOutgoingEdges(String nodeId) {
+        return edgeDetails.getOrDefault(nodeId, Collections.emptyList());
+    }
 
     /**
      * 获取所有起始节点

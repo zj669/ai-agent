@@ -363,6 +363,9 @@ public class SchedulerService {
         // Inject Context
         resolvedInputs.put("__context__", context);
 
+        // Inject outgoing edges for condition nodes
+        resolvedInputs.put("__outgoingEdges__", execution.getGraph().getOutgoingEdges(node.getNodeId()));
+
         CompletableFuture<NodeExecutionResult> future = strategy.executeAsync(node, resolvedInputs, streamPublisher);
 
         future.whenComplete((result, error) -> {

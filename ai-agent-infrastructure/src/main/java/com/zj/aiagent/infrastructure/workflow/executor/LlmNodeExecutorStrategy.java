@@ -2,7 +2,7 @@ package com.zj.aiagent.infrastructure.workflow.executor;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.zj.aiagent.domain.workflow.config.LlmNodeConfig;
+import com.zj.aiagent.domain.workflow.config.NodeConfig;
 import com.zj.aiagent.domain.workflow.entity.Node;
 import com.zj.aiagent.domain.workflow.port.NodeExecutorStrategy;
 import com.zj.aiagent.domain.workflow.port.StreamPublisher;
@@ -62,7 +62,7 @@ public class LlmNodeExecutorStrategy implements NodeExecutorStrategy {
 
         return CompletableFuture.supplyAsync(() -> {
             try {
-                LlmNodeConfig config = (LlmNodeConfig) node.getConfig();
+                NodeConfig config = node.getConfig();
 
                 // 获取执行上下文（用于 LTM/STM/Awareness）
                 ExecutionContext context = (ExecutionContext) resolvedInputs.get("__context__");
@@ -129,13 +129,14 @@ public class LlmNodeExecutorStrategy implements NodeExecutorStrategy {
      * 构建增强的 System Prompt
      * 包含：基础人设 + LTM + Awareness + Context Ref
      */
-    private String buildSystemPrompt(LlmNodeConfig config, ExecutionContext context,
+    private String buildSystemPrompt(NodeConfig config, ExecutionContext context,
             Map<String, Object> resolvedInputs) {
         StringBuilder sb = new StringBuilder();
 
         // 1. 基础系统提示词
-        if (StringUtils.hasText(config.getSystemPrompt())) {
-            sb.append(config.getSystemPrompt()).append("\n\n");
+        String systemPromptConfig = config.getString("systemPrompt");
+        if (StringUtils.hasText(systemPromptConfig)) {
+            sb.append(systemPromptConfig).append("\n\n");
         }
 
         if (context == null) {
@@ -153,7 +154,7 @@ public class LlmNodeExecutorStrategy implements NodeExecutorStrategy {
         }
 
         // 3. [Awareness] 注入执行日志
-        if (config.isIncludeExecutionLog()) {
+        if (config.getBoolean("includeExecutionLog", true)) {
             String execLog = context.getExecutionLogContent();
             if (StringUtils.hasText(execLog)) {
                 sb.append("### 当前工作流执行进度 (Execution Log):\n");
@@ -162,7 +163,7 @@ public class LlmNodeExecutorStrategy implements NodeExecutorStrategy {
         }
 
         // 4. [Context Ref] 注入特定节点输出
-        List<String> refNodes = config.getContextRefNodes();
+        List<String> refNodes = config.getList("contextRefNodes");
         if (refNodes != null && !refNodes.isEmpty()) {
             sb.append("### 参考资料 (Reference Outputs):\n");
             for (String nodeId : refNodes) {
@@ -186,7 +187,7 @@ public class LlmNodeExecutorStrategy implements NodeExecutorStrategy {
      * 构建 Message Chain
      * 包含：System + STM (历史对话) + 当前用户输入
      */
-    private List<Message> buildMessageChain(LlmNodeConfig config, ExecutionContext context,
+    private List<Message> buildMessageChain(NodeConfig config, ExecutionContext context,
             Map<String, Object> resolvedInputs, String systemPrompt) {
         List<Message> messages = new ArrayList<>();
 
@@ -196,10 +197,10 @@ public class LlmNodeExecutorStrategy implements NodeExecutorStrategy {
         }
 
         // 2. [STM] 添加历史对话
-        if (config.isIncludeChatHistory() && context != null) {
+        if (config.getBoolean("includeChatHistory", true) && context != null) {
             List<Map<String, String>> chatHistory = context.getChatHistory();
             if (chatHistory != null && !chatHistory.isEmpty()) {
-                int maxRounds = config.getMaxHistoryRounds();
+                int maxRounds = config.getInteger("maxHistoryRounds", 10);
                 int startIdx = Math.max(0, chatHistory.size() - maxRounds * 2);
 
                 for (int i = startIdx; i < chatHistory.size(); i++) {
@@ -228,8 +229,8 @@ public class LlmNodeExecutorStrategy implements NodeExecutorStrategy {
     /**
      * 构建用户 Prompt（替换占位符）
      */
-    private String buildUserPrompt(LlmNodeConfig config, Map<String, Object> resolvedInputs) {
-        String template = config.getPromptTemplate();
+    private String buildUserPrompt(NodeConfig config, Map<String, Object> resolvedInputs) {
+        String template = config.getString("userPromptTemplate");
 
         if (template == null || template.isEmpty()) {
             // 使用默认输入

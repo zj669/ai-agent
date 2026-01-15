@@ -1,14 +1,24 @@
 package com.zj.aiagent.application.agent.service;
 
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.zj.aiagent.application.agent.cmd.AgentCommand;
 import com.zj.aiagent.domain.agent.entity.Agent;
 import com.zj.aiagent.domain.agent.entity.AgentVersion;
 import com.zj.aiagent.domain.agent.repository.AgentRepository;
 import com.zj.aiagent.domain.agent.service.GraphValidator;
+import jakarta.annotation.PostConstruct;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.core.io.ClassPathResource;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.util.StreamUtils;
+
+import java.io.IOException;
+import java.nio.charset.StandardCharsets;
+import java.util.UUID;
 
 @Slf4j
 @Service
@@ -17,20 +27,53 @@ public class AgentApplicationService {
 
     private final AgentRepository agentRepository;
     private final GraphValidator graphValidator;
+    private final ObjectMapper objectMapper;
+
+    private String initialGraphTemplate;
+
+    @PostConstruct
+    public void init() {
+        try {
+            ClassPathResource resource = new ClassPathResource("templates/agent-initial-graph.json");
+            initialGraphTemplate = StreamUtils.copyToString(resource.getInputStream(), StandardCharsets.UTF_8);
+            log.info("[AgentService] Loaded initial graph template");
+        } catch (IOException e) {
+            log.error("[AgentService] Failed to load initial graph template", e);
+            initialGraphTemplate = "{}";
+        }
+    }
 
     @Transactional(rollbackFor = Exception.class)
     public Long createAgent(AgentCommand.CreateAgentCmd cmd) {
+        String graphJson = generateInitialGraphJson();
+
         Agent agent = Agent.builder()
                 .userId(cmd.getUserId())
                 .name(cmd.getName())
                 .description(cmd.getDescription())
                 .icon(cmd.getIcon())
-                .graphJson("{}") // Initial empty graph
+                .graphJson(graphJson)
                 .version(1)
                 .build();
 
         agentRepository.save(agent);
         return agent.getId();
+    }
+
+    /**
+     * 生成初始化 graphJson，设置唯一的 dagId
+     */
+    private String generateInitialGraphJson() {
+        try {
+            JsonNode root = objectMapper.readTree(initialGraphTemplate);
+            if (root.isObject()) {
+                ((ObjectNode) root).put("dagId", "dag-" + UUID.randomUUID().toString().substring(0, 8));
+            }
+            return objectMapper.writeValueAsString(root);
+        } catch (Exception e) {
+            log.error("[AgentService] Failed to generate initial graph JSON", e);
+            return initialGraphTemplate;
+        }
     }
 
     @Transactional(rollbackFor = Exception.class)
@@ -102,29 +145,56 @@ public class AgentApplicationService {
         agentRepository.save(agent);
     }
 
+    /**
+     * 删除指定版本
+     */
+    @Transactional(rollbackFor = Exception.class)
+    public void deleteAgentVersion(AgentCommand.DeleteVersionCmd cmd) {
+        Agent agent = agentRepository.findById(cmd.getAgentId())
+                .orElseThrow(() -> new IllegalArgumentException("Agent not found"));
+        checkOwnership(agent, cmd.getUserId());
+
+        // 检查是否为已发布版本
+        if (agent.getPublishedVersionId() != null &&
+                agent.getPublishedVersionId().intValue() == cmd.getVersion()) {
+            throw new IllegalStateException("Cannot delete published version. Unpublish first.");
+        }
+
+        agentRepository.deleteVersion(cmd.getAgentId(), cmd.getVersion());
+        log.info("Deleted version {} of agent {}", cmd.getVersion(), cmd.getAgentId());
+    }
+
+    /**
+     * 强制删除智能体（包括所有版本）
+     */
+    @Transactional(rollbackFor = Exception.class)
+    public void forceDeleteAgent(AgentCommand.DeleteAgentCmd cmd) {
+        Agent agent = agentRepository.findById(cmd.getId())
+                .orElseThrow(() -> new IllegalArgumentException("Agent not found"));
+        checkOwnership(agent, cmd.getUserId());
+
+        // 1. 先删除所有版本
+        agentRepository.deleteAllVersions(cmd.getId());
+        log.info("Deleted all versions of agent {}", cmd.getId());
+
+        // 2. 再删除智能体本身
+        agentRepository.deleteById(cmd.getId());
+        log.info("Force deleted agent {}", cmd.getId());
+    }
+
+    /**
+     * 软删除智能体（保留版本，仅标记删除）
+     */
     @Transactional(rollbackFor = Exception.class)
     public void deleteAgent(AgentCommand.DeleteAgentCmd cmd) {
         Agent agent = agentRepository.findById(cmd.getId())
                 .orElseThrow(() -> new IllegalArgumentException("Agent not found"));
         checkOwnership(agent, cmd.getUserId());
-        // Soft delete logic usually in Entity, or Repo.deleteById does hard delete?
-        // AgentPO has `deleted` field.
-        // I should implement soft delete.
-        // `agentRepository.deleteById` in standard MyBatis Plus with @TableLogic
-        // handles soft delete.
-        // I didn't add @TableLogic to AgentPO.deleted field. I should have.
-        // I'll check AgentPO.java. I just wrote `private Integer deleted;`.
-        // If I want soft delete, I need to update PO or handle it manually here.
-        // Handling manually:
-        // agent.setDeleted(1); repo.save(agent);
-        agentRepository.deleteById(cmd.getId()); // If MP configured, uses soft delete. If not, hard.
-        // For safety, let's assume hard delete is not desired, but I defined `deleted`
-        // field.
-        // I will assume MP Global Config or manual handling.
-        // Use manual update for clarity in domain service if logical delete is domain
-        // concept.
-        // Domain `Agent` has `deleted` field.
-        // I'll leave it to Repo implementation.
+
+        // 软删除：标记 deleted = 1
+        agent.setDeleted(1);
+        agentRepository.save(agent);
+        log.info("Soft deleted agent {}", cmd.getId());
     }
 
     // --- Helper ---
@@ -133,5 +203,43 @@ public class AgentApplicationService {
         if (!agent.isOwnedBy(userId)) {
             throw new SecurityException("Unauthorized: Agent does not belong to user " + userId);
         }
+    }
+
+    /**
+     * 获取智能体详情
+     * 
+     * @param agentId 智能体ID
+     * @param userId  当前用户ID（用于权限校验）
+     * @return 智能体详情结果
+     */
+    public com.zj.aiagent.application.agent.dto.AgentDetailResult getAgentDetail(Long agentId, Long userId) {
+        Agent agent = agentRepository.findById(agentId)
+                .orElseThrow(() -> new IllegalArgumentException("Agent not found: " + agentId));
+
+        checkOwnership(agent, userId);
+
+        return com.zj.aiagent.application.agent.dto.AgentDetailResult.from(agent);
+    }
+
+    /**
+     * 查询用户的智能体列表
+     */
+    public java.util.List<com.zj.aiagent.domain.agent.valobj.AgentSummary> listAgents(Long userId) {
+        return agentRepository.findSummaryByUserId(userId);
+    }
+
+    /**
+     * 查询智能体的版本历史
+     */
+    /**
+     * 查询智能体的版本历史
+     */
+    public com.zj.aiagent.application.agent.dto.VersionHistoryResult getVersionHistory(Long agentId, Long userId) {
+        Agent agent = agentRepository.findById(agentId)
+                .orElseThrow(() -> new IllegalArgumentException("Agent not found: " + agentId));
+        checkOwnership(agent, userId);
+
+        java.util.List<AgentVersion> versions = agentRepository.findVersionHistory(agentId);
+        return com.zj.aiagent.application.agent.dto.VersionHistoryResult.from(versions);
     }
 }

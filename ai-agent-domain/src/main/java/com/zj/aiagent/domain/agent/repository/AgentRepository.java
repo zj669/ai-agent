@@ -49,4 +49,14 @@ public interface AgentRepository {
     Optional<Integer> findMaxVersion(Long agentId);
 
     List<AgentVersion> findVersionHistory(Long agentId);
+
+    /**
+     * Delete a specific version
+     */
+    void deleteVersion(Long agentId, Integer version);
+
+    /**
+     * Delete all versions of an agent
+     */
+    void deleteAllVersions(Long agentId);
 }

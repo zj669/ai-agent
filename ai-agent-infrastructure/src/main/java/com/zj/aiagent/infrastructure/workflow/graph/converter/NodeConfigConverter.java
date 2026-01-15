@@ -1,344 +1,117 @@
 package com.zj.aiagent.infrastructure.workflow.graph.converter;
 
-import com.zj.aiagent.domain.workflow.config.*;
-import com.zj.aiagent.domain.workflow.valobj.Branch;
+import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.zj.aiagent.domain.workflow.config.NodeConfig;
 import com.zj.aiagent.domain.workflow.valobj.NodeType;
+import com.zj.aiagent.infrastructure.meta.mapper.NodeTemplateConfigMappingMapper;
+import com.zj.aiagent.infrastructure.meta.mapper.NodeTemplateMapper;
+import com.zj.aiagent.infrastructure.meta.mapper.SysConfigFieldDefMapper;
+import com.zj.aiagent.infrastructure.meta.po.NodeTemplateConfigMappingPO;
+import com.zj.aiagent.infrastructure.meta.po.NodeTemplatePO;
+import com.zj.aiagent.infrastructure.meta.po.SysConfigFieldDefPO;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 /**
- * NodeConfig 多态转换器
- * 根据节点类型将 userConfig Map 转换为对应的 NodeConfig 子类
+ * NodeConfig 转换器
+ * 根据数据库配置动态解析 userConfig
  * 
- * 支持解析：
- * 1. 节点特定配置（LLM、HTTP、Condition 等）
- * 2. 通用配置（重试策略、人工审核）
+ * 工作流程：
+ * 1. 根据 nodeType 查询 node_template 表获取模板 ID
+ * 2. 根据模板 ID 查询 node_template_config_mapping 表获取配置字段列表
+ * 3. 根据字段 ID 查询 sys_config_field_def 表获取字段 key
+ * 4. 从 userConfig 中提取对应的值，缺失则记录日志并设为 null
  */
+@Slf4j
 @Component
+@RequiredArgsConstructor
 public class NodeConfigConverter {
 
+    private final NodeTemplateMapper nodeTemplateMapper;
+    private final NodeTemplateConfigMappingMapper mappingMapper;
+    private final SysConfigFieldDefMapper fieldDefMapper;
+
     /**
-     * 转换 userConfig 为对应的 NodeConfig 子类
+     * 转换 userConfig 为 NodeConfig
      *
      * @param nodeType   节点类型
-     * @param userConfig 用户配置 Map
-     * @return NodeConfig 子类实例
+     * @param userConfig 用户配置 Map（扁平结构）
+     * @return NodeConfig 实例
      */
     public NodeConfig convert(NodeType nodeType, Map<String, Object> userConfig) {
         if (userConfig == null) {
-            return null;
+            userConfig = new HashMap<>();
         }
 
-        // 1. 根据节点类型创建特定配置
-        NodeConfig config = createTypeSpecificConfig(nodeType, userConfig);
+        // 1. 获取该节点类型的配置字段 key 列表
+        Set<String> fieldKeys = getFieldKeysForNodeType(nodeType);
 
-        if (config == null) {
-            return null;
+        // 2. 构建配置 Map
+        Map<String, Object> properties = new HashMap<>();
+
+        for (String key : fieldKeys) {
+            if (userConfig.containsKey(key)) {
+                properties.put(key, userConfig.get(key));
+            } else {
+                log.debug("[NodeConfigConverter] Field '{}' not found in userConfig for nodeType {}", key, nodeType);
+                properties.put(key, null);
+            }
         }
 
-        // 2. 解析通用配置（重试策略、人工审核、超时）
-        applyCommonConfig(config, userConfig);
-
-        return config;
-    }
-
-    /**
-     * 创建节点类型特定的配置
-     */
-    private NodeConfig createTypeSpecificConfig(NodeType nodeType, Map<String, Object> userConfig) {
-        return switch (nodeType) {
-            case LLM -> convertLlmConfig(userConfig);
-            case HTTP -> convertHttpConfig(userConfig);
-            case CONDITION -> convertConditionConfig(userConfig);
-            default -> createDefaultConfig(userConfig);
-        };
-    }
-
-    /**
-     * 为没有特定配置的节点创建默认配置
-     */
-    private NodeConfig createDefaultConfig(Map<String, Object> userConfig) {
-        // 创建一个简单的配置容器，只包含通用配置
-        return LlmNodeConfig.builder().build(); // 使用 LlmNodeConfig 作为容器
-    }
-
-    /**
-     * 应用通用配置到 NodeConfig
-     */
-    private void applyCommonConfig(NodeConfig config, Map<String, Object> userConfig) {
-        // 1. 解析重试策略
-        Object retryObj = userConfig.get("retryPolicy");
-        if (retryObj instanceof Map) {
-            config.setRetryPolicy(convertRetryPolicy((Map<?, ?>) retryObj));
+        // 3. 同时保留 userConfig 中不在字段定义中的额外配置（向前兼容）
+        for (Map.Entry<String, Object> entry : userConfig.entrySet()) {
+            if (!properties.containsKey(entry.getKey())) {
+                properties.put(entry.getKey(), entry.getValue());
+            }
         }
 
-        // 2. 解析人工审核配置
-        Object humanReviewObj = userConfig.get("humanReviewConfig");
-        if (humanReviewObj == null) {
-            humanReviewObj = userConfig.get("humanReview");
-        }
-        if (humanReviewObj instanceof Map) {
-            config.setHumanReviewConfig(convertHumanReviewConfig((Map<?, ?>) humanReviewObj));
-        }
-
-        // 3. 解析超时配置（如果在 userConfig 顶层）
-        Long timeout = getLong(userConfig, "timeout");
-        if (timeout == null) {
-            timeout = getLong(userConfig, "timeoutMs");
-        }
-        if (timeout != null && config.getTimeoutMs() == null) {
-            config.setTimeoutMs(timeout);
-        }
-    }
-
-    /**
-     * 转换重试策略
-     */
-    private RetryPolicy convertRetryPolicy(Map<?, ?> retryMap) {
-        return RetryPolicy.builder()
-                .maxRetries(getIntegerFromMap(retryMap, "maxRetries", 3))
-                .retryDelayMs(getLongFromMap(retryMap, "retryDelayMs", 1000L))
-                .exponentialBackoff(getBooleanFromMap(retryMap, "exponentialBackoff", true))
-                .backoffMultiplier(getDoubleFromMap(retryMap, "backoffMultiplier", 2.0))
-                .maxRetryDelayMs(getLongFromMap(retryMap, "maxRetryDelayMs", 30000L))
+        return NodeConfig.builder()
+                .properties(properties)
                 .build();
     }
 
     /**
-     * 转换人工审核配置
+     * 获取节点类型对应的配置字段 key 列表
      */
-    private HumanReviewConfig convertHumanReviewConfig(Map<?, ?> reviewMap) {
-        HumanReviewConfig.HumanReviewConfigBuilder builder = HumanReviewConfig.builder()
-                .enabled(getBooleanFromMap(reviewMap, "enabled", false))
-                .prompt((String) reviewMap.get("prompt"));
+    private Set<String> getFieldKeysForNodeType(NodeType nodeType) {
+        // 1. 查询节点模板
+        NodeTemplatePO template = nodeTemplateMapper.selectOne(
+                new LambdaQueryWrapper<NodeTemplatePO>()
+                        .eq(NodeTemplatePO::getTypeCode, nodeType.name())
+                        .eq(NodeTemplatePO::getStatus, 1));
 
-        // 解析可编辑字段
-        Object editableFieldsObj = reviewMap.get("editableFields");
-        if (editableFieldsObj instanceof List<?> fieldsList) {
-            String[] fields = fieldsList.stream()
-                    .filter(f -> f instanceof String)
-                    .map(Object::toString)
-                    .toArray(String[]::new);
-            builder.editableFields(fields);
-        } else if (editableFieldsObj instanceof String[]) {
-            builder.editableFields((String[]) editableFieldsObj);
+        if (template == null) {
+            log.warn("[NodeConfigConverter] No template found for nodeType: {}", nodeType);
+            return Set.of();
         }
 
-        return builder.build();
-    }
+        // 2. 查询配置字段映射
+        List<NodeTemplateConfigMappingPO> mappings = mappingMapper.selectList(
+                new LambdaQueryWrapper<NodeTemplateConfigMappingPO>()
+                        .eq(NodeTemplateConfigMappingPO::getNodeTemplateId, template.getId()));
 
-    private LlmNodeConfig convertLlmConfig(Map<String, Object> config) {
-        return LlmNodeConfig.builder()
-                .model(getString(config, "model"))
-                .systemPrompt(getString(config, "systemPrompt"))
-                .promptTemplate(getString(config, "userPromptTemplate"))
-                .temperature(getDouble(config, "temperature"))
-                .maxTokens(getInteger(config, "maxTokens"))
-                .stream(getBoolean(config, "stream", false))
-                .timeoutMs(getLong(config, "timeout"))
-                // 新增：解析记忆和环境感知配置
-                .includeExecutionLog(getBoolean(config, "includeExecutionLog", true))
-                .includeChatHistory(getBoolean(config, "includeChatHistory", true))
-                .maxHistoryRounds(getIntegerOrDefault(config, "maxHistoryRounds", 10))
-                .contextRefNodes(getStringList(config, "contextRefNodes"))
-                .build();
-    }
-
-    private HttpNodeConfig convertHttpConfig(Map<String, Object> config) {
-        return HttpNodeConfig.builder()
-                .url(getString(config, "url"))
-                .method(getString(config, "method"))
-                .headers(getStringMap(config, "headers"))
-                .bodyTemplate(getString(config, "bodyTemplate"))
-                .contentType(getString(config, "contentType"))
-                .responseExtractor(getString(config, "responseExtractor"))
-                .connectTimeoutMs(getLong(config, "connectTimeout"))
-                .readTimeoutMs(getLong(config, "readTimeout"))
-                .build();
-    }
-
-    private ConditionNodeConfig convertConditionConfig(Map<String, Object> config) {
-        ConditionNodeConfig.ConditionNodeConfigBuilder<?, ?> builder = ConditionNodeConfig.builder()
-                .defaultBranchId(getString(config, "defaultBranchId"));
-
-        // 解析路由策略
-        String strategy = getString(config, "routingStrategy");
-        if (strategy != null) {
-            builder.routingStrategy(ConditionNodeConfig.RoutingStrategy.valueOf(strategy.toUpperCase()));
+        if (mappings.isEmpty()) {
+            log.debug("[NodeConfigConverter] No config mappings for template: {}", template.getId());
+            return Set.of();
         }
 
-        // 解析分支
-        Object branchesObj = config.get("branches");
-        if (branchesObj instanceof List<?> branchesList) {
-            List<Branch> branches = branchesList.stream()
-                    .filter(b -> b instanceof Map)
-                    .map(b -> convertBranch((Map<?, ?>) b))
-                    .collect(Collectors.toList());
-            builder.branches(branches);
-        }
+        // 3. 获取字段 ID 列表
+        List<Long> fieldIds = mappings.stream()
+                .map(NodeTemplateConfigMappingPO::getFieldDefId)
+                .collect(Collectors.toList());
 
-        return builder.build();
-    }
+        // 4. 查询字段定义获取 key
+        List<SysConfigFieldDefPO> fieldDefs = fieldDefMapper.selectBatchIds(fieldIds);
 
-    private Branch convertBranch(Map<?, ?> branchMap) {
-        return Branch.builder()
-                .branchId((String) branchMap.get("branchId"))
-                .label((String) branchMap.get("branchName"))
-                .description((String) branchMap.get("description"))
-                .condition((String) branchMap.get("expression"))
-                .build();
-    }
-
-    // --- 辅助方法 ---
-
-    private String getString(Map<String, Object> config, String key) {
-        Object value = config.get(key);
-        return value != null ? value.toString() : null;
-    }
-
-    private Integer getInteger(Map<String, Object> config, String key) {
-        Object value = config.get(key);
-        if (value instanceof Number) {
-            return ((Number) value).intValue();
-        }
-        if (value instanceof String) {
-            try {
-                return Integer.parseInt((String) value);
-            } catch (NumberFormatException e) {
-                return null;
-            }
-        }
-        return null;
-    }
-
-    private int getIntegerOrDefault(Map<String, Object> config, String key, int defaultValue) {
-        Integer value = getInteger(config, key);
-        return value != null ? value : defaultValue;
-    }
-
-    private Long getLong(Map<String, Object> config, String key) {
-        Object value = config.get(key);
-        if (value instanceof Number) {
-            return ((Number) value).longValue();
-        }
-        if (value instanceof String) {
-            try {
-                return Long.parseLong((String) value);
-            } catch (NumberFormatException e) {
-                return null;
-            }
-        }
-        return null;
-    }
-
-    private Double getDouble(Map<String, Object> config, String key) {
-        Object value = config.get(key);
-        if (value instanceof Number) {
-            return ((Number) value).doubleValue();
-        }
-        if (value instanceof String) {
-            try {
-                return Double.parseDouble((String) value);
-            } catch (NumberFormatException e) {
-                return null;
-            }
-        }
-        return null;
-    }
-
-    private boolean getBoolean(Map<String, Object> config, String key, boolean defaultValue) {
-        Object value = config.get(key);
-        if (value instanceof Boolean) {
-            return (Boolean) value;
-        }
-        if (value instanceof String) {
-            return Boolean.parseBoolean((String) value);
-        }
-        return defaultValue;
-    }
-
-    @SuppressWarnings("unchecked")
-    private Map<String, String> getStringMap(Map<String, Object> config, String key) {
-        Object value = config.get(key);
-        if (value instanceof Map) {
-            return ((Map<?, ?>) value).entrySet().stream()
-                    .collect(Collectors.toMap(
-                            e -> e.getKey().toString(),
-                            e -> e.getValue() != null ? e.getValue().toString() : ""));
-        }
-        return null;
-    }
-
-    @SuppressWarnings("unchecked")
-    private List<String> getStringList(Map<String, Object> config, String key) {
-        Object value = config.get(key);
-        if (value instanceof List<?> list) {
-            return list.stream()
-                    .filter(item -> item instanceof String)
-                    .map(Object::toString)
-                    .collect(Collectors.toList());
-        }
-        return null;
-    }
-
-    // --- 通用 Map 辅助方法（用于 Map<?, ?> 类型）---
-
-    private int getIntegerFromMap(Map<?, ?> map, String key, int defaultValue) {
-        Object value = map.get(key);
-        if (value instanceof Number) {
-            return ((Number) value).intValue();
-        }
-        if (value instanceof String) {
-            try {
-                return Integer.parseInt((String) value);
-            } catch (NumberFormatException e) {
-                return defaultValue;
-            }
-        }
-        return defaultValue;
-    }
-
-    private long getLongFromMap(Map<?, ?> map, String key, long defaultValue) {
-        Object value = map.get(key);
-        if (value instanceof Number) {
-            return ((Number) value).longValue();
-        }
-        if (value instanceof String) {
-            try {
-                return Long.parseLong((String) value);
-            } catch (NumberFormatException e) {
-                return defaultValue;
-            }
-        }
-        return defaultValue;
-    }
-
-    private double getDoubleFromMap(Map<?, ?> map, String key, double defaultValue) {
-        Object value = map.get(key);
-        if (value instanceof Number) {
-            return ((Number) value).doubleValue();
-        }
-        if (value instanceof String) {
-            try {
-                return Double.parseDouble((String) value);
-            } catch (NumberFormatException e) {
-                return defaultValue;
-            }
-        }
-        return defaultValue;
-    }
-
-    private boolean getBooleanFromMap(Map<?, ?> map, String key, boolean defaultValue) {
-        Object value = map.get(key);
-        if (value instanceof Boolean) {
-            return (Boolean) value;
-        }
-        if (value instanceof String) {
-            return Boolean.parseBoolean((String) value);
-        }
-        return defaultValue;
+        return fieldDefs.stream()
+                .map(SysConfigFieldDefPO::getFieldKey)
+                .collect(Collectors.toSet());
     }
 }

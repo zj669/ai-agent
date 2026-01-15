@@ -2,6 +2,7 @@ package com.zj.aiagent.infrastructure.workflow.graph;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.zj.aiagent.domain.workflow.config.NodeConfig;
+import com.zj.aiagent.domain.workflow.entity.Edge;
 import com.zj.aiagent.domain.workflow.entity.Node;
 import com.zj.aiagent.domain.workflow.entity.WorkflowGraph;
 import com.zj.aiagent.domain.workflow.service.WorkflowGraphFactory;
@@ -43,13 +44,17 @@ public class WorkflowGraphFactoryImpl implements WorkflowGraphFactory {
             // 3. 转换边为邻接表
             Map<String, Set<String>> edges = buildAdjacencyList(dto.getEdges());
 
-            // 4. 构建领域对象
+            // 4. 构建边详情（包含条件表达式）
+            Map<String, List<Edge>> edgeDetails = buildEdgeDetails(dto.getEdges());
+
+            // 5. 构建领域对象
             return WorkflowGraph.builder()
                     .graphId(dto.getDagId())
                     .version(dto.getVersion())
                     .description(dto.getDescription())
                     .nodes(nodes)
                     .edges(edges)
+                    .edgeDetails(edgeDetails)
                     .build();
 
         } catch (IllegalArgumentException e) {
@@ -171,5 +176,47 @@ public class WorkflowGraphFactoryImpl implements WorkflowGraphFactory {
                 .collect(Collectors.groupingBy(
                         EdgeJsonDTO::getSource,
                         Collectors.mapping(EdgeJsonDTO::getTarget, Collectors.toSet())));
+    }
+
+    /**
+     * 构建边详情映射（包含条件表达式）
+     */
+    private Map<String, List<Edge>> buildEdgeDetails(List<EdgeJsonDTO> edgeDTOs) {
+        if (edgeDTOs == null || edgeDTOs.isEmpty()) {
+            return new HashMap<>();
+        }
+
+        return edgeDTOs.stream()
+                .filter(dto -> dto.getSource() != null && dto.getTarget() != null)
+                .map(this::convertEdge)
+                .collect(Collectors.groupingBy(Edge::getSource));
+    }
+
+    /**
+     * 转换单个边
+     */
+    private Edge convertEdge(EdgeJsonDTO dto) {
+        Edge.EdgeType edgeType = parseEdgeType(dto.getEdgeType());
+        return Edge.builder()
+                .edgeId(dto.getEdgeId())
+                .source(dto.getSource())
+                .target(dto.getTarget())
+                .condition(dto.getCondition())
+                .edgeType(edgeType)
+                .build();
+    }
+
+    /**
+     * 解析边类型
+     */
+    private Edge.EdgeType parseEdgeType(String edgeType) {
+        if (edgeType == null || edgeType.isBlank()) {
+            return Edge.EdgeType.DEPENDENCY;
+        }
+        try {
+            return Edge.EdgeType.valueOf(edgeType.toUpperCase());
+        } catch (IllegalArgumentException e) {
+            return Edge.EdgeType.DEPENDENCY;
+        }
     }
 }

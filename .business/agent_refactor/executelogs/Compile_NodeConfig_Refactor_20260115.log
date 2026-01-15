@@ -1,0 +1,82 @@
+[INFO] Scanning for projects...
+[INFO] ------------------------------------------------------------------------
+[INFO] Reactor Build Order:
+[INFO] 
+[INFO] AI Agent Platform                                                  [pom]
+[INFO] AI Agent Shared                                                    [jar]
+[INFO] AI Agent Domain                                                    [jar]
+[INFO] AI Agent Infrastructure                                            [jar]
+[INFO] 
+[INFO] --------------------------< com.zj:ai-agent >---------------------------
+[INFO] Building AI Agent Platform 1.0.0-SNAPSHOT                          [1/4]
+[INFO]   from pom.xml
+[INFO] --------------------------------[ pom ]---------------------------------
+[INFO] 
+[INFO] -----------------------< com.zj:ai-agent-shared >-----------------------
+[INFO] Building AI Agent Shared 1.0.0-SNAPSHOT                            [2/4]
+[INFO]   from ai-agent-shared\pom.xml
+[INFO] --------------------------------[ jar ]---------------------------------
+[INFO] 
+[INFO] --- resources:3.3.1:resources (default-resources) @ ai-agent-shared ---
+[INFO] Copying 0 resource from src\main\resources to target\classes
+[INFO] Copying 0 resource from src\main\resources to target\classes
+[INFO] 
+[INFO] --- compiler:3.13.0:compile (default-compile) @ ai-agent-shared ---
+[INFO] Nothing to compile - all classes are up to date.
+[INFO] 
+[INFO] -----------------------< com.zj:ai-agent-domain >-----------------------
+[INFO] Building AI Agent Domain 1.0.0-SNAPSHOT                            [3/4]
+[INFO]   from ai-agent-domain\pom.xml
+[INFO] --------------------------------[ jar ]---------------------------------
+[INFO] 
+[INFO] --- resources:3.3.1:resources (default-resources) @ ai-agent-domain ---
+[INFO] Copying 0 resource from src\main\resources to target\classes
+[INFO] Copying 0 resource from src\main\resources to target\classes
+[INFO] 
+[INFO] --- compiler:3.13.0:compile (default-compile) @ ai-agent-domain ---
+[INFO] Recompiling the module because of added or removed source files.
+[INFO] Compiling 65 source files with javac [debug parameters release 21] to target\classes
+[INFO] 由于在类路径中发现了一个或多个处理程序，因此启用了
+  批注处理。未来发行版的 javac 可能会禁用批注处理，
+  除非至少按名称指定了一个处理程序 (-processor)，
+  或指定了搜索路径 (--processor-path, --processor-module-path)，
+  或显式启用了批注处理 (-proc:only, -proc:full)。
+  可使用 -Xlint:-options 隐藏此消息。
+  可使用 -proc:none 禁用批注处理。
+[INFO] 
+[INFO] -------------------< com.zj:ai-agent-infrastructure >-------------------
+[INFO] Building AI Agent Infrastructure 1.0.0-SNAPSHOT                    [4/4]
+[INFO]   from ai-agent-infrastructure\pom.xml
+[INFO] --------------------------------[ jar ]---------------------------------
+[INFO] 
+[INFO] --- resources:3.3.1:resources (default-resources) @ ai-agent-infrastructure ---
+[INFO] Copying 0 resource from src\main\resources to target\classes
+[INFO] Copying 3 resources from src\main\resources to target\classes
+[INFO] 
+[INFO] --- compiler:3.13.0:compile (default-compile) @ ai-agent-infrastructure ---
+[INFO] Recompiling the module because of changed dependency.
+[INFO] Compiling 70 source files with javac [debug parameters release 21] to target\classes
+[INFO] 由于在类路径中发现了一个或多个处理程序，因此启用了
+  批注处理。未来发行版的 javac 可能会禁用批注处理，
+  除非至少按名称指定了一个处理程序 (-processor)，
+  或指定了搜索路径 (--processor-path, --processor-module-path)，
+  或显式启用了批注处理 (-proc:only, -proc:full)。
+  可使用 -Xlint:-options 隐藏此消息。
+  可使用 -proc:none 禁用批注处理。
+[INFO] /D:/java/ai-agent/ai-agent-infrastructure/src/main/java/com/zj/aiagent/infrastructure/redis/service/RedissonService.java: D:\java\ai-agent\ai-agent-infrastructure\src\main\java\com\zj\aiagent\infrastructure\redis\service\RedissonService.java使用或覆盖了已过时的 API。
+[INFO] /D:/java/ai-agent/ai-agent-infrastructure/src/main/java/com/zj/aiagent/infrastructure/redis/service/RedissonService.java: 有关详细信息, 请使用 -Xlint:deprecation 重新编译。
+[INFO] /D:/java/ai-agent/ai-agent-infrastructure/src/main/java/com/zj/aiagent/infrastructure/workflow/persistence/WorkflowNodeExecutionLogRepositoryImpl.java: D:\java\ai-agent\ai-agent-infrastructure\src\main\java\com\zj\aiagent\infrastructure\workflow\persistence\WorkflowNodeExecutionLogRepositoryImpl.java使用了未经检查或不安全的操作。
+[INFO] /D:/java/ai-agent/ai-agent-infrastructure/src/main/java/com/zj/aiagent/infrastructure/workflow/persistence/WorkflowNodeExecutionLogRepositoryImpl.java: 有关详细信息, 请使用 -Xlint:unchecked 重新编译。
+[INFO] ------------------------------------------------------------------------
+[INFO] Reactor Summary for AI Agent Platform 1.0.0-SNAPSHOT:
+[INFO] 
+[INFO] AI Agent Platform .................................. SUCCESS [  0.007 s]
+[INFO] AI Agent Shared .................................... SUCCESS [  0.984 s]
+[INFO] AI Agent Domain .................................... SUCCESS [  6.605 s]
+[INFO] AI Agent Infrastructure ............................ SUCCESS [  6.289 s]
+[INFO] ------------------------------------------------------------------------
+[INFO] BUILD SUCCESS
+[INFO] ------------------------------------------------------------------------
+[INFO] Total time:  14.452 s
+[INFO] Finished at: 2026-01-15T14:09:06+08:00
+[INFO] ------------------------------------------------------------------------

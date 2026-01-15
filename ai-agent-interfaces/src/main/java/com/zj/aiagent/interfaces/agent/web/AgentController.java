@@ -1,17 +1,17 @@
 package com.zj.aiagent.interfaces.agent.web;
 
 import com.zj.aiagent.application.agent.cmd.AgentCommand;
+import com.zj.aiagent.application.agent.dto.AgentDetailResult;
+import com.zj.aiagent.application.agent.dto.AgentRequest;
+import com.zj.aiagent.application.agent.dto.VersionHistoryResult;
 import com.zj.aiagent.application.agent.service.AgentApplicationService;
-import com.zj.aiagent.domain.agent.repository.AgentRepository;
 import com.zj.aiagent.domain.agent.valobj.AgentSummary;
-import com.zj.aiagent.interfaces.agent.dto.AgentDTO;
 import com.zj.aiagent.shared.context.UserContext;
 import com.zj.aiagent.shared.response.Response;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
-import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
 import java.util.List;
 
@@ -22,12 +22,12 @@ import java.util.List;
 public class AgentController {
 
     private final AgentApplicationService agentApplicationService;
-    private final AgentRepository agentRepository; // For Query
 
     // --- Commands ---
 
     @PostMapping("/create")
-    public Response<Long> createAgent(@Validated(AgentDTO.Create.class) @RequestBody AgentDTO.AgentSaveReq req) {
+    public Response<Long> createAgent(
+            @Validated(AgentRequest.Create.class) @RequestBody AgentRequest.SaveAgentRequest req) {
         Long userId = UserContext.getUserId();
         if (userId == null) {
             return Response.error(401, "Unauthorized");
@@ -42,8 +42,9 @@ public class AgentController {
         return Response.success(agentApplicationService.createAgent(cmd));
     }
 
-    @PutMapping("/update")
-    public Response<Void> updateAgent(@Validated(AgentDTO.Update.class) @RequestBody AgentDTO.AgentSaveReq req) {
+    @PostMapping("/update")
+    public Response<Void> updateAgent(
+            @Validated(AgentRequest.Update.class) @RequestBody AgentRequest.SaveAgentRequest req) {
         Long userId = UserContext.getUserId();
         if (userId == null) {
             return Response.error(401, "Unauthorized");
@@ -63,7 +64,7 @@ public class AgentController {
     }
 
     @PostMapping("/publish")
-    public Response<Void> publishAgent(@Validated @RequestBody AgentDTO.PublishReq req) {
+    public Response<Void> publishAgent(@Validated @RequestBody AgentRequest.PublishAgentRequest req) {
         Long userId = UserContext.getUserId();
         if (userId == null) {
             return Response.error(401, "Unauthorized");
@@ -77,13 +78,13 @@ public class AgentController {
     }
 
     @PostMapping("/rollback")
-    public Response<Void> rollbackAgent(@Validated @RequestBody AgentDTO.RollbackReq req) {
+    public Response<Void> rollbackAgent(@Validated @RequestBody AgentRequest.RollbackAgentRequest req) {
         Long userId = UserContext.getUserId();
         if (userId == null) {
             return Response.error(401, "Unauthorized");
         }
         AgentCommand.RollbackAgentCmd cmd = new AgentCommand.RollbackAgentCmd();
-        cmd.setId(req.getId()); // Fix: was using req.getId() but RollbackReq has id? Yes.
+        cmd.setId(req.getId());
         cmd.setUserId(userId);
         cmd.setTargetVersion(req.getTargetVersion());
 
@@ -91,8 +92,29 @@ public class AgentController {
         return Response.success();
     }
 
-    @DeleteMapping("/{id}")
-    public Response<Void> deleteAgent(@PathVariable Long id) {
+    /**
+     * 删除指定版本
+     */
+    @DeleteMapping("/{id}/versions/{version}")
+    public Response<Void> deleteAgentVersion(@PathVariable Long id, @PathVariable Integer version) {
+        Long userId = UserContext.getUserId();
+        if (userId == null) {
+            return Response.error(401, "Unauthorized");
+        }
+        AgentCommand.DeleteVersionCmd cmd = new AgentCommand.DeleteVersionCmd();
+        cmd.setAgentId(id);
+        cmd.setVersion(version);
+        cmd.setUserId(userId);
+
+        agentApplicationService.deleteAgentVersion(cmd);
+        return Response.success();
+    }
+
+    /**
+     * 强制删除智能体（包括所有版本）
+     */
+    @DeleteMapping("/{id}/force")
+    public Response<Void> forceDeleteAgent(@PathVariable Long id) {
         Long userId = UserContext.getUserId();
         if (userId == null) {
             return Response.error(401, "Unauthorized");
@@ -101,16 +123,8 @@ public class AgentController {
         cmd.setId(id);
         cmd.setUserId(userId);
 
-        agentApplicationService.deleteAgent(cmd);
+        agentApplicationService.forceDeleteAgent(cmd);
         return Response.success();
-    }
-
-    @Deprecated
-    @PostMapping("/delete/{id}")
-    public Response<Void> deleteAgentDeprecated(@PathVariable Long id,
-            jakarta.servlet.http.HttpServletResponse response) {
-        response.setHeader("X-Deprecated-API", "true");
-        return deleteAgent(id);
     }
 
     // --- Queries ---
@@ -121,18 +135,27 @@ public class AgentController {
         if (userId == null) {
             return Response.error(401, "Unauthorized");
         }
-        return Response.success(agentRepository.findSummaryByUserId(userId));
+        return Response.success(agentApplicationService.listAgents(userId));
     }
 
     @GetMapping("/{id}")
-    public Response<com.zj.aiagent.domain.agent.entity.Agent> getAgent(@PathVariable Long id) {
-        // Direct repo call for query, or via Service if specific DTO needed
-        return Response.success(agentRepository.findById(id).orElse(null));
+    public Response<AgentDetailResult> getAgent(@PathVariable Long id) {
+        Long userId = UserContext.getUserId();
+        if (userId == null) {
+            return Response.error(401, "Unauthorized");
+        }
+        return Response.success(agentApplicationService.getAgentDetail(id, userId));
     }
 
-    // --- Debug ---
-    // Note: Debug functionality moved to WorkflowController.startExecution with
-    // mode=DEBUG
-    // This endpoint is removed. Use POST /api/workflow/execution/start with
-    // mode="DEBUG" instead.
+    /**
+     * 获取智能体版本历史
+     */
+    @GetMapping("/{id}/versions")
+    public Response<VersionHistoryResult> getVersionHistory(@PathVariable Long id) {
+        Long userId = UserContext.getUserId();
+        if (userId == null) {
+            return Response.error(401, "Unauthorized");
+        }
+        return Response.success(agentApplicationService.getVersionHistory(id, userId));
+    }
 }

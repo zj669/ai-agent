@@ -1,11 +1,15 @@
-package com.zj.aiagent.interfaces.agent.dto;
+package com.zj.aiagent.application.agent.dto;
 
 import jakarta.validation.constraints.NotEmpty;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Null;
 import lombok.Data;
 
-public class AgentDTO {
+/**
+ * Agent 模块请求对象
+ * 用于接收前端请求参数，包含校验注解
+ */
+public class AgentRequest {
 
     // Validation Groups
     public interface Create {
@@ -14,11 +18,11 @@ public class AgentDTO {
     public interface Update {
     }
 
-    public interface Publish {
-    }
-
+    /**
+     * 创建/更新智能体请求
+     */
     @Data
-    public static class AgentSaveReq {
+    public static class SaveAgentRequest {
         @Null(groups = Create.class, message = "ID must be null for create")
         @NotNull(groups = Update.class, message = "ID cannot be null for update")
         private Long id;
@@ -28,33 +32,42 @@ public class AgentDTO {
 
         private String description;
         private String icon;
-
-        // Graph JSON optional on create, usually required on update
         private String graphJson;
 
         @NotNull(groups = Update.class, message = "Version required for optimistic locking")
         private Integer version;
     }
 
+    /**
+     * 发布智能体请求
+     */
     @Data
-    public static class PublishReq {
+    public static class PublishAgentRequest {
         @NotNull(message = "Agent ID required")
         private Long id;
     }
 
+    /**
+     * 回滚智能体请求
+     */
     @Data
-    public static class RollbackReq {
+    public static class RollbackAgentRequest {
         @NotNull(message = "Agent ID required")
         private Long id;
+
         @NotNull(message = "Target version required")
         private Integer targetVersion;
     }
 
+    /**
+     * 调试智能体请求
+     */
     @Data
-    public static class DebugReq {
-        @NotNull
+    public static class DebugAgentRequest {
+        @NotNull(message = "Agent ID required")
         private Long agentId;
+
         private String inputMessage;
-        private boolean debugMode = true; // Default to debug draft
+        private boolean debugMode = true;
     }
 }

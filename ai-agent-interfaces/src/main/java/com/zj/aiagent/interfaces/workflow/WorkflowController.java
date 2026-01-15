@@ -134,8 +134,10 @@ public class WorkflowController {
      * 获取执行详情 (Debug)
      */
     @GetMapping("/{executionId}")
-    public ResponseEntity<Execution> getExecution(@PathVariable String executionId) {
+    public ResponseEntity<com.zj.aiagent.interfaces.workflow.dto.ExecutionDTO> getExecution(
+            @PathVariable String executionId) {
         return executionRepository.findById(executionId)
+                .map(com.zj.aiagent.interfaces.workflow.dto.ExecutionDTO::from)
                 .map(ResponseEntity::ok)
                 .orElse(ResponseEntity.notFound().build());
     }
@@ -157,9 +159,13 @@ public class WorkflowController {
      * 获取会话执行历史
      */
     @GetMapping("/history/{conversationId}")
-    public ResponseEntity<java.util.List<Execution>> getHistory(@PathVariable String conversationId) {
+    public ResponseEntity<java.util.List<com.zj.aiagent.interfaces.workflow.dto.ExecutionDTO>> getHistory(
+            @PathVariable String conversationId) {
         java.util.List<Execution> history = executionRepository.findByConversationId(conversationId);
-        return ResponseEntity.ok(history);
+        java.util.List<com.zj.aiagent.interfaces.workflow.dto.ExecutionDTO> dtos = history.stream()
+                .map(com.zj.aiagent.interfaces.workflow.dto.ExecutionDTO::from)
+                .toList();
+        return ResponseEntity.ok(dtos);
     }
 
     /**

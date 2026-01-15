@@ -98,6 +98,21 @@ public class AgentRepositoryImpl implements AgentRepository {
         return pos.stream().map(this::toVersionDomain).collect(Collectors.toList());
     }
 
+    @Override
+    public void deleteVersion(Long agentId, Integer version) {
+        LambdaQueryWrapper<AgentVersionPO> wrapper = new LambdaQueryWrapper<>();
+        wrapper.eq(AgentVersionPO::getAgentId, agentId)
+                .eq(AgentVersionPO::getVersion, version);
+        agentVersionMapper.delete(wrapper);
+    }
+
+    @Override
+    public void deleteAllVersions(Long agentId) {
+        LambdaQueryWrapper<AgentVersionPO> wrapper = new LambdaQueryWrapper<>();
+        wrapper.eq(AgentVersionPO::getAgentId, agentId);
+        agentVersionMapper.delete(wrapper);
+    }
+
     // --- Converters ---
 
     private AgentPO toPO(Agent domain) {

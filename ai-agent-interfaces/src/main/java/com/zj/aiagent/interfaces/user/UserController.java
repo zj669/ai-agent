@@ -5,6 +5,7 @@ import com.zj.aiagent.application.user.dto.UserDetailDTO;
 import com.zj.aiagent.application.user.dto.UserLoginResponse;
 import com.zj.aiagent.application.user.dto.UserRequests;
 import com.zj.aiagent.domain.auth.service.ITokenService;
+import com.zj.aiagent.shared.context.UserContext;
 import com.zj.aiagent.shared.response.Response;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -49,8 +50,8 @@ public class UserController {
 
     @GetMapping("/info")
     @Operation(summary = "获取当前用户信息")
-    public Response<UserDetailDTO> getUserInfo(@RequestHeader(value = "Authorization", required = false) String token) {
-        Long userId = resolveUserId(token);
+    public Response<UserDetailDTO> getUserInfo() {
+        Long userId = UserContext.getUserId();
         if (userId == null) {
             return Response.error(401, "Unauthorized");
         }
@@ -58,12 +59,10 @@ public class UserController {
         return Response.success(info);
     }
 
-    @PatchMapping("/profile")
-    @Operation(summary = "修改用户信息 (RESTful)")
-    public Response<UserDetailDTO> modifyUserInfo(
-            @RequestHeader(value = "Authorization", required = false) String token,
-            @RequestBody UserRequests.ModifyUserRequest request) {
-        Long userId = resolveUserId(token);
+    @PostMapping("/profile")
+    @Operation(summary = "修改用户信息")
+    public Response<UserDetailDTO> modifyUserInfo(@RequestBody UserRequests.ModifyUserRequest request) {
+        Long userId = UserContext.getUserId();
         if (userId == null) {
             return Response.error(401, "Unauthorized");
         }
@@ -71,32 +70,11 @@ public class UserController {
         return Response.success(info);
     }
 
-    @Deprecated
-    @PostMapping("/modify")
-    @Operation(summary = "修改用户信息 (已废弃，请使用 PATCH /profile)")
-    public Response<UserDetailDTO> modifyUserInfoDeprecated(
-            @RequestHeader(value = "Authorization", required = false) String token,
-            @RequestBody UserRequests.ModifyUserRequest request,
-            jakarta.servlet.http.HttpServletResponse response) {
-        response.setHeader("X-Deprecated-API", "true");
-        return modifyUserInfo(token, request);
-    }
-
     @PostMapping("/logout")
     @Operation(summary = "用户登出")
     public Response<Void> logout(@RequestHeader(value = "Authorization", required = false) String token) {
         userApplicationService.logout(token);
         return Response.success();
-    }
-
-    private Long resolveUserId(String token) {
-        if (token != null && token.startsWith("Bearer ")) {
-            token = token.substring(7);
-        }
-        if (token == null || !tokenService.validateToken(token)) {
-            return null;
-        }
-        return tokenService.getUserIdFromToken(token);
     }
 
     /**

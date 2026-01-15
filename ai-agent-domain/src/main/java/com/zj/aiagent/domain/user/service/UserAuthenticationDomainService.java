@@ -16,6 +16,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
 import java.security.SecureRandom;
+import java.util.concurrent.CompletableFuture;
 
 /**
  * 用户认证领域服务
@@ -57,7 +58,9 @@ public class UserAuthenticationDomainService {
 
         String code = generateSecureCode();
         verificationCodeRepository.save(email, code, VERIFICATION_CODE_TTL_SECONDS);
-
+        CompletableFuture.runAsync(() -> {
+            userRepository.saveEmailLog(email, code);
+        });
         boolean sent = emailService.sendVerificationCode(email, code);
         if (!sent) {
             log.error("Failed to send verification email to: {}", emailStr);
