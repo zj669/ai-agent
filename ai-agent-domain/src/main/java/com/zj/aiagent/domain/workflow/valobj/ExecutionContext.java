@@ -10,13 +10,19 @@ import org.springframework.expression.ExpressionParser;
 import org.springframework.expression.spel.standard.SpelExpressionParser;
 import org.springframework.expression.spel.support.StandardEvaluationContext;
 
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
- * 执行上下文值对象
- * 存储节点输入输出和提供 SpEL 解析能力
+ * 执行上下文值对象（智能黑板）
+ * 承载工作流执行的全部上下文信息，包括：
+ * - 基础数据：inputs, nodeOutputs, sharedState
+ * - 长期记忆 (LTM)：启动时从向量库检索的系统级知识
+ * - 短期记忆 (STM)：本次会话之前的对话历史
+ * - 环境感知 (Awareness)：动态更新的执行日志
  */
 @Data
 @Builder
@@ -25,6 +31,8 @@ import java.util.concurrent.ConcurrentHashMap;
 public class ExecutionContext {
 
     private static final ExpressionParser PARSER = new SpelExpressionParser();
+
+    // ========== 原有字段 ==========
 
     /**
      * 全局输入参数
@@ -43,6 +51,36 @@ public class ExecutionContext {
      */
     @Builder.Default
     private Map<String, Object> sharedState = new ConcurrentHashMap<>();
+
+    // ========== 长期记忆 (LTM) ==========
+
+    /**
+     * 长期记忆列表
+     * 启动时根据用户意图从向量库检索，注入 Context，所有节点共享
+     * 示例：用户偏好、过往类似任务经验等
+     */
+    @Builder.Default
+    private List<String> longTermMemories = new ArrayList<>();
+
+    // ========== 短期记忆 (STM) ==========
+
+    /**
+     * 会话历史消息
+     * 启动时从 MySQL 加载，LLM 节点按需拼接
+     * 格式：List of { role: USER/ASSISTANT, content: String }
+     */
+    @Builder.Default
+    private List<Map<String, String>> chatHistory = new ArrayList<>();
+
+    // ========== 环境感知 (Awareness) ==========
+
+    /**
+     * 执行日志
+     * 动态更新的执行流水账，记录 "谁在什么时候做了什么"
+     * 让 LLM 节点知道当前执行进度
+     */
+    @Builder.Default
+    private StringBuilder executionLog = new StringBuilder();
 
     // --- 核心方法 ---
 
@@ -135,6 +173,37 @@ public class ExecutionContext {
                 .inputs(new HashMap<>(this.inputs))
                 .nodeOutputs(new HashMap<>(this.nodeOutputs))
                 .sharedState(new HashMap<>(this.sharedState))
+                .longTermMemories(new ArrayList<>(this.longTermMemories))
+                .chatHistory(new ArrayList<>(this.chatHistory))
+                .executionLog(new StringBuilder(this.executionLog.toString()))
                 .build();
+    }
+
+    // ========== 环境感知方法 ==========
+
+    /**
+     * 追加执行日志
+     * 用于记录节点执行摘要，让 LLM 节点知道当前进度
+     * 
+     * @param nodeId   节点ID
+     * @param nodeName 节点名称
+     * @param summary  执行摘要（如："完成意图识别，结果为 '查询天气'"）
+     */
+    public void appendLog(String nodeId, String nodeName, String summary) {
+        this.executionLog.append(String.format("[%s-%s]: %s%n", nodeId, nodeName, summary));
+    }
+
+    /**
+     * 获取执行日志内容
+     */
+    public String getExecutionLogContent() {
+        return this.executionLog.toString();
+    }
+
+    /**
+     * 清空执行日志
+     */
+    public void clearExecutionLog() {
+        this.executionLog.setLength(0);
     }
 }

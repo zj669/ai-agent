@@ -3,6 +3,7 @@ package com.zj.aiagent.infrastructure.workflow.executor;
 import com.zj.aiagent.domain.workflow.config.ConditionNodeConfig;
 import com.zj.aiagent.domain.workflow.entity.Node;
 import com.zj.aiagent.domain.workflow.port.NodeExecutorStrategy;
+import com.zj.aiagent.domain.workflow.port.StreamPublisher;
 import com.zj.aiagent.domain.workflow.valobj.Branch;
 import com.zj.aiagent.domain.workflow.valobj.NodeExecutionResult;
 import com.zj.aiagent.domain.workflow.valobj.NodeType;
@@ -43,7 +44,11 @@ public class ConditionNodeExecutorStrategy implements NodeExecutorStrategy {
     }
 
     @Override
-    public CompletableFuture<NodeExecutionResult> executeAsync(Node node, Map<String, Object> resolvedInputs) {
+    public CompletableFuture<NodeExecutionResult> executeAsync(
+            Node node,
+            Map<String, Object> resolvedInputs,
+            StreamPublisher streamPublisher) {
+
         return CompletableFuture.supplyAsync(() -> {
             try {
                 ConditionNodeConfig config = (ConditionNodeConfig) node.getConfig();
@@ -72,6 +77,7 @@ public class ConditionNodeExecutorStrategy implements NodeExecutorStrategy {
 
             } catch (Exception e) {
                 log.error("[Condition Node {}] Execution failed: {}", node.getNodeId(), e.getMessage(), e);
+                streamPublisher.publishError(e.getMessage());
                 return NodeExecutionResult.failed(e.getMessage());
             }
         }, executor);

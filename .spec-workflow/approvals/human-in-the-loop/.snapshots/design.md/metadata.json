@@ -1,0 +1,14 @@
+{
+  "filePath": ".spec-workflow/specs/human-in-the-loop/design.md",
+  "currentVersion": 1,
+  "snapshots": [
+    {
+      "version": 1,
+      "filename": "snapshot-001.json",
+      "timestamp": "2026-01-12T16:00:54.464Z",
+      "trigger": "initial",
+      "approvalId": "approval_1768233654416_1wb6j1d4j",
+      "approvalTitle": "Human in the Loop Design"
+    }
+  ]
+}

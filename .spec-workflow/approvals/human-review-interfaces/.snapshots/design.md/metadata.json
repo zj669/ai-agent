@@ -1,0 +1,14 @@
+{
+  "filePath": ".spec-workflow/specs/human-review-interfaces/design.md",
+  "currentVersion": 1,
+  "snapshots": [
+    {
+      "version": 1,
+      "filename": "snapshot-001.json",
+      "timestamp": "2026-01-12T13:33:20.111Z",
+      "trigger": "initial",
+      "approvalId": "approval_1768224800063_utm5nqpzz",
+      "approvalTitle": "Design for Human Review Interfaces"
+    }
+  ]
+}

@@ -30,11 +30,6 @@ public enum NodeType {
     CONDITION,
 
     /**
-     * 并行节点
-     */
-    PARALLEL,
-
-    /**
      * MCP 工具节点
      */
     TOOL

@@ -1,0 +1,14 @@
+{
+  "filePath": ".spec-workflow/specs/human-review-interfaces/requirements.md",
+  "currentVersion": 1,
+  "snapshots": [
+    {
+      "version": 1,
+      "filename": "snapshot-001.json",
+      "timestamp": "2026-01-12T13:31:38.220Z",
+      "trigger": "initial",
+      "approvalId": "approval_1768224698155_c9luwpcjc",
+      "approvalTitle": "Requirements for Human Review Interfaces"
+    }
+  ]
+}

@@ -1,0 +1,55 @@
+﻿[INFO] Scanning for projects...
+[INFO] 
+[INFO] -----------------------< com.zj:ai-agent-domain >-----------------------
+[INFO] Building AI Agent Domain 1.0.0-SNAPSHOT
+[INFO]   from pom.xml
+[INFO] --------------------------------[ jar ]---------------------------------
+[INFO] 
+[INFO] --- clean:3.4.1:clean (default-clean) @ ai-agent-domain ---
+[INFO] Deleting D:\java\ai-agent\ai-agent-domain\target
+[INFO] 
+[INFO] --- resources:3.3.1:resources (default-resources) @ ai-agent-domain ---
+[INFO] Copying 0 resource from src\main\resources to target\classes
+[INFO] Copying 0 resource from src\main\resources to target\classes
+[INFO] 
+[INFO] --- compiler:3.13.0:compile (default-compile) @ ai-agent-domain ---
+[INFO] Recompiling the module because of changed source code.
+[INFO] Compiling 59 source files with javac [debug parameters release 21] to target\classes
+[INFO] 由于在类路径中发现了一个或多个处理程序，因此启用了
+  批注处理。未来发行版的 javac 可能会禁用批注处理，
+  除非至少按名称指定了一个处理程序 (-processor)，
+  或指定了搜索路径 (--processor-path, --processor-module-path)，
+  或显式启用了批注处理 (-proc:only, -proc:full)。
+  可使用 -Xlint:-options 隐藏此消息。
+  可使用 -proc:none 禁用批注处理。
+[INFO] -------------------------------------------------------------
+[ERROR] COMPILATION ERROR : 
+[INFO] -------------------------------------------------------------
+[ERROR] /D:/java/ai-agent/ai-agent-domain/src/main/java/com/zj/aiagent/domain/chat/port/ConversationRepository.java:[5,38] 找不到符号
+  符号:   类 PageResult
+  位置: 程序包 com.zj.aiagent.shared.response
+[ERROR] /D:/java/ai-agent/ai-agent-domain/src/main/java/com/zj/aiagent/domain/chat/port/ConversationRepository.java:[22,5] 找不到符号
+  符号:   类 PageResult
+  位置: 接口 com.zj.aiagent.domain.chat.port.ConversationRepository
+[INFO] 2 errors 
+[INFO] -------------------------------------------------------------
+[INFO] ------------------------------------------------------------------------
+[INFO] BUILD FAILURE
+[INFO] ------------------------------------------------------------------------
+[INFO] Total time:  6.556 s
+[INFO] Finished at: 2026-01-13T12:36:58+08:00
+[INFO] ------------------------------------------------------------------------
+[ERROR] Failed to execute goal org.apache.maven.plugins:maven-compiler-plugin:3.13.0:compile (default-compile) on project ai-agent-domain: Compilation failure: Compilation failure: 
+[ERROR] /D:/java/ai-agent/ai-agent-domain/src/main/java/com/zj/aiagent/domain/chat/port/ConversationRepository.java:[5,38] 找不到符号
+[ERROR]   符号:   类 PageResult
+[ERROR]   位置: 程序包 com.zj.aiagent.shared.response
+[ERROR] /D:/java/ai-agent/ai-agent-domain/src/main/java/com/zj/aiagent/domain/chat/port/ConversationRepository.java:[22,5] 找不到符号
+[ERROR]   符号:   类 PageResult
+[ERROR]   位置: 接口 com.zj.aiagent.domain.chat.port.ConversationRepository
+[ERROR] -> [Help 1]
+[ERROR] 
+[ERROR] To see the full stack trace of the errors, re-run Maven with the -e switch.
+[ERROR] Re-run Maven using the -X switch to enable full debug logging.
+[ERROR] 
+[ERROR] For more information about the errors and possible solutions, please read the following articles:
+[ERROR] [Help 1] http://cwiki.apache.org/confluence/display/MAVEN/MojoFailureException

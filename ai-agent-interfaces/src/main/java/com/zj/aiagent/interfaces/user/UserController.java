@@ -58,8 +58,8 @@ public class UserController {
         return Response.success(info);
     }
 
-    @PostMapping("/modify")
-    @Operation(summary = "修改用户信息")
+    @PatchMapping("/profile")
+    @Operation(summary = "修改用户信息 (RESTful)")
     public Response<UserDetailDTO> modifyUserInfo(
             @RequestHeader(value = "Authorization", required = false) String token,
             @RequestBody UserRequests.ModifyUserRequest request) {
@@ -69,6 +69,17 @@ public class UserController {
         }
         UserDetailDTO info = userApplicationService.modifyInfo(userId, request);
         return Response.success(info);
+    }
+
+    @Deprecated
+    @PostMapping("/modify")
+    @Operation(summary = "修改用户信息 (已废弃，请使用 PATCH /profile)")
+    public Response<UserDetailDTO> modifyUserInfoDeprecated(
+            @RequestHeader(value = "Authorization", required = false) String token,
+            @RequestBody UserRequests.ModifyUserRequest request,
+            jakarta.servlet.http.HttpServletResponse response) {
+        response.setHeader("X-Deprecated-API", "true");
+        return modifyUserInfo(token, request);
     }
 
     @PostMapping("/logout")

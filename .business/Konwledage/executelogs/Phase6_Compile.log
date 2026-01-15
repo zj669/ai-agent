@@ -1,0 +1,40 @@
+[ERROR] COMPILATION ERROR : 
+[ERROR] /D:/java/ai-agent/ai-agent-application/src/main/java/com/zj/aiagent/application/knowledge/AsyncDocumentProcessor.java:[108,60] 找不到符号
+  符号:   方法 getContent()
+  位置: 类型为org.springframework.ai.document.Document的变量 chunk
+[ERROR] /D:/java/ai-agent/ai-agent-application/src/main/java/com/zj/aiagent/application/knowledge/AsyncDocumentProcessor.java:[111,54] 找不到符号
+  符号:   方法 getContent()
+  位置: 类型为org.springframework.ai.document.Document的变量 enrichedChunk
+[ERROR] /D:/java/ai-agent/ai-agent-application/src/main/java/com/zj/aiagent/application/knowledge/KnowledgeRetrievalServiceImpl.java:[61,26] 方法引用无效
+  找不到符号
+    符号:   方法 getContent()
+    位置: 类 org.springframework.ai.document.Document
+[ERROR] /D:/java/ai-agent/ai-agent-application/src/main/java/com/zj/aiagent/application/knowledge/KnowledgeRetrievalServiceImpl.java:[101,26] 方法引用无效
+  找不到符号
+    符号:   方法 getContent()
+    位置: 类 org.springframework.ai.document.Document
+[ERROR] Failed to execute goal org.apache.maven.plugins:maven-compiler-plugin:3.13.0:compile (default-compile) on project ai-agent-application: Compilation failure: Compilation failure: 
+[ERROR] /D:/java/ai-agent/ai-agent-application/src/main/java/com/zj/aiagent/application/knowledge/AsyncDocumentProcessor.java:[108,60] 找不到符号
+[ERROR]   符号:   方法 getContent()
+[ERROR]   位置: 类型为org.springframework.ai.document.Document的变量 chunk
+[ERROR] /D:/java/ai-agent/ai-agent-application/src/main/java/com/zj/aiagent/application/knowledge/AsyncDocumentProcessor.java:[111,54] 找不到符号
+[ERROR]   符号:   方法 getContent()
+[ERROR]   位置: 类型为org.springframework.ai.document.Document的变量 enrichedChunk
+[ERROR] /D:/java/ai-agent/ai-agent-application/src/main/java/com/zj/aiagent/application/knowledge/KnowledgeRetrievalServiceImpl.java:[61,26] 方法引用无效
+[ERROR]   找不到符号
+[ERROR]     符号:   方法 getContent()
+[ERROR]     位置: 类 org.springframework.ai.document.Document
+[ERROR] /D:/java/ai-agent/ai-agent-application/src/main/java/com/zj/aiagent/application/knowledge/KnowledgeRetrievalServiceImpl.java:[101,26] 方法引用无效
+[ERROR]   找不到符号
+[ERROR]     符号:   方法 getContent()
+[ERROR]     位置: 类 org.springframework.ai.document.Document
+[ERROR] -> [Help 1]
+[ERROR] 
+[ERROR] To see the full stack trace of the errors, re-run Maven with the -e switch.
+[ERROR] Re-run Maven using the -X switch to enable full debug logging.
+[ERROR] 
+[ERROR] For more information about the errors and possible solutions, please read the following articles:
+[ERROR] [Help 1] http://cwiki.apache.org/confluence/display/MAVEN/MojoFailureException
+[ERROR] 
+[ERROR] After correcting the problems, you can resume the build with the command
+[ERROR]   mvn <args> -rf :ai-agent-application

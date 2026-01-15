@@ -1,0 +1,16 @@
+{
+  "id": "snapshot_1768224698220_28xjouapa",
+  "approvalId": "approval_1768224698155_c9luwpcjc",
+  "approvalTitle": "Requirements for Human Review Interfaces",
+  "version": 1,
+  "timestamp": "2026-01-12T13:31:38.220Z",
+  "trigger": "initial",
+  "status": "pending",
+  "content": "# Human Review Interfaces\r\n\r\n## 1. Background\r\nWhen a workflow execution pauses at a \"Human Review\" node, an operator needs to intervene. Currently, there is no API to inspect the current execution context (variables, outputs of previous nodes) or to modify them before resuming. The operator also needs a way to explicitly signal the workflow to resume.\r\n\r\n## 2. Requirements\r\n\r\n### 2.1 Query Execution Context\r\n- **Goal**: Allow retrieval of the current state of variables for a paused execution.\r\n- **Input**: `executionId`.\r\n- **Output**: JSON representation of `ExecutionContext` (inputs, sharedState, nodeOutputs).\r\n- **Constraints**: Should be available when execution is in `PAUSED` or `RUNNING` state (though mostly useful when PAUSED).\r\n\r\n### 2.2 Modify Execution Context\r\n- **Goal**: Allow updating specific variables in the execution context while the workflow is paused.\r\n- **Input**: `executionId`, map of variables to update (e.g., specific keys in `sharedState` or `inputs`).\r\n- **Constraint**: Only allowed when execution is in `PAUSED` state.\r\n- **Safety**: Should log changes for audit purposes.\r\n\r\n### 2.3 Resume Execution\r\n- **Goal**: signal the workflow to continue execution from the paused node.\r\n- **Input**: `executionId`, optional `nodeId` (to confirm which node is resuming), optional `additionalInputs` (feedback from human review).\r\n- **Constraint**: Only allowed when execution is in `PAUSED` state.\r\n\r\n## 3. API Surface (Draft)\r\n\r\n- `GET /api/workflow/execution/{executionId}/context`\r\n- `PUT /api/workflow/execution/{executionId}/context`\r\n- `POST /api/workflow/execution/{executionId}/resume`\r\n",
+  "fileStats": {
+    "size": 1628,
+    "lines": 30,
+    "lastModified": "2026-01-12T13:31:36.220Z"
+  },
+  "comments": []
+}

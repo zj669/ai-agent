@@ -33,22 +33,11 @@ OPENAI_BASE_URL: https://globalai.vip
 OPENAI_API_KEY: sk-igZGYZBslPs4UxqU1r8BuprgCFzD388sk36Mwnp95jxsfgKp
 
 # Embedding配置
-EMBEDDING_BASE_URL: https://dashscope.aliyuncs.com/compatible-mode
+EMBEDDING_BASE_URL: https://dashscope.aliyuncs.com/compatible-mode/v1
 EMBEDDING_ENDPOINT: https://dashscope.aliyuncs.com/compatible-mode/v1/embeddings
 EMBEDDING_MODEL: text-embedding-v4
 EMBEDDING_NUM_CTX: 512
 
-# Agent配置
-AGENT_AUTO_CONFIG_ENABLED: true
-AGENT_CLIENT_IDS: 6001,3101,3102,3103,3104
-
-# 降级模型配置
-FALLBACK_ENABLED: true
-FALLBACK_BASE_URL: https://globalai.vip
-FALLBACK_API_KEY: sk-igZGYZBslPs4UxqU1r8BuprgCFzD388sk36Mwnp95jxsfgKp
-FALLBACK_MODEL: gpt-3.5-turbo
-FALLBACK_TEMPERATURE: 0.7
-FALLBACK_MAX_TOKENS: 2000
 
 # 邮件配置
 MAIL_HOST: smtp.qq.com
@@ -73,7 +62,20 @@ REDIS_KEEP_ALIVE: true
 AUTH_DEBUG_ENABLED: true
 AUTH_DEBUG_HEADER_NAME: debug-user
 
-auth:
-  debug:
-    enabled: ${AUTH_DEBUG_ENABLED:false}
-    header-name: ${AUTH_DEBUG_HEADER_NAME:debug-user}
+# MinIO 对象存储配置 (本地)
+MINIO_ENDPOINT: http://localhost:9000
+MINIO_ACCESS_KEY: minioadmin
+MINIO_SECRET_KEY: minioadmin
+MINIO_BUCKET_NAME: knowledge-files
+
+# 异步任务线程池配置 (本地)
+ASYNC_TASK_CORE_SIZE: 5
+ASYNC_TASK_MAX_SIZE: 10
+ASYNC_TASK_QUEUE_CAPACITY: 100
+
+# Milvus 向量数据库配置 (本地)
+MILVUS_ENABLED: true
+MILVUS_HOST: localhost
+MILVUS_PORT: 19530
+MILVUS_USERNAME: 
+MILVUS_PASSWORD:

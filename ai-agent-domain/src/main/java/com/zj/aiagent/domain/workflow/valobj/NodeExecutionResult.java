@@ -38,9 +38,9 @@ public class NodeExecutionResult {
     private String errorMessage;
 
     /**
-     * 流式内容（用于 LLM 流式输出）
+     * 暂停阶段
      */
-    private String streamContent;
+    private TriggerPhase triggerPhase;
 
     // --- 工厂方法 ---
 
@@ -66,9 +66,15 @@ public class NodeExecutionResult {
                 .build();
     }
 
-    public static NodeExecutionResult paused() {
+    public static NodeExecutionResult paused(TriggerPhase phase) {
+        return paused(phase, null);
+    }
+
+    public static NodeExecutionResult paused(TriggerPhase phase, Map<String, Object> outputs) {
         return NodeExecutionResult.builder()
-                .status(ExecutionStatus.PAUSED)
+                .status(ExecutionStatus.PAUSED_FOR_REVIEW)
+                .triggerPhase(phase)
+                .outputs(outputs)
                 .build();
     }
 
@@ -77,7 +83,7 @@ public class NodeExecutionResult {
     }
 
     public boolean isPaused() {
-        return status == ExecutionStatus.PAUSED;
+        return status == ExecutionStatus.PAUSED || status == ExecutionStatus.PAUSED_FOR_REVIEW;
     }
 
     public boolean isRouting() {

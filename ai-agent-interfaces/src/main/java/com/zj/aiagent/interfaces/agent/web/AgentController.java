@@ -5,7 +5,8 @@ import com.zj.aiagent.application.agent.service.AgentApplicationService;
 import com.zj.aiagent.domain.agent.repository.AgentRepository;
 import com.zj.aiagent.domain.agent.valobj.AgentSummary;
 import com.zj.aiagent.interfaces.agent.dto.AgentDTO;
-import com.zj.aiagent.shared.response.Response; // Assuming shared response wrapper
+import com.zj.aiagent.shared.context.UserContext;
+import com.zj.aiagent.shared.response.Response;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.validation.annotation.Validated;
@@ -27,9 +28,10 @@ public class AgentController {
 
     @PostMapping("/create")
     public Response<Long> createAgent(@Validated(AgentDTO.Create.class) @RequestBody AgentDTO.AgentSaveReq req) {
-        // Assume userId from context/interceptor. For now hardcoded or passed (TODO:
-        // Integrate Auth)
-        Long userId = 1L; // Placeholder
+        Long userId = UserContext.getUserId();
+        if (userId == null) {
+            return Response.error(401, "Unauthorized");
+        }
 
         AgentCommand.CreateAgentCmd cmd = new AgentCommand.CreateAgentCmd();
         cmd.setUserId(userId);
@@ -42,7 +44,10 @@ public class AgentController {
 
     @PutMapping("/update")
     public Response<Void> updateAgent(@Validated(AgentDTO.Update.class) @RequestBody AgentDTO.AgentSaveReq req) {
-        Long userId = 1L; // Placeholder
+        Long userId = UserContext.getUserId();
+        if (userId == null) {
+            return Response.error(401, "Unauthorized");
+        }
 
         AgentCommand.UpdateAgentCmd cmd = new AgentCommand.UpdateAgentCmd();
         cmd.setId(req.getId());
@@ -59,7 +64,10 @@ public class AgentController {
 
     @PostMapping("/publish")
     public Response<Void> publishAgent(@Validated @RequestBody AgentDTO.PublishReq req) {
-        Long userId = 1L;
+        Long userId = UserContext.getUserId();
+        if (userId == null) {
+            return Response.error(401, "Unauthorized");
+        }
         AgentCommand.PublishAgentCmd cmd = new AgentCommand.PublishAgentCmd();
         cmd.setId(req.getId());
         cmd.setUserId(userId);
@@ -70,7 +78,10 @@ public class AgentController {
 
     @PostMapping("/rollback")
     public Response<Void> rollbackAgent(@Validated @RequestBody AgentDTO.RollbackReq req) {
-        Long userId = 1L;
+        Long userId = UserContext.getUserId();
+        if (userId == null) {
+            return Response.error(401, "Unauthorized");
+        }
         AgentCommand.RollbackAgentCmd cmd = new AgentCommand.RollbackAgentCmd();
         cmd.setId(req.getId()); // Fix: was using req.getId() but RollbackReq has id? Yes.
         cmd.setUserId(userId);
@@ -80,9 +91,12 @@ public class AgentController {
         return Response.success();
     }
 
-    @PostMapping("/delete/{id}")
+    @DeleteMapping("/{id}")
     public Response<Void> deleteAgent(@PathVariable Long id) {
-        Long userId = 1L;
+        Long userId = UserContext.getUserId();
+        if (userId == null) {
+            return Response.error(401, "Unauthorized");
+        }
         AgentCommand.DeleteAgentCmd cmd = new AgentCommand.DeleteAgentCmd();
         cmd.setId(id);
         cmd.setUserId(userId);
@@ -91,11 +105,22 @@ public class AgentController {
         return Response.success();
     }
 
+    @Deprecated
+    @PostMapping("/delete/{id}")
+    public Response<Void> deleteAgentDeprecated(@PathVariable Long id,
+            jakarta.servlet.http.HttpServletResponse response) {
+        response.setHeader("X-Deprecated-API", "true");
+        return deleteAgent(id);
+    }
+
     // --- Queries ---
 
     @GetMapping("/list")
     public Response<List<AgentSummary>> listAgents() {
-        Long userId = 1L;
+        Long userId = UserContext.getUserId();
+        if (userId == null) {
+            return Response.error(401, "Unauthorized");
+        }
         return Response.success(agentRepository.findSummaryByUserId(userId));
     }
 
@@ -106,32 +131,8 @@ public class AgentController {
     }
 
     // --- Debug ---
-
-    @PostMapping("/debug")
-    public SseEmitter debugAgent(@Validated @RequestBody AgentDTO.DebugReq req) {
-        Long userId = 1L;
-        AgentCommand.DebugAgentCmd cmd = new AgentCommand.DebugAgentCmd();
-        cmd.setAgentId(req.getAgentId());
-        cmd.setUserId(userId);
-        cmd.setInputMessage(req.getInputMessage());
-        cmd.setDebugMode(req.isDebugMode());
-
-        SseEmitter emitter = new SseEmitter(180_000L); // 3 min timeout
-
-        // Asynchronous execution invocation
-        // Ideally pass emitter to service, or return Flux.
-        // For now, placeholder for triggering execution.
-        // agentApplicationService.debugAgent(cmd, emitter);
-
-        try {
-            emitter.send(SseEmitter.event().name("start").data("Debug Started"));
-            // Mock streaming
-            emitter.send(SseEmitter.event().name("log").data("Draft Mode: " + req.isDebugMode()));
-            emitter.complete();
-        } catch (Exception e) {
-            emitter.completeWithError(e);
-        }
-
-        return emitter;
-    }
+    // Note: Debug functionality moved to WorkflowController.startExecution with
+    // mode=DEBUG
+    // This endpoint is removed. Use POST /api/workflow/execution/start with
+    // mode="DEBUG" instead.
 }

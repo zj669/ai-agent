@@ -1,0 +1,69 @@
+[INFO] Scanning for projects...
+[INFO] 
+[INFO] --------------------< com.zj:ai-agent-application >---------------------
+[INFO] Building AI Agent Application 1.0.0-SNAPSHOT
+[INFO]   from pom.xml
+[INFO] --------------------------------[ jar ]---------------------------------
+[INFO] 
+[INFO] --- resources:3.3.1:resources (default-resources) @ ai-agent-application ---
+[INFO] skip non existing resourceDirectory D:\java\ai-agent\ai-agent-application\src\main\resources
+[INFO] skip non existing resourceDirectory D:\java\ai-agent\ai-agent-application\src\main\resources
+[INFO] 
+[INFO] --- compiler:3.13.0:compile (default-compile) @ ai-agent-application ---
+[INFO] Nothing to compile - all classes are up to date.
+[INFO] 
+[INFO] --- resources:3.3.1:testResources (default-testResources) @ ai-agent-application ---
+[INFO] skip non existing resourceDirectory D:\java\ai-agent\ai-agent-application\src\test\resources
+[INFO] 
+[INFO] --- compiler:3.13.0:testCompile (default-testCompile) @ ai-agent-application ---
+[INFO] Nothing to compile - all classes are up to date.
+[INFO] 
+[INFO] --- surefire:3.5.3:test (default-test) @ ai-agent-application ---
+[INFO] Using auto detected provider org.apache.maven.surefire.junitplatform.JUnitPlatformProvider
+[INFO] 
+[INFO] -------------------------------------------------------
+[INFO]  T E S T S
+[INFO] -------------------------------------------------------
+[INFO] Running com.zj.aiagent.application.knowledge.KnowledgeApplicationServiceTest
+[INFO] Running com.zj.aiagent.application.knowledge.KnowledgeApplicationServiceTest$DeleteDocumentTests
+Mockito is currently self-attaching to enable the inline-mock-maker. This will no longer work in future releases of the JDK. Please add Mockito as an agent to your build what is described in Mockito's documentation: https://javadoc.io/doc/org.mockito/mockito-core/latest/org/mockito/Mockito.html#0.3
+WARNING: A Java agent has been loaded dynamically (E:\program\apache-maven-3.9.9\mvn_repo\net\bytebuddy\byte-buddy-agent\1.15.11\byte-buddy-agent-1.15.11.jar)
+WARNING: If a serviceability tool is in use, please run with -XX:+EnableDynamicAgentLoading to hide this warning
+WARNING: If a serviceability tool is not in use, please run with -Djdk.instrument.traceUsage for more information
+WARNING: Dynamic loading of agents will be disallowed by default in a future release
+OpenJDK 64-Bit Server VM warning: Sharing is only supported for boot loader classes because bootstrap classpath has been appended
+21:50:31.806 [main] INFO com.zj.aiagent.application.knowledge.KnowledgeApplicationService -- 删除文档: documentId=doc-to-delete
+21:50:31.827 [main] INFO com.zj.aiagent.application.knowledge.KnowledgeApplicationService -- 文档删除完成: documentId=doc-to-delete
+[INFO] Tests run: 1, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 1.910 s -- in com.zj.aiagent.application.knowledge.KnowledgeApplicationServiceTest$DeleteDocumentTests
+[INFO] Running com.zj.aiagent.application.knowledge.KnowledgeApplicationServiceTest$QueryDocumentTests
+21:50:31.980 [main] INFO com.zj.aiagent.application.knowledge.KnowledgeApplicationService -- 查询文档列表: datasetId=ds-1, page=0
+[INFO] Tests run: 3, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.059 s -- in com.zj.aiagent.application.knowledge.KnowledgeApplicationServiceTest$QueryDocumentTests
+[INFO] Running com.zj.aiagent.application.knowledge.KnowledgeApplicationServiceTest$UploadDocumentTests
+21:50:32.089 [main] INFO com.zj.aiagent.application.knowledge.KnowledgeApplicationService -- 上传文档: datasetId=ds-1, filename=test.pdf, size=1024
+21:50:32.091 [main] INFO com.zj.aiagent.application.knowledge.KnowledgeApplicationService -- 文档上传成功，异步处理已触发: documentId=2fbcc572-348b-4477-a779-1daa90a0a030
+21:50:32.102 [main] INFO com.zj.aiagent.application.knowledge.KnowledgeApplicationService -- 上传文档: datasetId=ds-1, filename=test.md, size=512
+21:50:32.102 [main] INFO com.zj.aiagent.application.knowledge.KnowledgeApplicationService -- 文档上传成功，异步处理已触发: documentId=d11e3128-5da8-4afe-86ae-074714dbb932
+[INFO] Tests run: 2, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.077 s -- in com.zj.aiagent.application.knowledge.KnowledgeApplicationServiceTest$UploadDocumentTests
+[INFO] Running com.zj.aiagent.application.knowledge.KnowledgeApplicationServiceTest$DeleteDatasetTests
+21:50:32.113 [main] INFO com.zj.aiagent.application.knowledge.KnowledgeApplicationService -- 删除知识库: datasetId=ds-to-delete
+21:50:32.114 [main] INFO com.zj.aiagent.application.knowledge.KnowledgeApplicationService -- 知识库删除完成: datasetId=ds-to-delete
+[INFO] Tests run: 1, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.008 s -- in com.zj.aiagent.application.knowledge.KnowledgeApplicationServiceTest$DeleteDatasetTests
+[INFO] Running com.zj.aiagent.application.knowledge.KnowledgeApplicationServiceTest$QueryDatasetTests
+21:50:32.132 [main] INFO com.zj.aiagent.application.knowledge.KnowledgeApplicationService -- 查询用户知识库列表: userId=1
+[INFO] Tests run: 3, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.019 s -- in com.zj.aiagent.application.knowledge.KnowledgeApplicationServiceTest$QueryDatasetTests
+[INFO] Running com.zj.aiagent.application.knowledge.KnowledgeApplicationServiceTest$CreateDatasetTests
+21:50:32.149 [main] INFO com.zj.aiagent.application.knowledge.KnowledgeApplicationService -- 创建知识库: name=测试库, userId=1, agentId=null
+21:50:32.158 [main] INFO com.zj.aiagent.application.knowledge.KnowledgeApplicationService -- 创建知识库: name=产品文档库, userId=1, agentId=100
+[INFO] Tests run: 2, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.018 s -- in com.zj.aiagent.application.knowledge.KnowledgeApplicationServiceTest$CreateDatasetTests
+[INFO] Tests run: 0, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 2.135 s -- in com.zj.aiagent.application.knowledge.KnowledgeApplicationServiceTest
+[INFO] 
+[INFO] Results:
+[INFO] 
+[INFO] Tests run: 12, Failures: 0, Errors: 0, Skipped: 0
+[INFO] 
+[INFO] ------------------------------------------------------------------------
+[INFO] BUILD SUCCESS
+[INFO] ------------------------------------------------------------------------
+[INFO] Total time:  7.528 s
+[INFO] Finished at: 2026-01-14T21:50:32+08:00
+[INFO] ------------------------------------------------------------------------

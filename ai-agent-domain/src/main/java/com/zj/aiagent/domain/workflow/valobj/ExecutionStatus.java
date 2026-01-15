@@ -43,7 +43,12 @@ public enum ExecutionStatus {
     /**
      * 已取消
      */
-    CANCELLED(6);
+    CANCELLED(6),
+
+    /**
+     * 暂停中（等待人工审核）
+     */
+    PAUSED_FOR_REVIEW(10);
 
     private final int code;
 }

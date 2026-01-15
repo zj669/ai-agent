@@ -6,6 +6,15 @@ spring:
   profiles:
     active: local
 
+  # 异步任务执行配置
+  task:
+    execution:
+      pool:
+        core-size: ${ASYNC_TASK_CORE_SIZE:5}
+        max-size: ${ASYNC_TASK_MAX_SIZE:10}
+        queue-capacity: ${ASYNC_TASK_QUEUE_CAPACITY:100}
+        thread-name-prefix: async-task-
+
   # 数据源配置
   datasource:
     dynamic:
@@ -52,18 +61,6 @@ spring:
         model: ${EMBEDDING_MODEL}
         options:
           num_ctx: ${EMBEDDING_NUM_CTX}
-    agent:
-      auto-config:
-        enabled: ${AGENT_AUTO_CONFIG_ENABLED}
-        client-ids: ${AGENT_CLIENT_IDS}
-    # 降级模型配置
-    fallback:
-      enabled: ${FALLBACK_ENABLED}
-      base-url: ${FALLBACK_BASE_URL}
-      api-key: ${FALLBACK_API_KEY}
-      model-name: ${FALLBACK_MODEL}
-      temperature: ${FALLBACK_TEMPERATURE}
-      max-tokens: ${FALLBACK_MAX_TOKENS}
 
   # 邮件配置
   mail:
@@ -196,3 +193,21 @@ info:
 # 内存存储配置
 memory:
   storage: database  # 可选值: memory, database
+
+# Milvus 向量数据库配置
+milvus:
+  enabled: ${MILVUS_ENABLED:false}
+  host: ${MILVUS_HOST:localhost}
+  port: ${MILVUS_PORT:19530}
+  username: ${MILVUS_USERNAME:}
+  password: ${MILVUS_PASSWORD:}
+  knowledge-collection-name: agent_knowledge_base
+  memory-collection-name: agent_chat_memory
+  embedding-dimension: 768
+
+# MinIO 对象存储配置 (用于知识库文件存储)
+minio:
+  endpoint: ${MINIO_ENDPOINT:http://localhost:9000}
+  access-key: ${MINIO_ACCESS_KEY:minioadmin}
+  secret-key: ${MINIO_SECRET_KEY:minioadmin}
+  bucket-name: ${MINIO_BUCKET_NAME:knowledge-files}

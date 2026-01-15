@@ -1,0 +1,14 @@
+{
+  "filePath": ".spec-workflow/specs/human-in-the-loop/requirements.md",
+  "currentVersion": 1,
+  "snapshots": [
+    {
+      "version": 1,
+      "filename": "snapshot-001.json",
+      "timestamp": "2026-01-12T15:51:21.856Z",
+      "trigger": "initial",
+      "approvalId": "approval_1768233081784_x87j8ab0b",
+      "approvalTitle": "Human in the Loop Requirements"
+    }
+  ]
+}

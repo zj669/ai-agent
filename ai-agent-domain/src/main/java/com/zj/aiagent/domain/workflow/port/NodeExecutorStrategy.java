@@ -16,13 +16,17 @@ import java.util.concurrent.CompletableFuture;
 public interface NodeExecutorStrategy {
 
     /**
-     * 异步执行节点逻辑
+     * 异步执行节点逻辑（支持流式输出）
      * 
-     * @param node           节点定义
-     * @param resolvedInputs 已解析的输入参数（SpEL 已替换为实际值）
+     * @param node            节点定义
+     * @param resolvedInputs  已解析的输入参数（SpEL 已替换为实际值）
+     * @param streamPublisher 流式推送器（用于实时推送执行过程）
      * @return 包含执行结果的 CompletableFuture
      */
-    CompletableFuture<NodeExecutionResult> executeAsync(Node node, Map<String, Object> resolvedInputs);
+    CompletableFuture<NodeExecutionResult> executeAsync(
+            Node node,
+            Map<String, Object> resolvedInputs,
+            StreamPublisher streamPublisher);
 
     /**
      * 获取支持的节点类型

@@ -69,6 +69,11 @@ public class Execution {
     private String pausedNodeId;
 
     /**
+     * 当前暂停的阶段
+     */
+    private TriggerPhase pausedPhase;
+
+    /**
      * 乐观锁版本
      */
     @Builder.Default
@@ -131,8 +136,9 @@ public class Execution {
 
         // 4. 检查是否暂停
         if (result.isPaused()) {
-            this.status = ExecutionStatus.PAUSED;
+            this.status = ExecutionStatus.PAUSED_FOR_REVIEW;
             this.pausedNodeId = nodeId;
+            this.pausedPhase = result.getTriggerPhase();
             return Collections.emptyList();
         }
 
@@ -159,24 +165,54 @@ public class Execution {
      * 恢复执行（人工审核通过后）
      */
     public List<Node> resume(String nodeId, Map<String, Object> additionalInputs) {
-        if (this.status != ExecutionStatus.PAUSED) {
+        if (this.status != ExecutionStatus.PAUSED_FOR_REVIEW && this.status != ExecutionStatus.PAUSED) {
             throw new IllegalStateException("当前执行未处于暂停状态");
         }
 
-        // 合并额外输入
+        // 合并额外输入 (通常由 SchedulerService 处理 Context 具体更新，这里作为备份)
         if (additionalInputs != null) {
             context.getSharedState().putAll(additionalInputs);
+        }
+
+        TriggerPhase phase = this.pausedPhase;
+        // 兼容旧数据
+        if (phase == null) {
+            phase = TriggerPhase.AFTER_EXECUTION;
         }
 
         // 重置状态
         this.status = ExecutionStatus.RUNNING;
         this.pausedNodeId = null;
+        this.pausedPhase = null;
         this.updatedAt = LocalDateTime.now();
+        this.version++;
 
-        // 返回暂停的节点（重新执行）
         Node pausedNode = graph.getNode(nodeId);
-        return pausedNode != null ? List.of(pausedNode) : Collections.emptyList();
+        if (pausedNode == null)
+            return Collections.emptyList();
+
+        // If BEFORE_EXECUTION, return node to be executed.
+        // If AFTER_EXECUTION, return empty (Scheduler will manually advance).
+        return (phase == TriggerPhase.BEFORE_EXECUTION) ? List.of(pausedNode) : Collections.emptyList();
     }
+    // update inputs
+    // execution.resume() -> returns [node]
+    // schedule(node)
+    // if AFTER:
+    // update outputs
+    // execution.resume() -> resets status
+    // // We need to simulate node completion
+    // execution.advance(nodeId, success(outputs))
+    // schedule(nextNodes)
+
+    // So execution.resume() should just reset status.
+    // But existing execution.resume() returns List<Node>.
+    // I will implement logic to return current node for BEFORE, and empty list for
+    // AFTER (caller handles advance).
+
+    // return(phase==TriggerPhase.BEFORE_EXECUTION)?List.of(pausedNode):Collections.emptyList();
+    //
+    // }
 
     /**
      * 获取就绪节点（所有依赖已完成）

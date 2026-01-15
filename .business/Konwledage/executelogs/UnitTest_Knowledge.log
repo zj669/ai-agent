@@ -1,0 +1,90 @@
+[INFO] Scanning for projects...
+[INFO] 
+[INFO] --------------------< com.zj:ai-agent-application >---------------------
+[INFO] Building AI Agent Application 1.0.0-SNAPSHOT
+[INFO]   from pom.xml
+[INFO] --------------------------------[ jar ]---------------------------------
+[INFO] 
+[INFO] --- resources:3.3.1:resources (default-resources) @ ai-agent-application ---
+[INFO] skip non existing resourceDirectory D:\java\ai-agent\ai-agent-application\src\main\resources
+[INFO] skip non existing resourceDirectory D:\java\ai-agent\ai-agent-application\src\main\resources
+[INFO] 
+[INFO] --- compiler:3.13.0:compile (default-compile) @ ai-agent-application ---
+[INFO] Nothing to compile - all classes are up to date.
+[INFO] 
+[INFO] --- resources:3.3.1:testResources (default-testResources) @ ai-agent-application ---
+[INFO] skip non existing resourceDirectory D:\java\ai-agent\ai-agent-application\src\test\resources
+[INFO] 
+[INFO] --- compiler:3.13.0:testCompile (default-testCompile) @ ai-agent-application ---
+[INFO] Recompiling the module because of added or removed source files.
+[INFO] Compiling 1 source file with javac [debug parameters release 21] to target\test-classes
+[INFO] 由于在类路径中发现了一个或多个处理程序，因此启用了
+  批注处理。未来发行版的 javac 可能会禁用批注处理，
+  除非至少按名称指定了一个处理程序 (-processor)，
+  或指定了搜索路径 (--processor-path, --processor-module-path)，
+  或显式启用了批注处理 (-proc:only, -proc:full)。
+  可使用 -Xlint:-options 隐藏此消息。
+  可使用 -proc:none 禁用批注处理。
+[INFO] -------------------------------------------------------------
+[ERROR] COMPILATION ERROR : 
+[INFO] -------------------------------------------------------------
+[ERROR] /D:/java/ai-agent/ai-agent-application/src/test/java/com/zj/aiagent/application/knowledge/KnowledgeApplicationServiceTest.java:[3,46] 程序包com.zj.aiagent.domain.knowledge.entity不存在
+[ERROR] /D:/java/ai-agent/ai-agent-application/src/test/java/com/zj/aiagent/application/knowledge/KnowledgeApplicationServiceTest.java:[4,46] 程序包com.zj.aiagent.domain.knowledge.entity不存在
+[ERROR] /D:/java/ai-agent/ai-agent-application/src/test/java/com/zj/aiagent/application/knowledge/KnowledgeApplicationServiceTest.java:[5,44] 程序包com.zj.aiagent.domain.knowledge.port不存在
+[ERROR] /D:/java/ai-agent/ai-agent-application/src/test/java/com/zj/aiagent/application/knowledge/KnowledgeApplicationServiceTest.java:[6,50] 程序包com.zj.aiagent.domain.knowledge.repository不存在
+[ERROR] /D:/java/ai-agent/ai-agent-application/src/test/java/com/zj/aiagent/application/knowledge/KnowledgeApplicationServiceTest.java:[7,50] 程序包com.zj.aiagent.domain.knowledge.repository不存在
+[ERROR] /D:/java/ai-agent/ai-agent-application/src/test/java/com/zj/aiagent/application/knowledge/KnowledgeApplicationServiceTest.java:[8,46] 程序包com.zj.aiagent.domain.knowledge.valobj不存在
+[ERROR] /D:/java/ai-agent/ai-agent-application/src/test/java/com/zj/aiagent/application/knowledge/KnowledgeApplicationServiceTest.java:[9,46] 程序包com.zj.aiagent.domain.knowledge.valobj不存在
+[ERROR] /D:/java/ai-agent/ai-agent-application/src/test/java/com/zj/aiagent/application/knowledge/KnowledgeApplicationServiceTest.java:[51,13] 找不到符号
+  符号:   类 KnowledgeDatasetRepository
+  位置: 类 com.zj.aiagent.application.knowledge.KnowledgeApplicationServiceTest
+[ERROR] /D:/java/ai-agent/ai-agent-application/src/test/java/com/zj/aiagent/application/knowledge/KnowledgeApplicationServiceTest.java:[54,13] 找不到符号
+  符号:   类 KnowledgeDocumentRepository
+  位置: 类 com.zj.aiagent.application.knowledge.KnowledgeApplicationServiceTest
+[ERROR] /D:/java/ai-agent/ai-agent-application/src/test/java/com/zj/aiagent/application/knowledge/KnowledgeApplicationServiceTest.java:[57,13] 找不到符号
+  符号:   类 FileStorageService
+  位置: 类 com.zj.aiagent.application.knowledge.KnowledgeApplicationServiceTest
+[ERROR] /D:/java/ai-agent/ai-agent-application/src/test/java/com/zj/aiagent/application/knowledge/KnowledgeApplicationServiceTest.java:[375,13] 找不到符号
+  符号:   类 KnowledgeDataset
+  位置: 类 com.zj.aiagent.application.knowledge.KnowledgeApplicationServiceTest
+[ERROR] /D:/java/ai-agent/ai-agent-application/src/test/java/com/zj/aiagent/application/knowledge/KnowledgeApplicationServiceTest.java:[389,13] 找不到符号
+  符号:   类 KnowledgeDocument
+  位置: 类 com.zj.aiagent.application.knowledge.KnowledgeApplicationServiceTest
+[INFO] 12 errors 
+[INFO] -------------------------------------------------------------
+[INFO] ------------------------------------------------------------------------
+[INFO] BUILD FAILURE
+[INFO] ------------------------------------------------------------------------
+[INFO] Total time:  7.807 s
+[INFO] Finished at: 2026-01-14T21:47:10+08:00
+[INFO] ------------------------------------------------------------------------
+[ERROR] Failed to execute goal org.apache.maven.plugins:maven-compiler-plugin:3.13.0:testCompile (default-testCompile) on project ai-agent-application: Compilation failure: Compilation failure: 
+[ERROR] /D:/java/ai-agent/ai-agent-application/src/test/java/com/zj/aiagent/application/knowledge/KnowledgeApplicationServiceTest.java:[3,46] 程序包com.zj.aiagent.domain.knowledge.entity不存在
+[ERROR] /D:/java/ai-agent/ai-agent-application/src/test/java/com/zj/aiagent/application/knowledge/KnowledgeApplicationServiceTest.java:[4,46] 程序包com.zj.aiagent.domain.knowledge.entity不存在
+[ERROR] /D:/java/ai-agent/ai-agent-application/src/test/java/com/zj/aiagent/application/knowledge/KnowledgeApplicationServiceTest.java:[5,44] 程序包com.zj.aiagent.domain.knowledge.port不存在
+[ERROR] /D:/java/ai-agent/ai-agent-application/src/test/java/com/zj/aiagent/application/knowledge/KnowledgeApplicationServiceTest.java:[6,50] 程序包com.zj.aiagent.domain.knowledge.repository不存在
+[ERROR] /D:/java/ai-agent/ai-agent-application/src/test/java/com/zj/aiagent/application/knowledge/KnowledgeApplicationServiceTest.java:[7,50] 程序包com.zj.aiagent.domain.knowledge.repository不存在
+[ERROR] /D:/java/ai-agent/ai-agent-application/src/test/java/com/zj/aiagent/application/knowledge/KnowledgeApplicationServiceTest.java:[8,46] 程序包com.zj.aiagent.domain.knowledge.valobj不存在
+[ERROR] /D:/java/ai-agent/ai-agent-application/src/test/java/com/zj/aiagent/application/knowledge/KnowledgeApplicationServiceTest.java:[9,46] 程序包com.zj.aiagent.domain.knowledge.valobj不存在
+[ERROR] /D:/java/ai-agent/ai-agent-application/src/test/java/com/zj/aiagent/application/knowledge/KnowledgeApplicationServiceTest.java:[51,13] 找不到符号
+[ERROR]   符号:   类 KnowledgeDatasetRepository
+[ERROR]   位置: 类 com.zj.aiagent.application.knowledge.KnowledgeApplicationServiceTest
+[ERROR] /D:/java/ai-agent/ai-agent-application/src/test/java/com/zj/aiagent/application/knowledge/KnowledgeApplicationServiceTest.java:[54,13] 找不到符号
+[ERROR]   符号:   类 KnowledgeDocumentRepository
+[ERROR]   位置: 类 com.zj.aiagent.application.knowledge.KnowledgeApplicationServiceTest
+[ERROR] /D:/java/ai-agent/ai-agent-application/src/test/java/com/zj/aiagent/application/knowledge/KnowledgeApplicationServiceTest.java:[57,13] 找不到符号
+[ERROR]   符号:   类 FileStorageService
+[ERROR]   位置: 类 com.zj.aiagent.application.knowledge.KnowledgeApplicationServiceTest
+[ERROR] /D:/java/ai-agent/ai-agent-application/src/test/java/com/zj/aiagent/application/knowledge/KnowledgeApplicationServiceTest.java:[375,13] 找不到符号
+[ERROR]   符号:   类 KnowledgeDataset
+[ERROR]   位置: 类 com.zj.aiagent.application.knowledge.KnowledgeApplicationServiceTest
+[ERROR] /D:/java/ai-agent/ai-agent-application/src/test/java/com/zj/aiagent/application/knowledge/KnowledgeApplicationServiceTest.java:[389,13] 找不到符号
+[ERROR]   符号:   类 KnowledgeDocument
+[ERROR]   位置: 类 com.zj.aiagent.application.knowledge.KnowledgeApplicationServiceTest
+[ERROR] -> [Help 1]
+[ERROR] 
+[ERROR] To see the full stack trace of the errors, re-run Maven with the -e switch.
+[ERROR] Re-run Maven using the -X switch to enable full debug logging.
+[ERROR] 
+[ERROR] For more information about the errors and possible solutions, please read the following articles:
+[ERROR] [Help 1] http://cwiki.apache.org/confluence/display/MAVEN/MojoFailureException

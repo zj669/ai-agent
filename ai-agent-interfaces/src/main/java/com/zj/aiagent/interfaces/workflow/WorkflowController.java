@@ -94,19 +94,18 @@ public class WorkflowController {
         // 5. 异步启动调度
         CompletableFuture.runAsync(() -> {
             try {
-                Execution execution = Execution.builder()
-                        .executionId(executionId)
-                        .agentId(request.getAgentId())
-                        .userId(request.getUserId())
-                        .conversationId(request.getConversationId())
-                        .graph(request.getGraph())
-                        .status(ExecutionStatus.PENDING)
-                        .build();
-
                 // 发送初始连接成功事件
                 emitter.send(SseEmitter.event().name("connected").data(Map.of("executionId", executionId)));
 
-                schedulerService.startExecution(execution, request.getInputs());
+                // 调用新的启动方法，由 SchedulerService 负责查询 Agent 和解析 WorkflowGraph
+                schedulerService.startExecution(
+                        executionId,
+                        request.getAgentId(),
+                        request.getUserId(),
+                        request.getConversationId(),
+                        request.getVersionId(),
+                        request.getInputs(),
+                        request.getMode());
             } catch (Exception e) {
                 log.error("[API] Failed to start execution: {}", e.getMessage(), e);
                 try {
@@ -163,6 +162,51 @@ public class WorkflowController {
         return ResponseEntity.ok(history);
     }
 
+    /**
+     * 获取执行上下文快照 (Debug)
+     * 用于调试，返回 LTM、STM、执行日志和全局变量
+     */
+    @GetMapping("/{executionId}/context")
+    public ResponseEntity<com.zj.aiagent.interfaces.workflow.dto.ExecutionContextDTO> getExecutionContext(
+            @PathVariable String executionId) {
+        return executionRepository.findById(executionId)
+                .map(execution -> {
+                    com.zj.aiagent.interfaces.workflow.dto.ExecutionContextDTO dto = new com.zj.aiagent.interfaces.workflow.dto.ExecutionContextDTO();
+                    dto.setExecutionId(executionId);
+
+                    // LTM
+                    dto.setLongTermMemories(execution.getContext().getLongTermMemories());
+
+                    // STM (Chat History)
+                    java.util.List<com.zj.aiagent.interfaces.workflow.dto.ExecutionContextDTO.ChatMessage> chatHistory = new java.util.ArrayList<>();
+                    execution.getContext().getChatHistory().forEach(msg -> {
+                        com.zj.aiagent.interfaces.workflow.dto.ExecutionContextDTO.ChatMessage chatMsg = new com.zj.aiagent.interfaces.workflow.dto.ExecutionContextDTO.ChatMessage();
+                        chatMsg.setRole(msg.get("role"));
+                        chatMsg.setContent(msg.get("content"));
+                        chatMsg.setTimestamp(System.currentTimeMillis()); // placeholder
+                        chatHistory.add(chatMsg);
+                    });
+                    dto.setChatHistory(chatHistory);
+
+                    // Execution Log
+                    String executionLog = execution.getContext().getExecutionLogContent();
+                    if (executionLog == null || executionLog.isEmpty()) {
+                        long completedCount = execution.getNodeStatuses().entrySet().stream()
+                                .filter(e -> e
+                                        .getValue() == com.zj.aiagent.domain.workflow.valobj.ExecutionStatus.SUCCEEDED)
+                                .count();
+                        executionLog = String.format("执行状态: %s, 已完成节点数: %d", execution.getStatus(), completedCount);
+                    }
+                    dto.setExecutionLog(executionLog);
+
+                    // Global Variables (SharedState)
+                    dto.setGlobalVariables(execution.getContext().getSharedState());
+
+                    return ResponseEntity.ok(dto);
+                })
+                .orElse(ResponseEntity.notFound().build());
+    }
+
     // --- DTOs ---
 
     @Data
@@ -170,8 +214,16 @@ public class WorkflowController {
         private Long agentId;
         private Long userId;
         private String conversationId;
-        private WorkflowGraph graph;
+        /**
+         * 可选：指定运行的版本号，null 则使用已发布版本或当前草稿
+         */
+        private Integer versionId;
         private Map<String, Object> inputs;
+        /**
+         * 执行模式：STANDARD(标准), DEBUG(调试), DRY_RUN(干运行)
+         * 默认为 STANDARD
+         */
+        private com.zj.aiagent.domain.workflow.valobj.ExecutionMode mode = com.zj.aiagent.domain.workflow.valobj.ExecutionMode.STANDARD;
     }
 
     @Data

@@ -36,12 +36,12 @@
         </dependency>
 
 
-        <!-- Spring AI - PGVector -->
-        <dependency>
-            <groupId>org.springframework.ai</groupId>
-            <artifactId>spring-ai-starter-vector-store-pgvector</artifactId>
-            <version>${spring-ai.version}</version>
-        </dependency>
+<!--        &lt;!&ndash; Spring AI - PGVector &ndash;&gt;-->
+<!--        <dependency>-->
+<!--            <groupId>org.springframework.ai</groupId>-->
+<!--            <artifactId>spring-ai-starter-vector-store-pgvector</artifactId>-->
+<!--            <version>${spring-ai.version}</version>-->
+<!--        </dependency>-->
 
         <!-- Spring AI - MCP Client -->
         <dependency>

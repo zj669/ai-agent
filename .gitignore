@@ -44,7 +44,6 @@ build/
 ### VS Code ###
 
 ### 日志文件 ###
-*.log
 log/
 logs/
 
