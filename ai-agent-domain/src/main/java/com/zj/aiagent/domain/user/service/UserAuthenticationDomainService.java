@@ -170,6 +170,52 @@ public class UserAuthenticationDomainService {
     }
 
     /**
+     * 重置密码
+     * 
+     * @param emailStr        邮箱
+     * @param code            验证码
+     * @param newPassword     新密码
+     * @param confirmPassword 确认密码
+     * @throws AuthenticationException 验证失败时抛出
+     */
+    public void resetPassword(String emailStr, String code, String newPassword, String confirmPassword) {
+        Email email = Email.of(emailStr);
+
+        // 验证两次密码一致
+        if (!newPassword.equals(confirmPassword)) {
+            log.warn("Password mismatch for: {}", emailStr);
+            throw new AuthenticationException(ErrorCode.PASSWORD_MISMATCH);
+        }
+
+        // 验证码校验
+        String storedCode = verificationCodeRepository.get(email);
+        if (storedCode == null || !storedCode.equals(code)) {
+            log.warn("Invalid verification code for password reset: {}", emailStr);
+            throw new AuthenticationException(ErrorCode.INVALID_VERIFICATION_CODE);
+        }
+
+        // 密码强度校验
+        validatePasswordStrength(newPassword);
+
+        // 查找用户
+        User user = userRepository.findByEmail(email);
+        if (user == null) {
+            log.warn("User not found for password reset: {}", emailStr);
+            throw new AuthenticationException(ErrorCode.USER_NOT_FOUND);
+        }
+
+        // 重置密码
+        Credential newCredential = Credential.create(newPassword);
+        user.resetPassword(newCredential);
+        userRepository.save(user);
+
+        // 销毁验证码（防止重复使用）
+        verificationCodeRepository.remove(email);
+
+        log.info("Password reset successfully for: {}", emailStr);
+    }
+
+    /**
      * 验证密码强度
      */
     private void validatePasswordStrength(String password) {

@@ -2,6 +2,7 @@ package com.zj.aiagent.application.agent.service;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.zj.aiagent.application.agent.dto.ConfigFieldDTO;
+import com.zj.aiagent.application.agent.dto.ConfigFieldGroupDTO;
 import com.zj.aiagent.application.agent.dto.NodeTemplateDTO;
 import com.zj.aiagent.infrastructure.meta.mapper.NodeTemplateConfigMappingMapper;
 import com.zj.aiagent.infrastructure.meta.mapper.NodeTemplateMapper;
@@ -15,6 +16,7 @@ import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
 import java.util.Comparator;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
@@ -101,7 +103,24 @@ public class MetadataApplicationService {
                     .filter(java.util.Objects::nonNull)
                     .collect(Collectors.toList());
 
-            dto.setConfigFields(fieldDTOs);
+            // Group fields by groupName
+            Map<String, List<ConfigFieldDTO>> groupedFields = fieldDTOs.stream()
+                    .collect(Collectors.groupingBy(
+                            field -> field.getGroupName() != null ? field.getGroupName() : "其他",
+                            LinkedHashMap::new,
+                            Collectors.toList()));
+
+            // Convert to ConfigFieldGroupDTO list
+            List<ConfigFieldGroupDTO> groups = groupedFields.entrySet().stream()
+                    .map(entry -> {
+                        ConfigFieldGroupDTO group = new ConfigFieldGroupDTO();
+                        group.setGroupName(entry.getKey());
+                        group.setFields(entry.getValue());
+                        return group;
+                    })
+                    .collect(Collectors.toList());
+
+            dto.setConfigFieldGroups(groups);
             return dto;
         }).collect(Collectors.toList());
     }

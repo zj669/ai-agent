@@ -36,10 +36,17 @@ public class MySQLKnowledgeDocumentRepository implements KnowledgeDocumentReposi
     public KnowledgeDocument save(KnowledgeDocument document) {
         KnowledgeDocumentPO po = toPO(document);
 
-        if (mapper.selectById(po.getDocumentId()) == null) {
-            mapper.insert(po);
-        } else {
-            mapper.updateById(po);
+        // 优化策略: 先尝试更新，如果更新行数为0，则尝试插入。
+        // 如果插入因主键冲突失败(并发场景)，则再次更新。
+        int rows = mapper.updateById(po);
+        if (rows == 0) {
+            try {
+                mapper.insert(po);
+            } catch (org.springframework.dao.DuplicateKeyException e) {
+                // 如果在insert之前也是并发插入了，这里会捕获冲突，再次执行更新
+                log.info("Document {} already exists (concurrent insert), falling back to update", po.getDocumentId());
+                mapper.updateById(po);
+            }
         }
 
         return toDomain(po);

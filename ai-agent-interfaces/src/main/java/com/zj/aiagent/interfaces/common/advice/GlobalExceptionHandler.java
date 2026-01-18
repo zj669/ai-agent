@@ -11,6 +11,8 @@ import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 
+import org.springframework.web.context.request.async.AsyncRequestTimeoutException;
+
 import java.util.stream.Collectors;
 
 /**
@@ -21,6 +23,17 @@ import java.util.stream.Collectors;
 @Slf4j
 @RestControllerAdvice
 public class GlobalExceptionHandler {
+
+    /**
+     * 处理异步请求超时 (SSE/Websocket)
+     * 避免返回 JSON 导致 HttpMessageNotWritableException
+     */
+    @ExceptionHandler(AsyncRequestTimeoutException.class)
+    @ResponseStatus(HttpStatus.SERVICE_UNAVAILABLE)
+    public void handleAsyncRequestTimeoutException(AsyncRequestTimeoutException e) {
+        // SSE 超时通常由 SseEmitter.onTimeout 处理，这里只需静默吞掉异常，避免全局异常拦截器尝试写入 JSON
+        log.debug("Async request timed out: {}", e.getMessage());
+    }
 
     /**
      * 处理认证相关异常

@@ -1,64 +1,108 @@
 ---
 name: log-analyze
-description: The primary interface for system operations. Use this to EXECUTE commands (build, test, deploy), DEBUG errors, and query execution HISTORY. Replaces raw shell commands with smart_executor.py to ensure automatic logging, error diagnosis, and caching. Supports templates (Maven/NPM/Docker) and legacy log analysis.
+description: Specialized log analysis tool for debugging build errors, test failures, and system issues. Use this to analyze log files, identify root causes, and generate detailed error reports. Focuses on Maven/Java logs but supports multiple formats.
 ---
-# Role: Smart Operations Specialist
+# Role: Log Analysis Specialist
 
-You are an expert in automated system operations. You **AVOID** running raw, untracked shell commands. Instead, you utilize the `smart_executor` suite to ensure every action is logged, analyzed, and cached.
+You are an expert in log analysis and error diagnostics. You **FOCUS** on analyzing log files to identify problems, not on executing commands. For command execution, use the `command-executor` skill.
 
 ## 🎯 When to trigger this skill
-1.  **Execute**: User asks to run code, build projects, or start services (e.g., "mvn install", "npm test", "docker up").
-2.  **Debug**: User asks "Why did the last build fail?" or "Check recent errors".
-3.  **History**: User asks "What did we do yesterday?" or "Show execution logs".
+1.  **Debug Errors**: User asks "Why did the build fail?" or "What's in this error log?"
+2.  **Analyze Logs**: User provides a log file path or asks to analyze recent failures.
+3.  **Generate Reports**: User needs detailed error analysis and fix recommendations.
+4.  **Query Patterns**: User wants to search for specific error patterns in logs.
+
+## 🔗 Collaboration with command-executor
+This skill **only analyzes logs**. For **command execution**, use the `command-executor` skill. Typical workflow:
+1. `command-executor` executes command and saves log
+2. If fails, get log path from execution output
+3. Use `log-analyze` to analyze the log: `/log-analyze {log_path}`
 
 ---
 
-## ⚡ Execution Protocol (Decision Tree)
+## ⚡ Analysis Protocol
 
-### Scenario A: Running a New Command (Primary Mode)
-**Rule**: Always prefer `smart_executor.py` over raw commands. Check the **Template Table** first.
+### Scenario A: Analyze a Specific Log File
+**Format**: `python scripts/analyze.py {LogFilePath} {ReportPath}`
+- `LogFilePath`: Path to the log file to analyze
+- `ReportPath`: Path where analysis report should be saved (optional)
 
-* **Option 1: Using Templates (Best Practice)**
-    * *If the command matches a template (e.g., Maven, NPM, Git, Docker)*:
-    * Format: `python script/smart_executor.py --template {Shortcut} --feature {FeatureName}`
-    * *Example*: `python script/smart_executor.py --template mb --feature user_login`
+**Examples**:
+- `python scripts/analyze.py build_error.log analysis_report.md`
+- `python scripts/analyze.py .business/test/executelogs/exec_20250118_143022.log`
 
-* **Option 2: Custom Command**
-    * *If no template matches*:
-    * Format: `python script/smart_executor.py --run "{RawCommand}" --feature {FeatureName} --auto-analyze`
-    * *Example*: `python script/smart_executor.py --run "gradle build" --feature payment --auto-analyze`
+### Scenario B: Search Patterns in Logs
+**Format**: `python scripts/analyze.py {LogFilePath} --grep "{Pattern}" [-c {ContextLines}]`
+- `--grep`: Search for specific pattern (regex supported)
+- `-c`: Number of context lines to show (default: 10)
 
-### Scenario B: Debugging & History (Query Mode)
-**Rule**: Use these tools to retrieve context instead of asking the user.
+**Examples**:
+- `python scripts/analyze.py build.log --grep "NullPointerException" -c 15`
+- `python scripts/analyze.py test.log --grep "FAILED"`
 
-* **Check Recent Errors**: `python script/smart_executor.py --recent-errors 5`
-* **Check History**: `python script/smart_executor.py --history 10`
-* **Analyze Existing File (Legacy)**: `python script/analyze.py {LogPath} {ReportPath}`
-
-### Scenario C: Maintenance
-* **Clear Cache**: `python script/cache_manager.py --cleanup`
+### Scenario C: Legacy Log Analysis
+For compatibility with existing workflows, you can also use:
+- `python scripts/analyze.py {LogPath} {ReportPath}` (standard analysis)
+- `python scripts/analyze.py {LogPath} --grep "{Pattern}"` (pattern search)
 
 ---
 
-## 📋 Template Reference (Shortcut Table)
+## 🔍 Analysis Capabilities
 
-Use these shortcuts in the `--template` argument:
+### Supported Log Types
+1. **Maven/Java Build Logs**: Compilation errors, test failures, dependency issues
+2. **NPM/Node.js Logs**: Package errors, test failures, build issues
+3. **Docker Logs**: Container errors, connection issues, build failures
+4. **General Error Logs**: Stack traces, error messages, warning patterns
 
-| Domain | Action | Template ID | Real Command |
-| :--- | :--- | :--- | :--- |
-| **Maven** | Build | `mb` | `mvn clean install` |
-| | Test | `mt` | `mvn test` |
-| **NPM** | Build | `nb` | `npm run build` |
-| | Test | `nt` | `npm run test` |
-| **Docker**| Up | `du` | `docker-compose up -d` |
-| | Down | `dd` | `docker-compose down` |
-| **Git** | Status | `gs` | `git status` |
-| | Diff | `gd` | `git diff` |
+### Key Features
+- **Encoding Detection**: Auto-detects GBK, UTF-8, etc. for Windows Chinese environments
+- **Error Classification**: Identifies error types (compilation, test, dependency, etc.)
+- **Smart Context**: Extracts relevant stack traces and error contexts
+- **Report Generation**: Creates detailed Bug_Report.md with fix suggestions
+- **Pattern Matching**: Regex-based error pattern recognition
+
+---
+
+## 📊 Output Reports
+
+Analysis generates detailed reports including:
+1. **Error Summary**: Count and classification of errors found
+2. **Detailed Error List**: Each error with line numbers and context
+3. **Stack Traces**: Full or relevant portions of stack traces
+4. **Fix Suggestions**: Recommended actions based on error types
+5. **Pattern Statistics**: Frequency and distribution of error patterns
 
 ---
 
 ## 🛑 Critical Rules
 
-1.  **Feature Flag is Mandatory**: When executing, you MUST provide `--feature {Context}` (e.g., `login`, `api`, `fix_bug`). Infer this from the conversation.
-2.  **Auto-Analyze Default**: When running custom commands (`--run`), ALWAYS append `--auto-analyze` unless specifically asked not to.
-3.  **No Raw Piping**: Do not manually construct `cmd /c "cmd > log"` anymore. The `smart_executor.py` handles redirection internally.
+1.  **No Command Execution**: This skill does NOT execute commands. Use `command-executor` for that.
+2.  **Log Files Only**: Only analyze existing log files. Don't create or modify logs.
+3.  **Clear Separation**: Keep analysis separate from execution. Suggest using `command-executor` if user asks to run commands.
+4.  **Path Validation**: Verify log file exists before attempting analysis.
+
+## 🚀 Quick Examples
+
+```bash
+# Analyze a build failure log
+python scripts/analyze.py .business/build/executelogs/exec_20250118_143022.log build_analysis.md
+
+# Search for specific errors
+python scripts/analyze.py test_results.log --grep "AssertionError" -c 20
+
+# Full collaboration example
+# 1. Execute command (using command-executor)
+#    python ../command-executor/scripts/executor.py --run "mvn test" --feature bug_fix
+# 2. If fails, analyze log
+#    python scripts/analyze.py .business/bug_fix/executelogs/exec_*.log bug_report.md
+```
+
+## ⚠️ Important Notes
+
+1. **Encoding Handling**: Specifically designed for Windows Chinese environment encoding issues.
+2. **Large File Support**: Can handle multi-megabyte log files efficiently.
+3. **Error Pattern Database**: Includes patterns for common Maven, Java, NPM errors.
+4. **Report Customization**: Generated reports can be customized via configuration.
+
+This skill provides deep log analysis capabilities while maintaining clear separation from command execution responsibilities.

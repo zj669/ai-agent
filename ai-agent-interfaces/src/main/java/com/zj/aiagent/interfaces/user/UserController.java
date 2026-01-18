@@ -77,6 +77,13 @@ public class UserController {
         return Response.success();
     }
 
+    @PostMapping("/resetPassword")
+    @Operation(summary = "重置密码")
+    public Response<Void> resetPassword(@Valid @RequestBody UserRequests.ResetPasswordRequest request) {
+        userApplicationService.resetPassword(request);
+        return Response.success();
+    }
+
     /**
      * 获取客户端真实IP（支持代理场景）
      */

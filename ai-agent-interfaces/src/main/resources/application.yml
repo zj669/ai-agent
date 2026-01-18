@@ -5,6 +5,16 @@ spring:
     name: aiagemt
   profiles:
     active: local
+  # 禁用 Spring AI 的自动配置，模型由用户配置动态创建
+  autoconfigure:
+    exclude:
+      - org.springframework.ai.model.openai.autoconfigure.OpenAiChatAutoConfiguration
+      - org.springframework.ai.model.openai.autoconfigure.OpenAiEmbeddingAutoConfiguration
+      - org.springframework.ai.model.openai.autoconfigure.OpenAiAudioSpeechAutoConfiguration
+      - org.springframework.ai.model.openai.autoconfigure.OpenAiAudioTranscriptionAutoConfiguration
+      - org.springframework.ai.model.openai.autoconfigure.OpenAiImageAutoConfiguration
+      - org.springframework.ai.model.openai.autoconfigure.OpenAiModerationAutoConfiguration
+      - org.springframework.ai.model.chat.client.autoconfigure.ChatClientAutoConfiguration
 
   # 异步任务执行配置
   task:
@@ -22,7 +32,7 @@ spring:
         # 主库数据源 - MyBatis Plus
         primary:
           driver-class-name: ${PRIMARY_DB_DRIVER}
-          url: jdbc:mysql://${PRIMARY_DB_HOST}:${PRIMARY_DB_PORT}/${PRIMARY_DB_NAME}?useUnicode=true&characterEncoding=utf8&zeroDateTimeBehavior=convertToNull&useSSL=false&serverTimezone=GMT%2B8
+          url: jdbc:mysql://${PRIMARY_DB_HOST}:${PRIMARY_DB_PORT}/${PRIMARY_DB_NAME}?useUnicode=true&characterEncoding=utf8&zeroDateTimeBehavior=convertToNull&useSSL=false&serverTimezone=GMT%2B8&allowPublicKeyRetrieval=true
           username: ${PRIMARY_DB_USER}
           password: ${PRIMARY_DB_PASSWORD}
           type: com.zaxxer.hikari.HikariDataSource
@@ -50,15 +60,14 @@ spring:
 #            connection-timeout: ${PGVECTOR_DB_CONNECTION_TIMEOUT}
 #            connection-test-query: SELECT 1
 
-  # AI 配置
+  # AI 配置 (仅供参考，实际模型由用户动态配置)
   ai:
     openai:
-      base-url: ${OPENAI_BASE_URL}
-      api-key: ${OPENAI_API_KEY}
       embedding:
         base-url: ${EMBEDDING_BASE_URL}
         endpoint: ${EMBEDDING_ENDPOINT}
         model: ${EMBEDDING_MODEL}
+        api-key: ${EMBEDDING_API_KEY}
         options:
           num_ctx: ${EMBEDDING_NUM_CTX}
 

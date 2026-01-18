@@ -71,7 +71,6 @@
             "edgeId": "edge-start-end",
             "source": "start",
             "target": "end",
-            "label": "",
             "condition": "",
             "edgeType": "DEPENDENCY"
         }

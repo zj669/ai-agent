@@ -9,6 +9,9 @@ import com.zj.aiagent.domain.workflow.valobj.NodeExecutionResult;
 import com.zj.aiagent.domain.workflow.valobj.NodeType;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.ai.chat.client.ChatClient;
+import org.springframework.ai.openai.OpenAiChatModel;
+import org.springframework.ai.openai.OpenAiChatOptions;
+import org.springframework.ai.openai.api.OpenAiApi;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.expression.EvaluationContext;
 import org.springframework.expression.Expression;
@@ -16,6 +19,7 @@ import org.springframework.expression.ExpressionParser;
 import org.springframework.expression.spel.standard.SpelExpressionParser;
 import org.springframework.expression.spel.support.StandardEvaluationContext;
 import org.springframework.stereotype.Component;
+import org.springframework.web.client.RestClient;
 
 import java.util.HashMap;
 import java.util.List;
@@ -38,14 +42,14 @@ public class ConditionNodeExecutorStrategy implements NodeExecutorStrategy {
 
     private static final ExpressionParser PARSER = new SpelExpressionParser();
 
-    private final ChatClient.Builder chatClientBuilder;
     private final Executor executor;
+    private final RestClient.Builder restClientBuilder;
 
     public ConditionNodeExecutorStrategy(
-            ChatClient.Builder chatClientBuilder,
-            @Qualifier("nodeExecutorThreadPool") Executor executor) {
-        this.chatClientBuilder = chatClientBuilder;
+            @Qualifier("nodeExecutorThreadPool") Executor executor,
+            @Qualifier("restClientBuilder1") RestClient.Builder restClientBuilder) {
         this.executor = executor;
+        this.restClientBuilder = restClientBuilder;
     }
 
     @Override
@@ -58,7 +62,6 @@ public class ConditionNodeExecutorStrategy implements NodeExecutorStrategy {
         return CompletableFuture.supplyAsync(() -> {
             try {
                 NodeConfig config = node.getConfig();
-
                 // 从 resolvedInputs 获取出边列表
                 List<Edge> outgoingEdges = (List<Edge>) resolvedInputs.get("__outgoingEdges__");
                 if (outgoingEdges == null || outgoingEdges.isEmpty()) {
@@ -72,7 +75,7 @@ public class ConditionNodeExecutorStrategy implements NodeExecutorStrategy {
                 if ("EXPRESSION".equalsIgnoreCase(routingStrategy)) {
                     selectedTargetNodeId = evaluateByExpression(outgoingEdges, resolvedInputs);
                 } else {
-                    selectedTargetNodeId = evaluateByLlm(outgoingEdges, resolvedInputs);
+                    selectedTargetNodeId = evaluateByLlm(outgoingEdges, resolvedInputs, config);
                 }
 
                 // 如果没有命中任何条件，使用默认边
@@ -145,7 +148,20 @@ public class ConditionNodeExecutorStrategy implements NodeExecutorStrategy {
     /**
      * LLM 语义模式：让 LLM 根据上下文选择最匹配的边
      */
-    private String evaluateByLlm(List<Edge> edges, Map<String, Object> resolvedInputs) {
+    private String evaluateByLlm(List<Edge> edges, Map<String, Object> resolvedInputs, NodeConfig config) {
+        String model = config.getString("model");
+        String apiUrl = config.getString("baseUrl");
+        String apiKey = config.getString("apiKey");
+        ChatClient.Builder chatClientBuilder = ChatClient.builder(OpenAiChatModel.builder()
+                .openAiApi(OpenAiApi.builder()
+                        .apiKey(apiKey)
+                        .baseUrl(apiUrl)
+                        .restClientBuilder(restClientBuilder)
+                        .build())
+                .defaultOptions(OpenAiChatOptions.builder()
+                        .model(model)
+                        .build())
+                .build());
         // 构建 Prompt
         StringBuilder prompt = new StringBuilder();
         prompt.append("Based on the following context, select the most appropriate next step.\n\n");

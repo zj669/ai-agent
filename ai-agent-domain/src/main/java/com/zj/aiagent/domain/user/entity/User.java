@@ -90,4 +90,12 @@ public class User {
         this.lastLoginIp = ip;
         this.lastLoginTime = LocalDateTime.now();
     }
+
+    /**
+     * 重置密码
+     */
+    public void resetPassword(Credential newCredential) {
+        this.credential = newCredential;
+        this.updatedAt = LocalDateTime.now();
+    }
 }

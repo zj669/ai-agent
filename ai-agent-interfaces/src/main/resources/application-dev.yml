@@ -28,15 +28,12 @@ PGVECTOR_DB_IDLE_TIMEOUT: 30000
 PGVECTOR_DB_MAX_LIFETIME: 28740000
 PGVECTOR_DB_CONNECTION_TIMEOUT: 30000
 
-# OpenAI配置
-OPENAI_BASE_URL: https://globalai.vip
-OPENAI_API_KEY: sk-igZGYZBslPs4UxqU1r8BuprgCFzD388sk36Mwnp95jxsfgKp
 
 # Embedding配置
 EMBEDDING_BASE_URL: https://dashscope.aliyuncs.com/compatible-mode
 EMBEDDING_ENDPOINT: https://dashscope.aliyuncs.com/compatible-mode/v1/embeddings
 EMBEDDING_MODEL: text-embedding-v4
-EMBEDDING_NUM_CTX: 512
+EMBEDDING_NUM_CTX: 1,024
 
 # Agent配置
 AGENT_AUTO_CONFIG_ENABLED: true

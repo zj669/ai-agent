@@ -60,9 +60,12 @@ public class WorkflowController {
         String channel = "workflow:channel:" + executionId;
         RedisSseListener listener = new RedisSseListener(objectMapper, payload -> {
             try {
+                String eventName = payload.getEventType() != null ? payload.getEventType().name().toLowerCase()
+                        : "message";
+
                 emitter.send(SseEmitter.event()
-                        .name("message") // 或者 payload.getNodeType()
-                        .data(payload)); // 直接发送 Payload 对象，SpringMVC 会自动序列化
+                        .name(eventName)
+                        .data(payload));
             } catch (IOException e) {
                 log.error("[SSE] Error sending event to emitter: {}", e.getMessage());
                 emitter.completeWithError(e);

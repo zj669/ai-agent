@@ -33,6 +33,11 @@ public class LoginInterceptor implements HandlerInterceptor {
     public boolean preHandle(HttpServletRequest request, HttpServletResponse response, Object handler)
             throws Exception {
 
+        // 0. 放行 OPTIONS 请求 (CORS 预检)
+        if ("OPTIONS".equalsIgnoreCase(request.getMethod())) {
+            return true;
+        }
+
         // 1. Check Debug Mode
         if (authDebugProperties.isEnabled()) {
             String debugUserId = request.getHeader(authDebugProperties.getHeaderName());

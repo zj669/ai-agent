@@ -20,6 +20,9 @@ public class MybatisPlusConfig {
         MybatisPlusInterceptor interceptor = new MybatisPlusInterceptor();
         // 添加分页插件
         interceptor.addInnerInterceptor(new PaginationInnerInterceptor(DbType.MYSQL));
+        // 添加乐观锁插件
+        interceptor.addInnerInterceptor(
+                new com.baomidou.mybatisplus.extension.plugins.inner.OptimisticLockerInnerInterceptor());
         return interceptor;
     }
-} 
+}

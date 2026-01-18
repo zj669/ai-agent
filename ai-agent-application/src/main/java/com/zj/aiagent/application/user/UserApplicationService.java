@@ -138,4 +138,17 @@ public class UserApplicationService {
                 .createdAt(user.getCreatedAt())
                 .build();
     }
+
+    /**
+     * 重置密码
+     */
+    @Transactional
+    public void resetPassword(UserRequests.ResetPasswordRequest request) {
+        log.info("Resetting password for email: {}", request.getEmail());
+        authenticationDomainService.resetPassword(
+                request.getEmail(),
+                request.getCode(),
+                request.getNewPassword(),
+                request.getConfirmPassword());
+    }
 }

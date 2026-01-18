@@ -16,6 +16,6 @@ public class NodeTemplateDTO {
     private JsonNode defaultSchemaPolicy;
     private JsonNode initialSchema;
 
-    // Configuration Fields
-    private List<ConfigFieldDTO> configFields;
+    // Configuration Field Groups (grouped by groupName)
+    private List<ConfigFieldGroupDTO> configFieldGroups;
 }

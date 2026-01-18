@@ -59,7 +59,7 @@ public class MilvusVectorStoreConfig {
     /**
      * 向量维度（需与 Embedding 模型匹配）
      */
-    private int embeddingDimension = 768;
+    private int embeddingDimension = 1024;
 
     /**
      * Milvus 客户端 Bean
@@ -72,9 +72,9 @@ public class MilvusVectorStoreConfig {
                 .withHost(host)
                 .withPort(port);
 
-        if (username != null && !username.isEmpty()) {
-            builder.withAuthorization(username, password);
-        }
+        // if (username != null && !username.isEmpty()) {
+        // builder.withAuthorization(username, password);
+        // }
 
         return new MilvusServiceClient(builder.build());
     }

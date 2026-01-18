@@ -17,9 +17,13 @@ import org.springframework.ai.chat.messages.Message;
 import org.springframework.ai.chat.messages.SystemMessage;
 import org.springframework.ai.chat.messages.UserMessage;
 import org.springframework.ai.chat.prompt.Prompt;
+import org.springframework.ai.openai.OpenAiChatModel;
+import org.springframework.ai.openai.OpenAiChatOptions;
+import org.springframework.ai.openai.api.OpenAiApi;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Component;
 import org.springframework.util.StringUtils;
+import org.springframework.web.client.RestClient;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -41,16 +45,16 @@ import java.util.concurrent.Executor;
 @Component
 public class LlmNodeExecutorStrategy implements NodeExecutorStrategy {
 
-    private final ChatClient.Builder chatClientBuilder;
     private final Executor executor;
     private final ObjectMapper objectMapper;
+    private final RestClient.Builder restClientBuilder;
 
     public LlmNodeExecutorStrategy(
-            ChatClient.Builder chatClientBuilder,
             @Qualifier("nodeExecutorThreadPool") Executor executor,
+            @Qualifier("restClientBuilder1") RestClient.Builder restClientBuilder,
             ObjectMapper objectMapper) {
-        this.chatClientBuilder = chatClientBuilder;
         this.executor = executor;
+        this.restClientBuilder = restClientBuilder;
         this.objectMapper = objectMapper;
     }
 
@@ -63,7 +67,19 @@ public class LlmNodeExecutorStrategy implements NodeExecutorStrategy {
         return CompletableFuture.supplyAsync(() -> {
             try {
                 NodeConfig config = node.getConfig();
-
+                String model = config.getString("model");
+                String apiUrl = config.getString("baseUrl");
+                String apiKey = config.getString("apiKey");
+                ChatClient.Builder chatClientBuilder = ChatClient.builder(OpenAiChatModel.builder()
+                        .openAiApi(OpenAiApi.builder()
+                                .apiKey(apiKey)
+                                .baseUrl(apiUrl)
+                                .restClientBuilder(restClientBuilder)
+                                .build())
+                        .defaultOptions(OpenAiChatOptions.builder()
+                                .model(model)
+                                .build())
+                        .build());
                 // 获取执行上下文（用于 LTM/STM/Awareness）
                 ExecutionContext context = (ExecutionContext) resolvedInputs.get("__context__");
 

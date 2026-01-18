@@ -28,7 +28,9 @@ public class AuthenticationException extends RuntimeException {
         EMAIL_ALREADY_REGISTERED("该邮箱已被注册"),
         INVALID_CREDENTIALS("用户名或密码错误"),
         USER_DISABLED("用户已被禁用"),
-        WEAK_PASSWORD("密码强度不足，至少需要8位");
+        WEAK_PASSWORD("密码强度不足，至少需要8位"),
+        PASSWORD_MISMATCH("两次输入的密码不一致"),
+        USER_NOT_FOUND("用户不存在");
 
         private final String message;
 

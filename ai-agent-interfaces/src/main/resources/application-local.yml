@@ -1,21 +1,22 @@
 # ==========================================
-# Local 本地开发环境配置 (Key-Value 格式)
+# Local 本地开发环境配置 (基于Docker Compose)
 # ==========================================
 
-# 主数据库配置 (MySQL - 本地)
+# 主数据库配置 (MySQL - Docker)
+# 账号: root / root123
 PRIMARY_DB_DRIVER: com.mysql.cj.jdbc.Driver
 PRIMARY_DB_HOST: localhost
 PRIMARY_DB_PORT: 13306
-PRIMARY_DB_NAME: agent_engine
+PRIMARY_DB_NAME: ai_agent
 PRIMARY_DB_USER: root
-PRIMARY_DB_PASSWORD: 123456
+PRIMARY_DB_PASSWORD: root123
 PRIMARY_DB_MIN_IDLE: 5
 PRIMARY_DB_MAX_POOL_SIZE: 15
 PRIMARY_DB_IDLE_TIMEOUT: 30000
 PRIMARY_DB_MAX_LIFETIME: 28740000
 PRIMARY_DB_CONNECTION_TIMEOUT: 30000
 
-# PgVector数据库配置 (PostgreSQL - 本地)
+# PgVector数据库配置 (PostgreSQL - 暂不使用，改用Milvus)
 PGVECTOR_DB_DRIVER: org.postgresql.Driver
 PGVECTOR_DB_HOST: localhost
 PGVECTOR_DB_PORT: 5432
@@ -28,15 +29,14 @@ PGVECTOR_DB_IDLE_TIMEOUT: 30000
 PGVECTOR_DB_MAX_LIFETIME: 28740000
 PGVECTOR_DB_CONNECTION_TIMEOUT: 30000
 
-# OpenAI配置
-OPENAI_BASE_URL: https://globalai.vip
-OPENAI_API_KEY: sk-igZGYZBslPs4UxqU1r8BuprgCFzD388sk36Mwnp95jxsfgKp
+
 
 # Embedding配置
 EMBEDDING_BASE_URL: https://dashscope.aliyuncs.com/compatible-mode/v1
 EMBEDDING_ENDPOINT: https://dashscope.aliyuncs.com/compatible-mode/v1/embeddings
 EMBEDDING_MODEL: text-embedding-v4
-EMBEDDING_NUM_CTX: 512
+EMBEDDING_NUM_CTX: 1,024
+EMBEDDING_API_KEY: sk-ccf9acf852334b51bd914d42de7b6d01  # 请替换为真实的API Key
 
 
 # 邮件配置
@@ -45,11 +45,12 @@ MAIL_PORT: 465
 MAIL_USERNAME: zj-669@qq.com
 MAIL_PASSWORD: romspgyuovtqddgh
 
-# Redis配置 (本地)
+# Redis配置 (Docker)
+# 密码: redis123
 REDIS_HOST: localhost
-REDIS_PORT: 16379
+REDIS_PORT: 6379
 REDIS_POOL_SIZE: 10
-REDIS_PASSWORD: 123456
+REDIS_PASSWORD: redis123
 REDIS_MIN_IDLE_SIZE: 5
 REDIS_IDLE_TIMEOUT: 30000
 REDIS_CONNECT_TIMEOUT: 5000
@@ -62,10 +63,11 @@ REDIS_KEEP_ALIVE: true
 AUTH_DEBUG_ENABLED: true
 AUTH_DEBUG_HEADER_NAME: debug-user
 
-# MinIO 对象存储配置 (本地)
+# MinIO 对象存储配置 (Docker)
+# 账号: admin / admin123456
 MINIO_ENDPOINT: http://localhost:9000
-MINIO_ACCESS_KEY: minioadmin
-MINIO_SECRET_KEY: minioadmin
+MINIO_ACCESS_KEY: admin
+MINIO_SECRET_KEY: admin123456
 MINIO_BUCKET_NAME: knowledge-files
 
 # 异步任务线程池配置 (本地)
@@ -73,9 +75,9 @@ ASYNC_TASK_CORE_SIZE: 5
 ASYNC_TASK_MAX_SIZE: 10
 ASYNC_TASK_QUEUE_CAPACITY: 100
 
-# Milvus 向量数据库配置 (本地)
+# Milvus 向量数据库配置 (Docker - 无认证模式)
 MILVUS_ENABLED: true
 MILVUS_HOST: localhost
 MILVUS_PORT: 19530
-MILVUS_USERNAME: 
+MILVUS_USERNAME:
 MILVUS_PASSWORD:
