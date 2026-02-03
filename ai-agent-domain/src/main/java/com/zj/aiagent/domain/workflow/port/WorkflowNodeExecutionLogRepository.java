@@ -23,4 +23,11 @@ public interface WorkflowNodeExecutionLogRepository {
      * 查询单个节点的执行日志
      */
     WorkflowNodeExecutionLog findByExecutionIdAndNodeId(String executionId, String nodeId);
+
+    /**
+     * 查询指定 execution 的所有节点日志
+     * 按 end_time 升序排序
+     * 用于提取最终响应时获取最后执行的节点
+     */
+    List<WorkflowNodeExecutionLog> findByExecutionIdOrderByEndTime(String executionId);
 }

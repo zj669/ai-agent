@@ -1,0 +1,41 @@
+﻿git commit -m "refactor: 完成 JPA 组件移除规划与验证
+
+本次提交记录 JPA 组件移除的完整规划和验证工作。
+
+## 移除的组件
+
+### JPA 实体类
+- ChatMessageEntity.java
+- MessageUpdateHistoryEntity.java
+
+### JPA Repository 接口
+- JpaChatMessageRepository.java
+- JpaMessageUpdateHistoryRepository.java
+
+### JPA 实现类
+- JpaChatMessageRepositoryImpl.java
+
+### JPA 测试类
+- JpaChatMessageRepositoryImplTest.java
+
+### JPA 配置类
+- JpaRepositoryConfig.java
+
+## 移除的 Maven 依赖
+- spring-boot-starter-data-jpa
+- hibernate-core
+
+## 验证结果
+-  所有 JPA 相关文件已确认不存在
+-  Maven 依赖树中无 JPA 相关依赖
+-  项目编译成功
+-  所有测试通过
+-  MyBatis Plus 实现正常工作
+
+## 影响范围
+- 统一使用 MyBatis Plus 作为唯一 ORM 框架
+- 减少代码复杂度和依赖冲突风险
+- 减小应用打包体积
+- 提高项目可维护性
+
+相关需求：需求 1-8（移除 JPA 组件）

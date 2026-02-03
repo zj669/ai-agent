@@ -2,6 +2,86 @@
 
 ---
 
+## 消息保存机制说明
+
+### 概述
+
+系统采用**双表存储**策略，分离对话消息和执行日志：
+
+1. **messages 表** - 存储用户和 AI 的对话消息（用于聊天历史）
+2. **workflow_node_execution_log 表** - 存储节点执行日志（用于思维链展示）
+
+### 数据流程
+
+```
+用户发送消息
+    ↓
+保存 USER 消息到 messages 表
+    ↓
+初始化 ASSISTANT 消息 (PENDING 状态)
+    ↓
+启动 Workflow 执行
+    ↓
+每个节点执行完成 → 保存到 workflow_node_execution_log 表
+    ↓
+Workflow 执行完成
+    ↓
+从 workflow_node_execution_log 提取最终响应
+    ↓
+更新 ASSISTANT 消息 (COMPLETED 状态)
+```
+
+### 关键特性
+
+1. **自动保存**
+   - Workflow 启动时自动保存用户消息
+   - Workflow 完成时自动更新 AI 响应
+   - 无需手动调用保存接口
+
+2. **状态管理**
+   - PENDING: AI 正在思考中
+   - COMPLETED: AI 已完成响应
+   - FAILED: Workflow 执行失败
+
+3. **关联查询**
+   - 消息的 metadata 包含 executionId
+   - 通过 executionId 可查询完整的思维链
+   - 支持从对话历史跳转到思维链详情
+
+4. **数据持久化**
+   - 所有数据持久化到 MySQL
+   - 支持分页查询和历史回溯
+   - 消息与执行日志独立存储，互不影响
+
+### API 使用示例
+
+```javascript
+// 1. 启动对话
+POST /api/workflow/execution/start
+{
+  "agentId": 1001,
+  "userId": 101,
+  "conversationId": "conv-uuid-...",
+  "inputs": { "query": "你好" }
+}
+
+// 2. 查询聊天历史
+GET /api/chat/conversations/conv-uuid-.../messages
+// 返回: [
+//   { role: "USER", content: "你好", metadata: { executionId: "exec-001" } },
+//   { role: "ASSISTANT", content: "你好！有什么可以帮助你的吗？", status: "COMPLETED" }
+// ]
+
+// 3. 查询思维链（从 metadata 获取 executionId）
+GET /api/workflow/execution/exec-001/logs
+// 返回: [
+//   { nodeId: "node-1", nodeName: "意图识别", outputs: { intent: "greeting" } },
+//   { nodeId: "node-2", nodeName: "生成回复", outputs: { response: "你好！..." } }
+// ]
+```
+
+---
+
 ## /client/user （用户管理）
 
 ### /email/sendCode
@@ -332,7 +412,7 @@ graphJson结构演示：
 
 ### /conversations/{conversationId}/messages
     功能： 获取会话消息历史
-    场景： 获取某个会话的所有消息
+    场景： 获取某个会话的所有消息（包括用户输入和 AI 响应）
     请求方式： GET
     入参： 
         conversationId: 会话ID (PathVariable)
@@ -344,13 +424,38 @@ graphJson结构演示：
             conversationId: 会话ID
             role: 角色 (USER/ASSISTANT/SYSTEM)
             content: 消息内容
-            thoughtProcess: 思考过程列表
+            thoughtProcess: 思考过程列表（已废弃，请使用 /api/workflow/execution/{executionId}/logs 查询）
             citations: 引用列表
-            status: 消息状态
+            status: 消息状态 (PENDING/COMPLETED/FAILED)
             createdAt: 创建时间
-            metadata: 元数据
+            metadata: 元数据（包含 executionId）
         }
     ]
+    
+    **消息保存机制说明：**
+    
+    1. **用户消息 (USER)**
+       - 在 workflow 启动时自动保存
+       - content 字段存储用户的原始输入
+       - metadata 中包含 executionId，用于关联工作流执行
+    
+    2. **AI 响应消息 (ASSISTANT)**
+       - 在 workflow 启动时初始化为 PENDING 状态
+       - 在 workflow 执行完成后更新为 COMPLETED 状态
+       - content 字段存储 AI 的最终响应（从最后一个 LLM 节点提取）
+       - 如果 workflow 执行失败，状态更新为 FAILED
+       - metadata 中包含 executionId，用于关联工作流执行
+    
+    3. **思维链查询**
+       - 消息表只存储最终的对话结果（用户输入 + AI 响应）
+       - 要查看 AI 的思考过程和中间步骤，请使用：
+         `GET /api/workflow/execution/{executionId}/logs`
+       - executionId 可从消息的 metadata 字段中获取
+    
+    4. **数据持久化**
+       - 所有消息持久化到 MySQL 的 messages 表
+       - 支持分页查询，按创建时间升序排序
+       - 消息与 workflow 执行通过 executionId 关联
 
 ### /conversations/{conversationId}
     功能： 删除会话
@@ -532,6 +637,60 @@ graphJson结构演示：
             defaultConfig: 默认配置
         }
     ]
+
+### /{executionId}/logs
+    功能： 获取工作流执行日志（思维链）
+    场景： 查看 AI 的思考过程和每个节点的执行详情
+    请求方式： GET
+    入参： executionId (PathVariable，执行ID)
+    返回值: [
+        {
+            id: 日志ID
+            executionId: 执行ID
+            nodeId: 节点ID
+            nodeName: 节点名称
+            nodeType: 节点类型 (LLM/HTTP/CONDITION/TOOL等)
+            renderMode: 渲染模式 (MESSAGE/HIDDEN/THOUGHT)
+            status: 执行状态 (0:Running, 1:Success, 2:Failed)
+            statusText: 状态描述 (Running/Success/Failed)
+            inputs: 输入参数 (JSON对象)
+            outputs: 输出结果 (JSON对象)
+            errorMessage: 错误信息（如果失败）
+            startTime: 开始时间
+            endTime: 结束时间
+            durationMs: 执行耗时（毫秒）
+        }
+    ]
+    
+    **使用说明：**
+    
+    1. **获取 executionId**
+       - 从消息的 metadata 字段中获取
+       - 或从 workflow 执行响应中获取
+    
+    2. **渲染模式 (renderMode)**
+       - MESSAGE: 显示为对话消息（用户可见）
+       - THOUGHT: 显示为思考过程（可折叠展示）
+       - HIDDEN: 隐藏节点（不显示给用户）
+    
+    3. **节点类型 (nodeType)**
+       - LLM: 大语言模型节点
+       - HTTP: HTTP 请求节点
+       - CONDITION: 条件分支节点
+       - TOOL: MCP 工具节点
+       - START: 开始节点
+       - END: 结束节点
+    
+    4. **数据结构**
+       - inputs/outputs 为 JSON 对象，包含节点的完整输入输出
+       - 按节点执行时间升序排序
+       - 包含所有中间步骤，用于可视化展示思维链
+    
+    5. **前端展示建议**
+       - 根据 renderMode 决定是否显示
+       - 使用时间线或流程图展示节点执行顺序
+       - 支持展开/折叠查看详细的 inputs/outputs
+       - 使用不同颜色标识 Success/Failed 状态
 
 ---
 

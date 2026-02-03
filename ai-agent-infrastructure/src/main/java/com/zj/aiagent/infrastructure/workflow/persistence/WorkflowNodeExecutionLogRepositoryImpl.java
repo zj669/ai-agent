@@ -48,6 +48,16 @@ public class WorkflowNodeExecutionLogRepositoryImpl implements WorkflowNodeExecu
         return toDomain(logMapper.selectOne(wrapper));
     }
 
+    @Override
+    public List<WorkflowNodeExecutionLog> findByExecutionIdOrderByEndTime(String executionId) {
+        LambdaQueryWrapper<WorkflowNodeExecutionLogPO> wrapper = new LambdaQueryWrapper<>();
+        wrapper.eq(WorkflowNodeExecutionLogPO::getExecutionId, executionId)
+                .orderByAsc(WorkflowNodeExecutionLogPO::getEndTime);
+        return logMapper.selectList(wrapper).stream()
+                .map(this::toDomain)
+                .collect(Collectors.toList());
+    }
+
     // --- Converters ---
 
     private WorkflowNodeExecutionLogPO toPO(WorkflowNodeExecutionLog domain) {

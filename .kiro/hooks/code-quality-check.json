@@ -1,0 +1,12 @@
+{
+  "name": "代码质量检查",
+  "version": "1.0.0",
+  "description": "在代码编写完成后，自动执行编译检查和诊断",
+  "when": {
+    "type": "agentStop"
+  },
+  "then": {
+    "type": "askAgent",
+    "prompt": "请执行以下检查：\n1. 如果修改了 Java 文件，使用 getDiagnostics 检查语法错误\n2. 如果创建了新的 Service/Repository，确认是否添加了必要的注释\n3. 如果修改了数据库相关代码，确认是否符合 database-standards.md 规范\n4. 简要总结本次修改的文件和主要变更"
+  }
+}

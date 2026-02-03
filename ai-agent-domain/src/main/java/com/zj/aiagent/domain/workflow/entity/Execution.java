@@ -41,6 +41,12 @@ public class Execution {
     private String conversationId;
 
     /**
+     * 关联的 Assistant 消息 ID
+     * 用于在 workflow 执行完成后更新消息内容
+     */
+    private String assistantMessageId;
+
+    /**
      * 工作流图
      */
     private WorkflowGraph graph;

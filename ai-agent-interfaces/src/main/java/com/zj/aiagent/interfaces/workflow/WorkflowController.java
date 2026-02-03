@@ -3,9 +3,7 @@ package com.zj.aiagent.interfaces.workflow;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.zj.aiagent.application.workflow.SchedulerService;
 import com.zj.aiagent.domain.workflow.entity.Execution;
-import com.zj.aiagent.domain.workflow.entity.WorkflowGraph;
 import com.zj.aiagent.domain.workflow.port.ExecutionRepository;
-import com.zj.aiagent.domain.workflow.valobj.ExecutionStatus;
 import com.zj.aiagent.infrastructure.workflow.event.RedisSseListener;
 import lombok.Data;
 import lombok.RequiredArgsConstructor;
@@ -156,6 +154,25 @@ public class WorkflowController {
                 .ofNullable(workflowNodeExecutionLogRepository.findByExecutionIdAndNodeId(executionId, nodeId))
                 .map(ResponseEntity::ok)
                 .orElse(ResponseEntity.notFound().build());
+    }
+
+    /**
+     * 获取执行的思维链日志
+     * 返回该执行下所有节点的执行日志，按开始时间排序
+     */
+    @GetMapping("/{executionId}/logs")
+    public ResponseEntity<java.util.List<com.zj.aiagent.interfaces.workflow.dto.WorkflowNodeExecutionLogDTO>> getExecutionLogs(
+            @PathVariable String executionId) {
+        log.info("[API] Fetching execution logs for: {}", executionId);
+        
+        java.util.List<com.zj.aiagent.domain.workflow.entity.WorkflowNodeExecutionLog> logs = 
+                workflowNodeExecutionLogRepository.findByExecutionId(executionId);
+        
+        java.util.List<com.zj.aiagent.interfaces.workflow.dto.WorkflowNodeExecutionLogDTO> dtos = logs.stream()
+                .map(com.zj.aiagent.interfaces.workflow.dto.WorkflowNodeExecutionLogDTO::from)
+                .toList();
+        
+        return ResponseEntity.ok(dtos);
     }
 
     /**

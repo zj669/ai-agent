@@ -188,4 +188,72 @@ public class RedissonService implements IRedisService {
         return redissonClient.getBitSet(key);
     }
 
+    @Override
+    public void setString(String key, String value, long timeout, TimeUnit timeUnit) {
+        RBucket<String> bucket = redissonClient.getBucket(key);
+        bucket.set(value, timeout, timeUnit);
+    }
+
+    @Override
+    public String getString(String key) {
+        RBucket<String> bucket = redissonClient.getBucket(key);
+        return bucket.get();
+    }
+
+    @Override
+    public java.util.List<String> multiGetString(java.util.Collection<String> keys) {
+        RBuckets buckets = redissonClient.getBuckets();
+        java.util.Map<String, String> result = buckets.get(keys.toArray(new String[0]));
+        return new java.util.ArrayList<>(result.values());
+    }
+
+    @Override
+    public java.util.Set<String> keys(String pattern) {
+        Iterable<String> keysIterable = redissonClient.getKeys().getKeysByPattern(pattern);
+        java.util.Set<String> result = new java.util.HashSet<>();
+        keysIterable.forEach(result::add);
+        return result;
+    }
+
+    @Override
+    public Long delete(java.util.Collection<String> keys) {
+        return redissonClient.getKeys().delete(keys.toArray(new String[0]));
+    }
+
+    @Override
+    public Boolean delete(String key) {
+        return redissonClient.getKeys().delete(key) > 0;
+    }
+
+    @Override
+    public Long addToSet(String key, String... values) {
+        RSet<String> set = redissonClient.getSet(key);
+        boolean added = set.addAll(java.util.Arrays.asList(values));
+        return added ? (long) values.length : 0L;
+    }
+
+    @Override
+    public java.util.Set<String> getSetMembers(String key) {
+        RSet<String> set = redissonClient.getSet(key);
+        return new java.util.HashSet<>(set.readAll());
+    }
+
+    @Override
+    public Long removeFromSet(String key, String... values) {
+        RSet<String> set = redissonClient.getSet(key);
+        boolean removed = set.removeAll(java.util.Arrays.asList(values));
+        return removed ? (long) values.length : 0L;
+    }
+
+    @Override
+    public void publish(String channel, String message) {
+        RTopic topic = redissonClient.getTopic(channel);
+        topic.publish(message);
+    }
+
+    @Override
+    public <T> RSet<T> getSet(String key) {
+        return redissonClient.getSet(key);
+    }
+
 }

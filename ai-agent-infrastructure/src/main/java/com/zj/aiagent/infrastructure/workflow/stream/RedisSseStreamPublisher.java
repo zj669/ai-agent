@@ -31,12 +31,20 @@ public class RedisSseStreamPublisher implements StreamPublisher {
 
     @Override
     public void publishDelta(String delta) {
+        // 根据节点是否为最终输出节点决定 renderMode
+        // 最终输出节点: MARKDOWN (显示在聊天消息中)
+        // 中间节点: THOUGHT (显示在思维链中)
+        publishDelta(delta, !context.isFinalOutputNode());
+    }
+    
+    @Override
+    public void publishDelta(String delta, boolean isThought) {
         if (delta == null || delta.isEmpty()) {
             return;
         }
-        log.trace("[Stream] Publishing delta for node: {}, length: {}",
-                context.getNodeId(), delta.length());
-        publish(SseEventType.UPDATE, ExecutionStatus.RUNNING, null, delta, false);
+        log.trace("[Stream] Publishing delta for node: {}, length: {}, isThought: {}",
+                context.getNodeId(), delta.length(), isThought);
+        publish(SseEventType.UPDATE, ExecutionStatus.RUNNING, null, delta, isThought);
     }
 
     @Override

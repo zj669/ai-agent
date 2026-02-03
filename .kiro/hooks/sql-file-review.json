@@ -1,0 +1,13 @@
+{
+  "name": "SQL 文件审查",
+  "version": "1.0.0",
+  "description": "当创建或修改 SQL 迁移文件时，自动审查规范性",
+  "when": {
+    "type": "fileEdited",
+    "patterns": ["**/db/migration/*.sql", "**/db/*.sql"]
+  },
+  "then": {
+    "type": "askAgent",
+    "prompt": "SQL 文件已修改，请审查：\n1. 文件命名是否符合 Flyway 规范（V{version}__{description}.sql）\n2. 是否包含了必要的注释\n3. 是否使用了 ALTER TABLE 而非 DROP + CREATE\n4. 索引设计是否合理\n5. 简要评估该迁移的影响"
+  }
+}

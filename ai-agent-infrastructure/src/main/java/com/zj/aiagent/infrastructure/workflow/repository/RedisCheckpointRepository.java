@@ -3,9 +3,9 @@ package com.zj.aiagent.infrastructure.workflow.repository;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.zj.aiagent.domain.workflow.port.CheckpointRepository;
 import com.zj.aiagent.domain.workflow.valobj.Checkpoint;
+import com.zj.aiagent.infrastructure.redis.IRedisService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Repository;
 
 import java.util.Optional;
@@ -24,20 +24,25 @@ public class RedisCheckpointRepository implements CheckpointRepository {
     private static final String PAUSE_KEY_PREFIX = "workflow:pause:";
     private static final long TTL_HOURS = 24; // 检查点保留 24 小时
 
-    private final StringRedisTemplate redisTemplate;
+    private final IRedisService redisService;
     private final ObjectMapper objectMapper;
 
     @Override
     public void save(Checkpoint checkpoint) {
         try {
+            // 业务逻辑: 构建 key
             String key = KEY_PREFIX + checkpoint.getExecutionId() + ":" + checkpoint.getCurrentNodeId();
+            
+            // 业务逻辑: 序列化对象
             String value = objectMapper.writeValueAsString(checkpoint);
-            redisTemplate.opsForValue().set(key, value, TTL_HOURS, TimeUnit.HOURS);
+            
+            // ✅ 使用 IRedisService 的基础操作
+            redisService.setString(key, value, TTL_HOURS, TimeUnit.HOURS);
 
-            // 如果是暂停点，额外保存一份便于快速查询
+            // 业务逻辑: 如果是暂停点，额外保存一份便于快速查询
             if (checkpoint.isPausePoint()) {
                 String pauseKey = PAUSE_KEY_PREFIX + checkpoint.getExecutionId();
-                redisTemplate.opsForValue().set(pauseKey, value, TTL_HOURS, TimeUnit.HOURS);
+                redisService.setString(pauseKey, value, TTL_HOURS, TimeUnit.HOURS);
             }
 
             log.debug("[Checkpoint] Saved: {}", checkpoint.getCheckpointId());
@@ -50,16 +55,17 @@ public class RedisCheckpointRepository implements CheckpointRepository {
     @Override
     public Optional<Checkpoint> findLatest(String executionId) {
         try {
-            // 简化实现：使用 SCAN 查找最新的检查点
-            // 生产环境建议使用 Sorted Set 按时间排序
+            // 业务逻辑: 构建查询模式
             String pattern = KEY_PREFIX + executionId + ":*";
-            var keys = redisTemplate.keys(pattern);
+            
+            // ✅ 使用 IRedisService 的基础操作
+            var keys = redisService.keys(pattern);
 
             if (keys == null || keys.isEmpty()) {
                 return Optional.empty();
             }
 
-            // 取最后一个（按创建时间）
+            // 业务逻辑: 选择最新的 key (按创建时间)
             String latestKey = keys.stream()
                     .max(String::compareTo)
                     .orElse(null);
@@ -68,11 +74,14 @@ public class RedisCheckpointRepository implements CheckpointRepository {
                 return Optional.empty();
             }
 
-            String value = redisTemplate.opsForValue().get(latestKey);
+            // ✅ 使用 IRedisService 的基础操作
+            String value = redisService.getString(latestKey);
+            
             if (value == null) {
                 return Optional.empty();
             }
 
+            // 业务逻辑: 反序列化对象
             return Optional.of(objectMapper.readValue(value, Checkpoint.class));
         } catch (Exception e) {
             log.error("[Checkpoint] Failed to find latest: {}", e.getMessage(), e);
@@ -83,13 +92,17 @@ public class RedisCheckpointRepository implements CheckpointRepository {
     @Override
     public Optional<Checkpoint> findPausePoint(String executionId) {
         try {
+            // 业务逻辑: 构建暂停点 key
             String key = PAUSE_KEY_PREFIX + executionId;
-            String value = redisTemplate.opsForValue().get(key);
+            
+            // ✅ 使用 IRedisService 的基础操作
+            String value = redisService.getString(key);
 
             if (value == null) {
                 return Optional.empty();
             }
 
+            // 业务逻辑: 反序列化对象
             return Optional.of(objectMapper.readValue(value, Checkpoint.class));
         } catch (Exception e) {
             log.error("[Checkpoint] Failed to find pause point: {}", e.getMessage(), e);
@@ -100,15 +113,17 @@ public class RedisCheckpointRepository implements CheckpointRepository {
     @Override
     public void deleteByExecutionId(String executionId) {
         try {
-            // 删除所有检查点
+            // 业务逻辑: 构建删除模式
             String pattern = KEY_PREFIX + executionId + ":*";
-            var keys = redisTemplate.keys(pattern);
+            
+            // ✅ 使用 IRedisService 的基础操作
+            var keys = redisService.keys(pattern);
             if (keys != null && !keys.isEmpty()) {
-                redisTemplate.delete(keys);
+                redisService.delete(keys);
             }
 
-            // 删除暂停点
-            redisTemplate.delete(PAUSE_KEY_PREFIX + executionId);
+            // 业务逻辑: 删除暂停点
+            redisService.delete(PAUSE_KEY_PREFIX + executionId);
 
             log.debug("[Checkpoint] Deleted all for execution: {}", executionId);
         } catch (Exception e) {

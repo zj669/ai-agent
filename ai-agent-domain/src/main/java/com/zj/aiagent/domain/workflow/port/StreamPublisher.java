@@ -21,6 +21,14 @@ public interface StreamPublisher {
      * @param delta 增量内容
      */
     void publishDelta(String delta);
+    
+    /**
+     * 推送增量文本（打字机效果）- 支持指定是否为思考过程
+     * 
+     * @param delta 增量内容
+     * @param isThought 是否为思考过程
+     */
+    void publishDelta(String delta, boolean isThought);
 
     /**
      * 推送思考过程

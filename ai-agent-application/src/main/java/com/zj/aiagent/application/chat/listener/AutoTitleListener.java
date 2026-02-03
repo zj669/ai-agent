@@ -1,9 +1,8 @@
 package com.zj.aiagent.application.chat.listener;
 
-import com.zj.aiagent.application.chat.ChatApplicationService;
 import com.zj.aiagent.application.chat.event.MessageAppendedEvent;
-import com.zj.aiagent.domain.chat.entity.Conversation;
 import com.zj.aiagent.domain.chat.port.ConversationRepository;
+import com.zj.aiagent.infrastructure.chat.WebSocketMessageService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.event.EventListener;
@@ -12,6 +11,7 @@ import org.springframework.stereotype.Component;
 
 /**
  * 自动生成标题监听器
+ * 当消息添加后，自动生成会话标题并通过 WebSocket 推送给前端
  */
 @Slf4j
 @Component
@@ -19,6 +19,7 @@ import org.springframework.stereotype.Component;
 public class AutoTitleListener {
 
     private final ConversationRepository conversationRepository;
+    private final WebSocketMessageService webSocketMessageService;
     // 实际项目中可能需要注入 AgentExecutionService 或 LLMClient
 
     @Async
@@ -50,6 +51,9 @@ public class AutoTitleListener {
                 conversation.updateTitle(newTitle);
                 conversationRepository.save(conversation);
                 log.info("Updated title to: {}", newTitle);
+                
+                // 通过 WebSocket 推送标题更新到前端
+                webSocketMessageService.sendTitleUpdate(conversationId, newTitle);
             }
         });
     }

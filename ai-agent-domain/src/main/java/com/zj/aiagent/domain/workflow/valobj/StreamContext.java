@@ -39,4 +39,11 @@ public class StreamContext {
      * 节点名称
      */
     private String nodeName;
+    
+    /**
+     * 是否为最终输出节点
+     * true: 输出显示在聊天消息中 (renderMode = MARKDOWN)
+     * false: 输出显示在思维链中 (renderMode = THOUGHT)
+     */
+    private boolean isFinalOutputNode;
 }

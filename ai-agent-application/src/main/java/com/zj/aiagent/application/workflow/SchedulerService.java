@@ -1,5 +1,6 @@
 package com.zj.aiagent.application.workflow;
 
+import com.zj.aiagent.application.chat.ChatApplicationService;
 import com.zj.aiagent.domain.agent.entity.Agent;
 import com.zj.aiagent.domain.agent.entity.AgentVersion;
 import com.zj.aiagent.domain.agent.repository.AgentRepository;
@@ -11,19 +12,18 @@ import com.zj.aiagent.domain.workflow.entity.Execution;
 import com.zj.aiagent.domain.workflow.entity.HumanReviewRecord;
 import com.zj.aiagent.domain.workflow.entity.Node;
 import com.zj.aiagent.domain.workflow.entity.WorkflowGraph;
+import com.zj.aiagent.domain.workflow.entity.WorkflowNodeExecutionLog;
 import com.zj.aiagent.domain.workflow.event.NodeCompletedEvent;
 import com.zj.aiagent.domain.workflow.port.*;
+import com.zj.aiagent.infrastructure.redis.IRedisService;
 import com.zj.aiagent.domain.workflow.service.WorkflowGraphFactory;
 import com.zj.aiagent.domain.workflow.valobj.*;
 import com.zj.aiagent.infrastructure.workflow.executor.NodeExecutorFactory;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.redisson.api.RLock;
-import org.redisson.api.RSet;
-import org.redisson.api.RedissonClient;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.data.domain.PageRequest;
-import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
 
@@ -50,17 +50,23 @@ public class SchedulerService {
     private final CheckpointRepository checkpointRepository;
     private final AgentRepository agentRepository;
     private final WorkflowGraphFactory workflowGraphFactory;
-    private final RedissonClient redissonClient;
+    private final IRedisService redisService;
+    private final WorkflowCancellationPort cancellationPort;
+    private final HumanReviewQueuePort humanReviewQueuePort;
     private final StreamPublisherFactory streamPublisherFactory;
-    private final StringRedisTemplate redisTemplate;
     private final ApplicationEventPublisher applicationEventPublisher;
     private final HumanReviewRepository humanReviewRepository;
 
     // ========== 记忆系统依赖 ==========
     private final VectorStore vectorStore;
     private final ConversationRepository conversationRepository;
+    
+    // ========== 聊天服务依赖 ==========
+    private final ChatApplicationService chatApplicationService;
+    
+    // ========== 工作流日志依赖 ==========
+    private final WorkflowNodeExecutionLogRepository workflowNodeExecutionLogRepository;
 
-    private static final String CANCEL_KEY_PREFIX = "workflow:cancel:";
     private static final int DEFAULT_STM_LIMIT = 10;
 
     /**
@@ -119,6 +125,36 @@ public class SchedulerService {
     private void startExecution(Execution execution, Map<String, Object> inputs,
             com.zj.aiagent.domain.workflow.valobj.ExecutionMode mode) {
         log.info("[Scheduler] Starting execution: {}, mode: {}", execution.getExecutionId(), mode);
+
+        // ========== 新增: 保存用户消息和初始化 Assistant 消息 ==========
+        if (StringUtils.hasText(execution.getConversationId())) {
+            String userInput = extractUserQuery(inputs);
+            if (StringUtils.hasText(userInput)) {
+                try {
+                    // 1. 保存用户消息
+                    Message userMessage = chatApplicationService.appendUserMessage(
+                        execution.getConversationId(), 
+                        userInput,
+                        Map.of("executionId", execution.getExecutionId())
+                    );
+                    log.info("[Scheduler] Saved user message: {}", userMessage.getId());
+                    
+                    // 2. 初始化 Assistant 消息 (PENDING 状态)
+                    String assistantMessageId = chatApplicationService.initAssistantMessage(
+                        execution.getConversationId(),
+                        execution.getExecutionId()
+                    );
+                    
+                    // 3. 保存 messageId 到 execution（用于后续更新）
+                    execution.setAssistantMessageId(assistantMessageId);
+                    
+                    log.info("[Scheduler] Initialized assistant message: {}", assistantMessageId);
+                } catch (Exception e) {
+                    log.error("[Scheduler] Failed to save messages: {}", e.getMessage(), e);
+                    // 不阻塞 workflow 执行
+                }
+            }
+        }
 
         // ========== 记忆水合 (Memory Hydration) ==========
         hydrateMemory(execution, inputs);
@@ -207,7 +243,7 @@ public class SchedulerService {
         }
 
         String lockKey = "lock:exec:" + executionId;
-        RLock lock = redissonClient.getLock(lockKey);
+        RLock lock = redisService.getLock(lockKey);
 
         try {
             lock.lock(30, TimeUnit.SECONDS);
@@ -274,9 +310,8 @@ public class SchedulerService {
             payload.put("executionId", executionId);
             publisher.publishEvent("workflow_resumed", payload);
 
-            // Remove from Pending Review Set
-            RSet<String> pendingSet = redissonClient.getSet("human_review:pending");
-            pendingSet.remove(executionId);
+            // 从待审核队列移除
+            humanReviewQueuePort.removeFromPendingQueue(executionId);
 
             // 8. Schedule Next
             if (pausedPhase == TriggerPhase.AFTER_EXECUTION) {
@@ -335,12 +370,18 @@ public class SchedulerService {
             return;
         }
 
+        // 判断是否为最终输出节点
+        // 1. END 节点始终是最终输出节点
+        // 2. 其他节点默认不是最终输出节点(输出显示在思维链中)
+        boolean isFinalOutputNode = "END".equals(node.getNodeId());
+
         StreamContext streamContext = StreamContext.builder()
                 .executionId(executionId)
                 .nodeId(node.getNodeId())
                 .parentId(parentId)
                 .nodeType(node.getType() != null ? node.getType().name() : "UNKNOWN")
                 .nodeName(node.getName())
+                .isFinalOutputNode(isFinalOutputNode)
                 .build();
 
         StreamPublisher streamPublisher = streamPublisherFactory.create(streamContext);
@@ -410,7 +451,7 @@ public class SchedulerService {
         log.info("[Scheduler] Node {} requires human review at {}, pausing execution", node.getNodeId(), phase);
 
         String lockKey = "lock:exec:" + executionId;
-        RLock lock = redissonClient.getLock(lockKey);
+        RLock lock = redisService.getLock(lockKey);
 
         try {
             lock.lock(10, TimeUnit.SECONDS);
@@ -433,9 +474,8 @@ public class SchedulerService {
             payload.put("triggerPhase", phase.name());
             publisher.publishEvent("workflow_paused", payload);
 
-            // Add to Pending Review Set
-            RSet<String> pendingSet = redissonClient.getSet("human_review:pending");
-            pendingSet.add(executionId);
+            // 添加到待审核队列
+            humanReviewQueuePort.addToPendingQueue(executionId);
 
             return true;
         } catch (Exception e) {
@@ -453,7 +493,7 @@ public class SchedulerService {
         log.info("[Scheduler] Node {} completed with status: {}", nodeId, result.getStatus());
 
         String lockKey = "lock:exec:" + executionId;
-        RLock lock = redissonClient.getLock(lockKey);
+        RLock lock = redisService.getLock(lockKey);
 
         try {
             lock.lock(30, TimeUnit.SECONDS);
@@ -491,12 +531,22 @@ public class SchedulerService {
             executionRepository.update(execution);
 
             // 6. Publish Event
+            // 判断 renderMode: 只有最终输出节点(END)才是 MESSAGE,其他都是 THOUGHT
+            String renderMode;
+            if ("END".equals(nodeId)) {
+                renderMode = "MESSAGE";  // 最终输出节点
+            } else if (result.getStatus() == ExecutionStatus.SUCCEEDED) {
+                renderMode = "THOUGHT";  // 成功的中间节点,显示在思维链中
+            } else {
+                renderMode = "HIDDEN";   // 失败的节点,隐藏
+            }
+            
             NodeCompletedEvent logEvent = NodeCompletedEvent.builder()
                     .executionId(executionId)
                     .nodeId(nodeId)
                     .nodeName(nodeName)
                     .nodeType(nodeType.name())
-                    .renderMode(result.getStatus() == ExecutionStatus.SUCCEEDED ? "MESSAGE" : "HIDDEN")
+                    .renderMode(renderMode)
                     .status(result.getStatus().getCode())
                     .inputs(inputs)
                     .outputs(result.getOutputs())
@@ -506,9 +556,14 @@ public class SchedulerService {
                     .build();
             applicationEventPublisher.publishEvent(logEvent);
 
+            // ========== 新增: 检查是否完成 ==========
             if (execution.getStatus() == ExecutionStatus.SUCCEEDED ||
                     execution.getStatus() == ExecutionStatus.FAILED) {
-                log.info("[Scheduler] Execution {} finished status: {}", executionId, execution.getStatus());
+                log.info("[Scheduler] Execution {} finished with status: {}", 
+                    executionId, execution.getStatus());
+                
+                // 保存最终消息
+                onExecutionComplete(execution);
                 return;
             }
 
@@ -525,11 +580,11 @@ public class SchedulerService {
 
     public void cancelExecution(String executionId) {
         log.info("[Scheduler] Cancelling execution: {}", executionId);
-        redisTemplate.opsForValue().set(CANCEL_KEY_PREFIX + executionId, "true", 1, TimeUnit.HOURS);
+        cancellationPort.markAsCancelled(executionId);
     }
 
     private boolean isCancelled(String executionId) {
-        return Boolean.TRUE.equals(redisTemplate.hasKey(CANCEL_KEY_PREFIX + executionId));
+        return cancellationPort.isCancelled(executionId);
     }
 
     private String generateNodeSummary(NodeType nodeType, NodeExecutionResult result) {
@@ -558,6 +613,340 @@ public class SchedulerService {
                 return "条件判断完成, 选择分支: " + (branch != null ? branch : "default");
             default:
                 return nodeType.name() + " 节点执行完成";
+        }
+    }
+
+    /**
+     * 工作流执行完成回调
+     * 提取最终响应并更新 Assistant 消息
+     */
+    private void onExecutionComplete(Execution execution) {
+        String executionId = execution.getExecutionId();
+        String assistantMessageId = execution.getAssistantMessageId();
+        
+        // 检查是否有关联的消息
+        if (!StringUtils.hasText(assistantMessageId)) {
+            log.debug("[Scheduler] No assistant message associated with execution: {}", executionId);
+            return;
+        }
+        
+        try {
+            if (execution.getStatus() == ExecutionStatus.SUCCEEDED) {
+                // 方案1: 直接从 Execution 上下文获取 END 节点的输出
+                String finalResponse = extractFinalResponseFromExecution(execution);
+                
+                // 方案2: 异步延迟查询数据库（给异步保存留出时间）
+                // 如果方案1失败，使用方案2作为后备
+                if (finalResponse == null || finalResponse.equals("执行完成")) {
+                    log.warn("[Scheduler] Failed to extract response from execution context, will retry from database");
+                    // 延迟100ms后查询数据库
+                    CompletableFuture.runAsync(() -> {
+                        try {
+                            Thread.sleep(100);
+                            String response = extractFinalResponseFromLogs(executionId);
+                            List<com.zj.aiagent.domain.chat.valobj.ThoughtStep> thoughtSteps = buildThoughtSteps(executionId);
+                            
+                            chatApplicationService.finalizeMessage(
+                                assistantMessageId,
+                                response,
+                                thoughtSteps,
+                                com.zj.aiagent.domain.chat.valobj.MessageStatus.COMPLETED
+                            );
+                            log.info("[Scheduler] Updated assistant message {} with final response (delayed) for execution: {}", 
+                                assistantMessageId, executionId);
+                        } catch (Exception e) {
+                            log.error("[Scheduler] Failed to update message in delayed task: {}", e.getMessage(), e);
+                        }
+                    });
+                    return;
+                }
+                
+                // 构建思维链（从执行日志中提取，也需要延迟）
+                CompletableFuture.runAsync(() -> {
+                    try {
+                        Thread.sleep(100);
+                        List<com.zj.aiagent.domain.chat.valobj.ThoughtStep> thoughtSteps = buildThoughtSteps(executionId);
+                        
+                        chatApplicationService.finalizeMessage(
+                            assistantMessageId,
+                            finalResponse,
+                            thoughtSteps,
+                            com.zj.aiagent.domain.chat.valobj.MessageStatus.COMPLETED
+                        );
+                        log.info("[Scheduler] Updated assistant message {} with final response for execution: {}", 
+                            assistantMessageId, executionId);
+                    } catch (Exception e) {
+                        log.error("[Scheduler] Failed to update message with thought steps: {}", e.getMessage(), e);
+                    }
+                });
+                
+            } else if (execution.getStatus() == ExecutionStatus.FAILED) {
+                // 更新消息为失败状态
+                String errorMessage = "执行失败";
+                
+                // 尝试从上下文获取错误信息
+                ExecutionContext context = execution.getContext();
+                if (context != null) {
+                    String logContent = context.getExecutionLogContent();
+                    if (StringUtils.hasText(logContent) && logContent.contains("失败")) {
+                        // 提取最后一行日志作为错误信息
+                        String[] lines = logContent.split("\n");
+                        if (lines.length > 0) {
+                            errorMessage = lines[lines.length - 1];
+                        }
+                    }
+                }
+                
+                chatApplicationService.finalizeMessage(
+                    assistantMessageId,
+                    errorMessage,
+                    null,
+                    com.zj.aiagent.domain.chat.valobj.MessageStatus.FAILED
+                );
+                
+                log.warn("[Scheduler] Updated assistant message {} with error for execution: {}", 
+                    assistantMessageId, executionId);
+            }
+        } catch (Exception e) {
+            log.error("[Scheduler] Failed to update assistant message for execution {}: {}", 
+                executionId, e.getMessage(), e);
+            // 不抛出异常，避免影响工作流的正常完成
+        }
+    }
+    
+    /**
+     * 从 Execution 上下文直接提取最终响应
+     * 优先级: END 节点输出 > 最后一个节点输出
+     */
+    private String extractFinalResponseFromExecution(Execution execution) {
+        try {
+            ExecutionContext context = execution.getContext();
+            if (context == null) {
+                log.warn("[Scheduler] Execution context is null for: {}", execution.getExecutionId());
+                return "执行完成";
+            }
+            
+            // 1. 尝试获取 END 节点的输出
+            Map<String, Object> endNodeOutput = context.getNodeOutput("END");
+            if (endNodeOutput != null && !endNodeOutput.isEmpty()) {
+                log.info("[Scheduler] Found END node output in context: {}", endNodeOutput.keySet());
+                
+                // 提取响应字段
+                Object response = endNodeOutput.get("response");
+                if (response == null) response = endNodeOutput.get("text");
+                if (response == null) response = endNodeOutput.get("output");
+                if (response == null) response = endNodeOutput.get("result");
+                
+                if (response != null) {
+                    log.info("[Scheduler] Extracted response from END node context: {}", 
+                        response.toString().substring(0, Math.min(100, response.toString().length())));
+                    return response.toString();
+                } else {
+                    log.warn("[Scheduler] END node output exists but no response field. Keys: {}", 
+                        endNodeOutput.keySet());
+                }
+            } else {
+                log.warn("[Scheduler] No END node output found in context");
+            }
+            
+            // 2. 如果 END 节点没有输出，尝试获取最后执行的节点输出
+            // 从执行日志中找到最后一个节点
+            String logContent = context.getExecutionLogContent();
+            if (StringUtils.hasText(logContent)) {
+                String[] lines = logContent.split("\n");
+                if (lines.length > 0) {
+                    // 简单返回日志内容作为响应
+                    log.info("[Scheduler] Using execution log as fallback response");
+                    return logContent;
+                }
+            }
+            
+            log.warn("[Scheduler] No valid response found in execution context");
+            return "执行完成";
+            
+        } catch (Exception e) {
+            log.error("[Scheduler] Error extracting response from execution: {}", e.getMessage(), e);
+            return "执行完成";
+        }
+    }
+
+    /**
+     * 构建思维链步骤
+     * 从工作流节点执行日志中提取，转换为 ThoughtStep 格式
+     */
+    private List<com.zj.aiagent.domain.chat.valobj.ThoughtStep> buildThoughtSteps(String executionId) {
+        List<com.zj.aiagent.domain.chat.valobj.ThoughtStep> steps = new ArrayList<>();
+        
+        try {
+            List<WorkflowNodeExecutionLog> logs = workflowNodeExecutionLogRepository
+                .findByExecutionIdOrderByEndTime(executionId);
+            
+            for (WorkflowNodeExecutionLog log : logs) {
+                // 只包含 MESSAGE 或 THOUGHT 渲染模式的节点
+                if ("MESSAGE".equals(log.getRenderMode()) || "THOUGHT".equals(log.getRenderMode())) {
+                    // 计算执行时长
+                    Long durationMs = null;
+                    if (log.getStartTime() != null && log.getEndTime() != null) {
+                        durationMs = java.time.Duration.between(log.getStartTime(), log.getEndTime()).toMillis();
+                    }
+                    
+                    // 构建内容摘要
+                    String content = buildStepContent(log);
+                    
+                    // 映射状态
+                    String status = mapExecutionStatus(log.getStatus());
+                    
+                    com.zj.aiagent.domain.chat.valobj.ThoughtStep step = 
+                        com.zj.aiagent.domain.chat.valobj.ThoughtStep.builder()
+                            .stepId(log.getNodeId())
+                            .title(log.getNodeName())
+                            .content(content)
+                            .durationMs(durationMs)
+                            .status(status)
+                            .type("log")
+                            .build();
+                    steps.add(step);
+                }
+            }
+            
+            log.debug("[Scheduler] Built {} thought steps for execution: {}", steps.size(), executionId);
+        } catch (Exception e) {
+            log.warn("[Scheduler] Failed to build thought steps for execution {}: {}", 
+                executionId, e.getMessage());
+        }
+        
+        return steps;
+    }
+
+    /**
+     * 构建步骤内容摘要
+     */
+    private String buildStepContent(WorkflowNodeExecutionLog log) {
+        if (log.getErrorMessage() != null) {
+            return "错误: " + log.getErrorMessage();
+        }
+        
+        Map<String, Object> outputs = log.getOutputs();
+        if (outputs != null && !outputs.isEmpty()) {
+            // 尝试提取响应内容
+            Object response = outputs.get("response");
+            if (response == null) response = outputs.get("text");
+            if (response == null) response = outputs.get("output");
+            
+            if (response != null) {
+                String text = response.toString();
+                // 限制长度
+                return text.length() > 200 ? text.substring(0, 200) + "..." : text;
+            }
+        }
+        
+        return log.getNodeType() + " 节点执行完成";
+    }
+
+    /**
+     * 映射执行状态
+     * 0:Running -> RUNNING
+     * 1:Success -> SUCCESS
+     * 2:Failed -> FAILED
+     */
+    private String mapExecutionStatus(Integer status) {
+        if (status == null) return "UNKNOWN";
+        switch (status) {
+            case 0: return "RUNNING";
+            case 1: return "SUCCESS";
+            case 2: return "FAILED";
+            default: return "UNKNOWN";
+        }
+    }
+
+    /**
+     * 从执行日志中提取最终响应
+     * 
+     * 策略:
+     * 1. 优先查询 END 节点的输出
+     * 2. 如果 END 节点没有输出，查询最后执行的节点
+     * 3. 提取 response、text、output 或 result 字段
+     * 4. 返回默认值 "执行完成" 如果没有找到
+     */
+    private String extractFinalResponseFromLogs(String executionId) {
+        try {
+            log.info("[Scheduler] Extracting final response for execution: {}", executionId);
+            
+            // 1. 优先查询 END 节点的输出
+            WorkflowNodeExecutionLog endNodeLog = workflowNodeExecutionLogRepository
+                .findByExecutionIdAndNodeId(executionId, "END");
+            
+            if (endNodeLog != null) {
+                log.info("[Scheduler] Found END node log for execution: {}, outputs: {}", 
+                    executionId, endNodeLog.getOutputs());
+                
+                if (endNodeLog.getOutputs() != null) {
+                    Map<String, Object> outputs = endNodeLog.getOutputs();
+                    
+                    // 尝试提取响应字段
+                    Object response = outputs.get("response");
+                    if (response == null) response = outputs.get("text");
+                    if (response == null) response = outputs.get("output");
+                    if (response == null) response = outputs.get("result");
+                    
+                    if (response != null) {
+                        log.info("[Scheduler] Extracted final response from END node: {}", 
+                            response.toString().substring(0, Math.min(100, response.toString().length())));
+                        return response.toString();
+                    } else {
+                        log.warn("[Scheduler] END node outputs exist but no response field found. Available keys: {}", 
+                            outputs.keySet());
+                    }
+                } else {
+                    log.warn("[Scheduler] END node log found but outputs is null for execution: {}", executionId);
+                }
+            } else {
+                log.warn("[Scheduler] No END node log found for execution: {}", executionId);
+            }
+            
+            // 2. 如果 END 节点没有输出，查询最后执行的节点
+            List<WorkflowNodeExecutionLog> allLogs = workflowNodeExecutionLogRepository
+                .findByExecutionIdOrderByEndTime(executionId);
+            
+            log.info("[Scheduler] Found {} total logs for execution: {}", allLogs.size(), executionId);
+            
+            if (!allLogs.isEmpty()) {
+                WorkflowNodeExecutionLog lastLog = allLogs.get(allLogs.size() - 1);
+                log.info("[Scheduler] Last executed node: {}, type: {}, outputs: {}", 
+                    lastLog.getNodeId(), lastLog.getNodeType(), lastLog.getOutputs());
+                
+                Map<String, Object> outputs = lastLog.getOutputs();
+                
+                if (outputs != null && !outputs.isEmpty()) {
+                    // 尝试提取响应
+                    Object response = outputs.get("response");
+                    if (response == null) response = outputs.get("text");
+                    if (response == null) response = outputs.get("output");
+                    if (response == null) response = outputs.get("result");
+                    
+                    if (response != null) {
+                        log.info("[Scheduler] Extracted final response from last node {}: {}", 
+                            lastLog.getNodeId(), 
+                            response.toString().substring(0, Math.min(100, response.toString().length())));
+                        return response.toString();
+                    } else {
+                        log.warn("[Scheduler] Last node outputs exist but no response field found. Available keys: {}", 
+                            outputs.keySet());
+                    }
+                } else {
+                    log.warn("[Scheduler] Last node outputs is null or empty for execution: {}", executionId);
+                }
+            } else {
+                log.error("[Scheduler] No execution logs found at all for execution: {}", executionId);
+            }
+            
+            log.warn("[Scheduler] No final response found for execution: {}, returning default message", executionId);
+            return "执行完成";
+            
+        } catch (Exception e) {
+            log.error("[Scheduler] Error extracting final response for execution {}: {}", 
+                executionId, e.getMessage(), e);
+            return "执行完成";
         }
     }
 }

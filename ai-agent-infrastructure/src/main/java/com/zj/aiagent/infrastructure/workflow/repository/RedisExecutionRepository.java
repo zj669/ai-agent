@@ -3,10 +3,10 @@ package com.zj.aiagent.infrastructure.workflow.repository;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.zj.aiagent.domain.workflow.entity.Execution;
 import com.zj.aiagent.domain.workflow.port.ExecutionRepository;
+import com.zj.aiagent.infrastructure.redis.IRedisService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.dao.OptimisticLockingFailureException;
-import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Repository;
 
 import java.util.Optional;
@@ -24,7 +24,7 @@ public class RedisExecutionRepository implements ExecutionRepository {
     private static final String KEY_PREFIX = "workflow:execution:";
     private static final long TTL_HOURS = 48; // 执行数据保留 48 小时
 
-    private final StringRedisTemplate redisTemplate;
+    private final IRedisService redisService;
     private final ObjectMapper objectMapper;
 
     @Override
@@ -32,12 +32,12 @@ public class RedisExecutionRepository implements ExecutionRepository {
         try {
             String key = KEY_PREFIX + execution.getExecutionId();
             String value = objectMapper.writeValueAsString(execution);
-            redisTemplate.opsForValue().set(key, value, TTL_HOURS, TimeUnit.HOURS);
+            redisService.setString(key, value, TTL_HOURS, TimeUnit.HOURS);
 
             // Maintain Secondary Index
             String indexKey = "workflow:conversation:" + execution.getConversationId() + ":executions";
-            redisTemplate.opsForSet().add(indexKey, execution.getExecutionId());
-            redisTemplate.expire(indexKey, TTL_HOURS, TimeUnit.HOURS);
+            redisService.addToSet(indexKey, execution.getExecutionId());
+            redisService.expire(indexKey, TTL_HOURS * 3600); // 转换为秒
 
             log.debug("[Execution] Saved: {}", execution.getExecutionId());
         } catch (Exception e) {
@@ -50,7 +50,7 @@ public class RedisExecutionRepository implements ExecutionRepository {
     public Optional<Execution> findById(String executionId) {
         try {
             String key = KEY_PREFIX + executionId;
-            String value = redisTemplate.opsForValue().get(key);
+            String value = redisService.getString(key);
 
             if (value == null) {
                 return Optional.empty();
@@ -67,7 +67,7 @@ public class RedisExecutionRepository implements ExecutionRepository {
     public java.util.List<Execution> findByConversationId(String conversationId) {
         try {
             String indexKey = "workflow:conversation:" + conversationId + ":executions";
-            java.util.Set<String> executionIds = redisTemplate.opsForSet().members(indexKey);
+            java.util.Set<String> executionIds = redisService.getSetMembers(indexKey);
 
             if (executionIds == null || executionIds.isEmpty()) {
                 return java.util.Collections.emptyList();
@@ -77,7 +77,7 @@ public class RedisExecutionRepository implements ExecutionRepository {
                     .map(id -> KEY_PREFIX + id)
                     .collect(java.util.stream.Collectors.toList());
 
-            java.util.List<String> values = redisTemplate.opsForValue().multiGet(keys);
+            java.util.List<String> values = redisService.multiGetString(keys);
 
             if (values == null) {
                 return java.util.Collections.emptyList();
@@ -106,7 +106,7 @@ public class RedisExecutionRepository implements ExecutionRepository {
     public void update(Execution execution) {
         try {
             String key = KEY_PREFIX + execution.getExecutionId();
-            String existingValue = redisTemplate.opsForValue().get(key);
+            String existingValue = redisService.getString(key);
 
             if (existingValue != null) {
                 Execution existing = objectMapper.readValue(existingValue, Execution.class);
@@ -119,7 +119,7 @@ public class RedisExecutionRepository implements ExecutionRepository {
             }
 
             String value = objectMapper.writeValueAsString(execution);
-            redisTemplate.opsForValue().set(key, value, TTL_HOURS, TimeUnit.HOURS);
+            redisService.setString(key, value, TTL_HOURS, TimeUnit.HOURS);
             log.debug("[Execution] Updated: {} (v{})", execution.getExecutionId(), execution.getVersion());
         } catch (OptimisticLockingFailureException e) {
             throw e;
@@ -137,14 +137,14 @@ public class RedisExecutionRepository implements ExecutionRepository {
             // though.
             // Or we read it first.
             String key = KEY_PREFIX + executionId;
-            String value = redisTemplate.opsForValue().get(key);
+            String value = redisService.getString(key);
             if (value != null) {
                 Execution ex = objectMapper.readValue(value, Execution.class);
                 String indexKey = "workflow:conversation:" + ex.getConversationId() + ":executions";
-                redisTemplate.opsForSet().remove(indexKey, executionId);
+                redisService.removeFromSet(indexKey, executionId);
             }
 
-            redisTemplate.delete(key);
+            redisService.delete(key);
             log.debug("[Execution] Deleted: {}", executionId);
         } catch (Exception e) {
             log.error("[Execution] Failed to delete: {}", e.getMessage(), e);

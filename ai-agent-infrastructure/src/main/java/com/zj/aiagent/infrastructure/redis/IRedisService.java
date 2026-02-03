@@ -293,4 +293,97 @@ public interface IRedisService {
         }
     }
 
+    /**
+     * 设置字符串值(带过期时间)
+     *
+     * @param key      键
+     * @param value    值
+     * @param timeout  过期时间
+     * @param timeUnit 时间单位
+     */
+    void setString(String key, String value, long timeout, TimeUnit timeUnit);
+
+    /**
+     * 获取字符串值
+     *
+     * @param key 键
+     * @return 值
+     */
+    String getString(String key);
+
+    /**
+     * 批量获取字符串值
+     *
+     * @param keys 键列表
+     * @return 值列表
+     */
+    java.util.List<String> multiGetString(java.util.Collection<String> keys);
+
+    /**
+     * 获取匹配模式的所有键
+     *
+     * @param pattern 模式 (如 "user:*")
+     * @return 键集合
+     */
+    java.util.Set<String> keys(String pattern);
+
+    /**
+     * 删除多个键
+     *
+     * @param keys 键集合
+     * @return 删除的数量
+     */
+    Long delete(java.util.Collection<String> keys);
+
+    /**
+     * 删除单个键
+     *
+     * @param key 键
+     * @return 是否删除成功
+     */
+    Boolean delete(String key);
+
+    /**
+     * 添加元素到集合
+     *
+     * @param key    键
+     * @param values 值
+     * @return 添加的数量
+     */
+    Long addToSet(String key, String... values);
+
+    /**
+     * 获取集合的所有成员
+     *
+     * @param key 键
+     * @return 成员集合
+     */
+    java.util.Set<String> getSetMembers(String key);
+
+    /**
+     * 从集合中移除元素
+     *
+     * @param key    键
+     * @param values 值
+     * @return 移除的数量
+     */
+    Long removeFromSet(String key, String... values);
+
+    /**
+     * 发布消息到频道
+     *
+     * @param channel 频道
+     * @param message 消息
+     */
+    void publish(String channel, String message);
+
+    /**
+     * 获取 RSet
+     *
+     * @param key 键
+     * @param <T> 泛型
+     * @return RSet
+     */
+    <T> RSet<T> getSet(String key);
+
 }
