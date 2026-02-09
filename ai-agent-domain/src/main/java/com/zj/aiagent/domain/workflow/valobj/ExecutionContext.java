@@ -4,6 +4,7 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.expression.EvaluationContext;
 import org.springframework.expression.Expression;
 import org.springframework.expression.ExpressionParser;
@@ -24,6 +25,7 @@ import java.util.concurrent.ConcurrentHashMap;
  * - 短期记忆 (STM)：本次会话之前的对话历史
  * - 环境感知 (Awareness)：动态更新的执行日志
  */
+@Slf4j
 @Data
 @Builder
 @NoArgsConstructor
@@ -117,10 +119,15 @@ public class ExecutionContext {
             return expression; // 非表达式，直接返回
         }
 
-        String spelExpression = expression.substring(2, expression.length() - 1);
-        EvaluationContext context = buildEvaluationContext();
-        Expression exp = PARSER.parseExpression(spelExpression);
-        return exp.getValue(context);
+        try {
+            String spelExpression = expression.substring(2, expression.length() - 1);
+            EvaluationContext context = buildEvaluationContext();
+            Expression exp = PARSER.parseExpression(spelExpression);
+            return exp.getValue(context);
+        } catch (Exception e) {
+            log.warn("SpEL 表达式解析失败: expression={}, error={}", expression, e.getMessage());
+            return expression;
+        }
     }
 
     /**

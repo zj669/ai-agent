@@ -121,6 +121,7 @@ public class HttpNodeExecutorStrategy implements NodeExecutorStrategy {
 
     /**
      * 解析模板中的占位符
+     * 支持 #{key} 和 {{key}} 两种格式
      */
     private String resolveTemplate(String template, Map<String, Object> resolvedInputs) {
         if (template == null)
@@ -128,9 +129,14 @@ public class HttpNodeExecutorStrategy implements NodeExecutorStrategy {
 
         String result = template;
         for (Map.Entry<String, Object> entry : resolvedInputs.entrySet()) {
-            String placeholder = "#{" + entry.getKey() + "}";
+            // 跳过 __ 前缀的内部变量
+            if (entry.getKey().startsWith("__")) continue;
+            // null 值跳过替换，保留原始占位符
             if (entry.getValue() != null) {
-                result = result.replace(placeholder, entry.getValue().toString());
+                String value = entry.getValue().toString();
+                result = result.replace("#{" + entry.getKey() + "}", value);
+                // 支持 {{key}} Mustache 风格占位符
+                result = result.replace("{{" + entry.getKey() + "}}", value);
             }
         }
         return result;

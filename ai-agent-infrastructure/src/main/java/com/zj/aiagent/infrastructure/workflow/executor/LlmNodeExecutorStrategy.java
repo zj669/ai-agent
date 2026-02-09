@@ -254,12 +254,17 @@ public class LlmNodeExecutorStrategy implements NodeExecutorStrategy {
             return userInput != null ? userInput.toString() : "";
         }
 
-        // 简单替换（实际已由 ExecutionContext 预处理）
+        // 模板占位符替换：支持 #{key} 和 {{key}} 两种格式
         String prompt = template;
         for (Map.Entry<String, Object> entry : resolvedInputs.entrySet()) {
-            String placeholder = "#{" + entry.getKey() + "}";
+            // 跳过 __ 前缀的内部变量
+            if (entry.getKey().startsWith("__")) continue;
+            // null 值跳过替换，保留原始占位符
             if (entry.getValue() != null) {
-                prompt = prompt.replace(placeholder, entry.getValue().toString());
+                String value = entry.getValue().toString();
+                prompt = prompt.replace("#{" + entry.getKey() + "}", value);
+                // 支持 {{key}} Mustache 风格占位符
+                prompt = prompt.replace("{{" + entry.getKey() + "}}", value);
             }
         }
 
