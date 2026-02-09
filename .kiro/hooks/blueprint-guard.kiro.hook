@@ -1,0 +1,13 @@
+{
+  "enabled": true,
+  "name": "蓝图架构守护",
+  "description": "Agent 执行完成后，检查本次修改是否与 .blueprint/ 蓝图保持一致，提醒同步更新",
+  "version": "1",
+  "when": {
+    "type": "agentStop"
+  },
+  "then": {
+    "type": "askAgent",
+    "prompt": "请检查本次执行是否修改了业务逻辑代码（Java/TypeScript）。如果是，请快速确认：1) 修改的模块在 .blueprint/ 中是否有对应的蓝图文件？2) 本次修改是否涉及接口变更、新增依赖或职责变化？如果涉及，请同步更新对应的 .blueprint/ 蓝图文件。如果本次只是配置调整、注释修改、格式化或蓝图文件本身的修改，则无需额外操作，简要说明即可。"
+  }
+}

@@ -5,7 +5,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.ai.document.Document;
 import org.springframework.ai.vectorstore.SearchRequest;
 import org.springframework.beans.factory.annotation.Qualifier;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Component;
 
 import java.util.List;
@@ -23,7 +23,7 @@ import java.util.stream.Collectors;
  */
 @Slf4j
 @Component
-@ConditionalOnBean(name = "memoryVectorStore")
+@ConditionalOnProperty(prefix = "milvus", name = "enabled", havingValue = "true", matchIfMissing = false)
 public class MilvusVectorStoreAdapter implements VectorStore {
 
     private final org.springframework.ai.vectorstore.VectorStore knowledgeStore;

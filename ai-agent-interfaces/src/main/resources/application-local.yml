@@ -81,3 +81,9 @@ MILVUS_HOST: localhost
 MILVUS_PORT: 19530
 MILVUS_USERNAME:
 MILVUS_PASSWORD:
+
+# 本地开发禁用邮件健康检查（避免 SMTP 连接超时拖慢 /actuator/health）
+management:
+  health:
+    mail:
+      enabled: false
