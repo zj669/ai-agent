@@ -2,9 +2,14 @@ package com.zj.aiagent.interfaces.common.config;
 
 import com.zj.aiagent.interfaces.common.interceptor.LoginInterceptor;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.core.env.Environment;
+import org.springframework.web.servlet.config.annotation.CorsRegistry;
 import org.springframework.web.servlet.config.annotation.InterceptorRegistry;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
+
+import java.util.Arrays;
 
 /**
  * Web MVC 配置
@@ -14,6 +19,10 @@ import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 public class WebMvcConfig implements WebMvcConfigurer {
 
     private final LoginInterceptor loginInterceptor;
+    private final Environment environment;
+
+    @Value("${cors.allowed-origins:}")
+    private String allowedOrigins;
 
     @Override
     public void addInterceptors(InterceptorRegistry registry) {
@@ -31,12 +40,28 @@ public class WebMvcConfig implements WebMvcConfigurer {
     }
 
     @Override
-    public void addCorsMappings(org.springframework.web.servlet.config.annotation.CorsRegistry registry) {
-        registry.addMapping("/**")
-                .allowedOriginPatterns("*")
+    public void addCorsMappings(CorsRegistry registry) {
+        var corsConfig = registry.addMapping("/**")
                 .allowedMethods("GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH")
                 .allowedHeaders("*")
                 .allowCredentials(true)
                 .maxAge(3600);
+
+        // 生产环境使用配置的域名，开发环境允许所有来源
+        if (isProdProfile()) {
+            if (allowedOrigins != null && !allowedOrigins.isBlank()) {
+                corsConfig.allowedOrigins(allowedOrigins.split(","));
+            } else {
+                // 生产环境未配置 CORS 域名时，禁止跨域访问
+                corsConfig.allowedOrigins();
+            }
+        } else {
+            // 开发环境允许所有来源
+            corsConfig.allowedOriginPatterns("*");
+        }
+    }
+
+    private boolean isProdProfile() {
+        return Arrays.asList(environment.getActiveProfiles()).contains("prod");
     }
 }

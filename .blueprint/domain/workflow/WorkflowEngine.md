@@ -24,8 +24,8 @@
 | createCheckpoint | nodeId | Checkpoint | 创建执行快照（普通/暂停点） |
 
 #### 条件分支剪枝
-- `pruneUnselectedBranches`: 条件节点完成后，递归跳过未选中分支的所有下游节点
-- `skipNodeRecursively`: 将节点标记为 SKIPPED，递归处理下游（汇聚节点需所有前驱都已处理）
+- `pruneUnselectedBranches`: 条件节点完成后，直接比较后继节点 ID 与 selectedBranchId，递归跳过未选中分支的所有下游节点（不再使用 isNodeInSelectedBranch 字符串匹配）
+- `skipNodeRecursively`: 将节点标记为 SKIPPED，递归处理下游。单前驱节点直接跳过；汇聚节点（多前驱）仅当所有前驱都是 SKIPPED 时才跳过，有 PENDING 前驱则保留等待
 
 ### WorkflowGraph (值对象)
 - DAG 结构定义，从 Agent 的 graphJson 解析（由 WorkflowGraphFactory 负责）
@@ -85,3 +85,4 @@
 ## 变更日志
 - [初始] 从现有代码逆向生成蓝图
 - [2026-02-08] 补充 Execution 核心方法、条件剪枝、枚举类型、ExecutionMode 等完整细节
+- [condition-branch-refactor] 修复剪枝逻辑: 移除 isNodeInSelectedBranch（字符串匹配），pruneUnselectedBranches 改为直接 nodeId 比较；skipNodeRecursively 汇聚节点改为仅 allSkipped 才跳过

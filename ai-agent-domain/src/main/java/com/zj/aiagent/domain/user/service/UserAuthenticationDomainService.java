@@ -38,6 +38,8 @@ public class UserAuthenticationDomainService {
     private static final int VERIFICATION_CODE_TTL_SECONDS = 300; // 5分钟
     private static final int EMAIL_RATE_LIMIT = 1;
     private static final int EMAIL_RATE_LIMIT_WINDOW_SECONDS = 60;
+    private static final int LOGIN_FAILURE_LIMIT = 5; // 5次失败
+    private static final int LOGIN_FAILURE_WINDOW_SECONDS = 900; // 15分钟锁定
 
     /**
      * 发送邮箱验证码
@@ -117,7 +119,7 @@ public class UserAuthenticationDomainService {
 
     /**
      * 用户登录
-     * 
+     *
      * @param emailStr 邮箱
      * @param password 密码
      * @param ip       登录IP
@@ -126,6 +128,14 @@ public class UserAuthenticationDomainService {
      */
     public User login(String emailStr, String password, String ip) {
         Email email = Email.of(emailStr);
+        String loginRateLimitKey = RedisKeyConstants.RateLimit.LOGIN_FAILURE_PREFIX + emailStr;
+
+        // 检查登录失败限流 (5次失败锁定15分钟)
+        RateLimiter limiter = rateLimiterFactory.getDefaultLimiter();
+        if (!limiter.tryAcquire(loginRateLimitKey, LOGIN_FAILURE_LIMIT, LOGIN_FAILURE_WINDOW_SECONDS)) {
+            log.warn("Login rate limit exceeded for: {}", emailStr);
+            throw new AuthenticationException(ErrorCode.TOO_MANY_LOGIN_ATTEMPTS);
+        }
 
         User user = userRepository.findByEmail(email);
         if (user == null) {

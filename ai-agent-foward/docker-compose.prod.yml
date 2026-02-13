@@ -1,0 +1,53 @@
+version: '3.8'
+
+# 生产环境专用配置
+# 使用方法: docker-compose -f docker-compose.yml -f docker-compose.prod.yml up -d
+# 注意: 请根据实际需求修改此文件中的配置
+
+services:
+  frontend:
+    # 生产环境可能需要更严格的资源限制
+    # 取消下面的注释来设置资源限制
+    # deploy:
+    #   resources:
+    #     limits:
+    #       memory: 512M
+    #     reservations:
+    #       memory: 256M
+  
+  backend:
+    # 生产环境的后端服务配置
+    # deploy:
+    #   resources:
+    #     limits:
+    #       memory: 1G
+    #     reservations:
+    #       memory: 512M
+    
+    # 生产环境可能需要额外的配置
+    # environment:
+    #   - NODE_ENV=production
+    #   - LOG_LEVEL=info
+    #   - DB_POOL_SIZE=20
+    
+    # 如果使用外部数据库，移除下面的部分
+    # 如果需要内置数据库，取消注释下面的部分
+    # depends_on:
+    #   - database
+      
+  # 数据库服务示例（如果需要）
+  # database:
+  #   image: postgres:13
+  #   environment:
+  #     POSTGRES_DB: myapp
+  #     POSTGRES_USER: myuser
+  #     POSTGRES_PASSWORD: mypassword
+  #   volumes:
+  #     - db_data:/var/lib/postgresql/data
+  #   restart: unless-stopped
+  #   networks:
+  #     - app-network
+
+# 持久化数据卷
+# volumes:
+#   db_data:

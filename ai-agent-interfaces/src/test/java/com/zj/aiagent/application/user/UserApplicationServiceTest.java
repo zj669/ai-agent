@@ -45,7 +45,7 @@ class UserApplicationServiceTest {
 
     @BeforeEach
     void setUp() {
-        ReflectionTestUtils.setField(applicationService, "jwtExpirationMs", 604800000L);
+        ReflectionTestUtils.setField(applicationService, "accessTokenExpirationMs", 604800000L);
 
         String encryptedPassword = new BCryptPasswordEncoder().encode("password");
         testUser = User.reconstruct(
@@ -209,7 +209,7 @@ class UserApplicationServiceTest {
         @DisplayName("正常登出应使 Token 失效")
         void shouldInvalidateToken() {
             // When
-            applicationService.logout("Bearer mock-token");
+            applicationService.logout("Bearer mock-token", "device-001");
 
             // Then
             verify(tokenService).invalidateToken("mock-token");
@@ -219,7 +219,7 @@ class UserApplicationServiceTest {
         @DisplayName("Token 为 null 时不应调用失效方法")
         void shouldNotInvalidateNullToken() {
             // When
-            applicationService.logout(null);
+            applicationService.logout(null, "device-001");
 
             // Then
             verify(tokenService, never()).invalidateToken(anyString());

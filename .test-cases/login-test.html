@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>登录测试</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 600px;
+            margin: 50px auto;
+            padding: 20px;
+        }
+        .form-group {
+            margin-bottom: 15px;
+        }
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+        input {
+            width: 100%;
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            box-sizing: border-box;
+        }
+        button {
+            background-color: #1890ff;
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+        }
+        button:hover {
+            background-color: #40a9ff;
+        }
+        button:disabled {
+            background-color: #d9d9d9;
+            cursor: not-allowed;
+        }
+        .result {
+            margin-top: 20px;
+            padding: 15px;
+            border-radius: 4px;
+            white-space: pre-wrap;
+            word-break: break-all;
+        }
+        .success {
+            background-color: #f6ffed;
+            border: 1px solid #b7eb8f;
+            color: #52c41a;
+        }
+        .error {
+            background-color: #fff2f0;
+            border: 1px solid #ffccc7;
+            color: #ff4d4f;
+        }
+        .info {
+            background-color: #e6f7ff;
+            border: 1px solid #91d5ff;
+            color: #1890ff;
+        }
+    </style>
+</head>
+<body>
+    <h1>登录功能测试</h1>
+
+    <form id="loginForm">
+        <div class="form-group">
+            <label for="email">邮箱:</label>
+            <input type="email" id="email" value="3218356902zj@gmail.com" required>
+        </div>
+
+        <div class="form-group">
+            <label for="password">密码:</label>
+            <input type="password" id="password" value="18090932802zj" required>
+        </div>
+
+        <button type="submit" id="loginBtn">登录</button>
+    </form>
+
+    <div id="result"></div>
+
+    <script>
+        const form = document.getElementById('loginForm');
+        const loginBtn = document.getElementById('loginBtn');
+        const resultDiv = document.getElementById('result');
+
+        form.addEventListener('submit', async (e) => {
+            e.preventDefault();
+
+            const email = document.getElementById('email').value;
+            const password = document.getElementById('password').value;
+
+            loginBtn.disabled = true;
+            loginBtn.textContent = '登录中...';
+            resultDiv.innerHTML = '<div class="info">正在发送请求...</div>';
+
+            try {
+                console.log('发送登录请求:', { email, password: '***' });
+
+                const response = await fetch('http://localhost:8080/client/user/login', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ email, password })
+                });
+
+                console.log('响应状态:', response.status);
+                console.log('响应头:', Object.fromEntries(response.headers.entries()));
+
+                const data = await response.json();
+                console.log('响应数据:', data);
+
+                if (response.ok && data.success) {
+                    resultDiv.innerHTML = `
+                        <div class="success">
+                            <strong>✓ 登录成功！</strong><br><br>
+                            <strong>Token:</strong> ${data.data.token.substring(0, 50)}...<br>
+                            <strong>用户ID:</strong> ${data.data.user.id}<br>
+                            <strong>用户名:</strong> ${data.data.user.username}<br>
+                            <strong>邮箱:</strong> ${data.data.user.email}<br>
+                            <strong>过期时间:</strong> ${data.data.expireIn}秒<br><br>
+                            <strong>完整响应:</strong><br>
+                            ${JSON.stringify(data, null, 2)}
+                        </div>
+                    `;
+
+                    // 模拟前端存储 token
+                    localStorage.setItem('auth_token', data.data.token);
+                    localStorage.setItem('auth_refresh_token', data.data.refreshToken);
+                    localStorage.setItem('auth_device_id', data.data.deviceId);
+                    localStorage.setItem('auth_user', JSON.stringify(data.data.user));
+                    localStorage.setItem('auth_expire_at', (Date.now() + data.data.expireIn * 1000).toString());
+
+                    console.log('Token 已保存到 localStorage');
+
+                } else {
+                    resultDiv.innerHTML = `
+                        <div class="error">
+                            <strong>✗ 登录失败</strong><br><br>
+                            <strong>错误代码:</strong> ${data.code}<br>
+                            <strong>错误信息:</strong> ${data.message}<br><br>
+                            <strong>完整响应:</strong><br>
+                            ${JSON.stringify(data, null, 2)}
+                        </div>
+                    `;
+                }
+
+            } catch (error) {
+                console.error('请求失败:', error);
+
+                resultDiv.innerHTML = `
+                    <div class="error">
+                        <strong>✗ 请求失败</strong><br><br>
+                        <strong>错误类型:</strong> ${error.name}<br>
+                        <strong>错误信息:</strong> ${error.message}<br><br>
+                        <strong>可能原因:</strong><br>
+                        1. 后端服务未启动 (http://localhost:8080)<br>
+                        2. CORS 跨域问题<br>
+                        3. 网络连接问题<br><br>
+                        <strong>完整错误:</strong><br>
+                        ${error.stack}
+                    </div>
+                `;
+            } finally {
+                loginBtn.disabled = false;
+                loginBtn.textContent = '登录';
+            }
+        });
+
+        // 页面加载时显示当前 localStorage 状态
+        window.addEventListener('load', () => {
+            const token = localStorage.getItem('auth_token');
+            if (token) {
+                console.log('发现已保存的 token:', token.substring(0, 50) + '...');
+            }
+        });
+    </script>
+</body>
+</html>

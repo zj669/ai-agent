@@ -1,5 +1,6 @@
 package com.zj.aiagent.application.workflow;
 
+import com.zj.aiagent.application.chat.ChatApplicationService;
 import com.zj.aiagent.domain.agent.repository.AgentRepository;
 import com.zj.aiagent.domain.chat.port.ConversationRepository;
 import com.zj.aiagent.domain.memory.port.VectorStore;
@@ -10,6 +11,7 @@ import com.zj.aiagent.domain.workflow.entity.WorkflowGraph;
 import com.zj.aiagent.domain.workflow.port.*;
 import com.zj.aiagent.domain.workflow.service.WorkflowGraphFactory;
 import com.zj.aiagent.domain.workflow.valobj.*;
+import com.zj.aiagent.infrastructure.redis.IRedisService;
 import com.zj.aiagent.infrastructure.workflow.executor.NodeExecutorFactory;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -20,10 +22,7 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.redisson.api.RLock;
-import org.redisson.api.RSet;
-import org.redisson.api.RedissonClient;
 import org.springframework.context.ApplicationEventPublisher;
-import org.springframework.data.redis.core.StringRedisTemplate;
 
 import java.util.Collections;
 import java.util.Map;
@@ -51,11 +50,13 @@ class SchedulerServiceTest {
     @Mock
     private WorkflowGraphFactory workflowGraphFactory;
     @Mock
-    private RedissonClient redissonClient;
+    private IRedisService redisService;
+    @Mock
+    private WorkflowCancellationPort cancellationPort;
+    @Mock
+    private HumanReviewQueuePort humanReviewQueuePort;
     @Mock
     private StreamPublisherFactory streamPublisherFactory;
-    @Mock
-    private StringRedisTemplate redisTemplate;
     @Mock
     private ApplicationEventPublisher applicationEventPublisher;
     @Mock
@@ -64,6 +65,12 @@ class SchedulerServiceTest {
     private VectorStore vectorStore;
     @Mock
     private ConversationRepository conversationRepository;
+    @Mock
+    private ChatApplicationService chatApplicationService;
+    @Mock
+    private WorkflowNodeExecutionLogRepository workflowNodeExecutionLogRepository;
+    @Mock
+    private ExpressionResolverPort expressionResolver;
 
     @InjectMocks
     private SchedulerService schedulerService;
@@ -80,16 +87,12 @@ class SchedulerServiceTest {
     @Mock
     private RLock rLock;
     @Mock
-    private RSet<String> rSet;
-    @Mock
     private ExecutionContext executionContext;
 
     @BeforeEach
     void setUp() {
-        // Common Lenient Stubs for Redisson
-        lenient().when(redissonClient.getLock(anyString())).thenReturn(rLock);
-        // Use doReturn to avoid generic type mismatch with RSet<String> vs RSet<Object>
-        lenient().doReturn(rSet).when(redissonClient).getSet(anyString());
+        // Common Lenient Stubs for IRedisService
+        lenient().when(redisService.getLock(anyString())).thenReturn(rLock);
         lenient().doNothing().when(rLock).lock(anyLong(), any(TimeUnit.class));
         lenient().when(rLock.isHeldByCurrentThread()).thenReturn(true);
         lenient().doNothing().when(rLock).unlock();
@@ -127,7 +130,11 @@ class SchedulerServiceTest {
             when(execution.resume(eq(nodeId), anyMap())).thenReturn(Collections.singletonList(node));
             lenient().when(execution.getExecutionId()).thenReturn(executionId);
             lenient().when(execution.getContext()).thenReturn(executionContext);
-            lenient().when(executionContext.resolveInputs(anyMap())).thenReturn(new java.util.HashMap<>());
+            lenient().when(execution.getGraph()).thenReturn(workflowGraph);
+            lenient().when(workflowGraph.getOutgoingEdges(anyString())).thenReturn(Collections.emptyList());
+
+            // Mock ExpressionResolver
+            lenient().when(expressionResolver.resolveInputs(anyMap(), any())).thenReturn(new java.util.HashMap<>());
 
             // Mock Executor Strategy
             com.zj.aiagent.domain.workflow.port.NodeExecutorStrategy strategy = mock(
@@ -152,8 +159,8 @@ class SchedulerServiceTest {
             // 4. SSE event published
             verify(streamPublisher).publishEvent(eq("workflow_resumed"), anyMap());
 
-            // 5. Removed from pending set
-            verify(rSet).remove(executionId);
+            // 5. Removed from pending queue
+            verify(humanReviewQueuePort).removeFromPendingQueue(executionId);
         }
 
         @Test
@@ -173,7 +180,7 @@ class SchedulerServiceTest {
         void should_ReturnEarly_When_ExecutionCancelled() {
             // Given
             String executionId = "exec-cancelled-001";
-            when(redisTemplate.hasKey("workflow:cancel:" + executionId)).thenReturn(true);
+            when(cancellationPort.isCancelled(executionId)).thenReturn(true);
 
             // When
             schedulerService.resumeExecution(executionId, "node-1", null, 1L, "");

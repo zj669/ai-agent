@@ -1,6 +1,7 @@
 package com.zj.aiagent.interfaces.user;
 
 import com.zj.aiagent.application.user.UserApplicationService;
+import com.zj.aiagent.application.user.dto.TokenRefreshResponse;
 import com.zj.aiagent.application.user.dto.UserDetailDTO;
 import com.zj.aiagent.application.user.dto.UserLoginResponse;
 import com.zj.aiagent.application.user.dto.UserRequests;
@@ -11,6 +12,7 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
+import lombok.Data;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
 
@@ -48,6 +50,17 @@ public class UserController {
         return Response.success(response);
     }
 
+    @PostMapping("/refresh")
+    @Operation(summary = "刷新 Token（支持多设备）")
+    public Response<TokenRefreshResponse> refreshToken(
+            @Valid @RequestBody UserRequests.TokenRefreshRequest request) {
+        TokenRefreshResponse response = userApplicationService.refreshToken(
+                request.getRefreshToken(),
+                request.getDeviceId()
+        );
+        return Response.success(response);
+    }
+
     @GetMapping("/info")
     @Operation(summary = "获取当前用户信息")
     public Response<UserDetailDTO> getUserInfo() {
@@ -71,9 +84,9 @@ public class UserController {
     }
 
     @PostMapping("/logout")
-    @Operation(summary = "用户登出")
-    public Response<Void> logout(@RequestHeader(value = "Authorization", required = false) String token) {
-        userApplicationService.logout(token);
+    @Operation(summary = "用户登出（支持多设备）")
+    public Response<Void> logout(@RequestBody LogoutRequest request) {
+        userApplicationService.logout(request.getToken(), request.getDeviceId());
         return Response.success();
     }
 
@@ -82,6 +95,15 @@ public class UserController {
     public Response<Void> resetPassword(@Valid @RequestBody UserRequests.ResetPasswordRequest request) {
         userApplicationService.resetPassword(request);
         return Response.success();
+    }
+
+    /**
+     * 登出请求
+     */
+    @Data
+    public static class LogoutRequest {
+        private String token;
+        private String deviceId; // 可选
     }
 
     /**

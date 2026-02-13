@@ -117,6 +117,41 @@ CREATE TABLE `knowledge_document`  (
 ) ENGINE = InnoDB CHARACTER SET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci COMMENT = '知识文档表' ROW_FORMAT = Dynamic;
 
 -- ----------------------------
+-- Table structure for knowledge_chunk
+-- ----------------------------
+DROP TABLE IF EXISTS `knowledge_chunk`;
+CREATE TABLE `knowledge_chunk`  (
+  `chunk_id` varchar(36) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NOT NULL COMMENT '分块ID (UUID)',
+  `document_id` varchar(36) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NOT NULL COMMENT '所属文档ID',
+  `dataset_id` varchar(36) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NOT NULL COMMENT '所属知识库ID',
+  `content` text CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NOT NULL COMMENT '分块内容',
+  `chunk_index` int NOT NULL COMMENT '分块序号',
+  `token_count` int NULL DEFAULT NULL COMMENT 'Token 数量',
+  `metadata` json NULL COMMENT '元数据',
+  `created_at` datetime NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+  PRIMARY KEY (`chunk_id`) USING BTREE,
+  INDEX `idx_document_id`(`document_id` ASC) USING BTREE,
+  INDEX `idx_dataset_id`(`dataset_id` ASC) USING BTREE,
+  CONSTRAINT `fk_chunk_document` FOREIGN KEY (`document_id`) REFERENCES `knowledge_document` (`document_id`) ON DELETE CASCADE ON UPDATE RESTRICT
+) ENGINE = InnoDB CHARACTER SET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci COMMENT = '知识分块表' ROW_FORMAT = Dynamic;
+
+-- ----------------------------
+-- Table structure for knowledge_vector_index
+-- ----------------------------
+DROP TABLE IF EXISTS `knowledge_vector_index`;
+CREATE TABLE `knowledge_vector_index`  (
+  `vector_id` varchar(36) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NOT NULL COMMENT '向量ID (UUID)',
+  `chunk_id` varchar(36) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NOT NULL COMMENT '关联的分块ID',
+  `milvus_id` bigint NOT NULL COMMENT 'Milvus 向量ID',
+  `collection_name` varchar(100) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NOT NULL COMMENT 'Milvus Collection 名称',
+  `created_at` datetime NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+  PRIMARY KEY (`vector_id`) USING BTREE,
+  UNIQUE INDEX `uk_chunk_id`(`chunk_id` ASC) USING BTREE,
+  INDEX `idx_milvus_id`(`milvus_id` ASC) USING BTREE,
+  CONSTRAINT `fk_vector_chunk` FOREIGN KEY (`chunk_id`) REFERENCES `knowledge_chunk` (`chunk_id`) ON DELETE CASCADE ON UPDATE RESTRICT
+) ENGINE = InnoDB CHARACTER SET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci COMMENT = '向量索引映射表' ROW_FORMAT = Dynamic;
+
+-- ----------------------------
 -- Table structure for messages
 -- ----------------------------
 DROP TABLE IF EXISTS `messages`;
@@ -236,7 +271,51 @@ CREATE TABLE `workflow_human_review_record`  (
 ) ENGINE = InnoDB AUTO_INCREMENT = 2 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci COMMENT = '人工审核记录表' ROW_FORMAT = Dynamic;
 
 -- ----------------------------
+-- Table structure for workflow_human_review_task
+-- ----------------------------
+DROP TABLE IF EXISTS `workflow_human_review_task`;
+CREATE TABLE `workflow_human_review_task`  (
+  `task_id` varchar(36) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NOT NULL COMMENT '任务ID (UUID)',
+  `execution_id` varchar(36) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NOT NULL COMMENT '工作流执行ID',
+  `node_id` varchar(50) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NOT NULL COMMENT '节点ID',
+  `status` varchar(20) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NOT NULL DEFAULT 'PENDING' COMMENT '任务状态: PENDING, APPROVED, REJECTED',
+  `input_data` json NULL COMMENT '待审核的输入数据',
+  `output_data` json NULL COMMENT '待审核的输出数据',
+  `reviewer_id` bigint NULL DEFAULT NULL COMMENT '审核人ID',
+  `review_comment` text CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NULL COMMENT '审核意见',
+  `created_at` datetime NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+  `reviewed_at` datetime NULL DEFAULT NULL COMMENT '审核时间',
+  PRIMARY KEY (`task_id`) USING BTREE,
+  INDEX `idx_execution_id`(`execution_id` ASC) USING BTREE,
+  INDEX `idx_status`(`status` ASC) USING BTREE,
+  INDEX `idx_reviewer_id`(`reviewer_id` ASC) USING BTREE
+) ENGINE = InnoDB CHARACTER SET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci COMMENT = '人工审核任务表' ROW_FORMAT = Dynamic;
+
+-- ----------------------------
 -- Table structure for workflow_execution
+-- ----------------------------
+DROP TABLE IF EXISTS `workflow_execution`;
+CREATE TABLE `workflow_execution`  (
+  `execution_id` varchar(36) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NOT NULL COMMENT '执行ID (UUID)',
+  `agent_id` bigint NOT NULL COMMENT 'Agent ID',
+  `user_id` bigint NOT NULL COMMENT '用户ID',
+  `conversation_id` varchar(36) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NULL DEFAULT NULL COMMENT '关联的会话ID',
+  `status` varchar(20) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NOT NULL DEFAULT 'RUNNING' COMMENT '执行状态: RUNNING, COMPLETED, FAILED, CANCELLED',
+  `mode` varchar(20) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NOT NULL DEFAULT 'STANDARD' COMMENT '执行模式: STANDARD, DEBUG, DRY_RUN',
+  `input_data` json NULL COMMENT '输入数据',
+  `output_data` json NULL COMMENT '输出数据',
+  `error_message` text CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NULL COMMENT '错误信息',
+  `started_at` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '开始时间',
+  `completed_at` datetime NULL DEFAULT NULL COMMENT '完成时间',
+  `duration_ms` bigint NULL DEFAULT NULL COMMENT '执行时长(毫秒)',
+  PRIMARY KEY (`execution_id`) USING BTREE,
+  INDEX `idx_agent_id`(`agent_id` ASC) USING BTREE,
+  INDEX `idx_user_id`(`user_id` ASC) USING BTREE,
+  INDEX `idx_conversation_id`(`conversation_id` ASC) USING BTREE,
+  INDEX `idx_status`(`status` ASC) USING BTREE,
+  INDEX `idx_started_at`(`started_at` ASC) USING BTREE
+) ENGINE = InnoDB CHARACTER SET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci COMMENT = '工作流执行主表' ROW_FORMAT = Dynamic;
+
 -- ----------------------------
 -- Table structure for workflow_node_execution_log
 -- ----------------------------

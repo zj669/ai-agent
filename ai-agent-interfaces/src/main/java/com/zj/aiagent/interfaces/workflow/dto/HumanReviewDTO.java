@@ -1,7 +1,10 @@
 package com.zj.aiagent.interfaces.workflow.dto;
 
 import com.zj.aiagent.domain.workflow.valobj.TriggerPhase;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
 import lombok.Data;
+import lombok.NoArgsConstructor;
 
 import java.time.LocalDateTime;
 import java.util.Map;
@@ -13,9 +16,10 @@ public class HumanReviewDTO {
         private String executionId;
         private String nodeId;
         private String nodeName;
-        private String agentName; // Optional, might need extra query
+        private String agentName;
         private TriggerPhase triggerPhase;
         private LocalDateTime pausedAt;
+        private Long userId;
     }
 
     @Data
@@ -24,7 +28,7 @@ public class HumanReviewDTO {
         private String nodeId;
         private String nodeName;
         private TriggerPhase triggerPhase;
-        private Map<String, Object> contextData; // Inputs or Outputs depending on phase
+        private Map<String, Object> contextData;
         private HumanReviewConfigDTO config;
     }
 
@@ -37,15 +41,24 @@ public class HumanReviewDTO {
     @Data
     public static class ResumeExecutionRequest {
         private String executionId;
-        private String nodeId; // Verification
+        private String nodeId;
         private Map<String, Object> edits;
         private String comment;
-        // version for optimistic lock? SchedulerService checks strict logic, maybe
-        // controller should pass version if we want strict API control.
-        // But SchedulerService uses Redisson Lock, not passing version from FE
-        // explicitly in strict sense,
-        // though Execution entity has version.
-        // Ideally we pass expected version to ensure no concurrent resume.
-        // Let's keep it simple for now, SchedulerService handles concurrency with lock.
+    }
+
+    @Data
+    public static class RejectExecutionRequest {
+        private String executionId;
+        private String nodeId;
+        private String reason;
+    }
+
+    @Data
+    @Builder
+    @NoArgsConstructor
+    @AllArgsConstructor
+    public static class ResumeExecutionResponse {
+        private boolean success;
+        private String message;
     }
 }

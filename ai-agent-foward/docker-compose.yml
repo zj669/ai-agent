@@ -1,0 +1,35 @@
+version: '3.8'
+
+services:
+  # 前端应用
+  frontend:
+    build: .
+    ports:
+      - "80:80"
+    environment:
+      - NODE_ENV=production
+    # 挂载环境变量文件
+    env_file:
+      - .env.production
+    restart: unless-stopped
+    networks:
+      - app-network
+
+  # 后端服务
+  backend:
+    image: your-backend-image:tag
+    # 如果后端服务不需要对外暴露端口，可以注释掉下面这行
+    # ports:
+    #   - "8091:8091"
+    environment:
+      - DATABASE_URL=your_database_url
+    restart: unless-stopped
+    networks:
+      - app-network
+    # 如果后端服务依赖数据库，可以添加数据库服务
+    # depends_on:
+    #   - database
+
+networks:
+  app-network:
+    driver: bridge

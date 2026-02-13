@@ -222,6 +222,12 @@ class UserAuthenticationDomainServiceTest {
     @DisplayName("用户登录测试")
     class LoginTests {
 
+        @BeforeEach
+        void setUp() {
+            when(rateLimiterFactory.getDefaultLimiter()).thenReturn(rateLimiter);
+            when(rateLimiter.tryAcquire(anyString(), anyInt(), anyInt())).thenReturn(true);
+        }
+
         @Test
         @DisplayName("正常登录流程")
         void shouldLoginSuccessfully() {

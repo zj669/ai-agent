@@ -6,12 +6,15 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Repository;
 
+import java.util.Collections;
+import java.util.Set;
+
 /**
  * 基于 Redis 的人工审核队列适配器
- * 
+ *
  * 实现 Domain 层定义的 HumanReviewQueuePort 接口
  * 使用 IRedisService 进行技术实现
- * 
+ *
  * 技术细节：
  * - 使用 Redis Set 类型存储待审核的执行ID
  * - Key: human_review:pending
@@ -21,11 +24,11 @@ import org.springframework.stereotype.Repository;
 @Repository
 @RequiredArgsConstructor
 public class RedisHumanReviewQueueAdapter implements HumanReviewQueuePort {
-    
+
     private final IRedisService redisService;
-    
+
     private static final String PENDING_QUEUE_KEY = "human_review:pending";
-    
+
     @Override
     public void addToPendingQueue(String executionId) {
         try {
@@ -36,7 +39,7 @@ public class RedisHumanReviewQueueAdapter implements HumanReviewQueuePort {
             throw new RuntimeException("Failed to add to human review queue", e);
         }
     }
-    
+
     @Override
     public void removeFromPendingQueue(String executionId) {
         try {
@@ -47,7 +50,7 @@ public class RedisHumanReviewQueueAdapter implements HumanReviewQueuePort {
             throw new RuntimeException("Failed to remove from human review queue", e);
         }
     }
-    
+
     @Override
     public boolean isInPendingQueue(String executionId) {
         try {
@@ -56,6 +59,18 @@ public class RedisHumanReviewQueueAdapter implements HumanReviewQueuePort {
             log.error("[HumanReviewQueue] Failed to check pending queue status: {}", executionId, e);
             // 发生异常时返回 false
             return false;
+        }
+    }
+
+    @Override
+    public Set<String> getPendingExecutionIds() {
+        try {
+            Set<String> members = redisService.getSetMembers(PENDING_QUEUE_KEY);
+            log.debug("[HumanReviewQueue] Retrieved {} pending executions", members != null ? members.size() : 0);
+            return members != null ? members : Collections.emptySet();
+        } catch (Exception e) {
+            log.error("[HumanReviewQueue] Failed to get pending execution IDs", e);
+            return Collections.emptySet();
         }
     }
 }

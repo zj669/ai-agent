@@ -30,9 +30,10 @@ public class MybatisConversationRepository implements ConversationRepository {
     public Conversation save(Conversation conversation) {
         ConversationDO conversationDO = new ConversationDO();
         BeanUtils.copyProperties(conversation, conversationDO);
-        // 如果 ID 存在则更新，否则插入 (简化逻辑，实际可能需要判断)
-        // 这里假设调用方已正确处理 ID
-        if (conversationMapper.selectById(conversation.getId()) != null) {
+        // MyBatis Plus: 如果主键存在则更新，否则插入
+        // 使用 insertOrUpdate 需要配置主键策略，这里简化为判断是否存在
+        ConversationDO existing = conversationMapper.selectById(conversation.getId());
+        if (existing != null) {
             conversationMapper.updateById(conversationDO);
         } else {
             conversationMapper.insert(conversationDO);
@@ -85,8 +86,9 @@ public class MybatisConversationRepository implements ConversationRepository {
     public Message saveMessage(Message message) {
         MessageDO messageDO = new MessageDO();
         BeanUtils.copyProperties(message, messageDO);
-
-        if (messageMapper.selectById(message.getId()) != null) {
+        // MyBatis Plus: 如果主键存在则更新，否则插入
+        MessageDO existing = messageMapper.selectById(message.getId());
+        if (existing != null) {
             messageMapper.updateById(messageDO);
         } else {
             messageMapper.insert(messageDO);
@@ -107,12 +109,25 @@ public class MybatisConversationRepository implements ConversationRepository {
 
     @Override
     public List<Message> findMessagesByConversationId(String conversationId, Pageable pageable) {
-        // 注意：领域层接口返回 PageResult 或 List，这里简化为 List，
-        // 实际可能需要使用 MyBatis Plus 的分页查询
         Page<MessageDO> page = new Page<>(pageable.getPageNumber() + 1, pageable.getPageSize());
         LambdaQueryWrapper<MessageDO> wrapper = new LambdaQueryWrapper<MessageDO>()
-                .eq(MessageDO::getConversationId, conversationId)
-                .orderByAsc(MessageDO::getCreatedAt); // 历史记录通常按时间正序
+                .eq(MessageDO::getConversationId, conversationId);
+
+        // 根据 Pageable 的排序规则决定查询顺序
+        // 默认按创建时间正序（历史记录从旧到新）
+        if (pageable.getSort().isSorted()) {
+            pageable.getSort().forEach(order -> {
+                if ("createdAt".equals(order.getProperty())) {
+                    if (order.isAscending()) {
+                        wrapper.orderByAsc(MessageDO::getCreatedAt);
+                    } else {
+                        wrapper.orderByDesc(MessageDO::getCreatedAt);
+                    }
+                }
+            });
+        } else {
+            wrapper.orderByAsc(MessageDO::getCreatedAt);
+        }
 
         return messageMapper.selectPage(page, wrapper).getRecords().stream().map(doObj -> {
             Message m = new Message();

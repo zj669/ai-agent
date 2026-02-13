@@ -1,0 +1,418 @@
+@import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&family=Geist:wght@300;400;500;600&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  /* Neural Terminal Color System */
+  --bg-primary: #0a0e14;
+  --bg-secondary: #12161f;
+  --bg-tertiary: #1a1f2e;
+  --bg-elevated: #1f2533;
+
+  --text-primary: #e6edf3;
+  --text-secondary: #8b949e;
+  --text-tertiary: #6e7681;
+
+  --accent-cyan: #00d9ff;
+  --accent-magenta: #ff006e;
+  --accent-purple: #8b5cf6;
+  --accent-green: #00ff88;
+
+  --border-subtle: rgba(255, 255, 255, 0.08);
+  --border-emphasis: rgba(0, 217, 255, 0.3);
+
+  --shadow-glow: 0 0 20px rgba(0, 217, 255, 0.15);
+  --shadow-strong: 0 8px 32px rgba(0, 0, 0, 0.4);
+}
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: 'Geist', -apple-system, BlinkMacSystemFont, sans-serif;
+  background: var(--bg-primary);
+  color: var(--text-primary);
+  overflow: hidden;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+code, pre {
+  font-family: 'JetBrains Mono', monospace;
+}
+
+/* Custom Scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--bg-secondary);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--bg-elevated);
+  border-radius: 4px;
+  transition: background 0.2s;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--text-tertiary);
+}
+
+/* Selection */
+::selection {
+  background: rgba(0, 217, 255, 0.3);
+  color: var(--text-primary);
+}
+
+/* Animations */
+@keyframes materialize {
+  from {
+    opacity: 0;
+    transform: translateY(10px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes pulse-glow {
+  0%, 100% {
+    box-shadow: 0 0 10px rgba(0, 217, 255, 0.2);
+  }
+  50% {
+    box-shadow: 0 0 20px rgba(0, 217, 255, 0.4);
+  }
+}
+
+@keyframes neural-trace {
+  from {
+    stroke-dashoffset: 1000;
+  }
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+
+@keyframes typing-cursor {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0; }
+}
+
+/* Utility Classes */
+.animate-materialize {
+  animation: materialize 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.animate-pulse-glow {
+  animation: pulse-glow 2s ease-in-out infinite;
+}
+
+.text-gradient-cyan {
+  background: linear-gradient(135deg, var(--accent-cyan), var(--accent-purple));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.text-gradient-magenta {
+  background: linear-gradient(135deg, var(--accent-magenta), var(--accent-purple));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* Markdown Styles */
+.prose {
+  max-width: none;
+  color: var(--text-primary);
+}
+
+.prose p {
+  margin: 0.75em 0;
+  line-height: 1.7;
+}
+
+.prose h1, .prose h2, .prose h3, .prose h4 {
+  color: var(--text-primary);
+  font-weight: 600;
+  margin-top: 1.5em;
+  margin-bottom: 0.5em;
+}
+
+.prose h1 { font-size: 1.75em; }
+.prose h2 { font-size: 1.5em; }
+.prose h3 { font-size: 1.25em; }
+
+.prose code {
+  background: var(--bg-tertiary);
+  padding: 0.2em 0.4em;
+  border-radius: 4px;
+  font-size: 0.9em;
+  color: var(--accent-cyan);
+  border: 1px solid var(--border-subtle);
+}
+
+.prose pre {
+  background: var(--bg-tertiary) !important;
+  padding: 1em;
+  border-radius: 8px;
+  overflow-x: auto;
+  margin: 1em 0;
+  border: 1px solid var(--border-subtle);
+}
+
+.prose pre code {
+  background: none;
+  padding: 0;
+  border: none;
+  color: var(--text-primary);
+}
+
+.prose ul, .prose ol {
+  margin: 0.75em 0;
+  padding-left: 1.5em;
+}
+
+.prose li {
+  margin: 0.25em 0;
+}
+
+.prose a {
+  color: var(--accent-cyan);
+  text-decoration: none;
+  border-bottom: 1px solid transparent;
+  transition: border-color 0.2s;
+}
+
+.prose a:hover {
+  border-bottom-color: var(--accent-cyan);
+}
+
+.prose blockquote {
+  border-left: 3px solid var(--accent-cyan);
+  padding-left: 1em;
+  margin: 1em 0;
+  color: var(--text-secondary);
+  font-style: italic;
+}
+
+.prose table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 1em 0;
+}
+
+.prose th, .prose td {
+  border: 1px solid var(--border-subtle);
+  padding: 0.5em;
+  text-align: left;
+}
+
+.prose th {
+  background: var(--bg-tertiary);
+  font-weight: 600;
+}
+
+/* ========================================
+   Workflow Editor Styles
+   ======================================== */
+
+/* Node Panel Collapse Component */
+.node-panel-collapse .ant-collapse-header {
+  padding: 8px 12px !important;
+  background: transparent !important;
+}
+
+.node-panel-collapse .ant-collapse-content-box {
+  padding: 0 !important;
+}
+
+/* Node Pulse Animation */
+@keyframes pulse-subtle {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.8; }
+}
+
+.animate-pulse-subtle {
+  animation: pulse-subtle 2s ease-in-out infinite;
+}
+
+/* ReactFlow Custom Styles */
+.react-flow__node {
+  cursor: grab;
+}
+
+.react-flow__node:active {
+  cursor: grabbing;
+}
+
+.react-flow__handle {
+  transition: all 0.2s ease;
+}
+
+.react-flow__edge-path {
+  stroke-width: 2;
+}
+
+/* ReactFlow Minimap */
+.react-flow__minimap {
+  background: rgba(255, 255, 255, 0.9);
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+/* ReactFlow Controls */
+.react-flow__controls {
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.react-flow__controls-button {
+  border: none !important;
+}
+
+/* ========================================
+   Workflow Studio (Dify/Coze-like)
+   ======================================== */
+.workflow-editor-shell {
+  background:
+    radial-gradient(circle at 20% 0%, rgba(14, 165, 233, 0.14), transparent 35%),
+    radial-gradient(circle at 85% 100%, rgba(45, 212, 191, 0.12), transparent 40%),
+    #090f1b;
+}
+
+.workflow-toolbar {
+  background: rgba(10, 15, 28, 0.92);
+  border-bottom: 1px solid rgba(100, 116, 139, 0.35);
+  backdrop-filter: blur(10px);
+}
+
+.workflow-toolbar-btn {
+  transition: all 0.2s ease;
+}
+
+.workflow-toolbar-btn:hover {
+  background: rgba(30, 41, 59, 0.9);
+}
+
+.workflow-statusbar {
+  background: rgba(8, 13, 24, 0.92);
+  border-top: 1px solid rgba(100, 116, 139, 0.35);
+  color: #94a3b8;
+}
+
+.workflow-canvas-wrap {
+  background: linear-gradient(180deg, rgba(15, 23, 42, 0.55), rgba(10, 18, 30, 0.8));
+}
+
+.workflow-canvas {
+  background: transparent !important;
+}
+
+.workflow-empty-state {
+  background: rgba(8, 13, 24, 0.92);
+  border-color: rgba(71, 85, 105, 0.65);
+}
+
+.workflow-nodepanel,
+.workflow-nodepanel-collapsed {
+  background: rgba(8, 13, 24, 0.94);
+  border-color: rgba(100, 116, 139, 0.35);
+}
+
+.workflow-nodepanel .node-panel-collapse .ant-collapse-header,
+.workflow-nodepanel .node-panel-collapse .ant-collapse-expand-icon {
+  color: #cbd5e1 !important;
+}
+
+.workflow-nodepanel .node-panel-collapse .ant-collapse-item {
+  border-bottom: 1px solid rgba(51, 65, 85, 0.45) !important;
+}
+
+.workflow-log-panel {
+  background: rgba(10, 15, 28, 0.95);
+  border: 1px solid rgba(56, 189, 248, 0.35);
+  box-shadow: 0 14px 40px rgba(2, 6, 23, 0.65);
+}
+
+.workflow-editor-shell .react-flow__minimap {
+  background: rgba(10, 15, 28, 0.92) !important;
+  border: 1px solid rgba(100, 116, 139, 0.4) !important;
+}
+
+.workflow-editor-shell .react-flow__controls {
+  border: 1px solid rgba(100, 116, 139, 0.4) !important;
+  background: rgba(8, 13, 24, 0.92) !important;
+}
+
+.workflow-editor-shell .react-flow__controls-button {
+  background: rgba(8, 13, 24, 0.92) !important;
+}
+
+.workflow-editor-shell .react-flow__controls-button svg {
+  fill: #cbd5e1 !important;
+}
+
+.workflow-props-panel {
+  background: rgba(8, 13, 24, 0.94);
+  border-color: rgba(100, 116, 139, 0.35);
+}
+
+.workflow-props-form .ant-form-item-label > label {
+  color: #cbd5e1 !important;
+}
+
+.workflow-props-form .ant-collapse-header {
+  color: #e2e8f0 !important;
+}
+
+.workflow-props-form .ant-collapse-item {
+  border-bottom: 1px solid rgba(51, 65, 85, 0.45) !important;
+}
+
+.workflow-props-form .ant-collapse-content-box {
+  padding-top: 10px !important;
+  padding-left: 2px !important;
+  padding-right: 2px !important;
+}
+
+.workflow-props-tabs {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.workflow-props-tabs button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  border: 1px solid rgba(71, 85, 105, 0.6);
+  background: rgba(15, 23, 42, 0.65);
+  color: #cbd5e1;
+  border-radius: 10px;
+  padding: 8px 10px;
+  font-size: 12px;
+  transition: all 0.2s ease;
+}
+
+.workflow-props-tabs button:hover {
+  border-color: rgba(56, 189, 248, 0.55);
+  background: rgba(14, 116, 144, 0.2);
+}
+
+.workflow-props-tabs button.active {
+  border-color: rgba(56, 189, 248, 0.85);
+  background: rgba(14, 116, 144, 0.35);
+  color: #e0f2fe;
+}

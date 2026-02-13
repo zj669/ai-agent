@@ -11,6 +11,8 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 public class UserLoginResponse {
     private String token;
+    private String refreshToken; // 新增
     private Long expireIn; // seconds
+    private String deviceId; // 新增
     private UserDetailDTO user;
 }

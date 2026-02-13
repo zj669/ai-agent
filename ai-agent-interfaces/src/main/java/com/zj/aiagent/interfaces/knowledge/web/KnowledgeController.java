@@ -85,7 +85,12 @@ public class KnowledgeController {
      */
     @GetMapping("/dataset/{id}")
     public Response<KnowledgeDTO.DatasetResp> getDataset(@PathVariable("id") String datasetId) {
-        KnowledgeDataset dataset = knowledgeApplicationService.getDataset(datasetId);
+        Long userId = UserContext.getUserId();
+        if (userId == null) {
+            return Response.error(401, "Unauthorized");
+        }
+
+        KnowledgeDataset dataset = knowledgeApplicationService.getDataset(datasetId, userId);
         return Response.success(toDatasetResp(dataset));
     }
 
@@ -94,7 +99,12 @@ public class KnowledgeController {
      */
     @DeleteMapping("/dataset/{id}")
     public Response<Void> deleteDataset(@PathVariable("id") String datasetId) {
-        knowledgeApplicationService.deleteDataset(datasetId);
+        Long userId = UserContext.getUserId();
+        if (userId == null) {
+            return Response.error(401, "Unauthorized");
+        }
+
+        knowledgeApplicationService.deleteDataset(datasetId, userId);
         return Response.success();
     }
 
@@ -109,6 +119,10 @@ public class KnowledgeController {
             @RequestParam("datasetId") String datasetId,
             @RequestParam(value = "chunkSize", defaultValue = "500") Integer chunkSize,
             @RequestParam(value = "chunkOverlap", defaultValue = "50") Integer chunkOverlap) {
+        Long userId = UserContext.getUserId();
+        if (userId == null) {
+            return Response.error(401, "Unauthorized");
+        }
 
         log.info("接收文档上传请求: datasetId={}, filename={}, size={}",
                 datasetId, file.getOriginalFilename(), file.getSize());
@@ -119,7 +133,7 @@ public class KnowledgeController {
                 .build();
 
         KnowledgeDocument document = knowledgeApplicationService.uploadDocument(
-                datasetId, file, config);
+                datasetId, file, config, userId);
 
         return Response.success(toDocumentResp(document));
     }
@@ -132,9 +146,13 @@ public class KnowledgeController {
             @RequestParam("datasetId") String datasetId,
             @RequestParam(value = "page", defaultValue = "0") Integer page,
             @RequestParam(value = "size", defaultValue = "20") Integer size) {
+        Long userId = UserContext.getUserId();
+        if (userId == null) {
+            return Response.error(401, "Unauthorized");
+        }
 
         Page<KnowledgeDocument> documentPage = knowledgeApplicationService.listDocuments(
-                datasetId, PageRequest.of(page, size));
+                datasetId, PageRequest.of(page, size), userId);
 
         Page<KnowledgeDTO.DocumentResp> respPage = documentPage.map(this::toDocumentResp);
 
@@ -146,7 +164,12 @@ public class KnowledgeController {
      */
     @GetMapping("/document/{id}")
     public Response<KnowledgeDTO.DocumentResp> getDocument(@PathVariable("id") String documentId) {
-        KnowledgeDocument document = knowledgeApplicationService.getDocument(documentId);
+        Long userId = UserContext.getUserId();
+        if (userId == null) {
+            return Response.error(401, "Unauthorized");
+        }
+
+        KnowledgeDocument document = knowledgeApplicationService.getDocument(documentId, userId);
         return Response.success(toDocumentResp(document));
     }
 
@@ -155,8 +178,27 @@ public class KnowledgeController {
      */
     @DeleteMapping("/document/{id}")
     public Response<Void> deleteDocument(@PathVariable("id") String documentId) {
-        knowledgeApplicationService.deleteDocument(documentId);
+        Long userId = UserContext.getUserId();
+        if (userId == null) {
+            return Response.error(401, "Unauthorized");
+        }
+
+        knowledgeApplicationService.deleteDocument(documentId, userId);
         return Response.success();
+    }
+
+    /**
+     * 重试处理失败文档
+     */
+    @PostMapping("/document/{id}/retry")
+    public Response<KnowledgeDTO.DocumentResp> retryDocument(@PathVariable("id") String documentId) {
+        Long userId = UserContext.getUserId();
+        if (userId == null) {
+            return Response.error(401, "Unauthorized");
+        }
+
+        KnowledgeDocument document = knowledgeApplicationService.retryDocument(documentId, userId);
+        return Response.success(toDocumentResp(document));
     }
 
     // ========== 知识检索 ==========
@@ -166,6 +208,14 @@ public class KnowledgeController {
      */
     @PostMapping("/search")
     public Response<List<String>> search(@Validated @RequestBody KnowledgeDTO.SearchReq req) {
+        Long userId = UserContext.getUserId();
+        if (userId == null) {
+            return Response.error(401, "Unauthorized");
+        }
+
+        // 先校验知识库归属，避免跨用户检索
+        knowledgeApplicationService.getDataset(req.getDatasetId(), userId);
+
         log.info("知识检索: datasetId={}, query={}, topK={}",
                 req.getDatasetId(),
                 req.getQuery().length() > 50 ? req.getQuery().substring(0, 50) + "..." : req.getQuery(),

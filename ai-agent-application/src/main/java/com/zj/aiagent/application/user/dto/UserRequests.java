@@ -26,6 +26,9 @@ public class UserRequests {
         private String password;
 
         private String username;
+
+        // 新增：设备ID（可选）
+        private String deviceId;
     }
 
     @Data
@@ -35,6 +38,18 @@ public class UserRequests {
 
         @NotBlank(message = "密码不能为空")
         private String password;
+
+        // 新增：设备ID（可选）
+        private String deviceId;
+    }
+
+    @Data
+    public static class TokenRefreshRequest {
+        @NotBlank(message = "Refresh token is required")
+        private String refreshToken;
+
+        @NotBlank(message = "Device ID is required")
+        private String deviceId;
     }
 
     @Data

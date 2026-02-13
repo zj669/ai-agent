@@ -2,10 +2,10 @@ package com.zj.aiagent.application.knowledge;
 
 import com.zj.aiagent.domain.knowledge.service.KnowledgeRetrievalService;
 import com.zj.aiagent.domain.memory.port.VectorStore;
+import com.zj.aiagent.domain.memory.valobj.Document;
+import com.zj.aiagent.domain.memory.valobj.SearchRequest;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.ai.document.Document;
-import org.springframework.ai.vectorstore.SearchRequest;
 import org.springframework.stereotype.Service;
 
 import java.util.List;

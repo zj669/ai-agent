@@ -54,8 +54,8 @@ public class DataSourceConfig {
         MybatisSqlSessionFactoryBean factoryBean = new MybatisSqlSessionFactoryBean();
         factoryBean.setDataSource(dataSource);
         factoryBean.setMapperLocations(new PathMatchingResourcePatternResolver()
-                .getResources("classpath*:/mapper/competition/**/*.xml"));
-        factoryBean.setTypeAliasesPackage("com.ddm.competition.model.entity");
+                .getResources("classpath*:mapper/**/*.xml"));
+        factoryBean.setTypeAliasesPackage("com.zj.aiagent.infrastructure");
         factoryBean.setPlugins(mybatisPlusInterceptor);
         // AutoFill 手动注入
         GlobalConfig globalConfig = new GlobalConfig();

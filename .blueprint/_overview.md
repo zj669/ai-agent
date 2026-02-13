@@ -5,6 +5,7 @@
 ```mermaid
 graph TD
     subgraph Interfaces["接口层"]
+        UC[UserController]
         AC[AgentController]
         WC[WorkflowController]
         HRC[HumanReviewController]
@@ -13,6 +14,7 @@ graph TD
     end
 
     subgraph Application["应用层"]
+        UAS[UserApplicationService]
         AAS[AgentApplicationService]
         SS[SchedulerService]
         CAS[ChatApplicationService]
@@ -38,6 +40,7 @@ graph TD
         MinIO[(MinIO)]
     end
 
+    UC --> UAS --> User
     AC --> AAS --> Agent
     WC --> SS --> Execution
     SS --> WG
@@ -57,7 +60,8 @@ graph TD
 
 ## 核心数据流
 
-1. **工作流执行**: Controller → SchedulerService → Execution(聚合根) → NodeExecutorStrategy → StreamPublisher
+1. **用户认证**: UserController → UserApplicationService → UserAuthenticationDomainService → ITokenService
+2. **工作流执行**: Controller → SchedulerService → Execution(聚合根) → NodeExecutorStrategy → StreamPublisher
 2. **记忆水合**: SchedulerService.hydrateMemory → VectorStore(LTM) + ConversationRepository(STM) → ExecutionContext
 3. **人工审核**: HumanReviewController → SchedulerService.resumeExecution → Execution.resume → CheckpointRepository
 4. **流式推送**: NodeExecutorStrategy → StreamPublisher → RedisSsePublisher(Redis Pub/Sub) → SSE → 前端
@@ -69,6 +73,7 @@ graph TD
 
 | 端口 | 职责 | 实现层 | 存储 |
 |------|------|--------|------|
+| ConditionEvaluatorPort | 结构化条件分支评估 | Infrastructure | - |
 | NodeExecutorStrategy | 节点执行策略 | Infrastructure | - |
 | StreamPublisher | 流式推送 | Infrastructure | Redis Pub/Sub |
 | StreamPublisherFactory | 创建 StreamPublisher | Infrastructure | - |

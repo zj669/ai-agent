@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.zj.aiagent.infrastructure.dashboard.mapper.DashboardMapper">
+
+    <!-- 获取用户的 Agent 数量 -->
+    <select id="countAgentsByUserId" resultType="java.lang.Long">
+        SELECT COUNT(*)
+        FROM agent_info
+        WHERE user_id = #{userId}
+          AND deleted = 0
+    </select>
+
+    <!-- 获取用户的对话数量 -->
+    <select id="countConversationsByUserId" resultType="java.lang.Long">
+        SELECT COUNT(*)
+        FROM conversations
+        WHERE user_id = CAST(#{userId} AS CHAR)
+          AND is_deleted = 0
+    </select>
+
+    <!-- 获取用户的知识库数量 -->
+    <select id="countKnowledgeDatasetsByUserId" resultType="java.lang.Long">
+        SELECT COUNT(*)
+        FROM knowledge_dataset
+        WHERE user_id = #{userId}
+    </select>
+
+    <!-- 获取用户的执行统计数据 -->
+    <select id="getExecutionStatsByUserId" resultType="java.util.HashMap">
+        SELECT
+            COUNT(*) AS total_executions,
+            COALESCE(SUM(CASE WHEN status = 'COMPLETED' THEN 1 ELSE 0 END), 0) AS successful_executions,
+            COALESCE(SUM(CASE WHEN status = 'FAILED' THEN 1 ELSE 0 END), 0) AS failed_executions,
+            COALESCE(AVG(duration_ms), 0) AS avg_response_time
+        FROM workflow_execution
+        WHERE user_id = #{userId}
+    </select>
+
+</mapper>

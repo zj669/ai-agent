@@ -36,18 +36,19 @@ EMBEDDING_BASE_URL: https://dashscope.aliyuncs.com/compatible-mode/v1
 EMBEDDING_ENDPOINT: https://dashscope.aliyuncs.com/compatible-mode/v1/embeddings
 EMBEDDING_MODEL: text-embedding-v4
 EMBEDDING_NUM_CTX: 1,024
-EMBEDDING_API_KEY: sk-ccf9acf852334b51bd914d42de7b6d01  # 请替换为真实的API Key
+EMBEDDING_API_KEY: ${EMBEDDING_API_KEY:}  # 请通过环境变量注入真实的 API Key
 
 
 # 邮件配置
 MAIL_HOST: smtp.qq.com
 MAIL_PORT: 465
-MAIL_USERNAME: zj-669@qq.com
-MAIL_PASSWORD: romspgyuovtqddgh
+MAIL_USERNAME: ${MAIL_USERNAME:}
+MAIL_PASSWORD: ${MAIL_PASSWORD:}
 
 # Redis配置 (Docker)
 # 密码: redis123
-REDIS_HOST: localhost
+# 注意: 使用 127.0.0.1 避免 IPv6 解析问题
+REDIS_HOST: 127.0.0.1
 REDIS_PORT: 6379
 REDIS_POOL_SIZE: 10
 REDIS_PASSWORD: redis123

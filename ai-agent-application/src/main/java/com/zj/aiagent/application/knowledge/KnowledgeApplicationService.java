@@ -6,6 +6,7 @@ import com.zj.aiagent.domain.knowledge.port.FileStorageService;
 import com.zj.aiagent.domain.knowledge.repository.KnowledgeDatasetRepository;
 import com.zj.aiagent.domain.knowledge.repository.KnowledgeDocumentRepository;
 import com.zj.aiagent.domain.knowledge.valobj.ChunkingConfig;
+import com.zj.aiagent.domain.knowledge.valobj.DocumentStatus;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
@@ -96,6 +97,19 @@ public class KnowledgeApplicationService {
     }
 
     /**
+     * 查询知识库详情（带权限验证）
+     *
+     * @param datasetId 知识库 ID
+     * @param userId    当前用户 ID
+     * @return 知识库对象
+     */
+    public KnowledgeDataset getDataset(String datasetId, Long userId) {
+        KnowledgeDataset dataset = getDataset(datasetId);
+        validateOwnership(dataset.getUserId(), userId, "知识库");
+        return dataset;
+    }
+
+    /**
      * 删除知识库
      * 删除知识库及其所有文档（包括文件和向量）
      * 
@@ -127,6 +141,18 @@ public class KnowledgeApplicationService {
         log.info("知识库删除完成: datasetId={}", datasetId);
     }
 
+    /**
+     * 删除知识库（带权限验证）
+     *
+     * @param datasetId 知识库 ID
+     * @param userId    当前用户 ID
+     */
+    @Transactional
+    public void deleteDataset(String datasetId, Long userId) {
+        getDataset(datasetId, userId);
+        deleteDataset(datasetId);
+    }
+
     // ========== 文档管理 ==========
 
     /**
@@ -146,23 +172,26 @@ public class KnowledgeApplicationService {
         log.info("上传文档: datasetId={}, filename={}, size={}",
                 datasetId, file.getOriginalFilename(), file.getSize());
 
-        // 1. 验证知识库存在
+        // 1. 文件安全校验
+        FileValidator.validate(file);
+
+        // 2. 验证知识库存在
         KnowledgeDataset dataset = getDataset(datasetId);
 
         try {
-            // 2. 生成文档 ID 和存储路径
+            // 3. 生成文档 ID 和存储路径
             String documentId = UUID.randomUUID().toString();
             String objectName = String.format("%s/%s/%s",
                     datasetId, documentId, file.getOriginalFilename());
 
-            // 3. 上传文件到 MinIO
+            // 4. 上传文件到 MinIO
             String fileUrl = fileStorageService.upload(
                     bucketName,
                     objectName,
                     file.getInputStream(),
                     file.getSize());
 
-            // 4. 构建文档聚合根
+            // 5. 构建文档聚合根
             KnowledgeDocument document = KnowledgeDocument.builder()
                     .documentId(documentId)
                     .datasetId(datasetId)
@@ -174,14 +203,14 @@ public class KnowledgeApplicationService {
                     .uploadedAt(Instant.now())
                     .build();
 
-            // 5. 保存文档记录（状态：PENDING）
+            // 6. 保存文档记录（状态：PENDING）
             document = documentRepository.save(document);
 
-            // 6. 更新知识库统计（调用领域行为）
+            // 7. 更新知识库统计（调用领域行为）
             dataset.addDocument(document);
             datasetRepository.save(dataset);
 
-            // 7. 触发异步处理（解析、分块、向量化）
+            // 8. 触发异步处理（解析、分块、向量化）
             asyncDocumentProcessor.processDocumentAsync(document);
 
             log.info("文档上传成功，异步处理已触发: documentId={}", documentId);
@@ -192,6 +221,25 @@ public class KnowledgeApplicationService {
                     datasetId, file.getOriginalFilename(), e);
             throw new RuntimeException("文档上传失败: " + e.getMessage(), e);
         }
+    }
+
+    /**
+     * 上传文档到知识库（带权限验证）
+     *
+     * @param datasetId      知识库 ID
+     * @param file           上传文件
+     * @param chunkingConfig 分块配置
+     * @param userId         当前用户 ID
+     * @return 文档对象
+     */
+    @Transactional
+    public KnowledgeDocument uploadDocument(
+            String datasetId,
+            MultipartFile file,
+            ChunkingConfig chunkingConfig,
+            Long userId) {
+        getDataset(datasetId, userId);
+        return uploadDocument(datasetId, file, chunkingConfig);
     }
 
     /**
@@ -207,6 +255,19 @@ public class KnowledgeApplicationService {
     }
 
     /**
+     * 查询文档列表（带权限验证）
+     *
+     * @param datasetId 知识库 ID
+     * @param pageable  分页参数
+     * @param userId    当前用户 ID
+     * @return 文档分页结果
+     */
+    public Page<KnowledgeDocument> listDocuments(String datasetId, Pageable pageable, Long userId) {
+        getDataset(datasetId, userId);
+        return listDocuments(datasetId, pageable);
+    }
+
+    /**
      * 查询文档详情
      * 
      * @param documentId 文档 ID
@@ -215,6 +276,19 @@ public class KnowledgeApplicationService {
     public KnowledgeDocument getDocument(String documentId) {
         return documentRepository.findById(documentId)
                 .orElseThrow(() -> new IllegalArgumentException("文档不存在: " + documentId));
+    }
+
+    /**
+     * 查询文档详情（带权限验证）
+     *
+     * @param documentId 文档 ID
+     * @param userId     当前用户 ID
+     * @return 文档对象
+     */
+    public KnowledgeDocument getDocument(String documentId, Long userId) {
+        KnowledgeDocument document = getDocument(documentId);
+        getDataset(document.getDatasetId(), userId);
+        return document;
     }
 
     /**
@@ -239,6 +313,56 @@ public class KnowledgeApplicationService {
         datasetRepository.save(dataset);
 
         log.info("文档删除完成: documentId={}", documentId);
+    }
+
+    /**
+     * 删除文档（带权限验证）
+     *
+     * @param documentId 文档 ID
+     * @param userId     当前用户 ID
+     */
+    @Transactional
+    public void deleteDocument(String documentId, Long userId) {
+        getDocument(documentId, userId);
+        deleteDocument(documentId);
+    }
+
+    /**
+     * 重试失败文档
+     *
+     * @param documentId 文档 ID
+     * @param userId     当前用户 ID
+     * @return 更新后的文档对象
+     */
+    @Transactional
+    public KnowledgeDocument retryDocument(String documentId, Long userId) {
+        KnowledgeDocument document = getDocument(documentId, userId);
+        if (document.getStatus() != DocumentStatus.FAILED) {
+            throw new IllegalStateException("仅失败状态的文档可重试");
+        }
+
+        document.setStatus(DocumentStatus.PENDING);
+        document.setErrorMessage(null);
+        document.setProcessedChunks(0);
+        document.setTotalChunks(0);
+        document.setCompletedAt(null);
+
+        KnowledgeDocument saved = documentRepository.save(document);
+        asyncDocumentProcessor.processDocumentAsync(saved);
+        return saved;
+    }
+
+    /**
+     * 验证资源所有权
+     *
+     * @param resourceOwnerId 资源所有者用户 ID
+     * @param currentUserId   当前用户 ID
+     * @param resourceType    资源类型
+     */
+    private void validateOwnership(Long resourceOwnerId, Long currentUserId, String resourceType) {
+        if (resourceOwnerId == null || currentUserId == null || !resourceOwnerId.equals(currentUserId)) {
+            throw new SecurityException("无权访问该" + resourceType);
+        }
     }
 
     /**

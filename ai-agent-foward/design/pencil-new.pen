@@ -1,0 +1,849 @@
+{
+  "version": "2.7",
+  "children": [
+    {
+      "type": "frame",
+      "id": "bi8Au",
+      "x": 0,
+      "y": 0,
+      "name": "Frame",
+      "clip": true,
+      "width": 800,
+      "height": 600,
+      "fill": "#FFFFFF",
+      "layout": "none"
+    },
+    {
+      "type": "frame",
+      "id": "7Aa0c",
+      "x": 0,
+      "y": 0,
+      "name": "Chat Interface",
+      "width": 1440,
+      "height": 900,
+      "fill": "#0F0F0F",
+      "children": [
+        {
+          "type": "frame",
+          "id": "bVqLg",
+          "name": "Sidebar",
+          "width": 280,
+          "height": "fill_container",
+          "fill": "#0A0A0A",
+          "stroke": {
+            "align": "inside",
+            "thickness": {
+              "right": 1
+            },
+            "fill": "#1F1F1F"
+          },
+          "layout": "vertical",
+          "gap": 48,
+          "padding": [
+            40,
+            28
+          ],
+          "children": [
+            {
+              "type": "frame",
+              "id": "ebNpy",
+              "name": "logoSection",
+              "gap": 12,
+              "alignItems": "center",
+              "children": [
+                {
+                  "type": "frame",
+                  "id": "WYEn1",
+                  "name": "logoMark",
+                  "width": 36,
+                  "height": 36,
+                  "stroke": {
+                    "align": "inside",
+                    "thickness": 1,
+                    "fill": "#C9A962"
+                  },
+                  "justifyContent": "center",
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "iMFJe",
+                      "name": "logoLetter",
+                      "fill": "#C9A962",
+                      "content": "A",
+                      "fontFamily": "Playfair Display",
+                      "fontSize": 18,
+                      "fontWeight": "500"
+                    }
+                  ]
+                },
+                {
+                  "type": "text",
+                  "id": "HY07B",
+                  "name": "logoText",
+                  "fill": "#FAF8F5",
+                  "content": "AI Agent",
+                  "fontFamily": "Playfair Display",
+                  "fontSize": 22,
+                  "letterSpacing": 1
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "dKWKn",
+              "name": "navSection",
+              "width": "fill_container",
+              "layout": "vertical",
+              "gap": 4,
+              "children": [
+                {
+                  "type": "frame",
+                  "id": "cQsue",
+                  "name": "navActive",
+                  "fill": "#C9A96210",
+                  "stroke": {
+                    "align": "inside",
+                    "thickness": {
+                      "left": 2
+                    },
+                    "fill": "#C9A962"
+                  },
+                  "gap": 14,
+                  "padding": [
+                    14,
+                    16
+                  ],
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "icon_font",
+                      "id": "E0bPn",
+                      "name": "navActiveIcon",
+                      "width": 18,
+                      "height": 18,
+                      "iconFontName": "message-square",
+                      "iconFontFamily": "lucide",
+                      "fill": "#C9A962"
+                    },
+                    {
+                      "type": "text",
+                      "id": "7cCG9",
+                      "name": "navActiveLabel",
+                      "fill": "#FAF8F5",
+                      "content": "Chat",
+                      "fontFamily": "Manrope",
+                      "fontSize": 14,
+                      "fontWeight": "500"
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "WCLD7",
+                  "name": "navItem1",
+                  "gap": 14,
+                  "padding": [
+                    14,
+                    16
+                  ],
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "icon_font",
+                      "id": "0nHkn",
+                      "name": "navIcon1",
+                      "width": 18,
+                      "height": 18,
+                      "iconFontName": "layout-grid",
+                      "iconFontFamily": "lucide",
+                      "fill": "#666666"
+                    },
+                    {
+                      "type": "text",
+                      "id": "qFOPJ",
+                      "name": "navLabel1",
+                      "fill": "#888888",
+                      "content": "Dashboard",
+                      "fontFamily": "Manrope",
+                      "fontSize": 14
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "8uYQt",
+                  "name": "navItem2",
+                  "gap": 14,
+                  "padding": [
+                    14,
+                    16
+                  ],
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "icon_font",
+                      "id": "fxAnX",
+                      "name": "navIcon2",
+                      "width": 18,
+                      "height": 18,
+                      "iconFontName": "workflow",
+                      "iconFontFamily": "lucide",
+                      "fill": "#666666"
+                    },
+                    {
+                      "type": "text",
+                      "id": "bvQ4f",
+                      "name": "navLabel2",
+                      "fill": "#888888",
+                      "content": "Workflows",
+                      "fontFamily": "Manrope",
+                      "fontSize": 14
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "SiE6O",
+                  "name": "navItem3",
+                  "gap": 14,
+                  "padding": [
+                    14,
+                    16
+                  ],
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "icon_font",
+                      "id": "hJfFR",
+                      "name": "navIcon3",
+                      "width": 18,
+                      "height": 18,
+                      "iconFontName": "database",
+                      "iconFontFamily": "lucide",
+                      "fill": "#666666"
+                    },
+                    {
+                      "type": "text",
+                      "id": "X492V",
+                      "name": "navLabel3",
+                      "fill": "#888888",
+                      "content": "Knowledge",
+                      "fontFamily": "Manrope",
+                      "fontSize": 14
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "vOoRn",
+                  "name": "navItem4",
+                  "gap": 14,
+                  "padding": [
+                    14,
+                    16
+                  ],
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "icon_font",
+                      "id": "FCjF5",
+                      "name": "navIcon4",
+                      "width": 18,
+                      "height": 18,
+                      "iconFontName": "settings",
+                      "iconFontFamily": "lucide",
+                      "fill": "#666666"
+                    },
+                    {
+                      "type": "text",
+                      "id": "SKDKC",
+                      "name": "navLabel4",
+                      "fill": "#888888",
+                      "content": "Settings",
+                      "fontFamily": "Manrope",
+                      "fontSize": 14
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "pC5ss",
+              "name": "spacer",
+              "width": "fill_container",
+              "height": "fill_container"
+            },
+            {
+              "type": "frame",
+              "id": "M03Zn",
+              "name": "accountSection",
+              "stroke": {
+                "align": "inside",
+                "thickness": {
+                  "top": 1
+                },
+                "fill": "#1F1F1F"
+              },
+              "gap": 12,
+              "padding": [
+                16,
+                0,
+                0,
+                0
+              ],
+              "alignItems": "center",
+              "children": [
+                {
+                  "type": "frame",
+                  "id": "C6RUh",
+                  "name": "accountAvatar",
+                  "width": 40,
+                  "height": 40,
+                  "stroke": {
+                    "align": "inside",
+                    "thickness": 1,
+                    "fill": "#C9A962"
+                  },
+                  "justifyContent": "center",
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "nmu65",
+                      "name": "accountInitial",
+                      "fill": "#C9A962",
+                      "content": "JD",
+                      "fontFamily": "Manrope",
+                      "fontSize": 12,
+                      "fontWeight": "600"
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "MNTYn",
+                  "name": "accountInfo",
+                  "width": "fill_container",
+                  "layout": "vertical",
+                  "gap": 2,
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "Y5uWm",
+                      "name": "accountName",
+                      "fill": "#FAF8F5",
+                      "content": "John Doe",
+                      "fontFamily": "Manrope",
+                      "fontSize": 13,
+                      "fontWeight": "500"
+                    },
+                    {
+                      "type": "text",
+                      "id": "yQl1L",
+                      "name": "accountEmail",
+                      "fill": "#666666",
+                      "content": "john@example.com",
+                      "fontFamily": "Manrope",
+                      "fontSize": 11
+                    }
+                  ]
+                },
+                {
+                  "type": "icon_font",
+                  "id": "puhvv",
+                  "name": "accountChevron",
+                  "width": 16,
+                  "height": 16,
+                  "iconFontName": "chevron-down",
+                  "iconFontFamily": "lucide",
+                  "fill": "#666666"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "type": "frame",
+          "id": "WpqtH",
+          "name": "Main Chat Area",
+          "width": "fill_container",
+          "height": "fill_container",
+          "layout": "vertical",
+          "gap": 24,
+          "padding": [
+            48,
+            56
+          ],
+          "children": [
+            {
+              "type": "frame",
+              "id": "bIHEA",
+              "name": "chatHeader",
+              "width": "fill_container",
+              "justifyContent": "space_between",
+              "alignItems": "center",
+              "children": [
+                {
+                  "type": "frame",
+                  "id": "B9akp",
+                  "name": "headerLeft",
+                  "layout": "vertical",
+                  "gap": 8,
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "iVsS5",
+                      "name": "chatTitle",
+                      "fill": "#FAF8F5",
+                      "content": "Conversation",
+                      "fontFamily": "Playfair Display",
+                      "fontSize": 48
+                    },
+                    {
+                      "type": "text",
+                      "id": "zBJhM",
+                      "name": "chatSubtitle",
+                      "fill": "#888888",
+                      "content": "Chat with your AI agent",
+                      "fontFamily": "Manrope",
+                      "fontSize": 14
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "AgxcF",
+                  "name": "headerActions",
+                  "gap": 12,
+                  "children": [
+                    {
+                      "type": "frame",
+                      "id": "VN2D8",
+                      "name": "newChatBtn",
+                      "fill": "#C9A962",
+                      "gap": 8,
+                      "padding": [
+                        12,
+                        20
+                      ],
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "icon_font",
+                          "id": "qMtpD",
+                          "name": "newChatIcon",
+                          "width": 14,
+                          "height": 14,
+                          "iconFontName": "plus",
+                          "iconFontFamily": "lucide",
+                          "fill": "#0A0A0A"
+                        },
+                        {
+                          "type": "text",
+                          "id": "76iRL",
+                          "name": "newChatLabel",
+                          "fill": "#0A0A0A",
+                          "content": "New Chat",
+                          "fontFamily": "Manrope",
+                          "fontSize": 12,
+                          "fontWeight": "600"
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "GhAvW",
+              "name": "Messages Container",
+              "width": "fill_container",
+              "height": "fill_container",
+              "stroke": {
+                "align": "inside",
+                "thickness": 1,
+                "fill": "#1F1F1F"
+              },
+              "layout": "vertical",
+              "gap": 24,
+              "padding": 28,
+              "children": [
+                {
+                  "type": "frame",
+                  "id": "cz7ZQ",
+                  "name": "userMsg",
+                  "width": "fill_container",
+                  "gap": 14,
+                  "children": [
+                    {
+                      "type": "frame",
+                      "id": "fM3FL",
+                      "name": "userAvatar",
+                      "width": 40,
+                      "height": 40,
+                      "stroke": {
+                        "align": "inside",
+                        "thickness": 1,
+                        "fill": "#C9A962"
+                      },
+                      "justifyContent": "center",
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "text",
+                          "id": "tC0Jf",
+                          "name": "userInitial",
+                          "fill": "#C9A962",
+                          "content": "U",
+                          "fontFamily": "Manrope",
+                          "fontSize": 12,
+                          "fontWeight": "600"
+                        }
+                      ]
+                    },
+                    {
+                      "type": "frame",
+                      "id": "z0i3q",
+                      "name": "userMsgContent",
+                      "width": "fill_container",
+                      "layout": "vertical",
+                      "gap": 8,
+                      "children": [
+                        {
+                          "type": "frame",
+                          "id": "WPMXZ",
+                          "name": "userMsgHeader",
+                          "gap": 12,
+                          "alignItems": "center",
+                          "children": [
+                            {
+                              "type": "text",
+                              "id": "FCOaJ",
+                              "name": "userName",
+                              "fill": "#FAF8F5",
+                              "content": "You",
+                              "fontFamily": "Manrope",
+                              "fontSize": 13,
+                              "fontWeight": "500"
+                            },
+                            {
+                              "type": "text",
+                              "id": "DYUAE",
+                              "name": "userTime",
+                              "fill": "#666666",
+                              "content": "2:34 PM",
+                              "fontFamily": "Manrope",
+                              "fontSize": 11
+                            }
+                          ]
+                        },
+                        {
+                          "type": "text",
+                          "id": "HcirB",
+                          "name": "userMsgText",
+                          "fill": "#FAF8F5",
+                          "content": "How do I create a new workflow with conditional branching?",
+                          "lineHeight": 1.6,
+                          "fontFamily": "Manrope",
+                          "fontSize": 14
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "B986a",
+                  "name": "aiMsg",
+                  "width": "fill_container",
+                  "gap": 14,
+                  "children": [
+                    {
+                      "type": "frame",
+                      "id": "jT0CM",
+                      "name": "aiAvatar",
+                      "width": 40,
+                      "height": 40,
+                      "fill": "#C9A962",
+                      "justifyContent": "center",
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "icon_font",
+                          "id": "d15W0",
+                          "name": "aiIcon",
+                          "width": 18,
+                          "height": 18,
+                          "iconFontName": "sparkles",
+                          "iconFontFamily": "lucide",
+                          "fill": "#0A0A0A"
+                        }
+                      ]
+                    },
+                    {
+                      "type": "frame",
+                      "id": "qU8hA",
+                      "name": "aiMsgContent",
+                      "width": "fill_container",
+                      "layout": "vertical",
+                      "gap": 12,
+                      "children": [
+                        {
+                          "type": "frame",
+                          "id": "9J6Ce",
+                          "name": "aiMsgHeader",
+                          "gap": 12,
+                          "alignItems": "center",
+                          "children": [
+                            {
+                              "type": "text",
+                              "id": "QygQt",
+                              "name": "aiName",
+                              "fill": "#FAF8F5",
+                              "content": "AI Agent",
+                              "fontFamily": "Manrope",
+                              "fontSize": 13,
+                              "fontWeight": "500"
+                            },
+                            {
+                              "type": "text",
+                              "id": "GKsT8",
+                              "name": "aiTime",
+                              "fill": "#666666",
+                              "content": "2:34 PM",
+                              "fontFamily": "Manrope",
+                              "fontSize": 11
+                            },
+                            {
+                              "type": "frame",
+                              "id": "YHSwA",
+                              "name": "streamingBadge",
+                              "fill": "#C9A96210",
+                              "stroke": {
+                                "align": "inside",
+                                "thickness": 1,
+                                "fill": "#C9A96230"
+                              },
+                              "padding": [
+                                4,
+                                8
+                              ],
+                              "children": [
+                                {
+                                  "type": "text",
+                                  "id": "Baq9K",
+                                  "name": "streamingText",
+                                  "fill": "#C9A962",
+                                  "content": "Streaming",
+                                  "fontFamily": "Manrope",
+                                  "fontSize": 10,
+                                  "fontWeight": "500"
+                                }
+                              ]
+                            }
+                          ]
+                        },
+                        {
+                          "type": "frame",
+                          "id": "iB3w6",
+                          "name": "thoughtProcess",
+                          "width": "fill_container",
+                          "fill": "#C9A96208",
+                          "stroke": {
+                            "align": "inside",
+                            "thickness": 1,
+                            "fill": "#C9A96230"
+                          },
+                          "layout": "vertical",
+                          "gap": 8,
+                          "padding": 18,
+                          "children": [
+                            {
+                              "type": "frame",
+                              "id": "s6mqF",
+                              "name": "thoughtHeader",
+                              "gap": 8,
+                              "alignItems": "center",
+                              "children": [
+                                {
+                                  "type": "icon_font",
+                                  "id": "0am9I",
+                                  "name": "thoughtIcon",
+                                  "width": 14,
+                                  "height": 14,
+                                  "iconFontName": "brain",
+                                  "iconFontFamily": "lucide",
+                                  "fill": "#C9A962"
+                                },
+                                {
+                                  "type": "text",
+                                  "id": "b9slc",
+                                  "name": "thoughtTitle",
+                                  "fill": "#C9A962",
+                                  "content": "Thought Process",
+                                  "fontFamily": "Manrope",
+                                  "fontSize": 12,
+                                  "fontWeight": "500"
+                                }
+                              ]
+                            },
+                            {
+                              "type": "text",
+                              "id": "GF0ky",
+                              "name": "thoughtText",
+                              "fill": "#888888",
+                              "content": "Analyzing workflow requirements... Checking knowledge base for conditional node examples...",
+                              "lineHeight": 1.5,
+                              "fontFamily": "Manrope",
+                              "fontSize": 12
+                            }
+                          ]
+                        },
+                        {
+                          "type": "text",
+                          "id": "MD01C",
+                          "name": "aiMsgText",
+                          "fill": "#FAF8F5",
+                          "content": "To create a workflow with conditional branching, you'll need to use the CONDITION node type. Here's how:\n\n1. Add a CONDITION node to your workflow graph\n2. Define the condition expression in the node configuration\n3. Connect the true/false branches to different subsequent nodes\n\nThe condition node evaluates expressions and routes execution based on the result.",
+                          "lineHeight": 1.6,
+                          "fontFamily": "Manrope",
+                          "fontSize": 14
+                        },
+                        {
+                          "type": "frame",
+                          "id": "OUQ2Z",
+                          "name": "citationSection",
+                          "gap": 8,
+                          "alignItems": "center",
+                          "children": [
+                            {
+                              "type": "icon_font",
+                              "id": "7NcRb",
+                              "name": "citationIcon",
+                              "width": 12,
+                              "height": 12,
+                              "iconFontName": "link",
+                              "iconFontFamily": "lucide",
+                              "fill": "#60A5FA"
+                            },
+                            {
+                              "type": "text",
+                              "id": "Zv2xu",
+                              "name": "citationText",
+                              "fill": "#60A5FA",
+                              "content": "Source: Workflow Documentation",
+                              "fontFamily": "Manrope",
+                              "fontSize": 11
+                            }
+                          ]
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "o3HFn",
+              "name": "inputArea",
+              "width": "fill_container",
+              "layout": "vertical",
+              "gap": 12,
+              "children": [
+                {
+                  "type": "frame",
+                  "id": "5EQVs",
+                  "name": "inputBox",
+                  "width": "fill_container",
+                  "stroke": {
+                    "align": "inside",
+                    "thickness": 1,
+                    "fill": "#1F1F1F"
+                  },
+                  "gap": 12,
+                  "padding": [
+                    16,
+                    20
+                  ],
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "aul9o",
+                      "name": "inputText",
+                      "fill": "#666666",
+                      "content": "Type your message...",
+                      "fontFamily": "Manrope",
+                      "fontSize": 14
+                    },
+                    {
+                      "type": "frame",
+                      "id": "PtjjG",
+                      "name": "attachBtn",
+                      "width": 32,
+                      "height": 32,
+                      "stroke": {
+                        "align": "inside",
+                        "thickness": 1,
+                        "fill": "#1F1F1F"
+                      },
+                      "justifyContent": "center",
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "icon_font",
+                          "id": "VxPp9",
+                          "name": "attachIcon",
+                          "width": 16,
+                          "height": 16,
+                          "iconFontName": "paperclip",
+                          "iconFontFamily": "lucide",
+                          "fill": "#666666"
+                        }
+                      ]
+                    },
+                    {
+                      "type": "frame",
+                      "id": "Qo6YI",
+                      "name": "sendBtn",
+                      "width": 32,
+                      "height": 32,
+                      "fill": "#C9A962",
+                      "justifyContent": "center",
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "icon_font",
+                          "id": "Hr3Zx",
+                          "name": "sendIcon",
+                          "width": 16,
+                          "height": 16,
+                          "iconFontName": "send",
+                          "iconFontFamily": "lucide",
+                          "fill": "#0A0A0A"
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "type": "text",
+                  "id": "PwE7E",
+                  "name": "inputHint",
+                  "fill": "#666666",
+                  "content": "Press Enter to send, Shift+Enter for new line",
+                  "fontFamily": "Manrope",
+                  "fontSize": 11
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

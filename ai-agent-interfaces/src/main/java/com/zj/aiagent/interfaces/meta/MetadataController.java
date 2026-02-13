@@ -31,4 +31,12 @@ public class MetadataController {
         return Response.success(metadataService.getAllNodeTemplates());
     }
 
+    /**
+     * 获取节点类型列表（node-templates 的别名）
+     */
+    @GetMapping("/node-types")
+    public Response<List<NodeTemplateDTO>> getNodeTypes() {
+        return Response.success(metadataService.getAllNodeTemplates());
+    }
+
 }

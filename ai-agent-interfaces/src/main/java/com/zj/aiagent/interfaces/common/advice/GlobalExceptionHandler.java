@@ -84,6 +84,26 @@ public class GlobalExceptionHandler {
     }
 
     /**
+     * 处理非法状态异常
+     */
+    @ExceptionHandler(IllegalStateException.class)
+    @ResponseStatus(HttpStatus.BAD_REQUEST)
+    public Response<Void> handleIllegalState(IllegalStateException e) {
+        log.warn("Illegal state: {}", e.getMessage());
+        return Response.error(400, e.getMessage());
+    }
+
+    /**
+     * 处理权限相关异常
+     */
+    @ExceptionHandler(SecurityException.class)
+    @ResponseStatus(HttpStatus.FORBIDDEN)
+    public Response<Void> handleSecurityException(SecurityException e) {
+        log.warn("Forbidden: {}", e.getMessage());
+        return Response.error(403, e.getMessage());
+    }
+
+    /**
      * 兜底处理未知异常
      */
     @ExceptionHandler(Exception.class)

@@ -6,6 +6,7 @@ import com.zj.aiagent.domain.workflow.entity.Execution;
 import com.zj.aiagent.domain.workflow.entity.HumanReviewRecord;
 import com.zj.aiagent.domain.workflow.entity.Node;
 import com.zj.aiagent.domain.workflow.port.ExecutionRepository;
+import com.zj.aiagent.domain.workflow.port.ExpressionResolverPort;
 import com.zj.aiagent.domain.workflow.port.HumanReviewRepository;
 import com.zj.aiagent.domain.workflow.valobj.ExecutionStatus;
 import com.zj.aiagent.domain.workflow.valobj.TriggerPhase;
@@ -33,14 +34,8 @@ public class HumanReviewController {
     private final SchedulerService schedulerService;
     private final RedissonClient redissonClient;
     private final HumanReviewRepository humanReviewRepository;
-    // We access Repositories for queries (CQRS separation: Controller reads,
-    // Service writes)
-    // Or we should put query logic in Service.
-    // For simplicity and DDD pragmatism, Controller can Query specific read models
-    // or use Repositories for tailored queries.
-    // But finding *active paused* executions might need a specialized query on
-    // ExecutionRepository.
     private final ExecutionRepository executionRepository;
+    private final ExpressionResolverPort expressionResolver;
 
     /**
      * 获取待审核列表
@@ -104,11 +99,7 @@ public class HumanReviewController {
         // Context Data
         if (phase == TriggerPhase.BEFORE_EXECUTION) {
             // Inputs for the node (resolved)
-            // We can re-resolve or pick from someplace.
-            // Context doesn't store "resolved inputs" for the specific node persistently
-            // unless in a special field.
-            // But valid inputs are in SharedState + Node Config.
-            dto.setContextData(execution.getContext().resolveInputs(node.getInputs()));
+            dto.setContextData(expressionResolver.resolveInputs(node.getInputs(), execution.getContext()));
         } else {
             // Outputs of the node (calculated but waiting for approval)
             // Where are they stored?

@@ -108,6 +108,7 @@ thread:
 
 # MyBatis-Plus配置
 mybatis-plus:
+  mapper-locations: classpath*:mapper/**/*.xml
   configuration:
     map-underscore-to-camel-case: true
     log-impl: org.apache.ibatis.logging.stdout.StdOutImpl
@@ -142,7 +143,10 @@ auth:
 # JWT配置
 jwt:
   secret: aiagent-your-secret-key-change-in-production-please-make-it-long-enough
-  expiration: 604800000  # 7天,单位毫秒
+  access-token:
+    expiration: 7200000  # 2 hours (2 * 60 * 60 * 1000)
+  refresh-token:
+    expiration: 604800000  # 7 days (7 * 24 * 60 * 60 * 1000)
 
 # 日志
 logging:

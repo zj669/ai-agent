@@ -1,5 +1,4 @@
 # ===== 项目根目录排除规则 =====
-# 排除根目录下的这些文件夹（只保留 aiagemt 项目）
 /data/
 /docs/
 /todo/
@@ -7,8 +6,17 @@
 /.vscode/
 /.qoder/
 /.mvn/
-/aiagemt/data/
-/aiagemt/.mvn/
+/aiagemt/
+
+# ===== AI 工具配置目录 =====
+# 保留核心配置，排除临时/冗余目录
+/.agents/
+/.cline/
+/.opencode/
+/.trae/
+/.sisyphus/
+/.spec-workflow/
+/powers/
 
 # ===== Java 项目通用规则 =====
 HELP.md
@@ -16,6 +24,7 @@ target/
 !.mvn/wrapper/maven-wrapper.jar
 !**/src/main/**/target/
 !**/src/test/**/target/
+*.jqwik-database
 
 ### STS ###
 .apt_generated
@@ -53,7 +62,10 @@ logs/
 *~
 .DS_Store
 Thumbs.db
+nul
 
 # ===== 前端项目排除 =====
-# app目录是独立的前端Git仓库，不纳入后端版本控制
 /app/
+**/node_modules/
+ai-agent-foward/.env.local
+ai-agent-foward/dist/

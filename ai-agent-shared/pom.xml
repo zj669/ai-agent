@@ -16,10 +16,12 @@
     <description>共享内核模块 - 无框架依赖的通用工具和设计模式抽象</description>
 
     <dependencies>
+        <!-- SLF4J API -->
         <dependency>
-            <groupId>org.springframework.boot</groupId>
-            <artifactId>spring-boot-starter-web</artifactId>
+            <groupId>org.slf4j</groupId>
+            <artifactId>slf4j-api</artifactId>
         </dependency>
+
         <!-- Lombok -->
         <dependency>
             <groupId>org.projectlombok</groupId>

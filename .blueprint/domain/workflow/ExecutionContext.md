@@ -35,18 +35,14 @@
 | setInputs | Map\<String, Object\> | void | 设置全局输入（创建新 ConcurrentHashMap） |
 | setNodeOutput | nodeId, Map outputs | void | 存储节点输出 |
 | getNodeOutput | nodeId | Map\<String, Object\> | 获取节点输出（不存在返回空 Map） |
-| resolve | String expression | Object | 解析 SpEL 表达式 `#{inputs.key}`, `#{nodeId.output.key}`, `#{sharedState.key}` |
-| resolveInputs | Map inputMappings | Map resolved | 批量解析输入参数映射 |
 | appendLog | nodeId, nodeName, summary | void | 追加执行日志 |
 | getExecutionLogContent | - | String | 获取完整执行日志 |
 | snapshot | - | ExecutionContext | 创建深拷贝快照（用于检查点） |
 
-## SpEL 表达式支持
-- `#{inputs.key}` — 引用全局输入
-- `#{nodeId.output.key}` — 引用指定节点的输出
-- `#{sharedState.key}` — 引用共享状态
-- 非表达式字符串（不以 `#{` 开头）直接返回原值
-- **异常处理**: SpEL 解析失败时记录 WARN 日志（含表达式内容和错误原因）并返回原始表达式，不中断工作流执行
+## 表达式解析（已移除）
+- **重构说明**: SpEL 表达式解析逻辑已从 ExecutionContext 移除，迁移到 infrastructure 层的 ExpressionResolverPort 实现
+- **原因**: 保持 domain 层纯净，避免依赖 Spring Expression Language
+- **新位置**: `StructuredConditionEvaluator` 和其他需要表达式解析的 infrastructure 组件
 
 ## 依赖拓扑
 - **上游**: Execution (持有), SchedulerService (水合记忆), NodeExecutorStrategy (读取/写入)
@@ -58,8 +54,9 @@
 - LTM 在 `hydrateMemory` 阶段一次性加载，执行过程中只读
 - STM 在启动时加载，LLM 节点按需拼接到 Message Chain
 - Awareness 日志在每个节点完成后追加，供后续 LLM 节点参考执行进度
-- SpEL 解析使用 Spring Expression Language，ExpressionParser 为静态单例
+- **纯值对象**: 无框架依赖，不包含业务逻辑，仅作为数据容器
 
 ## 变更日志
+- [2026-02-10] **架构重构**: 移除 SpEL 依赖，删除 resolve() 和 resolveInputs() 方法，保持 domain 层纯净
 - [2026-02-09] resolve() 增强异常处理：SpEL 解析失败时返回原始表达式并记录 WARN 日志
 - [2026-02-08] 新建蓝图，记录智能黑板的完整结构和 LTM/STM/Awareness 三层记忆模型

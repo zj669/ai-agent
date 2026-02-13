@@ -57,6 +57,15 @@ public class RedisKeyConstants {
         public static final String EMAIL_PREFIX = "rate_limit:email:";
 
         /**
+         * 登录失败限流Key前缀
+         * <p>
+         * 格式: rate_limit:login_failure:{email}
+         * <p>
+         * 时间窗口: 15分钟,最大次数: 5次
+         */
+        public static final String LOGIN_FAILURE_PREFIX = "rate_limit:login_failure:";
+
+        /**
          * 设备指纹限流Key前缀
          * <p>
          * 格式: rate_limit:device:{deviceId}
@@ -85,6 +94,17 @@ public class RedisKeyConstants {
          * 用于存储已退出登录的Token，防止被重复使用
          */
         public static final String TOKEN_BLACKLIST_PREFIX = "user:token:blacklist:";
+
+        /**
+         * Refresh Token存储Key前缀
+         * <p>
+         * 格式: user:refresh_token:{userId}
+         * <p>
+         * 用于存储用户的Refresh Token，支持Token刷新机制
+         * <p>
+         * 过期时间: 7天
+         */
+        public static final String REFRESH_TOKEN_PREFIX = "user:refresh_token:";
 
         private User() {
             // 禁止实例化

@@ -263,6 +263,7 @@ public class Execution {
 
     /**
      * 剪枝未选中的分支
+     * selectedBranchId 是条件节点选中的目标节点 ID，直接与后继节点 ID 比较
      */
     private void pruneUnselectedBranches(String conditionNodeId, String selectedBranchId) {
         Node conditionNode = graph.getNode(conditionNodeId);
@@ -273,27 +274,17 @@ public class Execution {
         Set<Node> successors = graph.getSuccessors(conditionNodeId);
 
         for (Node successor : successors) {
-            // 判断是否属于选中分支（简化逻辑：通过 handle 或 branchId 判断）
-            // 这里假设选中分支的节点ID包含 branchId 或有其他标识方式
-            // 实际实现可能需要根据 Edge 的 sourceHandle 来判断
-            if (!isNodeInSelectedBranch(successor, selectedBranchId)) {
+            // 直接比较 successor.nodeId 与 selectedBranchId
+            if (!successor.getNodeId().equals(selectedBranchId)) {
                 skipNodeRecursively(successor.getNodeId());
             }
         }
     }
 
     /**
-     * 判断节点是否在选中分支中
-     */
-    private boolean isNodeInSelectedBranch(Node node, String selectedBranchId) {
-        // 简化实现：假设节点有 branchId 属性或通过边的 handle 判断
-        // 实际实现需要根据 graphJson 结构来确定
-        return node.getNodeId().contains(selectedBranchId) ||
-                selectedBranchId.equals(node.getNodeId());
-    }
-
-    /**
      * 递归跳过节点
+     * 汇聚节点（多前驱）仅当所有前驱都是 SKIPPED 时才跳过；
+     * 如果有任何前驱是 PENDING，不跳过，等待其他分支完成
      */
     private void skipNodeRecursively(String nodeId) {
         ExecutionStatus currentStatus = nodeStatuses.get(nodeId);
@@ -308,17 +299,19 @@ public class Execution {
         // 递归跳过下游
         Set<Node> successors = graph.getSuccessors(nodeId);
         for (Node successor : successors) {
-            // 检查是否为汇聚节点（有多个父节点）
             Set<Node> predecessors = graph.getPredecessors(successor.getNodeId());
-            boolean allPredecessorsSkippedOrCompleted = predecessors.stream()
-                    .allMatch(pred -> {
-                        ExecutionStatus s = nodeStatuses.get(pred.getNodeId());
-                        return s == ExecutionStatus.SKIPPED || s == ExecutionStatus.SUCCEEDED;
-                    });
 
-            // 如果不是汇聚节点或所有前驱都已处理，继续跳过
-            if (predecessors.size() == 1 || !allPredecessorsSkippedOrCompleted) {
+            if (predecessors.size() <= 1) {
+                // 单前驱：直接递归跳过
                 skipNodeRecursively(successor.getNodeId());
+            } else {
+                // 汇聚节点：仅当所有前驱都是 SKIPPED 时才跳过
+                boolean allPredecessorsSkipped = predecessors.stream()
+                        .allMatch(pred -> nodeStatuses.get(pred.getNodeId()) == ExecutionStatus.SKIPPED);
+                if (allPredecessorsSkipped) {
+                    skipNodeRecursively(successor.getNodeId());
+                }
+                // 否则不跳过，等待其他分支的前驱完成
             }
         }
     }

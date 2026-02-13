@@ -3,6 +3,7 @@ package com.zj.aiagent.domain.user.entity;
 import com.zj.aiagent.domain.user.valobj.Credential;
 import com.zj.aiagent.domain.user.valobj.Email;
 import com.zj.aiagent.domain.user.valobj.UserStatus;
+import com.zj.aiagent.shared.util.XssFilterUtil;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.ToString;
@@ -30,7 +31,7 @@ public class User {
     private LocalDateTime updatedAt;
 
     public User(String username, Email email, Credential credential) {
-        this.username = username;
+        this.username = XssFilterUtil.filter(username);
         this.email = email;
         this.credential = credential;
         this.status = UserStatus.NORMAL;
@@ -65,7 +66,7 @@ public class User {
      */
     public void modifyInfo(String username, String avatarUrl, String phone) {
         if (username != null && !username.isBlank()) {
-            this.username = username;
+            this.username = XssFilterUtil.filter(username);
         }
         if (avatarUrl != null && !avatarUrl.isBlank()) {
             this.avatarUrl = avatarUrl;

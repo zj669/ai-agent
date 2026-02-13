@@ -60,12 +60,15 @@ public class SchedulerService {
     // ========== 记忆系统依赖 ==========
     private final VectorStore vectorStore;
     private final ConversationRepository conversationRepository;
-    
+
     // ========== 聊天服务依赖 ==========
     private final ChatApplicationService chatApplicationService;
-    
+
     // ========== 工作流日志依赖 ==========
     private final WorkflowNodeExecutionLogRepository workflowNodeExecutionLogRepository;
+
+    // ========== 表达式解析依赖 ==========
+    private final ExpressionResolverPort expressionResolver;
 
     private static final int DEFAULT_STM_LIMIT = 10;
 
@@ -399,7 +402,7 @@ public class SchedulerService {
                 .orElseThrow(() -> new IllegalStateException("Execution not found"));
 
         ExecutionContext context = execution.getContext();
-        Map<String, Object> resolvedInputs = context.resolveInputs(node.getInputs());
+        Map<String, Object> resolvedInputs = expressionResolver.resolveInputs(node.getInputs(), context);
 
         // Inject Context
         resolvedInputs.put("__context__", context);

@@ -39,7 +39,8 @@ class JwtTokenServiceTest {
     void setUp() {
         tokenService = new JwtTokenService(redisTemplate);
         ReflectionTestUtils.setField(tokenService, "secret", "test-secret-key-for-jwt-testing-purpose");
-        ReflectionTestUtils.setField(tokenService, "expirationMs", 3600000L); // 1 hour
+        ReflectionTestUtils.setField(tokenService, "accessTokenExpirationMs", 3600000L); // 1 hour
+        ReflectionTestUtils.setField(tokenService, "refreshTokenExpirationMs", 604800000L); // 7 days
 
         // 使用正确的 reconstruct 方法签名
         String encryptedPassword = new BCryptPasswordEncoder().encode("password");
