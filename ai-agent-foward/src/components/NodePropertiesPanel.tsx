@@ -48,15 +48,16 @@ interface NodePropertiesPanelProps {
   nodeExecutionLogs?: string[];
   executionContext?: ExecutionContextDTO | null;
   isExecuting?: boolean;
+  placement?: 'left' | 'right';
 }
 
 const NODE_TYPE_CONFIG = {
-  [NodeType.START]: { label: '开始节点', icon: PlayCircle, color: 'text-emerald-300', bgColor: 'bg-emerald-500/15', borderColor: 'border-emerald-400/30' },
-  [NodeType.END]: { label: '结束节点', icon: StopCircle, color: 'text-rose-300', bgColor: 'bg-rose-500/15', borderColor: 'border-rose-400/30' },
-  [NodeType.LLM]: { label: 'LLM 节点', icon: MessageSquare, color: 'text-violet-300', bgColor: 'bg-violet-500/15', borderColor: 'border-violet-400/30' },
-  [NodeType.HTTP]: { label: 'HTTP 节点', icon: Globe, color: 'text-blue-300', bgColor: 'bg-blue-500/15', borderColor: 'border-blue-400/30' },
-  [NodeType.CONDITION]: { label: '条件节点', icon: GitBranch, color: 'text-amber-300', bgColor: 'bg-amber-500/15', borderColor: 'border-amber-400/30' },
-  [NodeType.TOOL]: { label: '工具节点', icon: Wrench, color: 'text-cyan-300', bgColor: 'bg-cyan-500/15', borderColor: 'border-cyan-400/30' }
+  [NodeType.START]: { label: '开始节点', icon: PlayCircle, color: 'text-emerald-700', bgColor: 'bg-emerald-50', borderColor: 'border-emerald-200' },
+  [NodeType.END]: { label: '结束节点', icon: StopCircle, color: 'text-rose-700', bgColor: 'bg-rose-50', borderColor: 'border-rose-200' },
+  [NodeType.LLM]: { label: 'LLM 节点', icon: MessageSquare, color: 'text-violet-700', bgColor: 'bg-violet-50', borderColor: 'border-violet-200' },
+  [NodeType.HTTP]: { label: 'HTTP 节点', icon: Globe, color: 'text-blue-700', bgColor: 'bg-blue-50', borderColor: 'border-blue-200' },
+  [NodeType.CONDITION]: { label: '条件节点', icon: GitBranch, color: 'text-amber-700', bgColor: 'bg-amber-50', borderColor: 'border-amber-200' },
+  [NodeType.TOOL]: { label: '工具节点', icon: Wrench, color: 'text-cyan-700', bgColor: 'bg-cyan-50', borderColor: 'border-cyan-200' }
 };
 
 const AVAILABLE_MODELS = [
@@ -103,7 +104,8 @@ export function NodePropertiesPanel({
   onStepRun,
   nodeExecutionLogs = [],
   executionContext,
-  isExecuting = false
+  isExecuting = false,
+  placement = 'right'
 }: NodePropertiesPanelProps) {
   const [form] = Form.useForm();
   const [activeKeys, setActiveKeys] = useState<string[]>(['basic', 'config']);
@@ -365,13 +367,13 @@ export function NodePropertiesPanel({
   const renderVariablesConfig = () => (
     <div className="space-y-4">
       <div>
-        <div className="text-sm font-medium text-slate-200 mb-2">输入变量</div>
+        <div className="text-sm font-medium text-slate-700 mb-2">输入变量</div>
         <Form.Item name="inputs" noStyle>
           <Input.TextArea rows={4} placeholder='{"userInput": "{{start.output}}"}' className="font-mono text-sm" />
         </Form.Item>
       </div>
       <div>
-        <div className="text-sm font-medium text-slate-200 mb-2">输出变量</div>
+        <div className="text-sm font-medium text-slate-700 mb-2">输出变量</div>
         <Form.Item name="outputs" noStyle>
           <Input.TextArea rows={4} placeholder='{"result": "output"}' className="font-mono text-sm" />
         </Form.Item>
@@ -395,9 +397,11 @@ export function NodePropertiesPanel({
     { key: 'variables', label: <span className="flex items-center gap-2"><Variable className="w-4 h-4" />输入/输出变量</span>, children: renderVariablesConfig() }
   ];
 
+  const panelBorderClass = placement === 'left' ? 'border-r' : 'border-l';
+
   if (!node || !typeConfig) {
     return (
-      <aside className="workflow-props-panel w-[420px] border-l flex-shrink-0 flex items-center justify-center p-6">
+      <aside className={`workflow-props-panel w-[400px] ${panelBorderClass} flex-shrink-0 flex items-center justify-center p-6`}>
         <div className="text-center text-slate-400">
           <Settings className="w-7 h-7 mx-auto mb-2" />
           <p className="text-sm">选中一个节点后在此编辑配置</p>
@@ -410,19 +414,19 @@ export function NodePropertiesPanel({
   const globalVars = executionContext?.globalVariables || {};
 
   return (
-    <aside className="workflow-props-panel w-[420px] border-l flex-shrink-0 flex flex-col">
+    <aside className={`workflow-props-panel w-[400px] ${panelBorderClass} flex-shrink-0 flex flex-col`}>
       <div className={`flex items-center justify-between px-4 py-3 border-b ${typeConfig.bgColor} ${typeConfig.borderColor}`}>
         <div className="flex items-center gap-3">
-          <div className={`p-2 rounded-lg bg-slate-950/60 ${typeConfig.color}`}>
+          <div className={`p-2 rounded-lg border border-white/80 bg-white ${typeConfig.color}`}>
             <Icon className="w-5 h-5" />
           </div>
           <div>
-            <div className="font-semibold text-slate-100">{node.data.label}</div>
-            <div className="text-xs text-slate-400">{typeConfig.label}</div>
+            <div className="font-semibold text-slate-800">{node.data.label}</div>
+            <div className="text-xs text-slate-500">{typeConfig.label}</div>
           </div>
         </div>
         <button onClick={onClose} className="workflow-toolbar-btn p-2 rounded-lg transition-colors">
-          <X className="w-5 h-5 text-slate-300" />
+          <X className="w-5 h-5 text-slate-500" />
         </button>
       </div>
 
@@ -459,9 +463,9 @@ export function NodePropertiesPanel({
 
         {tab === 'debug' && (
           <div className="space-y-3">
-            <div className="rounded-lg border border-slate-700 bg-slate-900/70 p-3">
-              <div className="text-sm text-slate-200 mb-2">节点调试</div>
-              <div className="text-xs text-slate-400 mb-3">
+            <div className="rounded-lg border border-slate-200 bg-white p-3">
+              <div className="text-sm text-slate-700 mb-2">节点调试</div>
+              <div className="text-xs text-slate-500 mb-3">
                 使用 DEBUG 模式触发执行，并在日志中观察此节点行为。
               </div>
               <Button
@@ -473,10 +477,10 @@ export function NodePropertiesPanel({
                 单步调试此节点
               </Button>
             </div>
-            <div className="rounded-lg border border-slate-700 bg-slate-950/85 p-3">
-              <div className="text-sm text-slate-200 mb-2">节点日志</div>
-              <div className="max-h-64 overflow-y-auto font-mono text-xs space-y-1 text-slate-300">
-                {nodeExecutionLogs.length === 0 && <div className="text-slate-500">暂无节点日志</div>}
+            <div className="rounded-lg border border-slate-200 bg-white p-3">
+              <div className="text-sm text-slate-700 mb-2">节点日志</div>
+              <div className="max-h-64 overflow-y-auto font-mono text-xs space-y-1 text-slate-600">
+                {nodeExecutionLogs.length === 0 && <div className="text-slate-400">暂无节点日志</div>}
                 {nodeExecutionLogs.map((log, idx) => (
                   <div key={`${node.id}-${idx}`}>{log}</div>
                 ))}
@@ -487,24 +491,24 @@ export function NodePropertiesPanel({
 
         {tab === 'variables' && (
           <div className="space-y-3">
-            <div className="rounded-lg border border-slate-700 bg-slate-950/85 p-3">
-              <div className="text-sm text-slate-200 mb-2">节点输入模板</div>
-              <pre className="text-xs text-slate-300 whitespace-pre-wrap break-all">{prettyJson(node.data.inputs)}</pre>
+            <div className="rounded-lg border border-slate-200 bg-white p-3">
+              <div className="text-sm text-slate-700 mb-2">节点输入模板</div>
+              <pre className="text-xs text-slate-600 whitespace-pre-wrap break-all">{prettyJson(node.data.inputs)}</pre>
             </div>
-            <div className="rounded-lg border border-slate-700 bg-slate-950/85 p-3">
-              <div className="text-sm text-slate-200 mb-2">节点输出映射</div>
-              <pre className="text-xs text-slate-300 whitespace-pre-wrap break-all">{prettyJson(node.data.outputs)}</pre>
+            <div className="rounded-lg border border-slate-200 bg-white p-3">
+              <div className="text-sm text-slate-700 mb-2">节点输出映射</div>
+              <pre className="text-xs text-slate-600 whitespace-pre-wrap break-all">{prettyJson(node.data.outputs)}</pre>
             </div>
-            <div className="rounded-lg border border-slate-700 bg-slate-950/85 p-3">
-              <div className="text-sm text-slate-200 mb-2">执行全局变量快照</div>
-              <pre className="text-xs text-slate-300 whitespace-pre-wrap break-all">{prettyJson(globalVars)}</pre>
+            <div className="rounded-lg border border-slate-200 bg-white p-3">
+              <div className="text-sm text-slate-700 mb-2">执行全局变量快照</div>
+              <pre className="text-xs text-slate-600 whitespace-pre-wrap break-all">{prettyJson(globalVars)}</pre>
             </div>
           </div>
         )}
       </div>
 
       {tab === 'config' && (
-        <div className="border-t border-slate-700 bg-slate-900/80 px-4 py-3">
+        <div className="border-t border-slate-200 bg-white/90 px-4 py-3">
           <div className="flex items-center justify-between">
             <Space>
               <Popconfirm

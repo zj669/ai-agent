@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react';
+import { useState } from 'react';
 import { Input, Collapse, Tooltip } from 'antd';
 import {
   Search,
@@ -107,7 +107,7 @@ const NODE_GROUPS = [
 const ALL_NODES = NODE_GROUPS.flatMap(group => group.nodes);
 
 /**
- * 节点面板组件 - 支持拖拽添加节点
+ * 节点面板组件 - 支持点击添加节点
  */
 export function NodePanel({ onAddNode, collapsed = false, onCollapsedChange }: NodePanelProps) {
   const [searchText, setSearchText] = useState('');
@@ -125,31 +125,6 @@ export function NodePanel({ onAddNode, collapsed = false, onCollapsedChange }: N
       })).filter(group => group.nodes.length > 0)
     : NODE_GROUPS;
 
-  // 处理拖拽开始
-  const handleDragStart = useCallback(
-    (event: React.DragEvent, nodeType: NodeType, label: string) => {
-      // 设置拖拽数据
-      event.dataTransfer.setData('application/reactflow', nodeType);
-      event.dataTransfer.setData('text/plain', label);
-      event.dataTransfer.effectAllowed = 'move';
-
-      // 创建拖拽预览
-      const dragPreview = document.createElement('div');
-      dragPreview.className = 'px-3 py-2 bg-white rounded-lg shadow-lg border text-sm font-medium';
-      dragPreview.textContent = label;
-      dragPreview.style.position = 'absolute';
-      dragPreview.style.top = '-1000px';
-      document.body.appendChild(dragPreview);
-      event.dataTransfer.setDragImage(dragPreview, 50, 20);
-
-      // 清理预览元素
-      setTimeout(() => {
-        document.body.removeChild(dragPreview);
-      }, 0);
-    },
-    []
-  );
-
   // 渲染节点卡片
   const renderNodeCard = (node: (typeof ALL_NODES)[0]) => {
     const Icon = node.icon;
@@ -162,35 +137,38 @@ export function NodePanel({ onAddNode, collapsed = false, onCollapsedChange }: N
         mouseEnterDelay={0.5}
       >
         <div
-          draggable
-          onDragStart={(e) => handleDragStart(e, node.type, node.label)}
           onClick={() => onAddNode?.(node.type)}
           className={`
-            group flex items-center gap-3 px-3 py-2.5 rounded-xl cursor-grab
-            bg-white border border-gray-100 shadow-sm
-            ${node.bgHover} hover:shadow-md hover:border-gray-200
-            transition-all duration-200 active:cursor-grabbing active:scale-[0.98]
+            node-card-enhanced group flex items-center gap-3 px-3 py-2.5 rounded-xl cursor-pointer
+            transition-all duration-300
           `}
         >
-          {/* 拖拽手柄 */}
-          <div className="opacity-0 group-hover:opacity-40 transition-opacity">
-            <GripVertical className="w-3 h-3 text-gray-400" />
+          {/* 添加手柄 */}
+          <div className="opacity-0 group-hover:opacity-50 transition-opacity duration-300">
+            <GripVertical className="w-3 h-3 text-gray-500" />
           </div>
 
           {/* 节点图标 */}
           <div
             className={`
-              flex-shrink-0 w-8 h-8 rounded-lg flex items-center justify-center
-              bg-gradient-to-br ${node.gradient} shadow-sm
+              node-icon-enhanced flex-shrink-0 w-9 h-9 rounded-xl flex items-center justify-center
+              bg-gradient-to-br ${node.gradient}
             `}
           >
-            <Icon className="w-4 h-4 text-white" />
+            <Icon className="w-[18px] h-[18px] text-white" />
           </div>
 
           {/* 节点信息 */}
-          <div className="flex-1 min-w-0">
-            <div className="font-medium text-gray-800 text-sm">{node.label}</div>
-            <div className="text-xs text-gray-400 truncate">{node.description}</div>
+          <div className="flex-1 min-w-0 relative z-10">
+            <div className="font-semibold text-gray-800 text-sm mb-0.5">{node.label}</div>
+            <div className="text-xs text-gray-500 truncate leading-tight">{node.description}</div>
+          </div>
+
+          {/* 添加按钮提示 */}
+          <div className="opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+            <div className="w-6 h-6 rounded-lg bg-gradient-to-br from-blue-400 to-indigo-500 flex items-center justify-center">
+              <span className="text-white text-xs font-bold">+</span>
+            </div>
           </div>
         </div>
       </Tooltip>
@@ -216,14 +194,11 @@ export function NodePanel({ onAddNode, collapsed = false, onCollapsedChange }: N
             return (
               <Tooltip key={node.type} title={node.label} placement="right">
                 <div
-                  draggable
-                  onDragStart={(e) => handleDragStart(e, node.type, node.label)}
                   onClick={() => onAddNode?.(node.type)}
                   className={`
-                    w-10 h-10 rounded-lg flex items-center justify-center cursor-grab
+                    w-10 h-10 rounded-lg flex items-center justify-center cursor-pointer
                     bg-gradient-to-br ${node.gradient} shadow-sm
-                    hover:shadow-md hover:scale-105 transition-all duration-200
-                    active:cursor-grabbing active:scale-95
+                    hover:shadow-md hover:scale-105 transition-all duration-200 active:scale-95
                   `}
                 >
                   <Icon className="w-5 h-5 text-white" />
@@ -259,14 +234,14 @@ export function NodePanel({ onAddNode, collapsed = false, onCollapsedChange }: N
   return (
     <div className="workflow-nodepanel h-full border-r flex flex-col w-72">
       {/* 头部 */}
-      <div className="flex-shrink-0 px-4 py-3 border-b border-slate-700 bg-slate-900/90">
+      <div className="flex-shrink-0 px-4 py-3 border-b border-slate-200 bg-white">
         <div className="flex items-center justify-between mb-3">
-          <h3 className="font-semibold text-slate-100">节点</h3>
+          <h3 className="font-semibold text-slate-800">节点库</h3>
           <button
             onClick={() => onCollapsedChange?.(true)}
             className="workflow-toolbar-btn p-1.5 rounded-lg transition-colors"
           >
-            <ChevronLeft className="w-4 h-4 text-slate-300" />
+            <ChevronLeft className="w-4 h-4 text-slate-500" />
           </button>
         </div>
 
@@ -309,9 +284,9 @@ export function NodePanel({ onAddNode, collapsed = false, onCollapsedChange }: N
       </div>
 
       {/* 底部提示 */}
-      <div className="flex-shrink-0 px-4 py-3 border-t border-slate-700 bg-slate-900/90">
-        <p className="text-xs text-slate-400 text-center">
-          拖拽节点到画布，或点击添加
+      <div className="flex-shrink-0 px-4 py-3 border-t border-slate-200 bg-white">
+        <p className="text-xs text-slate-500 text-center">
+          点击节点添加到画布
         </p>
       </div>
     </div>

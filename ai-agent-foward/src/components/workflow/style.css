@@ -1,0 +1,18 @@
+.workflow-module-root {
+  width: 100%;
+  height: 100%;
+}
+
+.workflow-operator-group {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.workflow-base-node {
+  min-width: 180px;
+  border: 1px solid #dbe1ea;
+  border-radius: 12px;
+  background: #ffffff;
+  padding: 12px;
+}

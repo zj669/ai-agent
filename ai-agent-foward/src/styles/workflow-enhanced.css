@@ -1,0 +1,28 @@
+/* Workflow Editor - Dify/ComfyUI 风格必要补充 */
+
+.workflow-topbar {
+  background: rgba(255, 255, 255, 0.88);
+  backdrop-filter: blur(12px);
+  border-bottom: 1px solid rgba(226, 232, 240, 0.9);
+}
+
+.workflow-canvas-shell {
+  background: linear-gradient(180deg, #f8fafc 0%, #f1f5f9 100%);
+}
+
+.workflow-floating-panel {
+  box-shadow: 0 12px 30px rgba(15, 23, 42, 0.12);
+}
+
+.workflow-bottom-dock {
+  filter: drop-shadow(0 8px 20px rgba(15, 23, 42, 0.18));
+}
+
+.workflow-canvas-shell .react-flow__edge.selected path,
+.workflow-canvas-shell .react-flow__edge:hover path {
+  stroke: #8b5cf6;
+}
+
+.workflow-canvas-shell .react-flow__handle {
+  box-shadow: 0 0 0 2px #fff;
+}

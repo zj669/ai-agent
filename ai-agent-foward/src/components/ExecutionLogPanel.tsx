@@ -25,8 +25,8 @@ export function ExecutionLogPanel({ logs, isExecuting, onClose }: ExecutionLogPa
       {/* 标题栏 */}
       <div className="flex items-center justify-between mb-4">
         <div className="flex items-center gap-2">
-          <Terminal className="w-5 h-5 text-cyan-300" />
-          <h3 className="text-lg font-semibold text-slate-100">执行日志</h3>
+          <Terminal className="w-5 h-5 text-cyan-600" />
+          <h3 className="text-lg font-semibold text-slate-800">执行日志</h3>
           {isExecuting && (
             <span className="px-2 py-1 text-xs bg-cyan-500/20 text-cyan-300 rounded-full border border-cyan-500/40">
               执行中
@@ -37,7 +37,7 @@ export function ExecutionLogPanel({ logs, isExecuting, onClose }: ExecutionLogPa
           onClick={onClose}
           className="workflow-toolbar-btn p-1 rounded transition-colors"
         >
-          <X className="w-5 h-5 text-slate-300" />
+          <X className="w-5 h-5 text-slate-500" />
         </button>
       </div>
 

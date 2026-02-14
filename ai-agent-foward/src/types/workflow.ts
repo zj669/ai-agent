@@ -71,6 +71,17 @@ export interface NodeConfig {
   timeoutMs?: number;
 }
 
+export interface NodeTemplate {
+  id: string;
+  name: string;
+  type: string;
+  description?: string;
+  icon?: string;
+  defaultConfig?: {
+    properties?: Record<string, any>;
+  };
+}
+
 // ========== 工作流图结构 ==========
 
 export interface WorkflowNode {

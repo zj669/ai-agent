@@ -1,0 +1,341 @@
+/* ========================================
+   大尺寸节点样式
+   类似 Dify/Coze 的现代化节点设计
+   ======================================== */
+
+/* 节点容器 */
+.workflow-node-large {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  cursor: pointer;
+  user-select: none;
+}
+
+/* 节点悬停效果 */
+.workflow-node-large:hover {
+  transform: translateY(-1px);
+}
+
+/* 节点选中效果 */
+.workflow-node-large.selected {
+  z-index: 10;
+}
+
+/* 配置预览区域滚动 */
+.workflow-node-large .config-preview {
+  max-height: 200px;
+  overflow-y: auto;
+}
+
+.workflow-node-large .config-preview::-webkit-scrollbar {
+  width: 4px;
+}
+
+.workflow-node-large .config-preview::-webkit-scrollbar-thumb {
+  background: #d1d5db;
+  border-radius: 2px;
+}
+
+/* 连接线样式优化 */
+.react-flow__edge-path {
+  stroke: #3b82f6;
+  stroke-width: 2;
+  fill: none;
+  transition: all 0.2s ease;
+}
+
+.react-flow__edge:hover .react-flow__edge-path {
+  stroke-width: 3;
+  filter: drop-shadow(0 0 6px rgba(59, 130, 246, 0.4));
+}
+
+.react-flow__edge.selected .react-flow__edge-path {
+  stroke: #2563eb;
+  stroke-width: 3;
+  filter: drop-shadow(0 0 8px rgba(37, 99, 235, 0.5));
+}
+
+/* 连接线箭头 */
+.react-flow__edge .react-flow__edge-path {
+  marker-end: url(#react-flow__arrowclosed);
+}
+
+/* 流动动画 */
+.react-flow__edge.animated .react-flow__edge-path {
+  stroke-dasharray: 5;
+  animation: edge-flow 0.5s linear infinite;
+}
+
+@keyframes edge-flow {
+  to {
+    stroke-dashoffset: -10;
+  }
+}
+
+/* Handle 样式增强 */
+.workflow-node-large .react-flow__handle {
+  box-shadow: 0 0 0 2px #fff, 0 2px 6px rgba(59, 130, 246, 0.3);
+}
+
+.workflow-node-large .react-flow__handle:hover {
+  box-shadow: 0 0 0 3px #fff, 0 4px 12px rgba(59, 130, 246, 0.5);
+}
+
+.workflow-node-large .react-flow__handle-connecting,
+.workflow-node-large .react-flow__handle-valid {
+  background: #2563eb !important;
+  box-shadow: 0 0 0 3px #fff, 0 0 16px rgba(37, 99, 235, 0.6);
+  animation: handle-pulse 1s ease-in-out infinite;
+}
+
+@keyframes handle-pulse {
+  0%, 100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.2);
+  }
+}
+
+/* 画布背景 - 简洁风格 */
+.workflow-canvas-simple {
+  background: #f5f7fa;
+}
+
+/* 或者极淡点阵 */
+.workflow-canvas-dots {
+  background-color: #f5f7fa;
+  background-image: radial-gradient(circle, #e5e7eb 1px, transparent 1px);
+  background-size: 20px 20px;
+}
+
+/* 节点库面板样式 */
+.node-library-panel {
+  width: 280px;
+  background: #ffffff;
+  border-right: 1px solid #e5e7eb;
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+.node-library-panel .panel-header {
+  padding: 16px;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.node-library-panel .panel-header h3 {
+  font-size: 16px;
+  font-weight: 600;
+  color: #1f2937;
+  margin: 0 0 12px 0;
+}
+
+.node-library-panel .node-categories {
+  flex: 1;
+  overflow-y: auto;
+  padding: 12px;
+}
+
+/* 节点库卡片 */
+.node-library-card {
+  background: #ffffff;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  padding: 12px;
+  margin-bottom: 8px;
+  cursor: grab;
+  transition: all 0.2s ease;
+}
+
+.node-library-card:hover {
+  border-color: #3b82f6;
+  box-shadow: 0 2px 8px rgba(59, 130, 246, 0.15);
+  transform: translateY(-1px);
+}
+
+.node-library-card:active {
+  cursor: grabbing;
+  transform: scale(0.98);
+}
+
+.node-library-card .card-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 6px;
+}
+
+.node-library-card .card-icon {
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.node-library-card .card-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: #1f2937;
+}
+
+.node-library-card .card-description {
+  font-size: 12px;
+  color: #6b7280;
+  line-height: 1.5;
+}
+
+/* 属性编辑器面板 */
+.node-properties-editor {
+  width: 360px;
+  background: #ffffff;
+  border-left: 1px solid #e5e7eb;
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+.node-properties-editor .editor-header {
+  padding: 16px;
+  border-bottom: 1px solid #e5e7eb;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.node-properties-editor .editor-header h3 {
+  font-size: 16px;
+  font-weight: 600;
+  color: #1f2937;
+  margin: 0;
+}
+
+.node-properties-editor .editor-content {
+  flex: 1;
+  overflow-y: auto;
+  padding: 16px;
+}
+
+/* 空状态优化 */
+.workflow-empty-state-large {
+  background: #ffffff;
+  border: 2px dashed #d1d5db;
+  border-radius: 16px;
+  padding: 48px 32px;
+  text-align: center;
+  max-width: 480px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+}
+
+.workflow-empty-state-large .empty-icon {
+  width: 64px;
+  height: 64px;
+  margin: 0 auto 16px;
+  background: #f3f4f6;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.workflow-empty-state-large h3 {
+  font-size: 18px;
+  font-weight: 600;
+  color: #1f2937;
+  margin: 0 0 8px 0;
+}
+
+.workflow-empty-state-large p {
+  font-size: 14px;
+  color: #6b7280;
+  line-height: 1.6;
+  margin: 0;
+}
+
+.workflow-empty-state-large .empty-actions {
+  margin-top: 24px;
+  display: flex;
+  gap: 12px;
+  justify-content: center;
+}
+
+/* 拖拽提示优化 */
+.workflow-drop-hint {
+  position: absolute;
+  inset: 16px;
+  border: 2px dashed #3b82f6;
+  border-radius: 12px;
+  background: rgba(59, 130, 246, 0.05);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+  z-index: 1000;
+  animation: drop-hint-pulse 1.5s ease-in-out infinite;
+}
+
+@keyframes drop-hint-pulse {
+  0%, 100% {
+    opacity: 0.6;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1.01);
+  }
+}
+
+.workflow-drop-hint span {
+  background: #ffffff;
+  padding: 12px 24px;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 500;
+  color: #3b82f6;
+  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.2);
+}
+
+/* 响应式优化 */
+@media (max-width: 1440px) {
+  .node-library-panel {
+    width: 240px;
+  }
+  
+  .node-properties-editor {
+    width: 320px;
+  }
+  
+  .workflow-node-large {
+    min-width: 280px !important;
+    max-width: 360px !important;
+  }
+}
+
+@media (max-width: 1024px) {
+  .node-library-panel,
+  .node-properties-editor {
+    position: absolute;
+    z-index: 10;
+    height: 100%;
+    box-shadow: 0 0 24px rgba(0, 0, 0, 0.15);
+  }
+  
+  .node-library-panel {
+    left: 0;
+  }
+  
+  .node-properties-editor {
+    right: 0;
+  }
+}
+
+/* 性能优化 */
+.workflow-node-large,
+.node-library-card,
+.react-flow__edge {
+  will-change: transform;
+  transform: translateZ(0);
+  backface-visibility: hidden;
+}
