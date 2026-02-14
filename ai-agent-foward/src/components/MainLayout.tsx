@@ -21,8 +21,6 @@ export const MainLayout: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const { user, logout } = useAuthStore();
-  const isWorkflowEditor =
-    location.pathname.startsWith('/workflows/') && location.pathname !== '/workflows';
 
   const handleLogout = async () => {
     await logout();
@@ -65,12 +63,6 @@ export const MainLayout: React.FC = () => {
       icon: <RobotOutlined />,
       label: 'Agent 管理',
       onClick: () => navigate('/agents')
-    },
-    {
-      key: '/workflows',
-      icon: <ApartmentOutlined />,
-      label: '工作流',
-      onClick: () => navigate('/workflows')
     },
     {
       key: '/chat',
@@ -136,14 +128,14 @@ export const MainLayout: React.FC = () => {
           />
         </Sider>
 
-        <Layout style={{ padding: isWorkflowEditor ? 0 : '24px' }}>
+        <Layout style={{ padding: '24px' }}>
           <Content
             style={{
-              background: isWorkflowEditor ? 'transparent' : '#fff',
-              padding: isWorkflowEditor ? 0 : 24,
+              background: '#fff',
+              padding: 24,
               margin: 0,
-              minHeight: isWorkflowEditor ? 'calc(100vh - 64px)' : 280,
-              borderRadius: isWorkflowEditor ? 0 : '8px'
+              minHeight: 280,
+              borderRadius: '8px'
             }}
           >
             <Outlet />

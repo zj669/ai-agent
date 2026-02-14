@@ -170,15 +170,6 @@ public class SchedulerService {
 
         // 3. 调度就绪节点（根节点无父节点）
         scheduleNodes(execution.getExecutionId(), readyNodes, null);
-
-        // TODO: 实现 ExecutionMode 行为差异
-        // - DEBUG: 发布更详细的 SSE 事件
-        // - DRY_RUN: 跳过真实外部调用
-        if (mode == com.zj.aiagent.domain.workflow.valobj.ExecutionMode.DEBUG) {
-            log.debug("[Scheduler] DEBUG mode enabled - detailed logging active");
-        } else if (mode == com.zj.aiagent.domain.workflow.valobj.ExecutionMode.DRY_RUN) {
-            log.info("[Scheduler] DRY_RUN mode - skipping real external calls");
-        }
     }
 
     /**

@@ -1,115 +1,72 @@
-# HumanReview Blueprint
+## Metadata
+- file: `.blueprint/domain/workflow/HumanReview.md`
+- version: `1.0`
+- status: 正常
+- updated_at: 2026-02-14
+- owner: blueprint-team
 
-## 职责契约
-- **做什么**: 管理工作流中的人工审核环节——暂停执行、创建审核记录、处理审批决定（通过/拒绝/修改）、恢复执行
-- **不做什么**: 不负责工作流调度逻辑（那是 SchedulerService 的职责）；不负责用户权限验证
+## 状态机
+- 状态集合: `正常` / `待修改` / `修改中` / `修改完成`
+- 允许流转: `正常 -> 待修改 -> 修改中 -> 修改完成 -> 正常`
+- 允许回退: `修改中 -> 待修改`、`修改完成 -> 修改中`
 
-## 核心实体
+## 1) 整体文件职责
+- 主题: HumanReview
+- 该文件用于描述 HumanReview 的职责边界与协作关系。
 
-### HumanReviewRecord (实体 / 审计日志)
-| 字段 | 类型 | 说明 |
-|------|------|------|
-| id | String | 记录ID |
-| executionId | String | 执行ID |
-| nodeId | String | 触发审核的节点ID |
-| reviewerId | Long | 审核人ID |
-| decision | String | 审核决策: `APPROVE` / `REJECT` |
-| triggerPhase | TriggerPhase | 触发阶段: `BEFORE_EXECUTION` / `AFTER_EXECUTION` |
-| originalData | String (JSON) | 原始数据快照 |
-| modifiedData | String (JSON) | 修改后的数据 |
-| comment | String | 审核意见 |
-| reviewedAt | LocalDateTime | 审核时间 |
+## 2) 核心方法
+- `save()`
+- `findByExecutionId()`
+- `findReviewHistory()`
+- `addToPendingQueue()`
+- `removeFromPendingQueue()`
 
-### HumanReviewConfig (配置)
-- 嵌套在 NodeConfig 中
-- 字段: `enabled`(是否启用), `prompt`(审核提示词), `editableFields`(可编辑字段列表)
-- 通过 `Node.requiresHumanReview()` 快捷判断
+## 3) 具体方法
+### 3.1 save()
+- 函数签名: `void save(HumanReviewRecord record)`
+- 入参:
+  - `record`: 人工审核记录实体（包含 executionId、nodeId、reviewerId、decision、triggerPhase、modifiedData、comment 等）
+- 出参: 无（void）
+- 功能含义: 保存人工审核记录到数据库，记录审核决策和修改内容，用于审计追踪。
+- 链路作用: 在 SchedulerService.resumeExecution() 中调用，持久化审核日志。
 
-## 触发阶段
+### 3.2 findByExecutionId()
+- 函数签名: `List<HumanReviewRecord> findByExecutionId(String executionId)`
+- 入参:
+  - `executionId`: 执行ID
+- 出参: 审核记录列表（按时间排序）
+- 功能含义: 查询指定执行的所有审核记录，用于审核历史展示。
+- 链路作用: 在 HumanReviewController 中调用，提供审核历史查询接口。
 
-### BEFORE_EXECUTION (审核输入)
-1. 节点执行前暂停，创建 HumanReviewRecord
-2. 审核人可修改节点输入参数
-3. 审核通过后，用修改后的输入执行节点
-4. `Execution.resume()` 返回待执行节点列表 → SchedulerService 调度执行
+### 3.3 findReviewHistory()
+- 函数签名: `Page<HumanReviewRecord> findReviewHistory(Long userId, Pageable pageable)`
+- 入参:
+  - `userId`: 审核人ID
+  - `pageable`: 分页参数
+- 出参: 审核记录分页结果
+- 功能含义: 查询指定审核人的历史审核记录（分页），用于个人审核历史查询。
+- 链路作用: 在 HumanReviewController 中调用，提供审核人历史记录接口。
 
-### AFTER_EXECUTION (审核输出)
-1. 节点执行后暂停，创建 HumanReviewRecord
-2. 审核人可修改节点输出结果
-3. 审核通过后，用修改后的输出推进 DAG
-4. `Execution.resume()` 返回空列表 → SchedulerService 手动调用 `advance()` 推进
+### 3.4 addToPendingQueue()
+- 函数签名: `void addToPendingQueue(String executionId)`（HumanReviewQueuePort 接口方法）
+- 入参:
+  - `executionId`: 执行ID
+- 出参: 无（void）
+- 功能含义: 将执行添加到 Redis 待审核队列（Set 结构），用于待审核列表查询。
+- 链路作用: 在 SchedulerService.checkPause() 中调用，标记执行进入待审核状态。
 
-## 端口接口
+### 3.5 removeFromPendingQueue()
+- 函数签名: `void removeFromPendingQueue(String executionId)`（HumanReviewQueuePort 接口方法）
+- 入参:
+  - `executionId`: 执行ID
+- 出参: 无（void）
+- 功能含义: 从 Redis 待审核队列移除执行，标记审核完成。
+- 链路作用: 在 SchedulerService.resumeExecution() 中调用，清理待审核标记。
 
-### HumanReviewRepository (Domain Port)
-| 方法 | 输入 | 输出 | 说明 |
-|------|------|------|------|
-| save | HumanReviewRecord | void | 持久化审核记录到 MySQL |
-| findByExecutionId | executionId | List\<HumanReviewRecord\> | 查询执行的所有审核记录 |
-| findReviewHistory | userId, Pageable | Page\<HumanReviewRecord\> | 分页查询审核历史 |
 
-### HumanReviewQueuePort (Domain Port)
-| 方法 | 输入 | 输出 | 说明 |
-|------|------|------|------|
-| addToPendingQueue | executionId | void | 加入待审核队列 (Redis) |
-| removeFromPendingQueue | executionId | void | 从待审核队列移除 |
-| isInPendingQueue | executionId | boolean | 检查是否在待审核队列中 |
+## 4) 变更记录
+- 2026-02-14: 统一重构为 Blueprint-Lite 最小结构，状态基线设为 `正常`，并保留原文关键语义摘要。
+- 2026-02-14: 补全方法签名与语义，从 HumanReviewRepository.java 和 HumanReviewQueuePort.java 提取真实实现契约。
 
-### WorkflowCancellationPort (Domain Port)
-| 方法 | 输入 | 输出 | 说明 |
-|------|------|------|------|
-| markAsCancelled | executionId | void | 标记执行为已取消 |
-| isCancelled | executionId | boolean | 检查执行是否已取消 |
-
-## 依赖拓扑
-- **上游**: HumanReviewController, SchedulerService
-- **下游**: HumanReviewRepository(端口), HumanReviewQueuePort(端口)
-
-## 审核流程 (完整时序)
-
-```
-1. SchedulerService.checkPause(node, phase)
-   → 检查 node.requiresHumanReview()
-   → 创建 HumanReviewRecord (originalData = 当前输入/输出)
-   → humanReviewRepository.save(record)
-   → humanReviewQueuePort.addToPendingQueue(executionId)
-   → execution.advance(nodeId, NodeExecutionResult.paused(phase))
-   → 保存检查点到 Redis
-
-2. HumanReviewController.resumeExecution(executionId, nodeId, edits, decision)
-   → SchedulerService.resumeExecution(...)
-   → 加载检查点
-   → 创建审核记录 (decision, modifiedData)
-   → humanReviewQueuePort.removeFromPendingQueue(executionId)
-   → execution.resume(nodeId, edits)
-   → 根据 phase 决定后续:
-     - BEFORE: 用修改后的输入调度节点执行
-     - AFTER: 用修改后的输出调用 advance() 推进 DAG
-```
-
-## 数据持久化
-- 待审核队列: Redis (`human_review:pending`)
-- 审核记录: MySQL (`workflow_human_review_record` 表)
-- 检查点: Redis (`execution:checkpoint:*`)
-
-## 设计约束
-- 审核记录作为不可变审计日志，创建后不修改
-- 审核决定: `APPROVE`(通过) / `REJECT`(拒绝，标记执行失败)
-- REJECT 时 SchedulerService 将执行标记为 FAILED
-- 检查点通过 Redis 临时存储，保证暂停/恢复的状态一致性
-
-## 安全约束
-- 审核操作需要权限验证（审核员角色或工作流所有者）
-- 审核操作具有幂等性（重复提交不会重复执行）
-- 审核记录不可篡改（审计日志）
-- 支持审核超时自动处理（可选）
-
-## 权限模型
-- **审核员角色**: 具有全局审核权限的用户（user_account.status 字段扩展或新增 role 字段）
-- **工作流所有者**: 可以审核自己创建的工作流（通过 Execution.userId 判断）
-- **权限检查**: HumanReviewController 在 resumeExecution 前验证权限
-
-## 变更日志
-- [初始] 从现有代码逆向生成蓝图
-- [2026-02-08] 补充触发阶段详细流程、完整时序、WorkflowCancellationPort、数据持久化策略
-- [2026-02-10] 新增安全约束、权限模型、审核超时机制；优化待审核列表查询性能
+## 5) Temp缓存区
+当前状态为 `正常`，本区留空。

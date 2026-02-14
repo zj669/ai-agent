@@ -1,115 +1,77 @@
-# ChatService Blueprint
+## Metadata
+- file: `.blueprint/domain/chat/ChatService.md`
+- version: `1.0`
+- status: 正常
+- updated_at: 2026-02-14
+- owner: blueprint-team
 
-## 职责契约
-- **做什么**: 管理对话系统——会话(Conversation)的创建与查询、消息(Message)的持久化与检索、思维链(ThoughtStep)和引用源(Citation)的关联、消息状态流转管理
-- **不做什么**: 不负责 LLM 调用（那是 NodeExecutor 的职责）；不负责工作流执行；不负责流式输出（由 StreamPublisher 负责）
+## 状态机
+- 状态集合: `正常` / `待修改` / `修改中` / `修改完成`
+- 允许流转: `正常 -> 待修改 -> 修改中 -> 修改完成 -> 正常`
+- 允许回退: `修改中 -> 待修改`、`修改完成 -> 修改中`
 
-## 核心实体
+## 1) 整体文件职责
+- 主题: ChatService
+- 该文件用于描述 ChatService 的职责边界与协作关系。
 
-### Conversation (聚合根)
-| 字段 | 类型 | 说明 |
-|------|------|------|
-| id | String | 会话ID (UUID) |
-| userId | String | 用户ID |
-| agentId | String | 智能体ID |
-| title | String | 会话标题（可自动生成） |
-| createdAt | LocalDateTime | 创建时间 |
-| updatedAt | LocalDateTime | 更新时间 |
+## 2) 核心方法
+- `createConversation()`
+- `getConversationHistory()`
+- `appendUserMessage()`
+- `initAssistantMessage()`
+- `findMessageByRunId()`
 
-**领域方法**:
-- `updateTitle(String)`: 更新会话标题
-- `markUpdated()`: 标记会话已更新（刷新 updatedAt）
+## 3) 具体方法
+### 3.1 createConversation()
+- 函数签名: `String createConversation(String userId, String agentId)`
+- 入参:
+  - `userId`: 用户ID
+  - `agentId`: Agent ID
+- 出参: 会话ID（UUID）
+- 功能含义: 创建新会话，生成会话ID，设置初始标题（"New Chat MM-dd HH:mm"），持久化到数据库。
+- 链路作用: 在 ChatController 中调用，初始化用户与 Agent 的对话会话。
 
-### Message (实体)
-| 字段 | 类型 | 说明 |
-|------|------|------|
-| id | String | 消息ID (UUID) |
-| conversationId | String | 所属会话ID |
-| role | MessageRole | 角色: USER, ASSISTANT, SYSTEM |
-| content | String | 消息内容 |
-| thoughtProcess | List\<ThoughtStep\> | 思维链过程（递归结构） |
-| citations | List\<Citation\> | 引用源列表 |
-| metadata | Map\<String, Object\> | 元数据（runId, tokenCount等） |
-| status | MessageStatus | 消息状态 |
-| createdAt | LocalDateTime | 创建时间 |
+### 3.2 getConversationHistory()
+- 函数签名: `PageResult<Conversation> getConversationHistory(String userId, String agentId, Pageable pageable)`
+- 入参:
+  - `userId`: 用户ID
+  - `agentId`: Agent ID
+  - `pageable`: 分页参数
+- 出参: 会话分页结果
+- 功能含义: 查询用户与指定 Agent 的会话历史（分页），按更新时间倒序排列。
+- 链路作用: 在 ChatController 中调用，提供会话列表查询接口。
 
-**消息状态流转**:
-```
-PENDING → STREAMING → COMPLETED
-                   ↘ FAILED
-```
+### 3.3 appendUserMessage()
+- 函数签名: `Message appendUserMessage(String conversationId, String content, Map<String, Object> metadata)`
+- 入参:
+  - `conversationId`: 会话ID
+  - `content`: 消息内容
+  - `metadata`: 元数据（如 executionId）
+- 出参: Message 实体（保存的用户消息）
+- 功能含义: 追加用户消息到会话，验证消息长度（最大10000字符），XSS 过滤，更新会话时间，持久化消息。
+- 链路作用: 在 SchedulerService.startExecution() 中调用，保存用户输入消息。
 
-**领域方法**:
-- `initAssistant(conversationId, runId)`: 初始化 Assistant 消息（PENDING 状态）
+### 3.4 initAssistantMessage()
+- 函数签名: `String initAssistantMessage(String conversationId, String runId)`
+- 入参:
+  - `conversationId`: 会话ID
+  - `runId`: 执行ID（executionId）
+- 出参: 消息ID（UUID）
+- 功能含义: 初始化 Assistant 消息（PENDING 状态），返回消息ID供流式更新使用。
+- 链路作用: 在 SchedulerService.startExecution() 中调用，预创建 Assistant 消息占位符。
 
-## 接口摘要
+### 3.5 findMessageByRunId()
+- 函数签名: `Optional<Message> findMessageByRunId(String runId)`
+- 入参:
+  - `runId`: 执行ID（executionId）
+- 出参: Optional<Message>（关联的 Assistant 消息）
+- 功能含义: 根据 runId（executionId）查询关联的 Assistant 消息，用于流式更新或完成消息。
+- 链路作用: 在 SchedulerService.onExecutionComplete() 中调用，查找需要更新的消息。
 
-### ChatApplicationService
 
-| 方法 | 输入 | 输出 | 副作用 | 约束 |
-|------|------|------|--------|------|
-| createConversation | userId, agentId | String (conversationId) | 写DB | - |
-| getConversationHistory | userId, agentId, Pageable | PageResult\<Conversation\> | 无 | 按 updatedAt 倒序 |
-| appendUserMessage | conversationId, content, metadata | Message | 写DB, 更新会话时间 | conversationId 必须存在 |
-| initAssistantMessage | conversationId, runId | String (messageId) | 写DB | 创建 PENDING 状态消息 |
-| finalizeMessage | messageId, content, thoughtProcess, status | void | 写DB | 更新消息内容和状态 |
-| findMessageByRunId | runId | Optional\<Message\> | 无 | 通过 metadata.runId 查询 |
-| getMessages | conversationId, Pageable | List\<Message\> | 无 | 按 createdAt 正序 |
-| deleteConversation | conversationId | void | 软删除会话和消息 | 事务保护 |
+## 4) 变更记录
+- 2026-02-14: 统一重构为 Blueprint-Lite 最小结构，状态基线设为 `正常`，并保留原文关键语义摘要。
+- 2026-02-14: 补全方法签名与语义，从 ChatApplicationService.java 提取真实实现契约。
 
-### ConversationRepository (端口)
-
-| 方法 | 输入 | 输出 | 说明 |
-|------|------|------|------|
-| save | Conversation | Conversation | 保存或更新会话 |
-| findById | String | Optional\<Conversation\> | 查询会话（排除已删除） |
-| deleteById | String | void | 软删除会话 |
-| findByUserIdAndAgentId | userId, agentId, Pageable | PageResult\<Conversation\> | 分页查询用户会话列表 |
-| saveMessage | Message | Message | 保存或更新消息 |
-| findMessageById | String | Optional\<Message\> | 查询消息详情 |
-| findMessagesByConversationId | conversationId, Pageable | List\<Message\> | 查询会话消息历史 |
-| findMessageByRunId | String | Optional\<Message\> | 根据 runId 查询消息 |
-| deleteMessagesByConversationId | String | void | 删除会话的所有消息 |
-
-## 依赖拓扑
-- **上游**: ChatController, SchedulerService (工作流完成时调用 finalizeMessage)
-- **下游**: ConversationRepository (端口) → MybatisConversationRepository (实现)
-
-## 数据流
-
-### 用户发送消息流程
-```
-ChatController.appendUserMessage
-  → ChatApplicationService.appendUserMessage
-    → ConversationRepository.save (更新会话时间)
-    → ConversationRepository.saveMessage (保存用户消息)
-```
-
-### 工作流执行消息流程
-```
-SchedulerService.startExecution
-  → ChatApplicationService.initAssistantMessage (创建 PENDING 消息)
-  → NodeExecutor 执行 (通过 StreamPublisher 推送增量)
-  → SchedulerService.onExecutionComplete
-    → ChatApplicationService.finalizeMessage (更新为 COMPLETED/FAILED)
-```
-
-## 安全约束
-- **权限校验**: Controller 层必须验证用户是否有权访问会话
-- **数据隔离**: 查询时必须过滤 `is_deleted=1` 的记录
-- **事务保护**: 删除操作必须在事务中执行，保证会话和消息同步删除
-
-## 性能优化
-- **索引**: `idx_user_agent` (user_id, agent_id), `idx_conversation_created` (conversation_id, created_at)
-- **分页**: 使用 MyBatis Plus 的 Page 对象，避免全表扫描
-- **缓存**: 高频查询的会话列表可考虑 Redis 缓存（当前未实现）
-
-## 设计约束
-- 会话存储在 `conversations` 表，消息存储在 `messages` 表
-- Message 的 `thought_process` 和 `citations` 以 JSON 字段存储
-- 软删除策略：`conversations.is_deleted`, `messages` 物理删除（待优化为软删除）
-- 工作流执行完成后，SchedulerService 回写 assistant 消息到对应会话
-
-## 变更日志
-- [2026-02-10] **架构优化**: 完善蓝图文档，添加安全约束、性能优化、数据流说明
-- [初始] 从现有代码逆向生成蓝图
+## 5) Temp缓存区
+当前状态为 `正常`，本区留空。

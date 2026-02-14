@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Card, Table, Space, Button, Select, Tag, Modal, Input, Typography, Descriptions } from 'antd';
+import { Table, Space, Button, Select, Tag, Modal, Input, Typography, Descriptions } from 'antd';
 import { ReloadOutlined, CheckCircleOutlined, CloseCircleOutlined, EyeOutlined } from '@ant-design/icons';
 import type { ColumnsType } from 'antd/es/table';
 import { useHumanReview } from '../hooks/useHumanReview';
@@ -164,14 +164,18 @@ export const HumanReviewPage: React.FC = () => {
 
   return (
     <div style={{ padding: '24px' }}>
-      <Card
-        title={
+      <section
+        style={{
+          background: '#fff',
+          border: '1px solid #f0f0f0',
+          borderRadius: 8
+        }}
+      >
+        <div style={{ padding: 16, borderBottom: '1px solid #f0f0f0', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <Space>
             <Title level={4} style={{ margin: 0 }}>人工审核队列</Title>
             <Tag color="blue">{tasks.length} 个任务</Tag>
           </Space>
-        }
-        extra={
           <Space>
             <Select
               placeholder="状态筛选"
@@ -192,21 +196,22 @@ export const HumanReviewPage: React.FC = () => {
               刷新
             </Button>
           </Space>
-        }
-      >
-        <Table
-          columns={columns}
-          dataSource={tasks}
-          rowKey="taskId"
-          loading={loading}
-          pagination={{
-            pageSize: 10,
-            showSizeChanger: true,
-            showTotal: (total) => `共 ${total} 条记录`
-          }}
-          scroll={{ x: 1200 }}
-        />
-      </Card>
+        </div>
+        <div style={{ padding: 16 }}>
+          <Table
+            columns={columns}
+            dataSource={tasks}
+            rowKey="taskId"
+            loading={loading}
+            pagination={{
+              pageSize: 10,
+              showSizeChanger: true,
+              showTotal: (total) => `共 ${total} 条记录`
+            }}
+            scroll={{ x: 1200 }}
+          />
+        </div>
+      </section>
 
       {/* 审核操作 Modal */}
       <Modal

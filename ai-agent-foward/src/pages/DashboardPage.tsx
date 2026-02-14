@@ -1,4 +1,4 @@
-import { Card, Row, Col, Statistic, Button, Space, Progress, List, Tag } from 'antd';
+import { Row, Col, Statistic, Button, Space, Progress, List } from 'antd';
 import {
   RobotOutlined,
   MessageOutlined,
@@ -38,11 +38,6 @@ export const DashboardPage: React.FC = () => {
       title: '上传文档',
       icon: <BookOutlined />,
       onClick: () => navigate('/knowledge')
-    },
-    {
-      title: '查看工作流',
-      icon: <ApartmentOutlined />,
-      onClick: () => navigate('/workflows')
     }
   ];
 
@@ -62,128 +57,150 @@ export const DashboardPage: React.FC = () => {
       {/* Statistics Cards */}
       <Row gutter={[16, 16]}>
         <Col xs={24} sm={12} lg={6}>
-          <Card loading={loading}>
-            <Statistic
-              title="Agent 总数"
-              value={stats.agentCount}
-              prefix={<RobotOutlined style={{ color: '#1890ff' }} />}
-              suffix={
-                <Button
-                  type="link"
-                  size="small"
-                  onClick={() => navigate('/agents')}
-                >
-                  查看
-                </Button>
-              }
-            />
-          </Card>
+          <div style={{ padding: 24, backgroundColor: '#fff', borderRadius: 8, border: '1px solid #f0f0f0' }}>
+            {loading ? (
+              <div style={{ textAlign: 'center' }}>加载中...</div>
+            ) : (
+              <Statistic
+                title="Agent 总数"
+                value={stats.agentCount}
+                prefix={<RobotOutlined style={{ color: '#1890ff' }} />}
+                suffix={
+                  <Button
+                    type="link"
+                    size="small"
+                    onClick={() => navigate('/agents')}
+                  >
+                    查看
+                  </Button>
+                }
+              />
+            )}
+          </div>
         </Col>
 
         <Col xs={24} sm={12} lg={6}>
-          <Card loading={loading}>
-            <Statistic
-              title="工作流执行"
-              value={stats.totalExecutions}
-              prefix={<ApartmentOutlined style={{ color: '#52c41a' }} />}
-            />
-          </Card>
+          <div style={{ padding: 24, backgroundColor: '#fff', borderRadius: 8, border: '1px solid #f0f0f0' }}>
+            {loading ? (
+              <div style={{ textAlign: 'center' }}>加载中...</div>
+            ) : (
+              <Statistic
+                title="工作流执行"
+                value={stats.totalExecutions}
+                prefix={<ApartmentOutlined style={{ color: '#52c41a' }} />}
+              />
+            )}
+          </div>
         </Col>
 
         <Col xs={24} sm={12} lg={6}>
-          <Card loading={loading}>
-            <Statistic
-              title="对话总数"
-              value={stats.conversationCount}
-              prefix={<MessageOutlined style={{ color: '#faad14' }} />}
-              suffix={
-                <Button
-                  type="link"
-                  size="small"
-                  onClick={() => navigate('/chat')}
-                >
-                  查看
-                </Button>
-              }
-            />
-          </Card>
+          <div style={{ padding: 24, backgroundColor: '#fff', borderRadius: 8, border: '1px solid #f0f0f0' }}>
+            {loading ? (
+              <div style={{ textAlign: 'center' }}>加载中...</div>
+            ) : (
+              <Statistic
+                title="对话总数"
+                value={stats.conversationCount}
+                prefix={<MessageOutlined style={{ color: '#faad14' }} />}
+                suffix={
+                  <Button
+                    type="link"
+                    size="small"
+                    onClick={() => navigate('/chat')}
+                  >
+                    查看
+                  </Button>
+                }
+              />
+            )}
+          </div>
         </Col>
 
         <Col xs={24} sm={12} lg={6}>
-          <Card loading={loading}>
-            <Statistic
-              title="知识库总数"
-              value={stats.knowledgeDatasetCount}
-              prefix={<BookOutlined style={{ color: '#722ed1' }} />}
-              suffix={
-                <Button
-                  type="link"
-                  size="small"
-                  onClick={() => navigate('/knowledge')}
-                >
-                  查看
-                </Button>
-              }
-            />
-          </Card>
+          <div style={{ padding: 24, backgroundColor: '#fff', borderRadius: 8, border: '1px solid #f0f0f0' }}>
+            {loading ? (
+              <div style={{ textAlign: 'center' }}>加载中...</div>
+            ) : (
+              <Statistic
+                title="知识库总数"
+                value={stats.knowledgeDatasetCount}
+                prefix={<BookOutlined style={{ color: '#722ed1' }} />}
+                suffix={
+                  <Button
+                    type="link"
+                    size="small"
+                    onClick={() => navigate('/knowledge')}
+                  >
+                    查看
+                  </Button>
+                }
+              />
+            )}
+          </div>
         </Col>
       </Row>
 
       {/* Performance Metrics */}
       <Row gutter={[16, 16]} style={{ marginTop: 16 }}>
         <Col xs={24} lg={12}>
-          <Card title="执行统计" loading={loading}>
-            <Space direction="vertical" style={{ width: '100%' }} size="large">
-              <div>
-                <div style={{ marginBottom: 8 }}>
-                  <span>成功率</span>
-                  <span style={{ float: 'right', fontWeight: 'bold' }}>
-                    {successRate}%
-                  </span>
+          <div style={{ padding: 24, backgroundColor: '#fff', borderRadius: 8, border: '1px solid #f0f0f0' }}>
+            <h3 style={{ marginTop: 0 }}>执行统计</h3>
+            {loading ? (
+              <div style={{ textAlign: 'center' }}>加载中...</div>
+            ) : (
+              <Space direction="vertical" style={{ width: '100%' }} size="large">
+                <div>
+                  <div style={{ marginBottom: 8 }}>
+                    <span>成功率</span>
+                    <span style={{ float: 'right', fontWeight: 'bold' }}>
+                      {successRate}%
+                    </span>
+                  </div>
+                  <Progress
+                    percent={successRate}
+                    status={successRate >= 80 ? 'success' : successRate >= 50 ? 'normal' : 'exception'}
+                    strokeColor={{
+                      '0%': '#108ee9',
+                      '100%': '#87d068',
+                    }}
+                  />
                 </div>
-                <Progress
-                  percent={successRate}
-                  status={successRate >= 80 ? 'success' : successRate >= 50 ? 'normal' : 'exception'}
-                  strokeColor={{
-                    '0%': '#108ee9',
-                    '100%': '#87d068',
-                  }}
-                />
-              </div>
 
-              <Row gutter={16}>
-                <Col span={8}>
-                  <Statistic
-                    title="成功"
-                    value={stats.successfulExecutions}
-                    prefix={<CheckCircleOutlined style={{ color: '#52c41a' }} />}
-                    valueStyle={{ fontSize: 20 }}
-                  />
-                </Col>
-                <Col span={8}>
-                  <Statistic
-                    title="失败"
-                    value={stats.failedExecutions}
-                    prefix={<CloseCircleOutlined style={{ color: '#ff4d4f' }} />}
-                    valueStyle={{ fontSize: 20 }}
-                  />
-                </Col>
-                <Col span={8}>
-                  <Statistic
-                    title="平均响应"
-                    value={stats.avgResponseTime}
-                    suffix="ms"
-                    prefix={<ClockCircleOutlined style={{ color: '#1890ff' }} />}
-                    valueStyle={{ fontSize: 20 }}
-                  />
-                </Col>
-              </Row>
-            </Space>
-          </Card>
+                <Row gutter={16}>
+                  <Col span={8}>
+                    <Statistic
+                      title="成功"
+                      value={stats.successfulExecutions}
+                      prefix={<CheckCircleOutlined style={{ color: '#52c41a' }} />}
+                      valueStyle={{ fontSize: 20 }}
+                    />
+                  </Col>
+                  <Col span={8}>
+                    <Statistic
+                      title="失败"
+                      value={stats.failedExecutions}
+                      prefix={<CloseCircleOutlined style={{ color: '#ff4d4f' }} />}
+                      valueStyle={{ fontSize: 20 }}
+                    />
+                  </Col>
+                  <Col span={8}>
+                    <Statistic
+                      title="平均响应"
+                      value={stats.avgResponseTime}
+                      suffix="ms"
+                      prefix={<ClockCircleOutlined style={{ color: '#1890ff' }} />}
+                      valueStyle={{ fontSize: 20 }}
+                    />
+                  </Col>
+                </Row>
+              </Space>
+            )}
+          </div>
         </Col>
 
         <Col xs={24} lg={12}>
-          <Card title="快速操作">
+          <div style={{ padding: 24, backgroundColor: '#fff', borderRadius: 8, border: '1px solid #f0f0f0' }}>
+            <h3 style={{ marginTop: 0 }}>快速操作</h3>
             <List
               grid={{ gutter: 16, xs: 1, sm: 2, md: 2, lg: 2, xl: 2, xxl: 2 }}
               dataSource={quickActions}
@@ -201,12 +218,13 @@ export const DashboardPage: React.FC = () => {
                 </List.Item>
               )}
             />
-          </Card>
+          </div>
         </Col>
       </Row>
 
       {/* Getting Started */}
-      <Card title="快速开始" style={{ marginTop: 16 }}>
+      <div style={{ marginTop: 16, padding: 24, backgroundColor: '#fff', borderRadius: 8, border: '1px solid #f0f0f0' }}>
+        <h3 style={{ marginTop: 0 }}>快速开始</h3>
         <List
           dataSource={[
             {
@@ -244,7 +262,7 @@ export const DashboardPage: React.FC = () => {
             </List.Item>
           )}
         />
-      </Card>
+      </div>
     </div>
   );
 };

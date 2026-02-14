@@ -1,135 +1,53 @@
-# NodePanel Blueprint
+## Metadata
+- file: `.blueprint/frontend/components/NodePanel.md`
+- version: `1.0`
+- status: 正常
+- updated_at: 2026-02-14
+- owner: blueprint-team
 
-## 职责契约
-- **做什么**: 展示节点库,支持搜索、分类、点击添加节点
-- **不做什么**: 不处理节点编辑、不管理节点数据、不处理画布交互
+## 状态机
+- 状态集合: `正常` / `待修改` / `修改中` / `修改完成`
+- 允许流转: `正常 -> 待修改 -> 修改中 -> 修改完成 -> 正常`
+- 允许回退: `修改中 -> 待修改`、`修改完成 -> 修改中`
 
-## 接口摘要 (Props)
+## 1) 整体文件职责
+- 主题: NodePanel
+- 该文件用于描述 NodePanel 的职责边界与协作关系。
 
-| 名称 | 类型 | 说明 | 必需 |
-|------|------|------|------|
-| onAddNode | (type: NodeType) => void | 点击添加节点回调 | 否 |
-| collapsed | boolean | 是否折叠 | 否 |
-| onCollapsedChange | (collapsed: boolean) => void | 折叠状态变更回调 | 否 |
+## 2) 核心方法
+- `renderNodeGroups(groups, keyword)`
+- `handleAddNode(type)`
+- `toggleCollapsed(collapsed)`
 
-## 依赖拓扑
-- **上游**: WorkflowEditorPage
-- **下游**: 
-  - Ant Design (Input, Collapse, Tooltip)
-  - Lucide Icons
-  - NODE_GROUPS (节点配置)
+## 3) 具体方法
+### 3.1 renderNodeGroups(groups, keyword)
+- 函数签名: `renderNodeGroups(groups: NodeGroup[], keyword: string): ReactElement[]`
+- 入参:
+  - `groups`: 节点分组配置数组，每组包含 `key`, `label`, `icon`, `nodes`（节点类型列表）
+  - `keyword`: 搜索关键词，用于过滤节点
+- 出参: 返回 React 元素数组，渲染为 Ant Design Collapse 面板
+- 功能含义: 根据分组配置和搜索关键词渲染节点列表。每个节点显示图标、名称、描述，支持拖拽到画布。使用 `NODE_GROUPS` 常量定义基础节点（START/END）、AI 节点（LLM）、逻辑节点（CONDITION）、集成节点（HTTP/TOOL）的分类。
+- 链路作用: 侧边栏节点库的视图层，提供节点选择和拖拽源。
 
-## 组件结构
+### 3.2 handleAddNode(type)
+- 函数签名: `handleAddNode(type: NodeType): void`
+- 入参: `type` 为节点类型枚举（START, END, LLM, HTTP, CONDITION, TOOL）
+- 出参: 无返回值，触发父组件的 `onAddNode` 回调
+- 功能含义: 响应节点卡片的点击或拖拽开始事件，通知父组件（WorkflowEditorPage）添加节点。支持两种交互模式：点击直接添加到画布中心，拖拽到指定位置。
+- 链路作用: 节点添加的事件桥接层，连接 UI 交互与编辑器状态更新。
 
-```tsx
-<div className="workflow-nodepanel">
-  {/* 头部 */}
-  <div className="panel-header">
-    <h3>节点库</h3>
-    <Button onClick={onCollapsedChange}>折叠</Button>
-    <Input.Search placeholder="搜索节点..." />
-  </div>
-  
-  {/* 节点列表 */}
-  <div className="node-list">
-    <Collapse activeKey={activeKeys}>
-      {filteredGroups.map(group => (
-        <Collapse.Panel key={group.key} header={group.label}>
-          {group.nodes.map(node => (
-            <NodeCard
-              key={node.type}
-              node={node}
-              onDragStart={handleDragStart}
-              onClick={onAddNode}
-            />
-          ))}
-        </Collapse.Panel>
-      ))}
-    </Collapse>
-  </div>
-  
-  {/* 底部提示 */}
-  <div className="panel-footer">
-    <p>点击节点添加到画布</p>
-  </div>
-</div>
-```
+### 3.3 toggleCollapsed(collapsed)
+- 函数签名: `toggleCollapsed(collapsed: boolean): void`
+- 入参: `collapsed` 布尔值，表示面板是否折叠
+- 出参: 无返回值，更新内部状态和触发父组件回调
+- 功能含义: 控制侧边栏的展开/折叠状态，折叠时仅显示图标栏，展开时显示完整节点列表。通过 `onCollapsedChange` 回调通知父组件调整布局。
+- 链路作用: 侧边栏布局控制器，优化画布空间利用率。
 
-## 节点分组配置
 
-### NODE_GROUPS
-```typescript
-const NODE_GROUPS = [
-  {
-    key: 'basic',
-    label: '基础节点',
-    icon: Workflow,
-    nodes: [
-      { type: NodeType.START, label: '开始', ... },
-      { type: NodeType.END, label: '结束', ... }
-    ]
-  },
-  {
-    key: 'ai',
-    label: 'AI 节点',
-    icon: Sparkles,
-    nodes: [
-      { type: NodeType.LLM, label: 'LLM', ... }
-    ]
-  },
-  // ... 其他分组
-];
-```
+## 4) 变更记录
+- 2026-02-14: 统一重构为 Blueprint-Lite 最小结构，状态基线设为 `正常`，并保留原文关键语义摘要。
+- 2026-02-14: 补全"具体方法"细节，基于历史实现提供节点分组渲染、添加处理、折叠控制的完整签名与语义。说明其在迁移链路中的定位：原侧边栏组件已删除，节点添加功能已简化为 ChatPage 的预设工作流选择。
+- 2026-02-14: 移除重复方法占位条目，保留唯一契约定义。
 
-## 交互行为
-
-### 点击添加
-```typescript
-handleClick(nodeType) {
-  onAddNode?.(nodeType);
-}
-```
-
-### 搜索过滤
-```typescript
-const filteredGroups = searchText
-  ? NODE_GROUPS.map(group => ({
-      ...group,
-      nodes: group.nodes.filter(node =>
-        node.label.includes(searchText) ||
-        node.description.includes(searchText)
-      )
-    })).filter(group => group.nodes.length > 0)
-  : NODE_GROUPS;
-```
-
-## 折叠模式
-
-### 折叠状态
-- 宽度: 56px
-- 只显示节点图标
-- 悬停显示 Tooltip
-
-### 展开状态
-- 宽度: 280px
-- 显示完整节点信息
-- 支持搜索和分类
-
-## 设计约束
-
-### 样式约束
-- 面板宽度: 280px (展开) / 56px (折叠)
-- 节点卡片高度: 自适应
-- 分组可折叠
-
-### 交互约束
-- 点击直接添加到画布中心
-- 搜索实时过滤
-
-### 性能约束
-- 使用 useMemo 缓存过滤结果
-- 避免不必要的重渲染
-
-## 变更日志
-- [2026-02-13] 创建 NodePanel 蓝图
-- [2026-02-13] 定义节点分组、点击添加交互、折叠模式
+## 5) Temp缓存区
+当前状态为 `正常`，本区留空。

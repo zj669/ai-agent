@@ -1,77 +1,70 @@
-# NodeExecutor Blueprint
+## Metadata
+- file: `.blueprint/domain/workflow/NodeExecutor.md`
+- version: `1.0`
+- status: 正常
+- updated_at: 2026-02-14
+- owner: blueprint-team
 
-## 职责契约
-- **做什么**: 定义节点执行的策略接口，每种节点类型有独立的执行器实现；提供流式推送端口和工厂
-- **不做什么**: 不管理执行生命周期（那是 Execution 聚合根的职责）；不决定节点调度顺序（那是 SchedulerService 的职责）
+## 状态机
+- 状态集合: `正常` / `待修改` / `修改中` / `修改完成`
+- 允许流转: `正常 -> 待修改 -> 修改中 -> 修改完成 -> 正常`
+- 允许回退: `修改中 -> 待修改`、`修改完成 -> 修改中`
 
-## 核心端口
+## 1) 整体文件职责
+- 主题: NodeExecutor
+- 该文件用于描述 NodeExecutor 的职责边界与协作关系。
 
-### NodeExecutorStrategy (策略接口)
-| 方法 | 输入 | 输出 | 说明 |
-|------|------|------|------|
-| executeAsync | Node, Map resolvedInputs, StreamPublisher | CompletableFuture\<NodeExecutionResult\> | 异步执行节点 |
-| getSupportedType | - | NodeType | 返回支持的节点类型 |
-| supportsStreaming | - | boolean | 是否支持流式输出（默认 false） |
+## 2) 核心方法
+- `executeAsync()`
+- `getSupportedType()`
+- `supportsStreaming()`
+- `publishStart()`
+- `publishDelta()`
 
-### StreamPublisher (流式推送端口)
-| 方法 | 输入 | 输出 | 说明 |
-|------|------|------|------|
-| publishStart | - | void | 推送节点开始事件 |
-| publishDelta | String delta | void | 推送增量文本（打字机效果），自动根据 isFinalOutputNode 决定 renderMode |
-| publishDelta | String delta, boolean isThought | void | 推送增量文本，显式指定是否为思考过程 |
-| publishThought | String thought | void | 推送思考过程 |
-| publishFinish | NodeExecutionResult | void | 推送节点完成事件 |
-| publishError | String errorMessage | void | 推送错误信息 |
-| publishData | Object data, String renderMode | void | 推送结构化数据 (JSON/TABLE) |
-| publishEvent | String eventType, Map payload | void | 推送自定义事件 (JSON_EVENT) |
+## 3) 具体方法
+### 3.1 executeAsync()
+- 函数签名: `CompletableFuture<NodeExecutionResult> executeAsync(Node node, Map<String, Object> resolvedInputs, StreamPublisher streamPublisher)`
+- 入参:
+  - `node`: 节点定义（包含类型、配置、输入模板）
+  - `resolvedInputs`: 已解析的输入参数（SpEL 表达式已替换为实际值）
+  - `streamPublisher`: 流式推送器（用于实时推送执行过程到前端 SSE）
+- 出参: CompletableFuture<NodeExecutionResult>（异步执行结果，包含状态、输出、分支选择等）
+- 功能含义: 异步执行节点逻辑，支持流式输出（LLM 节点），返回执行结果供 Execution.advance() 处理。
+- 链路作用: 在 SchedulerService.scheduleNode() 中调用，执行具体节点业务逻辑（LLM/HTTP/Condition/Tool 等）。
 
-### StreamPublisherFactory (工厂端口)
-| 方法 | 输入 | 输出 | 说明 |
-|------|------|------|------|
-| create | StreamContext | StreamPublisher | 根据流式上下文创建推送器实例 |
+### 3.2 getSupportedType()
+- 函数签名: `NodeType getSupportedType()`
+- 入参: 无
+- 出参: NodeType 枚举（START/END/LLM/HTTP/CONDITION/TOOL）
+- 功能含义: 返回该执行器支持的节点类型，用于策略工厂路由。
+- 链路作用: 在 NodeExecutorFactory.getStrategy() 中调用，根据节点类型选择对应执行器。
 
-### StreamContext (值对象)
-- 纯数据载体，不持有接口引用
-- 字段: `executionId`, `nodeId`, `parentId`(并行组ID), `nodeType`, `nodeName`, `isFinalOutputNode`
-- `isFinalOutputNode`: true → renderMode=MARKDOWN (聊天消息); false → renderMode=THOUGHT (思维链)
+### 3.3 supportsStreaming()
+- 函数签名: `boolean supportsStreaming()`
+- 入参: 无
+- 出参: true 表示支持 SSE 流式推送，false 表示不支持
+- 功能含义: 标识该执行器是否支持流式输出（LLM 节点返回 true，其他节点返回 false）。
+- 链路作用: 在 StreamPublisher 中判断是否启用流式推送逻辑。
 
-## 节点执行器实现清单
+### 3.4 publishStart()
+- 函数签名: `void publishStart()`（StreamPublisher 接口方法，非 NodeExecutorStrategy 直接方法）
+- 入参: 无
+- 出参: 无（void）
+- 功能含义: 发布节点开始执行事件到 SSE 流，通知前端节点状态变更。
+- 链路作用: 在 SchedulerService.scheduleNode() 中调用，标记节点执行开始。
 
-| 节点类型 | 实现类 | 核心依赖 | 说明 |
-|---------|--------|---------|------|
-| START | StartNodeExecutorStrategy | - | 起始节点，透传输入 |
-| END | EndNodeExecutorStrategy | - | 结束节点，汇总输出 |
-| LLM | LlmNodeExecutorStrategy | ChatModelPort, StreamPublisher | 调用 OpenAI 兼容 API，支持流式输出，注入 LTM/STM/Awareness |
-| CONDITION | ConditionNodeExecutorStrategy | SpEL / ChatClient | 两种路由模式: EXPRESSION(SpEL表达式) / LLM(语义理解) |
-| HTTP | HttpNodeExecutorStrategy | RestClient | HTTP 请求节点 |
-| TOOL | ToolNodeExecutorStrategy | MCP 工具调用 | MCP 工具节点 |
+### 3.5 publishDelta()
+- 函数签名: `void publishDelta(String delta)`（StreamPublisher 接口方法，非 NodeExecutorStrategy 直接方法）
+- 入参:
+  - `delta`: 增量内容（LLM 流式输出的 token）
+- 出参: 无（void）
+- 功能含义: 发布节点执行增量内容到 SSE 流，实现流式输出效果。
+- 链路作用: 在 LlmNodeExecutorStrategy 中调用，推送 LLM 生成的 token 到前端。
 
-### 条件节点路由模式
-- **EXPRESSION**: 遍历出边，用 SpEL 评估每条边的 `condition` 字段，首个为 true 的边胜出
-- **LLM**: 构建 Prompt 描述上下文和可选分支，让 LLM 返回目标节点 ID
-- **兜底**: 无条件命中时使用 `isDefault()` 的边，或第一条边
 
-## NodeExecutionResult (值对象)
-| 工厂方法 | 说明 |
-|---------|------|
-| success(outputs) | 执行成功 |
-| failed(errorMessage) | 执行失败 |
-| routing(branchId, outputs) | 条件路由（携带选中分支ID） |
-| paused(phase) / paused(phase, outputs) | 暂停等待审核 |
+## 4) 变更记录
+- 2026-02-14: 统一重构为 Blueprint-Lite 最小结构，状态基线设为 `正常`，并保留原文关键语义摘要。
+- 2026-02-14: 补全方法签名与语义，从 NodeExecutorStrategy.java 提取真实实现契约。
 
-判断方法: `isSuccess()`, `isPaused()`, `isRouting()`
-
-## 依赖拓扑
-- **上游**: SchedulerService (通过策略模式调用)
-- **下游**: ChatModelPort(LLM调用), StreamPublisher(流式输出), WorkflowNodeExecutionLogRepository(日志记录)
-
-## 设计约束
-- 策略模式: 通过 `getSupportedType()` 匹配节点类型，Spring 自动注入所有实现
-- 所有执行器必须返回 CompletableFuture，通过 `nodeExecutorThreadPool` 异步执行
-- LLM 节点通过用户配置的模型参数动态创建 ChatModel 实例，不使用 Spring AI 自动配置
-- 执行日志（输入、输出、耗时、renderMode）必须写入 `workflow_node_execution_log` 表
-- StreamPublisher 通过 Factory 模式创建，每个节点执行获得独立实例（绑定 StreamContext）
-
-## 变更日志
-- [初始] 从现有代码逆向生成蓝图
-- [2026-02-08] 补充完整执行器清单、条件路由模式、StreamContext/StreamPublisher 详细接口、NodeExecutionResult 工厂方法
+## 5) Temp缓存区
+当前状态为 `正常`，本区留空。

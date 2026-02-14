@@ -1,59 +1,66 @@
-# Controllers (Interfaces Layer) Blueprint
+## Metadata
+- file: `.blueprint/interfaces/Controllers.md`
+- version: `1.0`
+- status: 正常
+- updated_at: 2026-02-14
+- owner: blueprint-team
 
-## 职责契约
-- **做什么**: 对外暴露 REST API，处理 HTTP 请求/响应转换，参数校验，调用 Application Service
-- **不做什么**: 不包含业务逻辑；不直接操作数据库；不调用 Domain 层服务
+## 状态机
+- 状态集合: `正常` / `待修改` / `修改中` / `修改完成`
+- 允许流转: `正常 -> 待修改 -> 修改中 -> 修改完成 -> 正常`
+- 允许回退: `修改中 -> 待修改`、`修改完成 -> 修改中`
 
-## API 清单
+## 1) 整体文件职责
+- 主题: Controllers
+- 该文件描述 REST API 控制器层的职责边界，负责接收 HTTP 请求、参数校验、调用应用服务、返回响应。主要包括 AgentController（智能体管理）和 WorkflowController（工作流执行）。
 
-### AgentController
-| 端点 | 方法 | 功能 | 调用 |
-|------|------|------|------|
-| /api/agents | POST | 创建 Agent | AgentApplicationService.createAgent |
-| /api/agents/{id} | PUT | 更新 Agent | AgentApplicationService.updateAgent |
-| /api/agents/{id} | GET | 获取 Agent | AgentApplicationService.getAgent |
-| /api/agents | GET | 列表查询 | AgentApplicationService.listAgents |
-| /api/agents/{id}/publish | POST | 发布 Agent | AgentApplicationService.publishAgent |
-| /api/agents/{id}/rollback | POST | 回滚版本 | AgentApplicationService.rollbackAgent |
+## 2) 核心方法
+- `createAgent()`
+- `updateAgent()`
+- `startExecution()`
+- `getExecution()`
+- `stopExecution()`
 
-### WorkflowController
-| 端点 | 方法 | 功能 | 调用 |
-|------|------|------|------|
-| /api/workflow/start | POST | 启动工作流 | SchedulerService.startExecution |
-| /api/workflow/{executionId} | GET | 查询执行状态 | SchedulerService.getExecution |
-| /api/workflow/{executionId}/stop | POST | 取消执行 | SchedulerService.cancelExecution |
-| /api/workflow/{executionId}/stream | GET(SSE) | 流式输出 | StreamPublisher |
+## 3) 具体方法
+### 3.1 createAgent()
+- 函数签名: `POST /api/agent/create → Response<Long> createAgent(@RequestBody AgentRequest.SaveAgentRequest req)`
+- 入参: `SaveAgentRequest{name, description, icon}`，从 UserContext 获取 userId
+- 出参: `Response<Long>` 包含新创建的 agentId
+- 功能含义: 创建新智能体，构建 CreateAgentCmd 并委托给 AgentApplicationService
+- 链路作用: 接口层入口 → AgentApplicationService.createAgent() → AgentRepository.save()
 
-### HumanReviewController
-| 端点 | 方法 | 功能 | 调用 |
-|------|------|------|------|
-| /api/human-review/pending | GET | 待审核列表 | HumanReviewRepository |
-| /api/human-review/{id}/resume | POST | 审核决定 | SchedulerService.resumeExecution |
-| /api/human-review/history | GET | 审核历史 | HumanReviewRepository |
+### 3.2 updateAgent()
+- 函数签名: `POST /api/agent/update → Response<Void> updateAgent(@RequestBody AgentRequest.SaveAgentRequest req)`
+- 入参: `SaveAgentRequest{id, name, description, icon, graphJson, version}`，从 UserContext 获取 userId
+- 出参: `Response<Void>` 表示更新成功
+- 功能含义: 更新智能体草稿版本（包括工作流图 graphJson），构建 UpdateAgentCmd 并委托给应用服务
+- 链路作用: 接口层入口 → AgentApplicationService.updateAgent() → Agent.updateDraft() → AgentRepository.save()
 
-### ChatController
-| 端点 | 方法 | 功能 | 调用 |
-|------|------|------|------|
-| /api/conversations | POST | 创建会话 | ChatApplicationService |
-| /api/conversations | GET | 会话列表 | ChatApplicationService |
-| /api/conversations/{id}/messages | GET | 消息列表 | ChatApplicationService |
+### 3.3 startExecution()
+- 函数签名: `POST /api/workflow/execution/start → SseEmitter startExecution(@RequestBody StartExecutionRequest req)`
+- 入参: `StartExecutionRequest{agentId, userId, conversationId, versionId?, inputs, mode}`
+- 出参: `SseEmitter` 用于 SSE 流式推送执行事件
+- 功能含义: 启动工作流执行并建立 SSE 连接，订阅 Redis 频道接收执行事件（node_start/node_complete/delta/error），异步调用 SchedulerService.startExecution()
+- 链路作用: 接口层入口 → 创建 SseEmitter + Redis 监听器 → SchedulerService.startExecution() → 执行引擎 → RedisSsePublisher → SSE 推送
 
-### KnowledgeController
-| 端点 | 方法 | 功能 | 调用 |
-|------|------|------|------|
-| /api/knowledge/datasets | POST | 创建数据集 | KnowledgeApplicationService |
-| /api/knowledge/datasets/{id}/documents | POST | 上传文档 | KnowledgeApplicationService |
-| /api/knowledge/datasets/{id} | GET | 数据集详情 | KnowledgeApplicationService |
+### 3.4 getExecution()
+- 函数签名: `GET /api/workflow/execution/{executionId} → ResponseEntity<ExecutionDTO> getExecution(@PathVariable String executionId)`
+- 入参: `executionId` 路径参数
+- 出参: `ResponseEntity<ExecutionDTO>` 包含执行状态、节点状态、上下文等
+- 功能含义: 查询执行详情（调试用），从 ExecutionRepository 加载并转换为 DTO
+- 链路作用: 接口层入口 → ExecutionRepository.findById() → 转换为 ExecutionDTO
 
-## 依赖拓扑
-- **上游**: 前端 React 应用, 外部 API 调用
-- **下游**: Application Service 层（严禁直接调用 Domain 或 Infrastructure）
+### 3.5 stopExecution()
+- 函数签名: `POST /api/workflow/execution/stop → ResponseEntity<Void> stopExecution(@RequestBody StopExecutionRequest req)`
+- 入参: `StopExecutionRequest{executionId}`
+- 出参: `ResponseEntity<Void>` 表示取消成功
+- 功能含义: 取消正在运行的工作流执行，调用 SchedulerService.cancelExecution() 标记取消状态
+- 链路作用: 接口层入口 → SchedulerService.cancelExecution() → WorkflowCancellationPort.markAsCancelled() → Redis 标记
 
-## 设计约束
-- 所有响应使用统一的 Response<T> 包装
-- 参数校验使用 @Valid + JSR 303 注解
-- 认证通过 JWT Filter 处理，Controller 通过 SecurityContext 获取 userId
-- SSE 端点返回 SseEmitter / Flux<ServerSentEvent>
 
-## 变更日志
-- [初始] 从现有代码逆向生成蓝图
+## 4) 变更记录
+- 2026-02-14: 统一重构为 Blueprint-Lite 最小结构，状态基线设为 `正常`，并保留原文关键语义摘要。
+- 2026-02-14: 补全所有方法签名、入参、出参、功能含义和链路作用，基于 AgentController 和 WorkflowController 实现。
+
+## 5) Temp缓存区
+当前状态为 `正常`，本区留空。

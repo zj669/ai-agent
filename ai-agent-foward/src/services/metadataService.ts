@@ -1,6 +1,6 @@
 import apiClient from './apiClient';
 import type { ApiResponse } from '../types/auth';
-import type { NodeTemplate } from '../types/workflow';
+import type { NodeTemplate } from '../types/execution';
 
 class MetadataService {
   async getNodeTemplates(): Promise<NodeTemplate[]> {

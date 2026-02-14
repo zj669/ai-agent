@@ -1,59 +1,52 @@
-# Workflow 迁移完成矩阵 Blueprint
+## Metadata
+- file: `.blueprint/frontend/workflow/MigrationCompletionMatrix.md`
+- version: `1.0`
+- status: 正常
+- updated_at: 2026-02-14
+- owner: blueprint-team
 
-## 职责契约
-- **做什么**: 给出 workflow 重构的模块级迁移状态、完成度与可执行下一步。
-- **不做什么**: 不替代模块职责蓝图，不描述具体业务实现细节。
+## 状态机
+- 状态集合: `正常` / `待修改` / `修改中` / `修改完成`
+- 允许流转: `正常 -> 待修改 -> 修改中 -> 修改完成 -> 正常`
+- 允许回退: `修改中 -> 待修改`、`修改完成 -> 修改中`
 
-## 生效范围
-- 生效目录：`E:\WorkSpace\repo\ai-agent\ai-agent-foward\src\components\workflow\**`
-- 生效页面：`E:\WorkSpace\repo\ai-agent\ai-agent-foward\src\pages\WorkflowEditorPage.tsx`
-- 生效蓝图：`workflow/*.md` + `pages/WorkflowEditorPage.md`
+## 1) 整体文件职责
+- 主题: MigrationCompletionMatrix
+- 该文件用于描述 MigrationCompletionMatrix 的职责边界与协作关系。
 
-## 模块完成矩阵（按模块）
-| 模块 | 目标结构 | 当前实现状态 | 完成度 | 下一步 |
-|---|---|---|---|---|
-| workflow root | 建立 `index/constants/types/style/custom-edge/custom-connection-line` | 目录与核心文件均已存在并由页面容器引用 | 100% | 维持与 agent.md 一致性巡检 |
-| hooks | 拆分 5 个交互 hooks | 5 个 hooks 文件均已落地并完成主链路接线 | 95% | 将 hook 与 store slice 的事件映射补齐到蓝图 |
-| store slices | 建立 workflow/layout/panel/history slices | 4 个 slice 文件与 store index 已落地并已接线 | 100% | 增加 slice 与事件映射说明 |
-| nodes | 类型目录化节点（start/end/llm/tool/if-else） | 目录化节点已落地，含 default/types/schema/node/panel | 100% | 按新增节点类型继续扩展同模板 |
-| panel | 节点库/节点配置/工作流配置统一面板层 | 当前以 `panel/index.tsx` 收口，子面板边界已定义 | 85% | 依据既定边界拆分为命名明确的子面板文件 |
-| operator | 头部/控制/缩放组件 | `header/control/zoom` 已落地并接线 | 100% | 保持与页面装配层边界稳定 |
-| features | debug-and-preview / run-history 子域 | 两个 feature 目录已建立，接口已导出 | 80% | 细化 feature 内部蓝图与状态契约 |
-| utils | layout/validation/graph-transformer 纯函数层 | 核心工具文件已落地并接线 | 100% | 增补输入输出约束说明 |
-| page 装配 | `WorkflowEditorPage` 仅装配 | 页面蓝图已改为装配层，工作流容器负责编排 | 100% | 仅维护装配契约，不回流业务逻辑 |
+## 2) 核心方法
+- `evaluateModuleProgress(module)`
+- `listNextActions(module)`
+- `resolveAcceptanceScope()`
+- `evaluateModuleProgress()`
+- `listNextActions()`
 
-## 旧路径 -> 新路径 -> 当前实现状态
-| 旧路径 | 新路径 | 当前实现状态 |
-|---|---|---|
-| `src/hooks/useWorkflowEditor.ts` | `src/components/workflow/hooks/use-workflow-interactions.ts` + `use-nodes-interactions.ts` + `use-edges-interactions.ts` + `use-workflow-history.ts` + `use-nodes-sync-draft.ts` | 已接线 |
-| `src/components/WorkflowEdge.tsx` | `src/components/workflow/custom-edge.tsx` | 已接线 |
-| `src/components/WorkflowNode.tsx` | `src/components/workflow/nodes/_base/node.tsx` + `nodes/*/node.tsx` | 已接线 |
-| `src/components/WorkflowNodeLarge.tsx` | `src/components/workflow/nodes/*/node.tsx` | 已接线 |
-| `src/components/NodePanel.tsx` | `src/components/workflow/panel/index.tsx` | 已建骨架 |
-| `src/components/NodePropertiesPanel.tsx` | `src/components/workflow/panel/index.tsx`（后续拆分） | 已建骨架 |
-| `src/components/WorkflowConfigPanel.tsx` | `src/components/workflow/panel/index.tsx`（后续拆分） | 已建骨架 |
-| `src/components/NodeInlineConfigPanel.tsx` | `src/components/WorkflowNode.tsx`（节点内展开配置） | 已清理（未采用右侧面板方案） |
-| `src/components/ExecutionLogPanel.tsx` | `src/components/workflow/features/run-history/index.ts` | 已建骨架 |
-| `src/pages/WorkflowEditorPage.tsx`（含编排逻辑） | `src/pages/WorkflowEditorPage.tsx`（装配） + `src/components/workflow/index.tsx` | 已接线 |
+## 3) 具体方法
+### 3.1 evaluateModuleProgress(module: string)
+- 函数签名: `evaluateModuleProgress(module: string): ModuleProgress`
+- 入参: `module` - 模块名称（如 `'nodes'`, `'hooks'`, `'store'`）
+- 出参: `ModuleProgress` 对象，包含 `{ completionRate: number, migratedFiles: string[], pendingFiles: string[], blockers: string[] }`
+- 功能含义: 评估指定模块的迁移完成度，统计已迁移/待迁移文件数量和阻塞项
+- 链路作用: 迁移进度仪表盘数据源，用于生成迁移报告和决策下一步行动
 
-## 冲突蓝图处置结论
-- `components/WorkflowNodeLarge.md`：历史保留（非生效）。
-- `components/NodePanel.md`：历史保留（非生效）。
-- `hooks/useWorkflowEditor.md`：历史保留（非生效）。
-- `services/workflowService.md`：历史保留（非生效，服务契约仍可参考）。
-- `BLUEPRINT_REFACTORING.md`：历史保留（重构过程记录）。
+### 3.2 listNextActions(module: string)
+- 函数签名: `listNextActions(module: string): Action[]`
+- 入参: `module` - 模块名称
+- 出参: `Action[]` 数组，每个元素包含 `{ type: 'migrate' | 'test' | 'delete', target: string, priority: number, estimatedEffort: string }`
+- 功能含义: 根据模块当前状态生成优先级排序的下一步行动清单
+- 链路作用: 迁移任务规划器，为开发者提供可执行的任务列表，确保迁移有序推进
 
-## 验收口径
-1. 唯一生效集合以 `frontend/_overview.md` 中“唯一生效蓝图集合”为准。
-2. 迁移状态以本矩阵表格为准，不再以旧蓝图章节描述为准。
-3. 旧蓝图保留仅用于历史追溯，不参与新改动设计决策。
+### 3.3 resolveAcceptanceScope()
+- 函数签名: `resolveAcceptanceScope(): AcceptanceScope`
+- 入参: 无（读取全局迁移配置）
+- 出参: `AcceptanceScope` 对象，包含 `{ requiredModules: string[], optionalModules: string[], acceptanceCriteria: { [module: string]: string[] } }`
+- 功能含义: 定义迁移验收范围，明确哪些模块必须完成、哪些可选，以及每个模块的验收标准
+- 链路作用: 迁移完成度判定器，用于决策是否可以关闭迁移阶段并删除旧代码
 
-## 变更摘要
-- 新增模块级迁移完成矩阵，覆盖目标、状态、完成度、下一步。
-- 新增旧路径到新路径的实现状态表，支持逐项验收。
-- 补充 `NodeInlineConfigPanel.tsx` 去向，明确节点配置已收敛到节点内展开方案。
-- 固化冲突蓝图处置结论，避免双轨文档歧义。
 
-## 变更日志
-- [2026-02-13] 新增迁移完成矩阵并与当前代码结构对齐。
-- [2026-02-13] 同步节点内展开配置落地状态并记录未采用组件清理结果。
+## 4) 变更记录
+- 2026-02-14: 统一重构为 Blueprint-Lite 最小结构，状态基线设为 `正常`，并保留原文关键语义摘要。
+- 2026-02-14: 补全迁移完成度矩阵方法的具体签名，明确进度评估、行动规划和验收范围定义契约。
+
+## 5) Temp缓存区
+当前状态为 `正常`，本区留空。

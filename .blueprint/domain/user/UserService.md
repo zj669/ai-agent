@@ -1,37 +1,72 @@
-# UserService Blueprint
+## Metadata
+- file: `.blueprint/domain/user/UserService.md`
+- version: `1.0`
+- status: 正常
+- updated_at: 2026-02-14
+- owner: blueprint-team
 
-## 职责契约
-- **做什么**: 管理用户账户——注册、登录、个人信息维护、密码管理、登录记录
-- **不做什么**: 不负责 JWT 令牌的生成与验证（那是 AuthService 的职责）；不负责业务权限控制
+## 状态机
+- 状态集合: `正常` / `待修改` / `修改中` / `修改完成`
+- 允许流转: `正常 -> 待修改 -> 修改中 -> 修改完成 -> 正常`
+- 允许回退: `修改中 -> 待修改`、`修改完成 -> 修改中`
 
-## 核心聚合根
+## 1) 整体文件职责
+- 主题: UserService
+- 该文件用于描述 UserApplicationService 和 UserAuthenticationDomainService 的职责边界与协作关系。UserApplicationService 负责用例编排、事务边界、DTO 转换；UserAuthenticationDomainService 封装用户注册、登录的核心业务逻辑。
 
-### User
-- 用户聚合根，持有认证信息和个人资料
-- 包含: username, email, password(加密), avatar, bio
+## 2) 核心方法
+- `register()`
+- `login()`
+- `updateProfile()`
+- `changePassword()`
 
-## 接口摘要
+## 3) 具体方法
+### 3.1 register()
+- 函数签名: `User register(String emailStr, String code, String password, String username)`（UserAuthenticationDomainService）
+- 入参:
+  - `emailStr`: 邮箱地址
+  - `code`: 验证码
+  - `password`: 密码
+  - `username`: 用户名（可选）
+- 出参: User 实体（创建的用户）
+- 功能含义: 邮箱注册，验证验证码、邮箱查重、密码强度校验，创建用户并持久化，销毁验证码防止重复使用。
+- 链路作用: 在 UserApplicationService.registerByEmail() 中调用，执行注册业务逻辑。
 
-| 方法 | 输入 | 输出 | 副作用 | 约束 |
-|------|------|------|--------|------|
-| register | RegisterCmd | User | 写DB, 发送验证邮件 | email唯一 |
-| login | LoginCmd | TokenPair | 验证密码, 记录登录 | 速率限制 |
-| getProfile | userId | UserProfile | 无 | - |
-| updateProfile | userId, UpdateProfileCmd | User | 写DB | - |
-| changePassword | userId, oldPwd, newPwd | void | 写DB | 验证旧密码 |
+### 3.2 login()
+- 函数签名: `User login(String emailStr, String password, String ip)`（UserAuthenticationDomainService）
+- 入参:
+  - `emailStr`: 邮箱地址
+  - `password`: 密码
+  - `ip`: 登录IP
+- 出参: User 实体（登录成功的用户）
+- 功能含义: 用户登录，检查登录失败限流（5次失败锁定15分钟），验证密码，检查用户状态，记录登录成功。
+- 链路作用: 在 UserApplicationService.login() 中调用，执行登录业务逻辑。
 
-## 依赖拓扑
-- **上游**: UserController, AuthFilter
-- **下游**: IUserRepository(端口), ITokenService(端口), IEmailService(端口)
+### 3.3 updateProfile()
+- 函数签名: `void modifyInfo(String username, String avatarUrl, String phone)`（User 实体方法）
+- 入参:
+  - `username`: 用户名
+  - `avatarUrl`: 头像URL
+  - `phone`: 手机号
+- 出参: 无（void）
+- 功能含义: 修改用户信息，更新用户名、头像、手机号。
+- 链路作用: 在 UserApplicationService.modifyInfo() 中调用，执行用户信息修改逻辑。
 
-## 领域事件
-- 发布: 无
-- 监听: 无
+### 3.4 changePassword()
+- 函数签名: `void resetPassword(String emailStr, String code, String newPassword, String confirmPassword)`（UserAuthenticationDomainService）
+- 入参:
+  - `emailStr`: 邮箱地址
+  - `code`: 验证码
+  - `newPassword`: 新密码
+  - `confirmPassword`: 确认密码
+- 出参: 无（void）
+- 功能含义: 重置密码，验证两次密码一致、验证码有效、密码强度，更新用户密码并销毁验证码。
+- 链路作用: 在 UserApplicationService.resetPassword() 中调用，执行密码重置逻辑。
 
-## 设计约束
-- 密码使用 BCrypt 加密存储
-- 用户数据存储在 user_info 表
-- 支持调试模式（通过 X-User-Id header 跳过认证）
 
-## 变更日志
-- [初始] 从现有代码逆向生成蓝图
+## 4) 变更记录
+- 2026-02-14: 统一重构为 Blueprint-Lite 最小结构，状态基线设为 `正常`，并保留原文关键语义摘要。
+- 2026-02-14: 补全方法签名与语义，从 UserApplicationService.java 和 UserAuthenticationDomainService.java 提取真实实现契约。
+
+## 5) Temp缓存区
+当前状态为 `正常`，本区留空。

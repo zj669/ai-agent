@@ -1,88 +1,72 @@
-# WorkflowEngine Blueprint
+## Metadata
+- file: `.blueprint/domain/workflow/WorkflowEngine.md`
+- version: `1.0`
+- status: 正常
+- updated_at: 2026-02-14
+- owner: blueprint-team
 
-## 职责契约
-- **做什么**: 管理工作流执行的完整生命周期——创建 Execution、DAG 拓扑排序、节点调度、状态流转、暂停/恢复、检查点管理、条件分支剪枝
-- **不做什么**: 不负责具体节点的执行逻辑（那是 NodeExecutorStrategy 的职责）；不负责 Agent 的配置管理；不直接操作数据库
+## 状态机
+- 状态集合: `正常` / `待修改` / `修改中` / `修改完成`
+- 允许流转: `正常 -> 待修改 -> 修改中 -> 修改完成 -> 正常`
+- 允许回退: `修改中 -> 待修改`、`修改完成 -> 修改中`
 
-## 核心聚合根
+## 1) 整体文件职责
+- 主题: WorkflowEngine
+- 该文件用于描述 WorkflowEngine 的职责边界与协作关系。
 
-### Execution (聚合根)
-- 工作流执行的聚合根，管理状态一致性和节点调度
-- 状态机: `PENDING(0) → RUNNING(1) → PAUSED(5)/PAUSED_FOR_REVIEW(10) → SUCCEEDED(2) / FAILED(3) / CANCELLED(6)`
-- 持有 WorkflowGraph（DAG 结构）和 ExecutionContext（智能黑板）
-- 维护 `nodeStatuses: Map<String, ExecutionStatus>` 跟踪每个节点状态
-- 支持乐观锁 (`version` 字段) 保证并发安全
-- 关联 `assistantMessageId` 用于执行完成后更新聊天消息
+## 2) 核心方法
+- `start()`
+- `advance()`
+- `resume()`
+- `getReadyNodes()`
+- `createCheckpoint()`
 
-#### 核心方法
-| 方法 | 输入 | 输出 | 说明 |
-|------|------|------|------|
-| start | Map<String, Object> inputs | List\<Node\> (就绪节点) | 校验环、初始化上下文和节点状态、返回入度为0的节点 |
-| advance | nodeId, NodeExecutionResult | List\<Node\> (下一批就绪节点) | 更新节点状态、存储输出、处理条件剪枝、检查暂停/完成 |
-| resume | nodeId, Map additionalInputs | List\<Node\> | BEFORE_EXECUTION→返回待执行节点; AFTER_EXECUTION→返回空列表 |
-| getReadyNodes | - | List\<Node\> | 计算有效入度，返回所有依赖已满足的 PENDING 节点 |
-| createCheckpoint | nodeId | Checkpoint | 创建执行快照（普通/暂停点） |
+## 3) 具体方法
+### 3.1 start()
+- 函数签名: `List<Node> start(Map<String, Object> inputs)`
+- 入参:
+  - `inputs`: 工作流全局输入参数
+- 出参: 就绪节点列表（入度为0的起始节点）
+- 功能含义: 启动工作流执行，校验图结构（检测循环依赖），初始化上下文和节点状态，返回可执行的起始节点。
+- 链路作用: 在 SchedulerService.startExecution() 中调用，触发工作流执行的第一步。
 
-#### 条件分支剪枝
-- `pruneUnselectedBranches`: 条件节点完成后，直接比较后继节点 ID 与 selectedBranchId，递归跳过未选中分支的所有下游节点（不再使用 isNodeInSelectedBranch 字符串匹配）
-- `skipNodeRecursively`: 将节点标记为 SKIPPED，递归处理下游。单前驱节点直接跳过；汇聚节点（多前驱）仅当所有前驱都是 SKIPPED 时才跳过，有 PENDING 前驱则保留等待
+### 3.2 advance()
+- 函数签名: `List<Node> advance(String nodeId, NodeExecutionResult result)`
+- 入参:
+  - `nodeId`: 已完成节点的ID
+  - `result`: 节点执行结果（包含状态、输出、分支选择等）
+- 出参: 下一批就绪节点列表（依赖已满足的节点）
+- 功能含义: 推进工作流执行，更新节点状态，存储输出到上下文，处理条件分支剪枝，检查暂停/完成状态，返回下一批可执行节点。
+- 链路作用: 在 SchedulerService.onNodeComplete() 中调用，驱动工作流 DAG 遍历。
 
-### WorkflowGraph (值对象)
-- DAG 结构定义，从 Agent 的 graphJson 解析（由 WorkflowGraphFactory 负责）
-- 不可变对象，创建后不允许修改
-- 数据结构: `nodes: Map<String, Node>`, `edges: Map<String, Set<String>>`, `edgeDetails: Map<String, List<Edge>>`
+### 3.3 resume()
+- 函数签名: `List<Node> resume(String nodeId, Map<String, Object> additionalInputs)`
+- 入参:
+  - `nodeId`: 暂停节点的ID
+  - `additionalInputs`: 人工审核提供的额外输入/修改
+- 出参: 恢复后的就绪节点列表（BEFORE_EXECUTION 返回当前节点，AFTER_EXECUTION 返回空列表）
+- 功能含义: 恢复暂停的工作流执行，合并人工审核的输入/输出修改，重置暂停状态，根据 TriggerPhase 决定返回节点。
+- 链路作用: 在 SchedulerService.resumeExecution() 中调用，处理人工审核后的恢复逻辑。
 
-#### 核心能力
-| 方法 | 说明 |
-|------|------|
-| hasCycle | DFS 环检测 |
-| topologicalSort | Kahn 算法拓扑排序 |
-| calculateInDegrees | 计算所有节点入度 |
-| getSuccessors / getPredecessors | 获取下游/上游节点 |
-| getStartNodes | 获取所有 START 类型节点 |
-| getOutgoingEdges | 获取节点出边详情（含条件表达式） |
+### 3.4 getReadyNodes()
+- 函数签名: `List<Node> getReadyNodes()`
+- 入参: 无
+- 出参: 当前就绪节点列表（状态为 PENDING 且有效入度为0）
+- 功能含义: 计算有效入度（排除已完成/跳过/失败的前驱），返回所有依赖已满足的待执行节点。
+- 链路作用: 在 start() 和 advance() 中调用，提供下一批可调度的节点。
 
-### Node (实体)
-- 工作流节点，持有 `nodeId`, `name`, `type: NodeType`, `config: NodeConfig`
-- 输入映射 `inputs: Map<String, Object>` 支持 SpEL 表达式引用
-- 输出映射 `outputs: Map<String, String>` 定义结果提取路径
-- 便捷方法: `isStartNode()`, `isEndNode()`, `isConditionNode()`, `requiresHumanReview()`
+### 3.5 createCheckpoint()
+- 函数签名: `Checkpoint createCheckpoint(String nodeId)`
+- 入参:
+  - `nodeId`: 当前节点ID
+- 出参: 检查点对象（包含 executionId、nodeId、context 快照）
+- 功能含义: 创建执行检查点，保存当前上下文快照到 Redis，用于暂停/恢复或故障恢复。
+- 链路作用: 在 SchedulerService.onNodeComplete() 和 checkPause() 中调用，持久化执行状态。
 
-### Edge (实体)
-- 节点间连接，持有 `source`, `target`, `condition`, `edgeType`
-- EdgeType: `DEPENDENCY`(标准依赖) / `CONDITIONAL`(条件边) / `DEFAULT`(兜底路径)
-- `condition` 字段: EXPRESSION 模式存 SpEL 表达式，LLM 模式存决策描述
 
-## 枚举类型
+## 4) 变更记录
+- 2026-02-14: 统一重构为 Blueprint-Lite 最小结构，状态基线设为 `正常`，并保留原文关键语义摘要。
+- 2026-02-14: 补全方法签名与语义，从 Execution.java 提取真实实现契约。
 
-### NodeType
-`START` | `END` | `LLM` | `HTTP` | `CONDITION` | `TOOL`
-
-### ExecutionStatus
-`PENDING(0)` | `RUNNING(1)` | `SUCCEEDED(2)` | `FAILED(3)` | `SKIPPED(4)` | `PAUSED(5)` | `CANCELLED(6)` | `PAUSED_FOR_REVIEW(10)`
-
-### ExecutionMode
-`STANDARD` | `DEBUG`(详细日志) | `DRY_RUN`(模拟执行，不调用外部服务)
-
-### TriggerPhase
-`BEFORE_EXECUTION`(审核输入) | `AFTER_EXECUTION`(审核输出)
-
-## 依赖拓扑
-- **上游**: SchedulerService (应用层编排)
-- **下游**: NodeExecutorStrategy(端口), ExecutionRepository(端口), CheckpointRepository(端口), StreamPublisher(端口), WorkflowNodeExecutionLogRepository(端口)
-
-## 领域事件
-- 发布: `NodeCompletedEvent` — 节点执行完成时 (executionId, nodeId, result)
-- 发布: `ExecutionCompletedEvent` — 整个工作流执行完成时 (executionId, status)
-
-## 设计约束
-- 节点执行必须异步，通过线程池调度 (`nodeExecutorThreadPool`)
-- 执行上下文通过 Redis 临时存储（检查点），完成后持久化到 MySQL
-- 人工审核节点触发 `PAUSED_FOR_REVIEW` 状态，需要外部 `resumeExecution` 恢复
-- 条件分支剪枝在 `advance()` 中自动处理，未选中分支递归标记为 SKIPPED
-- WorkflowGraph 由 WorkflowGraphFactory 从 JSON 解析，支持版本化（草稿/已发布/指定版本）
-
-## 变更日志
-- [初始] 从现有代码逆向生成蓝图
-- [2026-02-08] 补充 Execution 核心方法、条件剪枝、枚举类型、ExecutionMode 等完整细节
-- [condition-branch-refactor] 修复剪枝逻辑: 移除 isNodeInSelectedBranch（字符串匹配），pruneUnselectedBranches 改为直接 nodeId 比较；skipNodeRecursively 汇聚节点改为仅 allSkipped 才跳过
+## 5) Temp缓存区
+当前状态为 `正常`，本区留空。

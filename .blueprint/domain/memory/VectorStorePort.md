@@ -1,52 +1,64 @@
-# VectorStore Port Blueprint
+## Metadata
+- file: `.blueprint/domain/memory/VectorStorePort.md`
+- version: `1.0`
+- status: 正常
+- updated_at: 2026-02-14
+- owner: blueprint-team
 
-## 职责契约
-- **做什么**: 定义向量存储的抽象接口，支持长期记忆(LTM)和知识库的存储/检索
-- **不做什么**: 不依赖任何框架类型（如 Spring AI），使用 domain 层自己的值对象
+## 状态机
+- 状态集合: `正常` / `待修改` / `修改中` / `修改完成`
+- 允许流转: `正常 -> 待修改 -> 修改中 -> 修改完成 -> 正常`
+- 允许回退: `修改中 -> 待修改`、`修改完成 -> 修改中`
 
-## 核心值对象
+## 1) 整体文件职责
+- 主题: VectorStorePort
+- 该文件用于描述 VectorStorePort 的职责边界与协作关系。
 
-### Document
-领域层的文档值对象，替代 Spring AI 的 Document
+## 2) 核心方法
+- `similaritySearch()`
+- `addDocuments()`
+- `searchKnowledgeByDataset()`
+- `deleteByMetadata()`
 
-| 字段 | 类型 | 说明 |
-|------|------|------|
-| id | String | 文档唯一标识 |
-| content | String | 文档内容 |
-| metadata | Map\<String, Object\> | 元数据（如 agent_id, dataset_id, timestamp） |
-| embedding | List\<Double\> | 向量嵌入（可选，由 infrastructure 层生成） |
+## 3) 具体方法
+### 3.1 similaritySearch()
+- 函数签名: `List<Document> similaritySearch(SearchRequest request)`
+- 入参:
+  - `request`: 领域层 SearchRequest 对象（包含 query、topK、metadata filter 等）
+- 出参: Document 列表（包含 content 和 metadata）
+- 功能含义: 使用 SearchRequest 进行高级检索，支持 Metadata Filter 过滤条件（如 datasetId、documentId），返回相似度最高的文档。
+- 链路作用: 在知识库检索场景中调用，提供精准的向量搜索能力。
 
-### SearchRequest
-领域层的搜索请求值对象，替代 Spring AI 的 SearchRequest
+### 3.2 addDocuments()
+- 函数签名: `void addDocuments(List<Document> documents)`
+- 入参:
+  - `documents`: 领域层 Document 列表（包含 content 和 metadata）
+- 出参: 无（void）
+- 功能含义: 批量存储文档到向量库，自动进行 Embedding 和索引构建。
+- 链路作用: 在 AsyncDocumentProcessor 中调用，将分块后的文档存储到 Milvus。
 
-| 字段 | 类型 | 说明 |
-|------|------|------|
-| query | String | 查询文本 |
-| topK | int | 返回结果数量 |
-| filterExpression | String | 过滤表达式（如 "agent_id == 123"） |
-| similarityThreshold | Double | 相似度阈值（可选） |
+### 3.3 searchKnowledgeByDataset()
+- 函数签名: `List<String> searchKnowledgeByDataset(String datasetId, String query, int topK)`
+- 入参:
+  - `datasetId`: 知识库ID（用于范围隔离）
+  - `query`: 查询文本
+  - `topK`: 返回结果数量
+- 出参: 相关知识文本列表
+- 功能含义: 根据 datasetId 和 query 检索知识库（便捷方法），自动添加 metadata filter。
+- 链路作用: 在工作流 LTM 加载时调用，提供知识库检索能力。
 
-## 接口摘要
+### 3.4 deleteByMetadata()
+- 函数签名: `void deleteByMetadata(Map<String, Object> filter)`
+- 入参:
+  - `filter`: Metadata 过滤条件（如 {"documentId": "doc_123"}）
+- 出参: 无（void）
+- 功能含义: 根据 Metadata 删除向量，用于文档删除时清理向量数据。
+- 链路作用: 在 AsyncDocumentProcessor.deleteDocumentVectors() 中调用，清理文档向量。
 
-| 方法 | 输入 | 输出 | 说明 |
-|------|------|------|------|
-| search | query, agentId, topK | List\<String\> | 搜索长期记忆（LTM） |
-| store | agentId, content, metadata | void | 存储单条记忆 |
-| storeBatch | agentId, contents | void | 批量存储记忆 |
-| similaritySearch | SearchRequest | List\<Document\> | 高级检索（支持过滤） |
-| searchKnowledgeByDataset | datasetId, query, topK | List\<String\> | 按数据集检索知识库 |
-| addDocuments | List\<Document\> | void | 批量添加文档 |
-| deleteByMetadata | Map filter | void | 按元数据删除文档 |
 
-## 依赖拓扑
-- **上游**: SchedulerService (记忆水合), KnowledgeApplicationService (知识库管理)
-- **下游**: 无（纯接口定义）
-- **实现**: MilvusVectorStoreAdapter (infrastructure 层)
+## 4) 变更记录
+- 2026-02-14: 统一重构为 Blueprint-Lite 最小结构，状态基线设为 `正常`，并保留原文关键语义摘要。
+- 2026-02-14: 补全方法签名与语义，从 VectorStore.java 提取真实实现契约。
 
-## 设计约束
-- 使用 domain 层自己的 Document 和 SearchRequest 值对象
-- 不依赖 Spring AI 或任何框架类型
-- infrastructure 层负责类型转换（domain Document ↔ Spring AI Document）
-
-## 变更日志
-- [2026-02-10] 新建蓝图，定义纯净的 VectorStore 端口接口和值对象
+## 5) Temp缓存区
+当前状态为 `正常`，本区留空。

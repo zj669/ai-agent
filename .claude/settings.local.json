@@ -54,7 +54,15 @@
       "mcp__serena__find_file",
       "mcp__serena__think_about_collected_information",
       "mcp__desktop-commander__create_directory",
-      "WebFetch(domain:docs.dify.ai)"
+      "WebFetch(domain:docs.dify.ai)",
+      "WebFetch(domain:github.com)",
+      "WebFetch(domain:raw.githubusercontent.com)",
+      "WebFetch(domain:linux.do)",
+      "mcp__playwright__browser_navigate",
+      "mcp__playwright__browser_snapshot",
+      "mcp__playwright__browser_run_code",
+      "mcp__playwright__browser_close",
+      "mcp__serena__find_symbol"
     ]
   },
   "outputStyle": "Explanatory",

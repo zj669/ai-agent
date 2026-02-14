@@ -1,43 +1,62 @@
-# AgentService Blueprint
+## Metadata
+- file: `.blueprint/domain/agent/AgentService.md`
+- version: `1.0`
+- status: 正常
+- updated_at: 2026-02-14
+- owner: blueprint-team
 
-## 职责契约
-- **做什么**: 管理 Agent 的完整生命周期——创建、配置、版本管理、发布、回滚；维护 Agent 与 WorkflowGraph 的关联
-- **不做什么**: 不负责工作流的执行调度（那是 WorkflowEngine 的职责）；不负责对话管理；不直接操作数据库
+## 状态机
+- 状态集合: `正常` / `待修改` / `修改中` / `修改完成`
+- 允许流转: `正常 -> 待修改 -> 修改中 -> 修改完成 -> 正常`
+- 允许回退: `修改中 -> 待修改`、`修改完成 -> 修改中`
 
-## 核心聚合根
+## 1) 整体文件职责
+- 主题: AgentService
+- 该文件用于描述 AgentService 的职责边界与协作关系。
 
-### Agent
-- Agent 聚合根，持有工作流图定义（JSON）、版本指针、发布状态
-- 状态: DRAFT → PUBLISHED → ARCHIVED
-- 每次发布创建 AgentVersion 快照，支持回滚
+## 2) 核心方法
+- `createAgent()`
+- `updateAgent()`
+- `publishAgent()`
+- `rollbackAgent()`
 
-### AgentVersion
-- 版本快照实体，记录图定义、版本号、发布时间
-- 不可变，创建后不允许修改
+## 3) 具体方法
+### 3.1 createAgent()
+- 函数签名: `Long createAgent(AgentCommand.CreateAgentCmd cmd)`（AgentApplicationService）
+- 入参:
+  - `cmd`: 创建 Agent 命令（包含 userId、name、description、icon）
+- 出参: Agent ID（Long）
+- 功能含义: 创建 Agent，生成初始化 graphJson（包含唯一 dagId），构建 Agent 实体并持久化。
+- 链路作用: 在 AgentController 中调用，执行 Agent 创建逻辑。
 
-## 接口摘要
+### 3.2 updateAgent()
+- 函数签名: `void updateAgent(AgentCommand.UpdateAgentCmd cmd)`（AgentApplicationService）
+- 入参:
+  - `cmd`: 更新 Agent 命令（包含 id、userId、name、description、icon、graphJson、version）
+- 出参: 无（void）
+- 功能含义: 更新 Agent 配置，检查所有权，调用 Agent.updateConfig() 更新配置（包含乐观锁版本检查），持久化。
+- 链路作用: 在 AgentController 中调用，执行 Agent 配置更新逻辑。
 
-| 方法 | 输入 | 输出 | 副作用 | 约束 |
-|------|------|------|--------|------|
-| createAgent | CreateAgentCmd | Agent | 写DB | userId 必须有效 |
-| updateAgent | UpdateAgentCmd | Agent | 写DB | 仅 DRAFT 状态可修改 |
-| publishAgent | agentId | AgentVersion | 创建版本快照, 更新状态 | 图必须通过校验 |
-| rollbackAgent | agentId, versionId | Agent | 恢复图定义, 更新版本指针 | 目标版本必须存在 |
-| getAgent | agentId | Agent | 无 | - |
-| listAgents | userId, pagination | Page<Agent> | 无 | 分页查询 |
+### 3.3 publishAgent()
+- 函数签名: `void publishAgent(AgentCommand.PublishAgentCmd cmd)`（AgentApplicationService）
+- 入参:
+  - `cmd`: 发布 Agent 命令（包含 id、userId）
+- 出参: 无（void）
+- 功能含义: 发布 Agent 版本，检查所有权，调用 Agent.publish() 创建版本快照，保存版本记录，更新 Agent 的 publishedVersionId。
+- 链路作用: 在 AgentController 中调用，执行 Agent 版本发布逻辑。
 
-## 依赖拓扑
-- **上游**: AgentController, AgentApplicationService
-- **下游**: AgentRepository(端口)
+### 3.4 rollbackAgent()
+- 函数签名: `void rollbackAgent(AgentCommand.RollbackAgentCmd cmd)`（AgentApplicationService）
+- 入参:
+  - `cmd`: 回滚 Agent 命令（包含 id、userId、targetVersion）
+- 出参: 无（void）
+- 功能含义: 回滚 Agent 到指定版本，检查所有权，查询目标版本，调用 Agent.rollbackTo() 恢复配置，持久化。
+- 链路作用: 在 AgentController 中调用，执行 Agent 版本回滚逻辑。
 
-## 领域事件
-- 发布: 无（当前设计）
-- 监听: 无
 
-## 设计约束
-- Agent 的图定义以 JSON 存储在 agent_info 表
-- 版本快照存储在 agent_version 表
-- WorkflowGraph 值对象从 JSON 解析，提供图校验能力（环检测等）
+## 4) 变更记录
+- 2026-02-14: 统一重构为 Blueprint-Lite 最小结构，状态基线设为 `正常`，并保留原文关键语义摘要。
+- 2026-02-14: 补全方法签名与语义，从 AgentApplicationService.java 提取真实实现契约。
 
-## 变更日志
-- [初始] 从现有代码逆向生成蓝图
+## 5) Temp缓存区
+当前状态为 `正常`，本区留空。

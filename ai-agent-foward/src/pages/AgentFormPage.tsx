@@ -1,5 +1,5 @@
 import { useEffect } from 'react';
-import { Card, Form, Input, Button, Space, Spin } from 'antd';
+import { Form, Input, Button, Space, Spin } from 'antd';
 import { SaveOutlined, ArrowLeftOutlined } from '@ant-design/icons';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useAgentForm } from '../hooks/useAgentForm';
@@ -62,18 +62,16 @@ export const AgentFormPage: React.FC = () => {
 
   return (
     <div>
-      <Card
-        title={
+      <div style={{ marginBottom: 24 }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
           <Space>
             <Button
               type="text"
               icon={<ArrowLeftOutlined />}
               onClick={() => navigate('/agents')}
             />
-            {isEditMode ? '编辑 Agent' : '创建 Agent'}
+            <h2 style={{ margin: 0 }}>{isEditMode ? '编辑 Agent' : '创建 Agent'}</h2>
           </Space>
-        }
-        extra={
           <Button
             type="primary"
             icon={<SaveOutlined />}
@@ -82,8 +80,8 @@ export const AgentFormPage: React.FC = () => {
           >
             保存
           </Button>
-        }
-      >
+        </div>
+
         <Form
           form={form}
           layout="vertical"
@@ -130,13 +128,11 @@ export const AgentFormPage: React.FC = () => {
             </Form.Item>
           )}
         </Form>
-      </Card>
+      </div>
 
       {isEditMode && agent && (
-        <Card
-          title="版本信息"
-          style={{ marginTop: 16 }}
-        >
+        <div style={{ marginTop: 16, padding: 16, backgroundColor: '#fafafa', borderRadius: 8 }}>
+          <h3 style={{ marginTop: 0 }}>版本信息</h3>
           <Space direction="vertical">
             <div>
               <strong>当前版本：</strong> v{agent.version}
@@ -150,7 +146,7 @@ export const AgentFormPage: React.FC = () => {
               <strong>状态：</strong> {agent.status === 0 ? '草稿' : agent.status === 1 ? '已发布' : '已归档'}
             </div>
           </Space>
-        </Card>
+        </div>
       )}
     </div>
   );

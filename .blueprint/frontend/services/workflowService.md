@@ -1,161 +1,61 @@
-# workflowService Blueprint
+## Metadata
+- file: `.blueprint/frontend/services/workflowService.md`
+- version: `1.0`
+- status: 正常
+- updated_at: 2026-02-14
+- owner: blueprint-team
 
-## 职责契约
-- **做什么**: 封装工作流相关 HTTP/SSE 请求,提供执行、停止、查询接口
-- **不做什么**: 不处理业务逻辑、不管理状态、不直接操作 DOM
+## 状态机
+- 状态集合: `正常` / `待修改` / `修改中` / `修改完成`
+- 允许流转: `正常 -> 待修改 -> 修改中 -> 修改完成 -> 正常`
+- 允许回退: `修改中 -> 待修改`、`修改完成 -> 修改中`
 
-## 接口摘要 (Service API)
+## 1) 整体文件职责
+- 主题: workflowService
+- 该文件用于描述 workflowService 的职责边界与协作关系。
 
-| 方法 | 输入 | 输出 | 副作用 | 说明 |
-|------|------|------|--------|------|
-| startExecution | StartExecutionRequest, SSECallbacks | Promise<AbortController> | 建立 SSE 连接 | 启动工作流执行 |
-| stopExecution | StopExecutionRequest | Promise<void> | 发送停止请求 | 停止工作流执行 |
-| getExecutionContext | executionId: string | Promise<ExecutionContextDTO> | 无 | 获取执行上下文 |
-| getExecutionLogs | executionId: string | Promise<string[]> | 无 | 获取执行日志 |
+## 2) 核心方法
+- `startExecution(request, callbacks)`
+- `stopExecution(request)`
+- `getExecutionContext(executionId)`
+- `getExecutionLogs(executionId)`
 
-## 依赖拓扑
-- **上游**: useWorkflowEditor, WorkflowEditorPage
-- **下游**: apiClient (HTTP 客户端)
+## 3) 具体方法
+### 3.1 startExecution(request, callbacks)
+- 函数签名: `async startExecution(request: StartExecutionRequest, onEvent: SSECallbacks): Promise<AbortController>`
+- 入参:
+  - `request`: 包含 `agentId`, `conversationId`, `userMessage`, `executionMode` 的启动请求对象
+  - `onEvent`: SSE 事件回调集合，包含 `onConnected`, `onStart`, `onUpdate`, `onFinish`, `onError`, `onPing`
+- 出参: 返回 `AbortController` 实例，用于取消 SSE 连接
+- 功能含义: 通过 `/api/workflow/execution/start` 发起 SSE 流式执行，建立长连接并持续接收执行事件。内部使用 `fetch` + `ReadableStream` 解析 SSE 协议（`event:` + `data:` 格式），根据事件类型分发到对应回调。
+- 链路作用: 前端执行入口，连接后端 `WorkflowController.startExecution`，驱动整个工作流执行生命周期。历史实现已迁移至 ChatPage 的 SSE 集成逻辑。
 
-## 核心实现
+### 3.2 stopExecution(request)
+- 函数签名: `async stopExecution(request: StopExecutionRequest): Promise<void>`
+- 入参: `request` 包含 `executionId` 字符串
+- 出参: 无返回值（Promise<void>）
+- 功能含义: 调用 `/api/workflow/execution/stop` 终止指定执行实例，触发后端 `Execution.cancel()` 状态转换。
+- 链路作用: 用户主动停止执行的控制端点，配合 `AbortController.abort()` 实现前后端双向终止。
 
-### 1. 启动执行 (SSE)
-```typescript
-async startExecution(
-  request: StartExecutionRequest,
-  callbacks: SSECallbacks
-): Promise<AbortController> {
-  const controller = new AbortController();
-  
-  const response = await fetch('/api/workflow/execute', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'Authorization': `Bearer ${token}`
-    },
-    body: JSON.stringify(request),
-    signal: controller.signal
-  });
-  
-  const reader = response.body.getReader();
-  const decoder = new TextDecoder();
-  
-  while (true) {
-    const { done, value } = await reader.read();
-    if (done) break;
-    
-    const chunk = decoder.decode(value);
-    const lines = chunk.split('\n');
-    
-    for (const line of lines) {
-      if (line.startsWith('data: ')) {
-        const data = JSON.parse(line.slice(6));
-        
-        switch (data.type) {
-          case 'CONNECTED':
-            callbacks.onConnected?.(data);
-            break;
-          case 'NODE_START':
-            callbacks.onStart?.(data);
-            break;
-          case 'NODE_UPDATE':
-            callbacks.onUpdate?.(data);
-            break;
-          case 'NODE_FINISH':
-            callbacks.onFinish?.(data);
-            break;
-          case 'ERROR':
-            callbacks.onError?.(data);
-            break;
-        }
-      }
-    }
-  }
-  
-  return controller;
-}
-```
+### 3.3 getExecutionContext(executionId)
+- 函数签名: `async getExecutionContext(executionId: string): Promise<ExecutionContextDTO>`
+- 入参: `executionId` 执行实例唯一标识
+- 出参: 返回 `ExecutionContextDTO`，包含 `longTermMemory`, `shortTermMemory`, `awareness` 三层记忆结构
+- 功能含义: 查询执行上下文的记忆快照，用于调试或恢复场景。对应后端 `ExecutionContext` 的序列化视图。
+- 链路作用: 辅助查询接口，支持执行过程中的上下文可观测性。
 
-### 2. 停止执行
-```typescript
-async stopExecution(request: StopExecutionRequest): Promise<void> {
-  await apiClient.post('/api/workflow/stop', request);
-}
-```
+### 3.4 getExecutionLogs(executionId)
+- 函数签名: `async getExecutionLogs(executionId: string): Promise<WorkflowNodeExecutionLogDTO[]>`
+- 入参: `executionId` 执行实例唯一标识
+- 出参: 返回节点执行日志数组，每条日志包含 `nodeId`, `status`, `startTime`, `endTime`, `input`, `output`, `error`
+- 功能含义: 获取执行历史的详细日志，用于审计和问题排查。对应后端 `WorkflowNodeExecution` 表的查询结果。
+- 链路作用: 执行完成后的回溯查询接口，补充 SSE 实时流之外的持久化记录。
 
-### 3. 获取执行上下文
-```typescript
-async getExecutionContext(executionId: string): Promise<ExecutionContextDTO> {
-  const response = await apiClient.get(`/api/workflow/execution/${executionId}/context`);
-  return response.data;
-}
-```
 
-## 类型定义
+## 4) 变更记录
+- 2026-02-14: 统一重构为 Blueprint-Lite 最小结构，状态基线设为 `正常`，并保留原文关键语义摘要。
+- 2026-02-14: 补全"具体方法"细节，基于历史实现（已删除）提供 SSE 流式执行、停止、上下文查询、日志查询的完整签名与语义。说明其在迁移链路中的定位：原独立 workflowService 已整合至 ChatPage 的 SSE 集成逻辑。
+- 2026-02-14: 移除重复方法占位条目，保留唯一契约定义。
 
-### StartExecutionRequest
-```typescript
-interface StartExecutionRequest {
-  agentId: number;
-  userId: number;
-  conversationId: string;
-  inputs: Record<string, any>;
-  mode: ExecutionMode;
-}
-```
-
-### SSECallbacks
-```typescript
-interface SSECallbacks {
-  onConnected?: (data: SSEConnectedEvent) => void;
-  onStart?: (data: SSEStartEvent) => void;
-  onUpdate?: (data: SSEUpdateEvent) => void;
-  onFinish?: (data: SSEFinishEvent) => void;
-  onError?: (data: SSEErrorEvent) => void;
-  onPing?: () => void;
-}
-```
-
-### ExecutionContextDTO
-```typescript
-interface ExecutionContextDTO {
-  executionId: string;
-  variables: Record<string, any>;
-  longTermMemories: string[];
-  shortTermMemories: Message[];
-  awareness: Record<string, any>;
-}
-```
-
-## 错误处理
-
-### 网络错误
-- 捕获 fetch 异常
-- 重试机制(可选)
-- 返回友好错误信息
-
-### SSE 连接中断
-- 检测连接状态
-- 自动重连(可选)
-- 通知上层处理
-
-### 超时处理
-- 设置请求超时
-- 清理资源
-- 返回超时错误
-
-## 设计约束
-
-### SSE 约束
-- 使用 AbortController 管理连接
-- 支持手动中断
-- 处理重连逻辑
-
-### 性能约束
-- 避免频繁轮询
-- 使用 SSE 流式推送
-- 合理设置超时时间
-
-## 变更日志
-- [2026-02-13] 创建 workflowService 蓝图
-- [2026-02-13] 定义 SSE 执行接口和回调机制
+## 5) Temp缓存区
+当前状态为 `正常`，本区留空。

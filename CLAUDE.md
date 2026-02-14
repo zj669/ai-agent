@@ -59,11 +59,8 @@
 
 若发现现有组件与需求部分重叠：优先扩展，禁止绕过。若改动可能破坏现有逻辑，必须列出差异并确认。
 
+在这个 team 模式下，成员是 mailbox/in-process 机制，不是每个都能用 resume 续跑， 后续统一使用发消息催办 + TaskList/TaskGet 看 owner 状态来跟踪，不再用 resume 误判。
 ---
-
-## e2e测试
-
-使用agent-browser 这个skill来进行测试，注意测试前需要先编写测试案例，如果遇到错误，可以
 
 ## Project Overview
 

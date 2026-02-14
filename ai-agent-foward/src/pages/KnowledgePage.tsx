@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Card, List, Button, Modal, Form, Input, Table, Tag, Space, Empty, Tooltip } from 'antd';
+import { List, Button, Modal, Form, Input, Table, Tag, Space, Empty, Tooltip } from 'antd';
 import { PlusOutlined, DeleteOutlined, FileTextOutlined, SearchOutlined, ReloadOutlined } from '@ant-design/icons';
 import { useKnowledge } from '../hooks/useKnowledge';
 import { DocumentUpload } from '../components/DocumentUpload';
@@ -188,10 +188,19 @@ export const KnowledgePage: React.FC = () => {
   return (
     <div style={{ display: 'flex', height: 'calc(100vh - 150px)', gap: 16 }}>
       {/* Dataset List */}
-      <Card
-        title="知识库列表"
-        style={{ width: 300, overflow: 'auto' }}
-        extra={
+      <section
+        style={{
+          width: 300,
+          overflow: 'auto',
+          background: '#fff',
+          border: '1px solid #f0f0f0',
+          borderRadius: 8,
+          display: 'flex',
+          flexDirection: 'column'
+        }}
+      >
+        <div style={{ padding: 16, borderBottom: '1px solid #f0f0f0', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <h3 style={{ margin: 0, fontSize: 16, fontWeight: 600 }}>知识库列表</h3>
           <Button
             type="primary"
             size="small"
@@ -200,99 +209,110 @@ export const KnowledgePage: React.FC = () => {
           >
             新建
           </Button>
-        }
-      >
-        <List
-          dataSource={datasets}
-          loading={isLoading}
-          renderItem={(dataset) => (
-            <List.Item
-              style={{
-                cursor: 'pointer',
-                backgroundColor:
-                  currentDatasetId === dataset.datasetId ? '#e6f7ff' : 'transparent',
-                padding: '8px 12px',
-                borderRadius: 4
-              }}
-              onClick={() => setCurrentDataset(dataset.datasetId)}
-              actions={[
-                <Button
-                  type="text"
-                  danger
-                  size="small"
-                  icon={<DeleteOutlined />}
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    deleteDataset(dataset.datasetId, dataset.name);
-                  }}
-                />
-              ]}
-            >
-              <List.Item.Meta
-                title={dataset.name}
-                description={
-                  <div>
-                    <div>{dataset.description}</div>
-                    <div style={{ marginTop: 4, fontSize: 12, color: '#999' }}>
-                      {dataset.documentCount} 个文档 · {dataset.totalChunks} 个分块
+        </div>
+        <div style={{ padding: 16, flex: 1, overflow: 'auto' }}>
+          <List
+            dataSource={datasets}
+            loading={isLoading}
+            renderItem={(dataset) => (
+              <List.Item
+                style={{
+                  cursor: 'pointer',
+                  backgroundColor:
+                    currentDatasetId === dataset.datasetId ? '#e6f7ff' : 'transparent',
+                  padding: '8px 12px',
+                  borderRadius: 4
+                }}
+                onClick={() => setCurrentDataset(dataset.datasetId)}
+                actions={[
+                  <Button
+                    type="text"
+                    danger
+                    size="small"
+                    icon={<DeleteOutlined />}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      deleteDataset(dataset.datasetId, dataset.name);
+                    }}
+                  />
+                ]}
+              >
+                <List.Item.Meta
+                  title={dataset.name}
+                  description={
+                    <div>
+                      <div>{dataset.description}</div>
+                      <div style={{ marginTop: 4, fontSize: 12, color: '#999' }}>
+                        {dataset.documentCount} 个文档 · {dataset.totalChunks} 个分块
+                      </div>
                     </div>
-                  </div>
-                }
-              />
-            </List.Item>
-          )}
-        />
-      </Card>
+                  }
+                />
+              </List.Item>
+            )}
+          />
+        </div>
+      </section>
 
       {/* Document Area */}
-      <Card
-        title={currentDataset ? currentDataset.name : '文档管理'}
-        style={{ flex: 1, display: 'flex', flexDirection: 'column' }}
-        bodyStyle={{ flex: 1, display: 'flex', flexDirection: 'column' }}
-        extra={
-          currentDatasetId && (
+      <section
+        style={{
+          flex: 1,
+          display: 'flex',
+          flexDirection: 'column',
+          background: '#fff',
+          border: '1px solid #f0f0f0',
+          borderRadius: 8
+        }}
+      >
+        <div style={{ padding: 16, borderBottom: '1px solid #f0f0f0', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <h3 style={{ margin: 0, fontSize: 16, fontWeight: 600 }}>
+            {currentDataset ? currentDataset.name : '文档管理'}
+          </h3>
+          {currentDatasetId && (
             <Button
               icon={<SearchOutlined />}
               onClick={() => setIsSearchModalOpen(true)}
             >
               检索测试
             </Button>
-          )
-        }
-      >
-        {!currentDatasetId ? (
-          <Empty description="请选择或创建知识库" style={{ marginTop: 100 }} />
-        ) : (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 16, flex: 1 }}>
-            {/* Upload Area */}
-            <DocumentUpload
-              onUpload={handleUpload}
-              uploading={isUploading}
-              uploadProgress={uploadProgress}
-            />
+          )}
+        </div>
+        <div style={{ flex: 1, padding: 16, overflow: 'auto' }}>
+          {!currentDatasetId ? (
+            <Empty description="请选择或创建知识库" style={{ marginTop: 100 }} />
+          ) : (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 16, height: '100%' }}>
+              {/* Upload Area */}
+              <DocumentUpload
+                onUpload={handleUpload}
+                uploading={isUploading}
+                uploadProgress={uploadProgress}
+              />
 
-            {/* Document List */}
-            <Table
-              columns={documentColumns}
-              dataSource={documents}
-              rowKey="documentId"
-              loading={isLoading}
-              pagination={{
-                current: documentPage + 1,
-                pageSize: documentPageSize,
-                total: documentTotal,
-                showSizeChanger: true,
-                showTotal: (total) => `共 ${total} 条`,
-                onChange: (page, size) => {
-                  if (currentDatasetId) {
-                    loadDocuments(currentDatasetId, page - 1, size);
+              {/* Document List */}
+              <Table
+                columns={documentColumns}
+                dataSource={documents}
+                rowKey="documentId"
+                loading={isLoading}
+                pagination={{
+                  current: documentPage + 1,
+                  pageSize: documentPageSize,
+                  total: documentTotal,
+                  showSizeChanger: true,
+                  showTotal: (total) => `共 ${total} 条`,
+                  onChange: (page, size) => {
+                    if (currentDatasetId) {
+                      loadDocuments(currentDatasetId, page - 1, size);
+                    }
                   }
-                }
-              }}
-            />
-          </div>
-        )}
-      </Card>
+                }}
+              />
+            </div>
+          )}
+        </div>
+      </section>
 
       {/* Create Dataset Modal */}
       <Modal

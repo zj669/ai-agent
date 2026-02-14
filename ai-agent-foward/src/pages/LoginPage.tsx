@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Form, Input, Button, Card, Tabs, message } from 'antd';
+import { Form, Input, Button, Tabs, message } from 'antd';
 import { UserOutlined, LockOutlined, MailOutlined } from '@ant-design/icons';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuthStore } from '../stores/authStore';
@@ -164,18 +164,23 @@ export const LoginPage: React.FC = () => {
       minHeight: '100vh',
       background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)'
     }}>
-      <Card
-        style={{ width: 400, boxShadow: '0 4px 12px rgba(0,0,0,0.15)' }}
-        title={
-          <div style={{ textAlign: 'center', fontSize: '24px', fontWeight: 'bold' }}>
-            AI Agent Platform
-          </div>
-        }
+      <div
+        style={{
+          width: 400,
+          background: '#fff',
+          borderRadius: 8,
+          boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
+          overflow: 'hidden'
+        }}
       >
-        <Tabs
-          defaultActiveKey="login"
-          centered
-          items={[
+        <div style={{ padding: '24px 24px 0', textAlign: 'center', fontSize: '24px', fontWeight: 'bold' }}>
+          AI Agent Platform
+        </div>
+        <div style={{ padding: 24 }}>
+          <Tabs
+            defaultActiveKey="login"
+            centered
+            items={[
             {
               key: 'login',
               label: '登录',
@@ -328,8 +333,9 @@ export const LoginPage: React.FC = () => {
               )
             }
           ]}
-        />
-      </Card>
+          />
+        </div>
+      </div>
     </div>
   );
 };

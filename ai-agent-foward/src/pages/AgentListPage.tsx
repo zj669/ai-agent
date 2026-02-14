@@ -1,4 +1,4 @@
-import { Card, Button, Input, Table, Space, Tag, Tooltip } from 'antd';
+import { Button, Input, Table, Space, Tag, Tooltip } from 'antd';
 import {
   PlusOutlined,
   EditOutlined,
@@ -123,9 +123,9 @@ export const AgentListPage: React.FC = () => {
 
   return (
     <div>
-      <Card
-        title="Agent 管理"
-        extra={
+      <div style={{ marginBottom: 24 }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+          <h2 style={{ margin: 0 }}>Agent 管理</h2>
           <Button
             type="primary"
             icon={<PlusOutlined />}
@@ -133,8 +133,8 @@ export const AgentListPage: React.FC = () => {
           >
             创建 Agent
           </Button>
-        }
-      >
+        </div>
+
         <Space direction="vertical" size="middle" style={{ width: '100%' }}>
           <Input
             placeholder="搜索 Agent 名称或描述"
@@ -157,7 +157,7 @@ export const AgentListPage: React.FC = () => {
             }}
           />
         </Space>
-      </Card>
+      </div>
     </div>
   );
 };

@@ -1,191 +1,59 @@
-# useWorkflowEditor Blueprint
+## Metadata
+- file: `.blueprint/frontend/hooks/useWorkflowEditor.md`
+- version: `1.0`
+- status: 正常
+- updated_at: 2026-02-14
+- owner: blueprint-team
 
-## 职责契约
-- **做什么**: 封装工作流编辑器核心逻辑,管理节点/连接状态、撤销/重做、执行控制
-- **不做什么**: 不处理 UI 渲染、不直接操作 DOM、不管理页面级状态(如选中节点)
+## 状态机
+- 状态集合: `正常` / `待修改` / `修改中` / `修改完成`
+- 允许流转: `正常 -> 待修改 -> 修改中 -> 修改完成 -> 正常`
+- 允许回退: `修改中 -> 待修改`、`修改完成 -> 修改中`
 
-## 接口摘要 (Hook API)
+## 1) 整体文件职责
+- 主题: useWorkflowEditor
+- 该文件用于描述 useWorkflowEditor 的职责边界与协作关系。
 
-### 输入参数
-| 名称 | 类型 | 说明 | 必需 |
-|------|------|------|------|
-| initialGraph | WorkflowGraph | 初始工作流图 | 否 |
+## 2) 核心方法
+- `useWorkflowEditor(initialGraph?)`
+- `onNodesChange(changes)`
+- `startExecutionFlow(request)`
+- `onConnect(connection)`
 
-### 返回值
-| 名称 | 类型 | 说明 |
-|------|------|------|
-| nodes | ReactFlowNode[] | 节点列表 |
-| edges | ReactFlowEdge[] | 连接线列表 |
-| onNodesChange | (changes) => void | 节点变更处理 |
-| onEdgesChange | (changes) => void | 连接线变更处理 |
-| onConnect | (connection) => void | 连接节点 |
-| addNode | (type, position) => void | 添加节点 |
-| deleteNode | (nodeId) => void | 删除节点 |
-| updateNodeData | (nodeId, data) => void | 更新节点数据 |
-| duplicateNode | (nodeId) => void | 复制节点 |
-| loadGraph | (graph) => void | 加载工作流图 |
-| clearGraph | () => void | 清空画布 |
-| convertToWorkflowGraph | () => WorkflowGraph | 转换为工作流图 |
-| undo | () => void | 撤销 |
-| redo | () => void | 重做 |
-| canUndo | boolean | 是否可撤销 |
-| canRedo | boolean | 是否可重做 |
-| autoLayout | (direction) => void | 自动布局 |
-| isExecuting | boolean | 是否正在执行 |
-| executionId | string \| null | 执行 ID |
-| executionLogs | string[] | 执行日志 |
-| startExecution | (request) => Promise<void> | 启动执行 |
-| stopExecution | () => Promise<void> | 停止执行 |
+## 3) 具体方法
+### 3.1 useWorkflowEditor(initialGraph?)
+- 函数签名: `function useWorkflowEditor(initialGraph?: WorkflowGraph): UseWorkflowEditorReturn`
+- 入参: `initialGraph` 可选的初始工作流图结构（包含 nodes, edges, edgeDetails）
+- 出参: 返回对象包含 `nodes`, `edges`, `onNodesChange`, `onEdgesChange`, `onConnect`, `addNode`, `loadGraph`, `convertToWorkflowGraph`, `isExecuting`, `startExecution`, `stopExecution`, `updateNodeData`, `clearExecutionStatus`
+- 功能含义: React Hook，封装工作流编辑器的完整状态管理和交互逻辑。整合 React Flow 的节点/边操作、执行控制、历史记录（undo/redo）、自动布局等功能。内部组合 `useWorkflowInteractions`, `useNodesInteractions`, `useEdgesInteractions`, `useWorkflowHistory`, `useNodesSyncDraft` 等子 Hook。
+- 链路作用: WorkflowEditorPage 的核心业务逻辑层，连接 UI 组件与 workflowService。历史实现已删除，功能已迁移至 ChatPage 的简化执行流程。
 
-## 依赖拓扑
-- **上游**: WorkflowEditorPage
-- **下游**: 
-  - ReactFlow hooks (useNodesState, useEdgesState)
-  - workflowService (执行相关)
-  - dagre (自动布局)
+### 3.2 onNodesChange(changes)
+- 函数签名: `(changes: NodeChange[]) => void`
+- 入参: `changes` 为 React Flow 的节点变更数组（position, selection, remove 等）
+- 出参: 无返回值，直接更新内部状态
+- 功能含义: 响应 React Flow 的节点变更事件，同步更新 Zustand store 中的节点状态。触发自动保存和历史快照记录。
+- 链路作用: React Flow 与状态管理的桥接层，确保画布操作与数据模型同步。
 
-## 状态管理
+### 3.3 startExecutionFlow(request)
+- 函数签名: `async (request: StartExecutionRequest) => Promise<void>`
+- 入参: `request` 包含 `agentId`, `conversationId`, `userMessage`, `executionMode`
+- 出参: Promise<void>，执行过程通过 SSE 回调异步通知
+- 功能含义: 调用 `workflowService.startExecution`，建立 SSE 连接，监听执行事件并更新节点状态（RUNNING → SUCCEEDED/FAILED）。维护 `isExecuting` 标志和 `executionId` 状态。
+- 链路作用: 编辑器内的执行触发器，将静态图转换为动态执行流，实时反馈节点状态到画布。
 
-### ReactFlow 状态
-```typescript
-const [nodes, setNodes, onNodesChangeRaw] = useNodesState<ReactFlowNode>([]);
-const [edges, setEdges, onEdgesChangeRaw] = useEdgesState<ReactFlowEdge>([]);
-```
+### 3.4 onConnect(connection)
+- 函数签名: `(connection: Connection) => void`
+- 入参: `connection` 包含 `source`, `target`, `sourceHandle`, `targetHandle`
+- 出参: 无返回值，直接更新 edges 状态
+- 功能含义: 响应用户在画布上连接两个节点的操作，验证连接合法性（避免循环、类型匹配），创建新边并添加到图中。触发自动布局调整。
+- 链路作用: 交互层的连接处理器，确保图的拓扑结构符合工作流语义约束。
 
-### 历史记录状态
-```typescript
-const [undoStack, setUndoStack] = useState<HistoryState[]>([]);
-const [redoStack, setRedoStack] = useState<HistoryState[]>([]);
-const isUndoRedoAction = useRef(false);
-```
 
-### 执行状态
-```typescript
-const [isExecuting, setIsExecuting] = useState(false);
-const [executionId, setExecutionId] = useState<string | null>(null);
-const [executionLogs, setExecutionLogs] = useState<string[]>([]);
-const abortControllerRef = useRef<AbortController | null>(null);
-```
+## 4) 变更记录
+- 2026-02-14: 统一重构为 Blueprint-Lite 最小结构，状态基线设为 `正常`，并保留原文关键语义摘要。
+- 2026-02-14: 补全"具体方法"细节，基于历史实现提供 Hook 完整签名、状态管理逻辑、执行控制、连接处理的详细语义。说明其在迁移链路中的定位：原独立编辑器 Hook 已废弃，功能简化后整合至 ChatPage。
+- 2026-02-14: 移除重复方法占位条目，保留唯一契约定义。
 
-## 核心逻辑
-
-### 1. 节点变更处理
-```typescript
-onNodesChange(changes) {
-  // 检查是否需要保存历史快照
-  const shouldSnapshot = changes.some(change => 
-    change.type === 'position' && !change.dragging || 
-    change.type === 'remove'
-  );
-  
-  if (shouldSnapshot) saveToHistory();
-  onNodesChangeRaw(changes);
-}
-```
-
-### 2. 撤销/重做
-```typescript
-undo() {
-  if (undoStack.length === 0) return;
-  
-  const previousState = undoStack[undoStack.length - 1];
-  setRedoStack(prev => [...prev, { nodes, edges }]);
-  
-  isUndoRedoAction.current = true;
-  setNodes(previousState.nodes);
-  setEdges(previousState.edges);
-  setUndoStack(prev => prev.slice(0, -1));
-}
-```
-
-### 3. 工作流执行
-```typescript
-startExecution(request) {
-  setIsExecuting(true);
-  setExecutionLogs([]);
-  
-  const controller = await workflowService.startExecution(request, {
-    onConnected: (data) => {
-      setExecutionId(data.executionId);
-      setExecutionLogs(logs => [...logs, `[连接成功] ${data.executionId}`]);
-    },
-    onStart: (data) => {
-      updateNodeData(data.nodeId, { status: NodeExecutionStatus.RUNNING });
-    },
-    onFinish: (data) => {
-      updateNodeData(data.nodeId, { status: data.status });
-      if (data.status === NodeExecutionStatus.SUCCEEDED) {
-        setIsExecuting(false);
-      }
-    },
-    onError: (data) => {
-      setIsExecuting(false);
-      message.error(`执行失败: ${data.message}`);
-    }
-  });
-  
-  abortControllerRef.current = controller;
-}
-```
-
-### 4. 自动布局
-```typescript
-autoLayout(direction = 'TB') {
-  const graph = new dagre.graphlib.Graph();
-  graph.setGraph({ rankdir: direction, ranksep: 100, nodesep: 44 });
-  
-  nodes.forEach(node => {
-    graph.setNode(node.id, { width: 220, height: 104 });
-  });
-  
-  edges.forEach(edge => {
-    graph.setEdge(edge.source, edge.target);
-  });
-  
-  dagre.layout(graph);
-  
-  setNodes(prev => prev.map(node => {
-    const layoutNode = graph.node(node.id);
-    return {
-      ...node,
-      position: {
-        x: layoutNode.x - 110,
-        y: layoutNode.y - 52
-      }
-    };
-  }));
-}
-```
-
-## 设计约束
-
-### 历史记录约束
-- 最大历史记录数: 50
-- 拖拽结束时才保存快照(避免频繁保存)
-- 撤销/重做操作不触发新的历史记录
-
-### 执行约束
-- 同时只能有一个执行实例
-- 执行中禁止编辑节点
-- 停止执行时清理 SSE 连接
-
-### 性能约束
-- 使用 useCallback 缓存函数
-- 避免不必要的状态更新
-- 节点数 > 100 时禁用动画
-
-## 错误处理
-
-### 执行失败
-- 捕获 SSE 错误
-- 更新节点状态为 FAILED
-- 显示错误日志
-
-### 布局失败
-- 捕获 dagre 错误
-- 保持原有布局
-- 显示错误提示
-
-## 变更日志
-- [2026-02-13] 创建 useWorkflowEditor 蓝图
-- [2026-02-13] 定义 Hook API、状态管理、核心逻辑
+## 5) Temp缓存区
+当前状态为 `正常`，本区留空。

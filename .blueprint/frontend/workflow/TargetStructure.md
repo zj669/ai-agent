@@ -1,69 +1,52 @@
-# Workflow 目标目录结构 Blueprint
+## Metadata
+- file: `.blueprint/frontend/workflow/TargetStructure.md`
+- version: `1.0`
+- status: 正常
+- updated_at: 2026-02-14
+- owner: blueprint-team
 
-## 职责契约
-- **做什么**: 定义 workflow 域最终目录结构与顶层文件职责。
-- **不做什么**: 不定义节点内部 UI 细节，不定义后端实现。
+## 状态机
+- 状态集合: `正常` / `待修改` / `修改中` / `修改完成`
+- 允许流转: `正常 -> 待修改 -> 修改中 -> 修改完成 -> 正常`
+- 允许回退: `修改中 -> 待修改`、`修改完成 -> 修改中`
 
-## 目标结构（必须对齐）
-```text
-workflow/
-  index.tsx
-  constants.ts
-  types.ts
-  style.css
-  custom-edge.tsx
-  custom-connection-line.tsx
-  hooks/
-    use-workflow-interactions.ts
-    use-nodes-interactions.ts
-    use-edges-interactions.ts
-    use-workflow-history.ts
-    use-nodes-sync-draft.ts
-  store/
-    index.ts
-    workflow/
-      workflow-slice.ts
-      layout-slice.ts
-      panel-slice.ts
-      history-slice.ts
-  nodes/
-  panel/
-  operator/
-  features/
-  utils/
-```
+## 1) 整体文件职责
+- 主题: TargetStructure
+- 该文件用于描述 TargetStructure 的职责边界与协作关系。
 
-## 顶层文件职责矩阵
-| 文件 | 必要职责 | 禁止事项 |
-|---|---|---|
-| `index.tsx` | 装配 ReactFlow 容器与子模块 | 直接写业务规则 |
-| `constants.ts` | 交互常量、事件名、默认参数 | 写可变运行态 |
-| `types.ts` | workflow 域公共类型入口 | 泄漏 UI 实现类型 |
-| `style.css` | workflow 域样式收口 | 污染全局通用样式 |
-| `custom-edge.tsx` | 边渲染、边交互入口 | 编排节点配置逻辑 |
-| `custom-connection-line.tsx` | 连线中临时视觉反馈 | 管理全局状态 |
+## 2) 核心方法
+- `defineWorkflowSkeleton()`
+- `validateModuleBoundary(moduleName, deps)`
+- `mapPageToWorkflowContainer(pageFile)`
+- `validateModuleBoundary()`
+- `mapPageToWorkflowContainer()`
 
-## 目录落地规则
-1. hooks 只提供交互能力，不输出 JSX。
-2. store 只管理状态，不发请求、不碰 DOM。
-3. nodes/panel/operator/features 按职责隔离，不跨域混写。
-4. utils 只保留纯函数，支持独立测试。
+## 3) 具体方法
+### 3.1 defineWorkflowSkeleton()
+- 函数签名: `defineWorkflowSkeleton(): WorkflowStructure`
+- 入参: 无（读取目标架构配置）
+- 出参: `WorkflowStructure` 对象，包含 `{ directories: string[], modules: { [name: string]: { path: string, exports: string[] } }, entryPoints: string[] }`
+- 功能含义: 定义工作流模块的目标目录结构和模块划分，生成新架构的骨架定义
+- 链路作用: 架构初始化器，为迁移提供目标结构蓝图，确保新代码按统一规范组织
 
-## 迁移阶段建议
-- Phase A：先建 `constants/types/store/index`。
-- Phase B：拆出 5 个 hooks，建立历史与同步主链路。
-- Phase C：迁移 nodes/panel/operator/features。
-- Phase D：页面切换到 `workflow/index.tsx` 装配入口。
+### 3.2 validateModuleBoundary(moduleName: string, deps: string[])
+- 函数签名: `validateModuleBoundary(moduleName: string, deps: string[]): BoundaryValidation`
+- 入参: `moduleName` - 模块名称（如 `'nodes'`, `'hooks'`），`deps` - 该模块的依赖列表
+- 出参: `BoundaryValidation` 包含 `{ valid: boolean, violations: Array<{ dep: string, reason: string }>, allowedDeps: string[] }`
+- 功能含义: 验证模块依赖是否符合目标架构的边界规则，检测非法跨层依赖
+- 链路作用: 模块边界守护者，在代码审查或构建时检测违反架构约束的导入关系
 
-## 验收标准
-- 目录中包含 6 个顶层核心文件与 5 个 hooks。
-- store 中存在 `workflow/layout/panel/history` 四个 slices。
-- 页面不再直接承载 nodes/edges 交互细节。
+### 3.3 mapPageToWorkflowContainer(pageFile: string)
+- 函数签名: `mapPageToWorkflowContainer(pageFile: string): ContainerMapping`
+- 入参: `pageFile` - 页面文件路径（如 `'src/pages/WorkflowEditorPage.tsx'`）
+- 出参: `ContainerMapping` 对象，包含 `{ containerPath: string, requiredHooks: string[], requiredStores: string[] }`
+- 功能含义: 将页面级组件映射到对应的工作流容器组件，明确页面需要的 Hook 和 Store 依赖
+- 链路作用: 页面重构指南生成器，帮助开发者将旧页面迁移到新的容器化架构
 
-## 变更摘要
-- 明确 workflow 的 Dify 对齐目录骨架与文件责任矩阵。
-- 强制约束 `index/constants/types/style/custom-edge/custom-connection-line` 六要素。
-- 定义可验证的迁移与验收步骤，支持分阶段实施。
 
-## 变更日志
-- [2026-02-13] 重构为 Dify 模式目标结构蓝图。
+## 4) 变更记录
+- 2026-02-14: 统一重构为 Blueprint-Lite 最小结构，状态基线设为 `正常`，并保留原文关键语义摘要。
+- 2026-02-14: 补全目标结构定义方法的具体签名，明确工作流骨架生成、模块边界验证和页面容器映射契约。
+
+## 5) Temp缓存区
+当前状态为 `正常`，本区留空。

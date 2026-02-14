@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Form, Input, Button, Card, message } from 'antd';
+import { Form, Input, Button, message } from 'antd';
 import { LockOutlined, MailOutlined } from '@ant-design/icons';
 import { useNavigate } from 'react-router-dom';
 import { authService } from '../services/authService';
@@ -66,20 +66,25 @@ export const ResetPasswordPage: React.FC = () => {
       minHeight: '100vh',
       background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)'
     }}>
-      <Card
-        style={{ width: 400, boxShadow: '0 4px 12px rgba(0,0,0,0.15)' }}
-        title={
-          <div style={{ textAlign: 'center', fontSize: '24px', fontWeight: 'bold' }}>
-            重置密码
-          </div>
-        }
+      <div
+        style={{
+          width: 400,
+          background: '#fff',
+          borderRadius: 8,
+          boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
+          overflow: 'hidden'
+        }}
       >
-        <Form
-          name="reset-password"
-          onFinish={handleResetPassword}
-          autoComplete="off"
-          size="large"
-        >
+        <div style={{ padding: '24px 24px 0', textAlign: 'center', fontSize: '24px', fontWeight: 'bold' }}>
+          重置密码
+        </div>
+        <div style={{ padding: 24 }}>
+          <Form
+            name="reset-password"
+            onFinish={handleResetPassword}
+            autoComplete="off"
+            size="large"
+          >
           <Form.Item
             name="email"
             rules={[
@@ -158,8 +163,9 @@ export const ResetPasswordPage: React.FC = () => {
           <div style={{ textAlign: 'center' }}>
             <a onClick={() => navigate('/login')}>返回登录</a>
           </div>
-        </Form>
-      </Card>
+          </Form>
+        </div>
+      </div>
     </div>
   );
 };

@@ -1,11 +1,11 @@
 import { useEffect, useRef } from 'react';
 import { message as antdMessage } from 'antd';
 import { chatService } from '../services/chatService';
-import { workflowService } from '../services/workflowService';
+import { executionService } from '../services/executionService';
 import { useChatStore } from '../stores/chatStore';
 import { useAuthStore } from '../stores/authStore';
 import { Message, MessageRole, MessageStatus } from '../types/chat';
-import { NodeExecutionStatus } from '../types/workflow';
+import { NodeExecutionStatus } from '../types/execution';
 
 export const useChat = (agentId?: number) => {
   const {
@@ -70,7 +70,7 @@ export const useChat = (agentId?: number) => {
     }
   };
 
-  // Send message - uses workflowService.startExecution for SSE streaming
+  // Send message - uses executionService.startExecution for SSE streaming
   const sendMessage = async (content: string, conversationId: string) => {
     if (!agentId || !content.trim() || !user) return;
 
@@ -109,7 +109,7 @@ export const useChat = (agentId?: number) => {
 
     try {
       // Start workflow execution via SSE (the backend handles saving messages)
-      const controller = await workflowService.startExecution(
+      const controller = await executionService.startExecution(
         {
           agentId,
           userId: user.id,

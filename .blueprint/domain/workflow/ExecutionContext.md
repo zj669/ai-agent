@@ -1,62 +1,73 @@
-# ExecutionContext Blueprint
+## Metadata
+- file: `.blueprint/domain/workflow/ExecutionContext.md`
+- version: `1.0`
+- status: 正常
+- updated_at: 2026-02-14
+- owner: blueprint-team
 
-## 职责契约
-- **做什么**: 作为工作流执行的"智能黑板"，承载全部上下文信息——基础数据、长期记忆(LTM)、短期记忆(STM)、环境感知(Awareness)；提供 SpEL 表达式解析和参数注入能力
-- **不做什么**: 不负责记忆的检索和加载（那是 SchedulerService.hydrateMemory 的职责）；不负责持久化（通过 Checkpoint 快照实现）
+## 状态机
+- 状态集合: `正常` / `待修改` / `修改中` / `修改完成`
+- 允许流转: `正常 -> 待修改 -> 修改中 -> 修改完成 -> 正常`
+- 允许回退: `修改中 -> 待修改`、`修改完成 -> 修改中`
 
-## 数据结构
+## 1) 整体文件职责
+- 主题: ExecutionContext
+- 该文件用于描述 ExecutionContext 的职责边界与协作关系。
 
-### 基础数据
-| 字段 | 类型 | 说明 | 线程安全 |
-|------|------|------|---------|
-| inputs | ConcurrentHashMap\<String, Object\> | 全局输入参数（用户输入） | ✅ |
-| nodeOutputs | ConcurrentHashMap\<String, Map\<String, Object\>\> | 节点输出 (nodeId → outputs) | ✅ |
-| sharedState | ConcurrentHashMap\<String, Object\> | 共享状态数据（跨节点传递） | ✅ |
+## 2) 核心方法
+- `setInputs()`
+- `setNodeOutput()`
+- `getNodeOutput()`
+- `appendLog()`
+- `getExecutionLogContent()`
 
-### 长期记忆 (LTM)
-| 字段 | 类型 | 说明 |
-|------|------|------|
-| longTermMemories | List\<String\> | 启动时从 Milvus 向量库检索的系统级知识，所有节点共享 |
+## 3) 具体方法
+### 3.1 setInputs()
+- 函数签名: `void setInputs(Map<String, Object> inputs)`
+- 入参:
+  - `inputs`: 全局输入参数映射（工作流启动时传入）
+- 出参: 无（void）
+- 功能含义: 设置工作流全局输入参数，存储到 ConcurrentHashMap 中供所有节点访问。
+- 链路作用: 在 Execution.start() 时调用，初始化执行上下文的输入数据。
 
-### 短期记忆 (STM)
-| 字段 | 类型 | 说明 |
-|------|------|------|
-| chatHistory | List\<Map\<String, String\>\> | 会话历史消息 (role: USER/ASSISTANT, content)，启动时从 MySQL 加载 |
+### 3.2 setNodeOutput()
+- 函数签名: `void setNodeOutput(String nodeId, Map<String, Object> outputs)`
+- 入参:
+  - `nodeId`: 节点ID
+  - `outputs`: 节点执行输出结果
+- 出参: 无（void）
+- 功能含义: 存储节点执行输出到上下文，供下游节点通过 SpEL 表达式引用（如 `{{nodes.llm1.response}}`）。
+- 链路作用: 在 Execution.advance() 中调用，保存节点执行结果到黑板。
 
-### 环境感知 (Awareness)
-| 字段 | 类型 | 说明 |
-|------|------|------|
-| executionLog | StringBuilder | 动态执行日志，记录 "[nodeId-nodeName]: summary"，让 LLM 知道当前进度 |
+### 3.3 getNodeOutput()
+- 函数签名: `Map<String, Object> getNodeOutput(String nodeId)`
+- 入参:
+  - `nodeId`: 节点ID
+- 出参: 节点输出映射（若不存在返回空 Map）
+- 功能含义: 获取指定节点的输出结果，用于表达式解析或人工审核后的输出修改。
+- 链路作用: 在 ExpressionResolverPort 解析 SpEL 表达式时调用，提供节点输出数据源。
 
-## 接口摘要
+### 3.4 appendLog()
+- 函数签名: `void appendLog(String nodeId, String nodeName, String summary)`
+- 入参:
+  - `nodeId`: 节点ID
+  - `nodeName`: 节点名称
+  - `summary`: 执行摘要（如 "LLM响应: ..."）
+- 出参: 无（void）
+- 功能含义: 追加节点执行日志到 executionLog（StringBuilder），记录执行流水账，让 LLM 节点感知当前进度（Awareness）。
+- 链路作用: 在 SchedulerService.onNodeComplete() 中调用，构建执行日志供后续节点使用。
 
-| 方法 | 输入 | 输出 | 说明 |
-|------|------|------|------|
-| setInputs | Map\<String, Object\> | void | 设置全局输入（创建新 ConcurrentHashMap） |
-| setNodeOutput | nodeId, Map outputs | void | 存储节点输出 |
-| getNodeOutput | nodeId | Map\<String, Object\> | 获取节点输出（不存在返回空 Map） |
-| appendLog | nodeId, nodeName, summary | void | 追加执行日志 |
-| getExecutionLogContent | - | String | 获取完整执行日志 |
-| snapshot | - | ExecutionContext | 创建深拷贝快照（用于检查点） |
+### 3.5 getExecutionLogContent()
+- 函数签名: `String getExecutionLogContent()`
+- 入参: 无
+- 出参: 执行日志字符串（格式: `[nodeId-nodeName]: summary\n`）
+- 功能含义: 获取完整执行日志内容，用于 LLM 节点的 Prompt 拼接或最终响应提取。
+- 链路作用: 在 LLM 节点执行时注入 Prompt，或在 SchedulerService.onExecutionComplete() 中提取最终响应。
 
-## 表达式解析（已移除）
-- **重构说明**: SpEL 表达式解析逻辑已从 ExecutionContext 移除，迁移到 infrastructure 层的 ExpressionResolverPort 实现
-- **原因**: 保持 domain 层纯净，避免依赖 Spring Expression Language
-- **新位置**: `StructuredConditionEvaluator` 和其他需要表达式解析的 infrastructure 组件
 
-## 依赖拓扑
-- **上游**: Execution (持有), SchedulerService (水合记忆), NodeExecutorStrategy (读取/写入)
-- **下游**: 无（纯值对象）
+## 4) 变更记录
+- 2026-02-14: 统一重构为 Blueprint-Lite 最小结构，状态基线设为 `正常`，并保留原文关键语义摘要。
+- 2026-02-14: 补全方法签名与语义，从 ExecutionContext.java 提取真实实现契约。
 
-## 设计约束
-- 所有 Map 字段使用 ConcurrentHashMap 保证并发安全
-- snapshot() 创建深拷贝，用于 Checkpoint 持久化
-- LTM 在 `hydrateMemory` 阶段一次性加载，执行过程中只读
-- STM 在启动时加载，LLM 节点按需拼接到 Message Chain
-- Awareness 日志在每个节点完成后追加，供后续 LLM 节点参考执行进度
-- **纯值对象**: 无框架依赖，不包含业务逻辑，仅作为数据容器
-
-## 变更日志
-- [2026-02-10] **架构重构**: 移除 SpEL 依赖，删除 resolve() 和 resolveInputs() 方法，保持 domain 层纯净
-- [2026-02-09] resolve() 增强异常处理：SpEL 解析失败时返回原始表达式并记录 WARN 日志
-- [2026-02-08] 新建蓝图，记录智能黑板的完整结构和 LTM/STM/Awareness 三层记忆模型
+## 5) Temp缓存区
+当前状态为 `正常`，本区留空。

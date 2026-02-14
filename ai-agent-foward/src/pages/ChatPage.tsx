@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { Card, List, Input, Button, Empty, Spin, Modal, Select } from 'antd';
+import { List, Input, Button, Empty, Spin, Modal, Select } from 'antd';
 import { SendOutlined, PlusOutlined, DeleteOutlined } from '@ant-design/icons';
 import { useChat } from '../hooks/useChat';
 import { MessageItem } from '../components/MessageItem';
@@ -129,10 +129,19 @@ export const ChatPage: React.FC = () => {
   return (
     <div style={{ display: 'flex', height: 'calc(100vh - 150px)', gap: 16 }}>
       {/* Conversation List */}
-      <Card
-        title="会话列表"
-        style={{ width: 300, overflow: 'auto' }}
-        extra={
+      <section
+        style={{
+          width: 300,
+          overflow: 'auto',
+          background: '#fff',
+          border: '1px solid #f0f0f0',
+          borderRadius: 8,
+          display: 'flex',
+          flexDirection: 'column'
+        }}
+      >
+        <div style={{ padding: 16, borderBottom: '1px solid #f0f0f0', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <h3 style={{ margin: 0, fontSize: 16, fontWeight: 600 }}>会话列表</h3>
           <Button
             type="primary"
             size="small"
@@ -141,62 +150,71 @@ export const ChatPage: React.FC = () => {
           >
             新建
           </Button>
-        }
-      >
-        <div style={{ marginBottom: 16 }}>
-          <Select
-            style={{ width: '100%' }}
-            placeholder="选择 Agent"
-            value={selectedAgentId}
-            onChange={setSelectedAgentId}
-            options={agents.map((agent) => ({
-              label: agent.name,
-              value: agent.id
-            }))}
+        </div>
+        <div style={{ padding: 16, flex: 1, overflow: 'auto' }}>
+          <div style={{ marginBottom: 16 }}>
+            <Select
+              style={{ width: '100%' }}
+              placeholder="选择 Agent"
+              value={selectedAgentId}
+              onChange={setSelectedAgentId}
+              options={agents.map((agent) => ({
+                label: agent.name,
+                value: agent.id
+              }))}
+            />
+          </div>
+
+          <List
+            dataSource={conversations}
+            loading={isLoading}
+            renderItem={(conversation) => (
+              <List.Item
+                style={{
+                  cursor: 'pointer',
+                  backgroundColor:
+                    currentConversationId === conversation.id ? '#e6f7ff' : 'transparent',
+                  padding: '8px 12px',
+                  borderRadius: 4
+                }}
+                onClick={() => setCurrentConversation(conversation.id)}
+                actions={[
+                  <Button
+                    type="text"
+                    danger
+                    size="small"
+                    icon={<DeleteOutlined />}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleDeleteConversation(conversation.id);
+                    }}
+                  />
+                ]}
+              >
+                <List.Item.Meta
+                  title={conversation.title || '新会话'}
+                  description={new Date(conversation.createdAt).toLocaleString()}
+                />
+              </List.Item>
+            )}
           />
         </div>
-
-        <List
-          dataSource={conversations}
-          loading={isLoading}
-          renderItem={(conversation) => (
-            <List.Item
-              style={{
-                cursor: 'pointer',
-                backgroundColor:
-                  currentConversationId === conversation.id ? '#e6f7ff' : 'transparent',
-                padding: '8px 12px',
-                borderRadius: 4
-              }}
-              onClick={() => setCurrentConversation(conversation.id)}
-              actions={[
-                <Button
-                  type="text"
-                  danger
-                  size="small"
-                  icon={<DeleteOutlined />}
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    handleDeleteConversation(conversation.id);
-                  }}
-                />
-              ]}
-            >
-              <List.Item.Meta
-                title={conversation.title || '新会话'}
-                description={new Date(conversation.createdAt).toLocaleString()}
-              />
-            </List.Item>
-          )}
-        />
-      </Card>
+      </section>
 
       {/* Chat Area */}
-      <Card
-        title="对话"
-        style={{ flex: 1, display: 'flex', flexDirection: 'column' }}
-        bodyStyle={{ flex: 1, display: 'flex', flexDirection: 'column', padding: 0 }}
+      <section
+        style={{
+          flex: 1,
+          display: 'flex',
+          flexDirection: 'column',
+          background: '#fff',
+          border: '1px solid #f0f0f0',
+          borderRadius: 8
+        }}
       >
+        <div style={{ padding: 16, borderBottom: '1px solid #f0f0f0' }}>
+          <h3 style={{ margin: 0, fontSize: 16, fontWeight: 600 }}>对话</h3>
+        </div>
         {/* Messages */}
         <div
           style={{
@@ -243,7 +261,7 @@ export const ChatPage: React.FC = () => {
             </Button>
           </div>
         </div>
-      </Card>
+      </section>
     </div>
   );
 };

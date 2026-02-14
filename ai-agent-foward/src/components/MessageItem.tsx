@@ -1,4 +1,4 @@
-import { Avatar, Card } from 'antd';
+import { Avatar } from 'antd';
 import { UserOutlined, RobotOutlined, LoadingOutlined } from '@ant-design/icons';
 import ReactMarkdown from 'react-markdown';
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
@@ -38,11 +38,11 @@ export const MessageItem: React.FC<MessageItemProps> = ({ message }) => {
           }}
         />
 
-        <Card
-          size="small"
+        <div
           style={{
             backgroundColor: isUser ? '#e6f7ff' : '#f0f0f0',
-            border: 'none'
+            padding: '12px 16px',
+            borderRadius: '8px'
           }}
         >
           <div style={{ wordBreak: 'break-word' }}>
@@ -84,7 +84,7 @@ export const MessageItem: React.FC<MessageItemProps> = ({ message }) => {
           <div style={{ marginTop: 8, fontSize: 12, color: '#999', textAlign: 'right' }}>
             {dayjs(message.createdAt).format('HH:mm:ss')}
           </div>
-        </Card>
+        </div>
       </div>
     </div>
   );

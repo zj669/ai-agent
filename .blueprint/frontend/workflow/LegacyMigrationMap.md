@@ -1,43 +1,52 @@
-# Workflow 旧文件删除映射 Blueprint
+## Metadata
+- file: `.blueprint/frontend/workflow/LegacyMigrationMap.md`
+- version: `1.0`
+- status: 正常
+- updated_at: 2026-02-14
+- owner: blueprint-team
 
-## 职责契约
-- **做什么**: 维护“旧路径 -> 新模块路径”的唯一迁移映射，用于删除旧实现与验收。
-- **不做什么**: 不描述具体实现代码，不替代模块职责蓝图。
+## 状态机
+- 状态集合: `正常` / `待修改` / `修改中` / `修改完成`
+- 允许流转: `正常 -> 待修改 -> 修改中 -> 修改完成 -> 正常`
+- 允许回退: `修改中 -> 待修改`、`修改完成 -> 修改中`
 
-## 删除映射表（旧路径 -> 新模块路径）
-| 旧路径 | 新模块路径 | 迁移说明 |
-|---|---|---|
-| `ai-agent-foward/src/hooks/useWorkflowEditor.ts` | `workflow/hooks/use-workflow-interactions.ts` + `use-nodes-interactions.ts` + `use-edges-interactions.ts` + `use-workflow-history.ts` + `use-nodes-sync-draft.ts` | 单体 Hook 拆分为 5 个职责 Hook |
-| `ai-agent-foward/src/components/WorkflowEdge.tsx` | `workflow/custom-edge.tsx` | 边渲染与边交互统一入口 |
-| `ai-agent-foward/src/components/WorkflowNode.tsx` | `workflow/nodes/_base/node.tsx` + `workflow/nodes/*/node.tsx` | 节点基类与类型节点分离 |
-| `ai-agent-foward/src/components/WorkflowNodeLarge.tsx` | `workflow/nodes/*/node.tsx` | 尺寸分叉并入类型目录化节点 |
-| `ai-agent-foward/src/components/NodePanel.tsx` | `workflow/panel/node-library-panel.tsx` | 节点库面板迁移至 panel 子域 |
-| `ai-agent-foward/src/components/NodePropertiesPanel.tsx` | `workflow/panel/node-config-panel.tsx` | 节点配置面板统一命名 |
-| `ai-agent-foward/src/components/WorkflowConfigPanel.tsx` | `workflow/panel/workflow-config-panel.tsx` | 工作流配置面板归并 |
-| `ai-agent-foward/src/components/ExecutionLogPanel.tsx` | `workflow/features/run-history/log-panel.tsx` | 运行日志进入 features 子域 |
-| `ai-agent-foward/src/pages/WorkflowEditorPage.tsx`（含编排逻辑） | `pages/WorkflowEditorPage.tsx`（装配） + `workflow/index.tsx`（容器） | 页面逻辑剥离到 workflow 域 |
+## 1) 整体文件职责
+- 主题: LegacyMigrationMap
+- 该文件用于描述 LegacyMigrationMap 的职责边界与协作关系。
 
-## 删除前置条件
-1. 新模块已在蓝图定义且具备等价职责。
-2. 页面入口已切换至 `workflow/index.tsx` 装配。
-3. 历史、连线、同步链路均由新 hooks 接管。
-4. 回归通过拖拽、连线、撤销重做、自动布局、运行联调。
+## 2) 核心方法
+- `resolveMigrationTarget(legacyPath)`
+- `validateDeletePrerequisites(legacyPath)`
+- `planDeletionOrder(legacyPaths)`
+- `resolveMigrationTarget()`
+- `validateDeletePrerequisites()`
 
-## 删除顺序建议
-1. 删除单体 Hook（`useWorkflowEditor.ts`）
-2. 删除 edge/node 旧组件
-3. 删除 panel 旧组件
-4. 删除 features 旧组件
-5. 最后清理页面内遗留编排代码
+## 3) 具体方法
+### 3.1 resolveMigrationTarget(legacyPath: string)
+- 函数签名: `resolveMigrationTarget(legacyPath: string): MigrationTarget | null`
+- 入参: `legacyPath` - 旧代码文件路径（如 `src/components/workflow/index.tsx`）
+- 出参: `MigrationTarget` 对象包含 `{ targetPath: string, targetModule: string, migrationStatus: 'pending' | 'in-progress' | 'completed' }` 或 `null`（无迁移目标）
+- 功能含义: 根据旧文件路径查找对应的新架构目标位置，返回迁移映射关系
+- 链路作用: 在删除旧文件前确认功能已迁移至新模块，防止功能丢失
 
-## 风险与回退
-- 风险：删除顺序错误导致功能断链。
-- 回退策略：按映射表逐项替换，确保每步有新模块托底后再删除旧文件。
+### 3.2 validateDeletePrerequisites(legacyPath: string)
+- 函数签名: `validateDeletePrerequisites(legacyPath: string): ValidationResult`
+- 入参: `legacyPath` - 待删除的旧文件路径
+- 出参: `ValidationResult` 包含 `{ canDelete: boolean, blockers: string[], warnings: string[] }`
+- 功能含义: 检查旧文件是否可安全删除，验证迁移完成度、引用依赖、测试覆盖
+- 链路作用: 在执行删除操作前的安全检查点，确保不破坏现有功能
 
-## 变更摘要
-- 新增独立迁移映射蓝图，统一记录旧文件删除去向。
-- 明确删除前置条件与推荐顺序，降低重构断链风险。
-- 将“删除映射”从结构蓝图中解耦，便于独立验收。
+### 3.3 planDeletionOrder(legacyPaths: string[])
+- 函数签名: `planDeletionOrder(legacyPaths: string[]): string[]`
+- 入参: `legacyPaths` - 待删除文件路径数组
+- 出参: 按依赖关系排序的删除顺序数组（叶子节点优先，根节点最后）
+- 功能含义: 根据文件间依赖关系计算安全删除顺序，避免删除被依赖的文件导致编译错误
+- 链路作用: 批量清理旧代码时的执行计划生成器，确保删除过程不破坏构建
 
-## 变更日志
-- [2026-02-13] 新增旧路径删除映射与迁移策略。
+
+## 4) 变更记录
+- 2026-02-14: 统一重构为 Blueprint-Lite 最小结构，状态基线设为 `正常`，并保留原文关键语义摘要。
+- 2026-02-14: 补全具体方法签名、参数类型、返回值结构和业务含义，移除模板占位文案，明确迁移映射契约。
+
+## 5) Temp缓存区
+当前状态为 `正常`，本区留空。
