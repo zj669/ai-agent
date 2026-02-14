@@ -47,7 +47,14 @@
       "mcp__midscene-web__Tap",
       "mcp__midscene-web__Input",
       "mcp__midscene-web__web_disconnect",
-      "Skill(agent-browser)"
+      "Skill(agent-browser)",
+      "mcp__serena__activate_project",
+      "mcp__serena__check_onboarding_performed",
+      "mcp__serena__list_dir",
+      "mcp__serena__find_file",
+      "mcp__serena__think_about_collected_information",
+      "mcp__desktop-commander__create_directory",
+      "WebFetch(domain:docs.dify.ai)"
     ]
   },
   "outputStyle": "Explanatory",
