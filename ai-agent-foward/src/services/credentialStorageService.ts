@@ -26,12 +26,7 @@ export const clearCredential = (): void => {
   localStorage.removeItem(STORAGE_KEY);
 };
 
-export const saveCredential = (payload: CredentialPayload, rememberMe: boolean): void => {
-  if (!rememberMe) {
-    clearCredential();
-    return;
-  }
-
+export const saveCredential = (payload: CredentialPayload, _rememberMe: boolean): void => {
   const key = deriveKey();
   const encrypted = CryptoJS.AES.encrypt(JSON.stringify(payload), key).toString();
   const data: StoredCredential = {
