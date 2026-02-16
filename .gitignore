@@ -16,6 +16,7 @@
 /.trae/
 /.sisyphus/
 /.spec-workflow/
+/.worktrees/
 /powers/
 
 # ===== Java 项目通用规则 =====
