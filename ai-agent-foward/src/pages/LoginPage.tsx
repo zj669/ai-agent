@@ -1,9 +1,10 @@
-import { useState } from 'react';
-import { Form, Input, Button, Tabs, message } from 'antd';
+import { useEffect, useState } from 'react';
+import { Form, Input, Button, Tabs, Checkbox, message } from 'antd';
 import { UserOutlined, LockOutlined, MailOutlined } from '@ant-design/icons';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuthStore } from '../stores/authStore';
 import { authService } from '../services/authService';
+import { loadCredential } from '../services/credentialStorageService';
 import type { LoginRequest, RegisterRequest } from '../types/auth';
 
 export const LoginPage: React.FC = () => {
@@ -13,9 +14,23 @@ export const LoginPage: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const [sendingCode, setSendingCode] = useState(false);
   const [countdown, setCountdown] = useState(0);
+  const [loginForm] = Form.useForm();
   const [registerForm] = Form.useForm();
 
   const redirect = searchParams.get('redirect') || '/dashboard';
+
+  useEffect(() => {
+    const credential = loadCredential();
+    if (!credential) {
+      return;
+    }
+
+    loginForm.setFieldsValue({
+      email: credential.email,
+      password: credential.password,
+      rememberMe: true
+    });
+  }, [loginForm]);
 
   const handleLogin = async (values: LoginRequest) => {
     setLoading(true);
@@ -187,6 +202,7 @@ export const LoginPage: React.FC = () => {
               children: (
                 <Form
                   name="login"
+                  form={loginForm}
                   onFinish={handleLogin}
                   autoComplete="off"
                   size="large"
@@ -221,6 +237,13 @@ export const LoginPage: React.FC = () => {
                       prefix={<LockOutlined />}
                       placeholder="密码"
                     />
+                  </Form.Item>
+
+                  <Form.Item
+                    name="rememberMe"
+                    valuePropName="checked"
+                  >
+                    <Checkbox>记住我</Checkbox>
                   </Form.Item>
 
                   <Form.Item>
