@@ -24,10 +24,14 @@ const deriveKey = (): string => {
 
 export const clearCredential = (): void => {
   localStorage.removeItem(STORAGE_KEY);
-  sessionStorage.removeItem(STORAGE_KEY);
 };
 
 export const saveCredential = (payload: CredentialPayload, rememberMe: boolean): void => {
+  if (!rememberMe) {
+    clearCredential();
+    return;
+  }
+
   const key = deriveKey();
   const encrypted = CryptoJS.AES.encrypt(JSON.stringify(payload), key).toString();
   const data: StoredCredential = {
@@ -35,15 +39,11 @@ export const saveCredential = (payload: CredentialPayload, rememberMe: boolean):
     timestamp: Date.now()
   };
 
-  const targetStorage = rememberMe ? localStorage : sessionStorage;
-  const otherStorage = rememberMe ? sessionStorage : localStorage;
-
-  targetStorage.setItem(STORAGE_KEY, JSON.stringify(data));
-  otherStorage.removeItem(STORAGE_KEY);
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
 };
 
 export const loadCredential = (): CredentialPayload | null => {
-  const raw = localStorage.getItem(STORAGE_KEY) || sessionStorage.getItem(STORAGE_KEY);
+  const raw = localStorage.getItem(STORAGE_KEY);
 
   if (!raw) {
     return null;
@@ -77,5 +77,5 @@ export const loadCredential = (): CredentialPayload | null => {
 };
 
 export const hasStoredCredential = (): boolean => {
-  return Boolean(localStorage.getItem(STORAGE_KEY) || sessionStorage.getItem(STORAGE_KEY));
+  return Boolean(localStorage.getItem(STORAGE_KEY));
 };
