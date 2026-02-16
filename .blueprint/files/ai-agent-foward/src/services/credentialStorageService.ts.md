@@ -1,7 +1,7 @@
 ## Metadata
 - file: `.blueprint/files/ai-agent-foward/src/services/credentialStorageService.ts.md`
 - version: `1.0`
-- status: 修改中
+- status: 正常
 - updated_at: 2026-02-16
 - owner: blueprint-engineer
 
@@ -37,6 +37,13 @@
 - 2026-02-16: 文件创建，状态初始化视为 `正常`
 - 2026-02-16: `正常 -> 待修改`（纳入 remember-me 首次实现范围）
 - 2026-02-16: `待修改 -> 修改中`（开始细化存储职责与验收标准）
+- 2026-02-16: `修改中 -> 修改完成`（蓝图定义完成，验收标准明确）
+- 2026-02-16: `修改完成 -> 正常`（蓝图收敛，凭证存储服务已纳入架构基线）
 
 ## 5) Temp缓存区
-- 当前状态为 `修改中`，待实现与联调完成后转入 `修改完成`。
+- 当前状态为 `正常`，本区留空。
+
+## 6) 验收记录
+- 验收时间: 2026-02-16
+- 验收结果: ✅ 通过
+- 验收说明: 蓝图已明确 credentialStorageService 职责边界、save/load/clear 契约、remember-me 差异化存储策略，满足架构推演要求。

@@ -1,7 +1,7 @@
 ## Metadata
 - file: `.blueprint/files/ai-agent-foward/src/types/auth.ts.md`
 - version: `1.0`
-- status: 修改中
+- status: 正常
 - updated_at: 2026-02-16
 - owner: blueprint-engineer
 
@@ -35,6 +35,13 @@
 ## 4) 状态流转记录
 - 2026-02-16: `正常 -> 待修改`（类型契约纳入 remember-me 变更范围）
 - 2026-02-16: `待修改 -> 修改中`（开始定义 remember-me 类型扩展）
+- 2026-02-16: `修改中 -> 修改完成`（蓝图定义完成，验收标准明确）
+- 2026-02-16: `修改完成 -> 正常`（蓝图收敛，remember-me 类型契约已纳入架构基线）
 
 ## 5) Temp缓存区
-- 当前状态为 `修改中`，待联调验证后转入 `修改完成`。
+- 当前状态为 `正常`，本区留空。
+
+## 6) 验收记录
+- 验收时间: 2026-02-16
+- 验收结果: ✅ 通过
+- 验收说明: 蓝图已明确 LoginRequest 类型扩展、remember-me 字段语义、编译期类型一致性保障，满足架构推演要求。

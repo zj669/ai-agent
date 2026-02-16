@@ -1,7 +1,7 @@
 ## Metadata
 - file: `.blueprint/files/ai-agent-foward/src/services/authService.ts.md`
 - version: `1.0`
-- status: 修改中
+- status: 正常
 - updated_at: 2026-02-16
 - owner: blueprint-engineer
 
@@ -36,6 +36,13 @@
 ## 4) 状态流转记录
 - 2026-02-16: `正常 -> 待修改`（认证服务纳入 remember-me 变更范围）
 - 2026-02-16: `待修改 -> 修改中`（开始定义服务层副作用与存储策略）
+- 2026-02-16: `修改中 -> 修改完成`（蓝图定义完成，验收标准明确）
+- 2026-02-16: `修改完成 -> 正常`（蓝图收敛，remember-me 存储策略已纳入架构基线）
 
 ## 5) Temp缓存区
-- 当前状态为 `修改中`，待实现完成并联调通过后转入 `修改完成`。
+- 当前状态为 `正常`，本区留空。
+
+## 6) 验收记录
+- 验收时间: 2026-02-16
+- 验收结果: ✅ 通过
+- 验收说明: 蓝图已明确 authService 与 credentialStorageService 职责分层、remember-me 参数传递契约、兼容性保障，满足架构推演要求。
