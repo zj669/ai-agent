@@ -12,6 +12,7 @@ import {
   User,
   ApiResponse
 } from '../types/auth';
+import { saveCredential, clearCredential } from './credentialStorageService';
 
 // Auth 专用 axios 实例，baseURL 为 /client（后端 UserController 路径前缀）
 const authClient: AxiosInstance = axios.create({
@@ -183,7 +184,15 @@ class AuthService {
   }
 
   async login(data: LoginRequest): Promise<LoginResponse> {
-    const response = await authClient.post<ApiResponse<LoginResponse>>(`${this.baseURL}/login`, data);
+    const { rememberMe = false, ...loginPayload } = data;
+    const response = await authClient.post<ApiResponse<LoginResponse>>(`${this.baseURL}/login`, loginPayload);
+
+    if (rememberMe) {
+      saveCredential({ email: data.email, password: data.password }, true);
+    } else {
+      clearCredential();
+    }
+
     return response.data.data;
   }
 
