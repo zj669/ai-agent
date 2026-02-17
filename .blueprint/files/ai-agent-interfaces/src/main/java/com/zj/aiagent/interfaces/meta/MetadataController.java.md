@@ -12,21 +12,22 @@
 
 ## 1) 整体文件职责
 - 主题: MetadataController.java
-- 该文件用于描述 `ai-agent-interfaces/src/main/java/com/zj/aiagent/interfaces/meta/MetadataController.java` 的职责边界与协作关系。
+- 元数据控制器，提供节点模板查询接口及别名接口，服务前端工作流画布初始化。
 
 ## 2) 核心方法
-- 当前文件待补充（可在后续按需细化）。
+- `getNodeTemplates()`
+- `getNodeTypes()`
 
 ## 3) 具体方法
-### 3.1 文档型蓝图说明
-- 函数签名: `N/A`
+### 3.1 getNodeTemplates()
+- 函数签名: `getNodeTemplates() -> Response<List<NodeTemplateDTO>>`
 - 入参: 无
-- 出参: 无
-- 功能含义: 当前文件镜像蓝图占位，后续按实现补充方法契约。
-- 链路作用: 为实现层提供结构化导航。
+- 出参: 节点模板列表
+- 功能含义: 调用 `MetadataApplicationService.getAllNodeTemplates()` 返回节点模板元数据。
+- 链路作用: 画布初始化 -> 元数据拉取 -> 前端节点库展示。
 
 ## 4) 变更记录
-- 2026-02-14: 初始化镜像蓝图（自动补缺）。
+- 2026-02-15: 基于源码回填元数据查询控制器职责。
 
 ## 5) Temp缓存区
 当前状态为 `正常`，本区留空。

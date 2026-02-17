@@ -1,8 +1,11 @@
 import axios, { AxiosError, InternalAxiosRequestConfig } from 'axios';
 import { message } from 'antd';
 
+const apiHost = (import.meta.env.VITE_API_BASE_URL || '').trim().replace(/\/+$/, '');
+const apiBaseURL = apiHost ? `${apiHost}/api` : '/api';
+
 const apiClient = axios.create({
-  baseURL: '/api',
+  baseURL: apiBaseURL,
   timeout: 30000,
   headers: {
     'Content-Type': 'application/json'

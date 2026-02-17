@@ -1,7 +1,7 @@
 ## Metadata
 - file: `.blueprint/domain/workflow/HumanReview.md`
 - version: `1.0`
-- status: 正常
+- status: 修改完成
 - updated_at: 2026-02-14
 - owner: blueprint-team
 
@@ -65,6 +65,7 @@
 
 
 ## 4) 变更记录
+- 2026-02-15: 后端MVP修复（审核恢复）：`SchedulerService.resumeExecution` 与 `Execution.resume` 双重校验 `pausedNodeId` 与请求 `nodeId` 一致，避免错误节点恢复。
 - 2026-02-14: 统一重构为 Blueprint-Lite 最小结构，状态基线设为 `正常`，并保留原文关键语义摘要。
 - 2026-02-14: 补全方法签名与语义，从 HumanReviewRepository.java 和 HumanReviewQueuePort.java 提取真实实现契约。
 

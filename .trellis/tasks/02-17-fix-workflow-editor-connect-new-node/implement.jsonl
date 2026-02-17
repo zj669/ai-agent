@@ -1,0 +1,7 @@
+{"file": ".trellis/workflow.md", "reason": "Project workflow and conventions"}
+{"file": ".trellis/spec/guides/cross-layer-thinking-guide.md", "reason": "Cross-layer contract thinking for graph mapping"}
+{"file": ".trellis/spec/guides/code-reuse-thinking-guide.md", "reason": "Avoid duplicate workflow mapping logic"}
+{"file": ".blueprint/frontend/hooks/useWorkflowEditor.md", "reason": "Blueprint contract for graph↔canvas mapping and connect flow"}
+{"file": ".blueprint/frontend/pages/WorkflowEditorPage.md", "reason": "Blueprint contract for connection validation orchestration"}
+{"file": "ai-agent-foward/src/hooks/useWorkflowEditor.ts", "reason": "Current node/edge mapping implementation"}
+{"file": "ai-agent-foward/src/pages/WorkflowEditorPage.tsx", "reason": "Current connection validation behavior"}

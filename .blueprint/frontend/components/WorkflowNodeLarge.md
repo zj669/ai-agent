@@ -1,8 +1,8 @@
 ## Metadata
 - file: `.blueprint/frontend/components/WorkflowNodeLarge.md`
-- version: `1.0`
-- status: 正常
-- updated_at: 2026-02-14
+- version: `1.1`
+- status: 修改完成
+- updated_at: 2026-02-16
 - owner: blueprint-team
 
 ## 状态机
@@ -11,47 +11,51 @@
 - 允许回退: `修改中 -> 待修改`、`修改完成 -> 修改中`
 
 ## 1) 整体文件职责
-- 主题: WorkflowNodeLarge
-- 该文件用于描述 WorkflowNodeLarge 的职责边界与协作关系。
+- 主题: WorkflowNode (MVP)
+- 对应 `ai-agent-foward/src/components/workflow/WorkflowNode.tsx`，仅负责 MVP 基础节点渲染：
+  1) 节点标题与类型图标展示（metadata 驱动）；
+  2) 连接点（Handle）渲染，支持连线；
+  3) 选中态视觉反馈。
+- 注意：MVP 阶段不实现执行状态动画、配置预览、复杂视觉主题。
 
-## 2) 核心方法
-- `renderNodeHeader(data, status)`
-- `renderConfigPreview(nodeType, config)`
-- `resolveHandles(nodeType, branchCount)`
+## 2) 核心方法 (MVP裁剪)
+- `renderNodeBase(data)`
+- `resolveHandles(nodeType)`
+- `onNodeClick(nodeId)`
 
 ## 3) 具体方法
-### 3.1 renderNodeHeader(data, status)
-- 函数签名: `renderNodeHeader(data: WorkflowNodeData, status?: NodeExecutionStatus): ReactElement`
+### 3.1 renderNodeBase(data)
+- 函数签名: `renderNodeBase(data: WorkflowNodeData): ReactElement`
 - 入参:
-  - `data`: 节点数据对象，包含 `label`, `nodeType`, `config`
-  - `status`: 可选的执行状态（RUNNING, SUCCEEDED, FAILED）
-- 出参: 返回节点头部的 JSX 元素
-- 功能含义: 渲染节点的头部区域，包括节点类型图标、名称、状态指示器。根据 `NODE_CONFIG` 映射节点类型到对应的图标（PlayCircle, MessageSquare, GitBranch 等）和颜色主题。执行状态显示为动画加载器（RUNNING）或成功/失败图标。
-- 链路作用: 节点视觉呈现的核心组件，提供类型识别和状态反馈。
+  - `data`: 节点数据对象，包含 `label`, `nodeType`（来自 metadata）
+- 出参: 返回节点基础 JSX 元素
+- 功能含义: MVP 仅渲染节点标题和类型图标，图标与颜色从 metadata 获取，不硬编码映射表。
+- 链路作用: 最简节点视觉呈现，支持拖拽和连线即可。
 
-### 3.2 renderConfigPreview(nodeType, config)
-- 函数签名: `renderConfigPreview(nodeType: NodeType, config?: NodeConfig): ReactElement | null`
-- 入参:
-  - `nodeType`: 节点类型枚举
-  - `config`: 可选的节点配置对象（LLM 的 prompt, HTTP 的 url/method, CONDITION 的 expression 等）
-- 出参: 返回配置预览的 JSX 元素，无配置时返回 null
-- 功能含义: 根据节点类型渲染配置摘要。LLM 节点显示 prompt 前 50 字符；HTTP 节点显示 method + url；CONDITION 节点显示条件表达式；TOOL 节点显示工具名称。使用 Ant Design Tag 组件展示关键配置项。
-- 链路作用: 节点内容区的信息展示，帮助用户快速识别节点配置而无需打开详情面板。
+### 3.2 resolveHandles(nodeType)
+- 函数签名: `resolveHandles(nodeType: string): { inputs: HandleConfig[], outputs: HandleConfig[] }`
+- 入参: `nodeType` 节点类型标识
+- 出参: 输入/输出连接点配置数组
+- 功能含义: 根据 metadata 定义的连接点规则渲染 Handle。MVP 阶段仅支持单输入单输出（CONDITION 节点支持多输出，但由 metadata 定义而非前端硬编码）。
+- 链路作用: 支持节点连线的基础能力。
 
-### 3.3 resolveHandles(nodeType, branchCount)
-- 函数签名: `resolveHandles(nodeType: NodeType, branchCount?: number): { inputs: HandleConfig[], outputs: HandleConfig[] }`
-- 入参:
-  - `nodeType`: 节点类型枚举
-  - `branchCount`: 可选的分支数量（用于 CONDITION 节点）
-- 出参: 返回输入/输出连接点配置数组，每个配置包含 `id`, `position`, `type`
-- 功能含义: 根据节点类型计算连接点布局。START 节点仅有输出；END 节点仅有输入；CONDITION 节点根据 `branchCount` 动态生成多个输出（默认 2 个）；其他节点有单输入单输出。使用 React Flow 的 Handle 组件渲染连接点。
-- 链路作用: 节点拓扑结构的定义层，决定节点间的连接规则和视觉布局。
+### 3.3 onNodeClick(nodeId)
+- 函数签名: `onNodeClick(nodeId: string): void`
+- 入参: `nodeId` 被点击节点 ID
+- 出参: 无
+- 功能含义: 节点点击事件，触发选中态变更并通知父组件打开卡片配置面板。
+- 链路作用: 连接画布节点与配置面板的交互入口。
 
 
-## 4) 变更记录
-- 2026-02-14: 统一重构为 Blueprint-Lite 最小结构，状态基线设为 `正常`，并保留原文关键语义摘要。
-- 2026-02-14: 补全"具体方法"细节，基于历史实现提供节点头部渲染、配置预览、连接点解析的完整签名与语义。说明其在迁移链路中的定位：原大尺寸节点组件已删除，节点渲染已简化为 React Flow 默认样式。
-- 2026-02-14: 移除重复方法占位条目，保留唯一契约定义。
+## 4) 关键协作契约（MVP裁剪）
+- 节点渲染完全由 metadata 驱动，禁止前端硬编码节点类型样式映射。
+- 仅保留最简视觉：标题 + 图标 + 选中态 + Handle 连接点。
+- 不纳入本阶段：执行状态动画、配置预览摘要、复杂视觉主题、动态分支渲染。
 
-## 5) Temp缓存区
-当前状态为 `正常`，本区留空。
+## 5) 变更记录
+- 2026-02-14: 统一重构为 Blueprint-Lite 最小结构，状态基线设为 `正常`。
+- 2026-02-16: 按 MVP 目标收敛节点组件契约，仅保留基础渲染与连线能力，移除执行状态、配置预览等非必要功能。
+
+## 6) Temp缓存区
+- 本次任务流转: `待修改 -> 修改中 -> 修改完成`
+- 当前状态: `修改完成`

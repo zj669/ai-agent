@@ -1,8 +1,8 @@
 ## Metadata
 - file: `.blueprint/frontend/_overview.md`
-- version: `1.0`
-- status: 正常
-- updated_at: 2026-02-14
+- version: `1.1`
+- status: 修改完成
+- updated_at: 2026-02-16
 - owner: blueprint-team
 
 ## 状态机
@@ -24,8 +24,10 @@
 - 函数签名: `resolveBlueprintSet(domain: string): string[]`
 - 入参: `domain` 为领域名称（如 "workflow", "agent", "chat", "knowledge"）
 - 出参: 返回该领域相关的蓝图文件路径数组
-- 功能含义: 根据领域名称解析出需要阅读的蓝图文件集合。用于 Blueprint-First 协议的 Step 1，帮助开发者快速定位相关架构文档。映射规则：`workflow` → `[WorkflowEditorPage.md, useWorkflowEditor.md, workflowService.md, NodePanel.md, WorkflowNodeLarge.md]`
-- 链路作用: 蓝图索引入口，支持按领域快速导航到相关文档，确保修改前先理解架构边界。
+- 功能含义: 根据领域名称解析出需要阅读的蓝图文件集合。用于 Blueprint-First 协议的 Step 1，帮助开发者快速定位相关架构文档。
+- MVP workflow 映射规则（精简后）：
+  - `workflow` → `[pages/WorkflowEditorPage.md, hooks/useWorkflowEditor.md, services/workflowService.md, components/NodePanel.md, components/WorkflowNodeLarge.md, workflow/TargetStructure.md, workflow/LayeredModules.md, workflow/HooksAndStoreSlices.md, workflow/MigrationCompletionMatrix.md, workflow/LegacyMigrationMap.md]`
+- 链路作用: 蓝图索引入口，确保修改前理解当前 MVP 范围边界。
 
 ### 3.2 classifyDocumentRole(filePath)
 - 函数签名: `classifyDocumentRole(filePath: string): 'page' | 'hook' | 'service' | 'component' | 'store' | 'type'`
@@ -42,10 +44,17 @@
 - 链路作用: Blueprint-First 协议的 Step 2 守护者，确保架构推演的顺序正确性。
 
 
-## 4) 变更记录
-- 2026-02-14: 统一重构为 Blueprint-Lite 最小结构，状态基线设为 `正常`，并保留原文关键语义摘要。
-- 2026-02-14: 补全"具体方法"细节，定义蓝图索引、文档角色分类、更新顺序验证的完整签名与语义，支持 Blueprint-First 协议的工具化实现。
-- 2026-02-14: 移除重复方法占位条目，保留唯一契约定义。
+## 4) 关键协作契约（MVP声明）
+- 当前前端蓝图已按 MVP 目标收敛，聚焦：拖拉拽编辑、卡片配置、graphJson 对接、metadata 驱动。
+- 以下能力明确不纳入 MVP：快捷键、撤销重做、多选框选、右键菜单、协作态、执行态 SSE。
+- 修改 workflow 相关代码前，必须先阅读 workflow 领域全部蓝图（见 resolveBlueprintSet 映射）。
+- workflow 索引必须与 `.blueprint/frontend/workflow/` 现存蓝图保持一一可达，增删文件需同步更新映射。
 
-## 5) Temp缓存区
-当前状态为 `正常`，本区留空。
+## 5) 变更记录
+- 2026-02-14: 统一重构为 Blueprint-Lite 最小结构。
+- 2026-02-16: 按 MVP 目标更新 workflow 领域映射，补充分层结构蓝图，明确非 MVP 能力边界。
+- 2026-02-16: 修复必修问题：补全 workflow 索引文件集合，避免协议阅读漏项。
+
+## 6) Temp缓存区
+- 本次任务流转: `待修改 -> 修改中 -> 修改完成`
+- 当前状态: `修改完成`

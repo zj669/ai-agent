@@ -41,12 +41,46 @@ export enum ExecutionMode {
 
 // ========== 节点模板 ==========
 
+export interface NodeTemplateOption {
+  label: string;
+  value: string | number | boolean;
+}
+
+export interface NodeTemplateField {
+  key: string;
+  label?: string;
+  description?: string;
+  type?: string;
+  required?: boolean;
+  defaultValue?: any;
+  placeholder?: string;
+  options?: NodeTemplateOption[];
+  enumValues?: Array<string | number | boolean>;
+}
+
+export interface NodeTemplateFieldGroup {
+  groupKey?: string;
+  groupName?: string;
+  fields?: NodeTemplateField[];
+}
+
 export interface NodeTemplate {
-  id: string;
+  id?: string;
+  templateId?: string;
   name: string;
   type: string;
   description?: string;
   icon?: string;
+  category?: string;
+  sortOrder?: number;
+  configSchema?: {
+    type?: string;
+    required?: string[];
+    properties?: Record<string, any>;
+  };
+  configFieldGroups?: NodeTemplateFieldGroup[];
+  inputSchema?: Array<Record<string, any>>;
+  outputSchema?: Array<Record<string, any>>;
   defaultConfig?: {
     properties?: Record<string, any>;
   };

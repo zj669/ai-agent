@@ -12,21 +12,22 @@
 
 ## 1) 整体文件职责
 - 主题: WorkflowNodeExecutionLogDTO.java
-- 该文件用于描述 `ai-agent-interfaces/src/main/java/com/zj/aiagent/interfaces/workflow/dto/WorkflowNodeExecutionLogDTO.java` 的职责边界与协作关系。
+- 节点执行日志响应 DTO，封装节点输入输出、状态文本与耗时，并提供领域对象转换方法。
 
 ## 2) 核心方法
-- 当前文件待补充（可在后续按需细化）。
+- `from(WorkflowNodeExecutionLog log)`
+- `getStatusText(Integer status)`
 
 ## 3) 具体方法
-### 3.1 文档型蓝图说明
-- 函数签名: `N/A`
-- 入参: 无
-- 出参: 无
-- 功能含义: 当前文件镜像蓝图占位，后续按实现补充方法契约。
-- 链路作用: 为实现层提供结构化导航。
+### 3.1 from(WorkflowNodeExecutionLog log)
+- 函数签名: `from(WorkflowNodeExecutionLog log) -> WorkflowNodeExecutionLogDTO`
+- 入参: 节点执行日志领域对象
+- 出参: `WorkflowNodeExecutionLogDTO`
+- 功能含义: 映射核心字段、计算 `durationMs`，并将状态码转换为可读文本。
+- 链路作用: 执行日志查询接口 -> DTO 转换 -> 前端思维链/节点日志展示。
 
 ## 4) 变更记录
-- 2026-02-14: 初始化镜像蓝图（自动补缺）。
+- 2026-02-15: 基于源码回填节点日志 DTO 的转换与状态映射语义。
 
 ## 5) Temp缓存区
 当前状态为 `正常`，本区留空。

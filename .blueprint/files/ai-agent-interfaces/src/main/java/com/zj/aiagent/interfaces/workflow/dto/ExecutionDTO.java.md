@@ -12,21 +12,21 @@
 
 ## 1) 整体文件职责
 - 主题: ExecutionDTO.java
-- 该文件用于描述 `ai-agent-interfaces/src/main/java/com/zj/aiagent/interfaces/workflow/dto/ExecutionDTO.java` 的职责边界与协作关系。
+- 执行实体对外响应 DTO，承载执行基础属性与节点状态快照，并提供领域对象转换方法。
 
 ## 2) 核心方法
-- 当前文件待补充（可在后续按需细化）。
+- `from(Execution execution)`
 
 ## 3) 具体方法
-### 3.1 文档型蓝图说明
-- 函数签名: `N/A`
-- 入参: 无
-- 出参: 无
-- 功能含义: 当前文件镜像蓝图占位，后续按实现补充方法契约。
-- 链路作用: 为实现层提供结构化导航。
+### 3.1 from(Execution execution)
+- 函数签名: `from(Execution execution) -> ExecutionDTO`
+- 入参: 工作流执行领域对象
+- 出参: `ExecutionDTO`
+- 功能含义: 将执行对象映射为接口层结构，并将 `nodeStatuses` 转换为字符串字典。
+- 链路作用: 执行详情/历史查询接口 -> DTO 映射 -> 调试与管理页面展示。
 
 ## 4) 变更记录
-- 2026-02-14: 初始化镜像蓝图（自动补缺）。
+- 2026-02-15: 基于源码回填执行 DTO 映射逻辑。
 
 ## 5) Temp缓存区
 当前状态为 `正常`，本区留空。

@@ -12,21 +12,24 @@
 
 ## 1) 整体文件职责
 - 主题: GlobalExceptionHandler.java
-- 该文件用于描述 `ai-agent-interfaces/src/main/java/com/zj/aiagent/interfaces/common/advice/GlobalExceptionHandler.java` 的职责边界与协作关系。
+- 全局异常转换器，按异常类型统一映射 HTTP 状态与 `Response.error(code,message)`，并对异步超时场景做静默处理。
 
 ## 2) 核心方法
-- 当前文件待补充（可在后续按需细化）。
+- `handleAsyncRequestTimeoutException(AsyncRequestTimeoutException e)`
+- `handleAuthenticationException(AuthenticationException e)`
+- `handleValidationException(MethodArgumentNotValidException e)`
+- `handleException(Exception e)`
 
 ## 3) 具体方法
-### 3.1 文档型蓝图说明
-- 函数签名: `N/A`
-- 入参: 无
-- 出参: 无
-- 功能含义: 当前文件镜像蓝图占位，后续按实现补充方法契约。
-- 链路作用: 为实现层提供结构化导航。
+### 3.1 handleAuthenticationException(AuthenticationException e)
+- 函数签名: `handleAuthenticationException(AuthenticationException e) -> Response<Void>`
+- 入参: 认证领域异常
+- 出参: 标准错误响应
+- 功能含义: 根据 `ErrorCode` 映射为 401/429/400 并记录警告日志。
+- 链路作用: 认证失败异常 -> 接口层统一错误码 -> 前端可预测错误处理。
 
 ## 4) 变更记录
-- 2026-02-14: 初始化镜像蓝图（自动补缺）。
+- 2026-02-15: 基于源码回填全局异常映射策略与异步超时处理语义。
 
 ## 5) Temp缓存区
 当前状态为 `正常`，本区留空。

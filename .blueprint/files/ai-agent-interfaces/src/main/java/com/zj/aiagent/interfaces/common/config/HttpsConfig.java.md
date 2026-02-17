@@ -12,21 +12,22 @@
 
 ## 1) 整体文件职责
 - 主题: HttpsConfig.java
-- 该文件用于描述 `ai-agent-interfaces/src/main/java/com/zj/aiagent/interfaces/common/config/HttpsConfig.java` 的职责边界与协作关系。
+- 仅在 `prod` profile 生效的 HTTPS 强制配置，定义 HTTP(8080) 到 HTTPS(8443) 的重定向与保密约束。
 
 ## 2) 核心方法
-- 当前文件待补充（可在后续按需细化）。
+- `servletContainer()`
+- `createHttpConnector()`
 
 ## 3) 具体方法
-### 3.1 文档型蓝图说明
-- 函数签名: `N/A`
+### 3.1 servletContainer()
+- 函数签名: `servletContainer() -> ServletWebServerFactory`
 - 入参: 无
-- 出参: 无
-- 功能含义: 当前文件镜像蓝图占位，后续按实现补充方法契约。
-- 链路作用: 为实现层提供结构化导航。
+- 出参: Tomcat WebServerFactory
+- 功能含义: 对 Context 注入 `CONFIDENTIAL` 约束，并附加 HTTP Connector 用于自动跳转 HTTPS。
+- 链路作用: 生产环境启动 -> Tomcat 安全约束 -> 明文请求自动重定向。
 
 ## 4) 变更记录
-- 2026-02-14: 初始化镜像蓝图（自动补缺）。
+- 2026-02-15: 基于源码回填生产 HTTPS 重定向与约束策略。
 
 ## 5) Temp缓存区
 当前状态为 `正常`，本区留空。

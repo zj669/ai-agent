@@ -12,21 +12,22 @@
 
 ## 1) 整体文件职责
 - 主题: AuthStrategyFactory.java
-- 该文件用于描述 `ai-agent-interfaces/src/main/java/com/zj/aiagent/interfaces/common/interceptor/AuthStrategyFactory.java` 的职责边界与协作关系。
+- 认证策略工厂，集中维护策略名到实现实例的映射并提供按类型查询。
 
 ## 2) 核心方法
-- 当前文件待补充（可在后续按需细化）。
+- `init()`
+- `getStrategy(String type)`
 
 ## 3) 具体方法
-### 3.1 文档型蓝图说明
-- 函数签名: `N/A`
-- 入参: 无
-- 出参: 无
-- 功能含义: 当前文件镜像蓝图占位，后续按实现补充方法契约。
-- 链路作用: 为实现层提供结构化导航。
+### 3.1 getStrategy(String type)
+- 函数签名: `getStrategy(String type) -> Optional<AuthStrategy>`
+- 入参: 策略类型（`JWT`/`DEBUG`）
+- 出参: 策略可选值
+- 功能含义: 从工厂内部映射获取策略，避免调用方依赖具体实现类。
+- 链路作用: `LoginInterceptor` -> 工厂 -> 鉴权策略实现。
 
 ## 4) 变更记录
-- 2026-02-14: 初始化镜像蓝图（自动补缺）。
+- 2026-02-15: 基于源码回填认证策略注册与检索语义。
 
 ## 5) Temp缓存区
 当前状态为 `正常`，本区留空。

@@ -6,8 +6,9 @@
 ### 蓝图优先协议 (Blueprint-First Protocol)
 
 **蓝图是唯一的真理源 (Source of Truth)，代码只是蓝图的投影。**
+加载蓝图相关skill来获取指导
 
-本项目维护 `.blueprint/` 目录，包含每个核心模块的架构摘要。任何代码修改必须遵循三步思考链：
+项目维护 `.blueprint/` 目录，包含每个核心模块的架构摘要。任何代码修改必须遵循三步思考链：
 
 1. **Step 1 - 蓝图索引**: 先读 `.blueprint/_overview.md`，定位相关 Blueprint 文件，分析涉及哪些模块
 2. **Step 2 - 架构推演**: 检查职责契约、依赖拓扑，更新 `.blueprint/` 文件，展示变更摘要

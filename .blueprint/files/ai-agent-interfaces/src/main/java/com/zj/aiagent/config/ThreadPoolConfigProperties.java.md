@@ -12,21 +12,21 @@
 
 ## 1) 整体文件职责
 - 主题: ThreadPoolConfigProperties.java
-- 该文件用于描述 `ai-agent-interfaces/src/main/java/com/zj/aiagent/config/ThreadPoolConfigProperties.java` 的职责边界与协作关系。
+- 绑定 `thread.pool.executor.config` 下的线程池参数，为 `ThreadPoolConfig` 提供可配置运行时参数。
 
 ## 2) 核心方法
-- 当前文件待补充（可在后续按需细化）。
+- `getCorePoolSize()/getMaxPoolSize()/getPolicy()`（Lombok 访问器）
 
 ## 3) 具体方法
-### 3.1 文档型蓝图说明
-- 函数签名: `N/A`
-- 入参: 无
-- 出参: 无
-- 功能含义: 当前文件镜像蓝图占位，后续按实现补充方法契约。
-- 链路作用: 为实现层提供结构化导航。
+### 3.1 配置属性绑定
+- 函数签名: `@ConfigurationProperties(prefix = "thread.pool.executor.config")`
+- 入参: 外部配置文件参数
+- 出参: `ThreadPoolConfigProperties` 实例
+- 功能含义: 提供线程池默认值（20/200/10/5000/AbortPolicy）并支持外部覆盖。
+- 链路作用: 配置中心 -> 属性对象 -> `ThreadPoolConfig` Bean 构建。
 
 ## 4) 变更记录
-- 2026-02-14: 初始化镜像蓝图（自动补缺）。
+- 2026-02-15: 基于源码回填线程池参数对象职责与默认值语义。
 
 ## 5) Temp缓存区
 当前状态为 `正常`，本区留空。

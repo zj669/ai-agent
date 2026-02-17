@@ -35,7 +35,7 @@ export const useAgentForm = (agentId?: number) => {
     try {
       const id = await agentService.createAgent(data);
       message.success('创建成功');
-      navigate(`/agents/${id}/edit`);
+      navigate(`/agents/${id}/workflow`);
     } catch (error: any) {
       message.error(error.response?.data?.message || '创建失败');
       throw error;

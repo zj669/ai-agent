@@ -59,7 +59,7 @@ export const AgentListPage: React.FC = () => {
       dataIndex: 'name',
       key: 'name',
       render: (name: string, record: AgentSummary) => (
-        <a onClick={() => navigate(`/agents/${record.id}/edit`)}>
+        <a onClick={() => navigate(`/agents/${record.id}/workflow`)}>
           {name}
         </a>
       )
@@ -94,7 +94,7 @@ export const AgentListPage: React.FC = () => {
             <Button
               type="text"
               icon={<EditOutlined />}
-              onClick={() => navigate(`/agents/${record.id}/edit`)}
+              onClick={() => navigate(`/agents/${record.id}/workflow`)}
             />
           </Tooltip>
 

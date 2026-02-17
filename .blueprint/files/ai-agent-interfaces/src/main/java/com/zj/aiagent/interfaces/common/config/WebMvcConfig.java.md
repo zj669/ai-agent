@@ -12,21 +12,23 @@
 
 ## 1) 整体文件职责
 - 主题: WebMvcConfig.java
-- 该文件用于描述 `ai-agent-interfaces/src/main/java/com/zj/aiagent/interfaces/common/config/WebMvcConfig.java` 的职责边界与协作关系。
+- 注册登录拦截器与跨域策略；在生产环境按白名单放行，在非生产环境开放 origin pattern。
 
 ## 2) 核心方法
-- 当前文件待补充（可在后续按需细化）。
+- `addInterceptors(InterceptorRegistry registry)`
+- `addCorsMappings(CorsRegistry registry)`
+- `isProdProfile()`
 
 ## 3) 具体方法
-### 3.1 文档型蓝图说明
-- 函数签名: `N/A`
-- 入参: 无
+### 3.1 addInterceptors(InterceptorRegistry registry)
+- 函数签名: `addInterceptors(InterceptorRegistry registry) -> void`
+- 入参: 拦截器注册器
 - 出参: 无
-- 功能含义: 当前文件镜像蓝图占位，后续按实现补充方法契约。
-- 链路作用: 为实现层提供结构化导航。
+- 功能含义: 将 `LoginInterceptor` 绑定到 `/client/**`、`/api/**`，并排除登录/注册/发码与元数据接口。
+- 链路作用: 请求入站 -> 鉴权前置 -> 业务 Controller。
 
 ## 4) 变更记录
-- 2026-02-14: 初始化镜像蓝图（自动补缺）。
+- 2026-02-15: 基于源码回填 MVC 拦截与 CORS 环境分流策略。
 
 ## 5) Temp缓存区
 当前状态为 `正常`，本区留空。

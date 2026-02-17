@@ -1,8 +1,8 @@
 ## Metadata
 - file: `.blueprint/frontend/BLUEPRINT_REFACTORING.md`
-- version: `1.0`
-- status: 正常
-- updated_at: 2026-02-14
+- version: `1.1`
+- status: 修改完成
+- updated_at: 2026-02-16
 - owner: blueprint-team
 
 ## 状态机
@@ -21,11 +21,24 @@
 
 ## 3) 具体方法
 ### 3.1 recordRefactorDecision(item)
-- 函数签名: `recordRefactorDecision(item: RefactorDecisionItem): void`（概念性方法，非实际代码）
+- 函数签名: `recordRefactorDecision(item: RefactorDecisionItem): void`
 - 入参: `item` 包含 `timestamp`, `scope`, `decision`, `rationale`, `affectedFiles`
-- 出参: 无返回值，追加记录到本文档的"决策日志"章节
-- 功能含义: 记录蓝图重构过程中的关键决策点，包括为何删除某模块、为何合并某功能、为何调整某契约。用于后续审计和知识传承。
-- 链路作用: 元文档的写入接口，确保架构演进的可追溯性。
+- 出参: 无返回值，追加记录到"决策日志"
+- 功能含义: 记录蓝图重构过程中的关键决策点。
+- 链路作用: 元文档写入接口，确保架构演进可追溯。
+
+**决策日志（MVP收敛）**
+- 时间: 2026-02-16
+- 范围: 前端 workflow 编辑器蓝图
+- 决策: 将所有 workflow 蓝图收敛为 MVP 目标，仅保留：拖拉拽编辑、卡片配置、graphJson 对接、metadata 驱动
+- 理由: 产品策略调整为快速落地最小可用编辑器，非核心交互（快捷键/undo-redo/协作）延后
+- 影响文件:
+  - `WorkflowEditorPage.md` - 移除冲突处理外的复杂交互
+  - `useWorkflowEditor.md` - 移除历史管理能力
+  - `NodePanel.md` - 移除快捷键、批量操作
+  - `WorkflowNodeLarge.md` - 移除执行状态、配置预览
+  - `workflowService.md` - 移除执行态方法
+  - 新增分层结构蓝图: `TargetStructure.md`, `LayeredModules.md`, `HooksAndStoreSlices.md`
 
 ### 3.2 summarizeStageResult(stage)
 - 函数签名: `summarizeStageResult(stage: RefactorStage): StageSummary`（概念性方法，非实际代码）
@@ -45,9 +58,9 @@
 
 
 ## 4) 变更记录
-- 2026-02-14: 统一重构为 Blueprint-Lite 最小结构，状态基线设为 `正常`，并保留原文关键语义摘要。
-- 2026-02-14: 补全"具体方法"细节，基于元文档职责提供重构决策记录、阶段总结、遗留规范归档的完整签名与语义。说明其在迁移链路中的定位：本文档为蓝图重构过程的元数据记录，非实现代码，用于追踪架构演进历史。
-- 2026-02-14: 移除重复方法占位条目，保留唯一契约定义。
+- 2026-02-14: 统一重构为 Blueprint-Lite 最小结构。
+- 2026-02-16: 按 MVP 目标记录重构决策，收敛 workflow 编辑器蓝图范围，移除非必要交互能力。
 
 ## 5) Temp缓存区
-当前状态为 `正常`，本区留空。
+- 本次任务流转: `待修改 -> 修改中 -> 修改完成`
+- 当前状态: `修改完成`

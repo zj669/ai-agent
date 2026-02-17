@@ -1,8 +1,8 @@
 ## Metadata
 - file: `.blueprint/frontend/pages/WorkflowEditorPage.md`
-- version: `1.0`
-- status: 正常
-- updated_at: 2026-02-14
+- version: `1.2`
+- status: 修改完成
+- updated_at: 2026-02-16
 - owner: blueprint-team
 
 ## 状态机
@@ -11,49 +11,68 @@
 - 允许回退: `修改中 -> 待修改`、`修改完成 -> 修改中`
 
 ## 1) 整体文件职责
-- 主题: WorkflowEditorPage
-- 该文件用于描述 WorkflowEditorPage 的职责边界与协作关系。
+- 主题: WorkflowEditorPage (MVP)
+- 对应 `ai-agent-foward/src/pages/WorkflowEditorPage.tsx`，仅负责四件事：
+  1) 初始化单路径加载 `graphJson + node metadata + version`；
+  2) 连接拖拉拽画布与卡片配置面板；
+  3) 组织 `graphJson` 保存提交；
+  4) 处理版本冲突与服务端回填。
 
 ## 2) 核心方法
 - `initEditorContext(params)`
-- `mountWorkflowCanvas(opts)`
-- `handleTopActions(action)`
-- `handleNodeDrop(payload)`
+- `composeMetadataDrivenPanels()`
+- `handleCanvasDrop(payload)`
+- `handleSaveWorkflow()`
 
 ## 3) 具体方法
 ### 3.1 initEditorContext(params)
 - 函数签名: `async initEditorContext(params: { agentId: string }): Promise<void>`
-- 入参: `params` 包含 `agentId` 路由参数
-- 出参: Promise<void>，异步初始化完成后更新组件状态
-- 功能含义: 页面挂载时的初始化逻辑，通过 `agentService.getAgent` 获取 Agent 详情，解析 `graphJson` 字段并调用 `loadGraph` 加载到编辑器。设置工作流名称、描述等元信息。
-- 链路作用: 编辑器页面的启动入口，连接路由参数与编辑器状态，实现"编辑现有工作流"场景。
+- 入参: `agentId` 路由参数
+- 出参: Promise<void>
+- 功能含义: 页面初始化仅调用 `workflowService.loadWorkflow(agentId)`，一次性获取 `graphJson + metadata + version` 并传递给 `useWorkflowEditor` 建立编辑态。
+- 链路作用: 建立“后端定义 + 前端画布”的统一初始化入口。
 
-### 3.2 mountWorkflowCanvas(opts)
-- 函数签名: `mountWorkflowCanvas(opts: { reactFlowWrapper: RefObject<HTMLDivElement> }): ReactElement`
-- 入参: `opts` 包含 React Flow 容器的 ref 引用
-- 出参: 返回 ReactFlow 组件的 JSX 元素
-- 功能含义: 渲染 React Flow 画布，配置 `nodeTypes`, `edgeTypes`, `onNodesChange`, `onEdgesChange`, `onConnect` 等核心属性。集成 Background, Controls, MiniMap 等辅助组件。处理拖拽添加节点、节点选中、画布缩放等交互。
-- 链路作用: 视图层的核心渲染逻辑，将 Hook 状态映射为可交互的画布 UI。
+### 3.2 composeMetadataDrivenPanels()
+- 函数签名: `composeMetadataDrivenPanels(): { nodePanelProps: NodePanelProps; propertiesPanelProps: NodePropertiesPanelProps }`
+- 入参: 无（读取页面状态）
+- 出参: NodePanel 与 NodePropertiesPanel 的 props
+- 功能含义: 使用同一份 metadata 组装节点目录与配置表单，保证“可拖入节点类型”与“可编辑字段”完全同源。
+- 链路作用: 避免硬编码卡片类型与字段定义。
 
-### 3.3 handleTopActions(action)
-- 函数签名: `handleTopActions(action: 'save' | 'execute' | 'back' | 'undo' | 'redo'): void`
-- 入参: `action` 为顶部工具栏的操作类型
-- 出参: 无返回值，触发对应副作用
-- 功能含义: 处理工具栏按钮点击事件。`save` 调用 `agentService.updateAgent` 保存图结构；`execute` 打开执行模态框；`back` 导航回列表页；`undo/redo` 调用历史管理 Hook。
-- 链路作用: 用户操作的分发中心，协调编辑、保存、执行等高层业务流程。
+### 3.3 handleCanvasDrop(payload)
+- 函数签名: `handleCanvasDrop(payload: { nodeType: string; templateId?: string }): void`
+- 入参: 节点新增意图（节点类型与模板信息）
+- 出参: 无
+- 功能含义: 接收 NodePanel 新增事件并调用 `useWorkflowEditor.addNodeFromTemplate`。节点坐标由前端画布上下文自动补齐（拖拽落点或默认位置）。
+- 链路作用: 串联“节点库拖拽 -> 画布新增”。
 
-### 3.4 handleNodeDrop(payload)
-- 函数签名: `handleNodeDrop(payload: { type: NodeType, position: XYPosition }): void`
-- 入参: `payload` 包含节点类型和画布坐标
-- 出参: 无返回值，直接添加节点到图中
-- 功能含义: 响应从 NodePanel 拖拽节点到画布的操作，调用 `addNode` 创建新节点实例，使用 `screenToFlowPosition` 转换坐标，触发自动布局。
-- 链路作用: 拖拽交互的处理器，实现"从侧边栏添加节点"的核心 UX。
+### 3.4 handleSaveWorkflow()
+- 函数签名: `async handleSaveWorkflow(): Promise<void>`
+- 入参: 无（依赖页面中的 `agentId/version/editorState`）
+- 出参: Promise<void>
+- 功能含义: 保存时依次执行：
+  1. `validateBeforeSave`（包含 unknown nodeType 阻断）；
+  2. `buildSavePayload` 构建标准 `graphJson`；
+  3. 调用后端更新接口，携带 `version` 做乐观锁提交。
+- 链路作用: MVP 保存链路总编排。
 
+## 4) 关键协作契约（MVP裁剪）
+- 页面只做编排，不负责节点模型转换。
+- `graphJson` 是唯一持久化载荷，页面禁止保存其他并行结构。
+- 回显坐标来源仅为后端 `graphJson.position`；页面禁止覆盖回放坐标。
+- NodePanel 与 NodePropertiesPanel 必须同源 metadata。
+- 初始化必须单路径：页面仅通过 `workflowService.loadWorkflow` 获取 `graphJson + metadata + version`。
+- 页面连线门禁（`isValidConnection`）对 `source/target` 与节点 `id` 做字符串归一化比较，保证历史数据类型不一致时仍能正确命中节点。
+- 连线约束保持不变：`END` 不能作为 source，`START` 不能作为 target。
+- 仅保留拖拉拽编辑、卡片配置、保存对接三条主链路。
+- 不纳入本阶段：快捷键、撤销重做、多选框选、右键菜单、协作态。
 
-## 4) 变更记录
-- 2026-02-14: 统一重构为 Blueprint-Lite 最小结构，状态基线设为 `正常`，并保留原文关键语义摘要。
-- 2026-02-14: 补全"具体方法"细节，基于历史实现提供页面初始化、画布挂载、工具栏操作、拖拽处理的完整签名与语义。说明其在迁移链路中的定位：原独立编辑器页面已删除，工作流执行已简化为 ChatPage 内的 SSE 流式对话。
-- 2026-02-14: 移除重复方法占位条目，保留唯一契约定义。
+## 5) 变更记录
+- 2026-02-16: 按 MVP 目标收敛页面契约，仅保留拖拽、卡片配置、graphJson 对接与 metadata 驱动。
+- 2026-02-16: 明确排除非 MVP 交互（快捷键/undo-redo/协作等）。
+- 2026-02-16: 修复必修问题：统一新增节点坐标由前端自动补齐，回显坐标由后端 graphJson 决定；初始化改为单路径加载。
+- 2026-02-17: 补充连线校验 ID 归一化契约，修复历史节点与新增节点因 ID 类型不一致导致的连线失败，同时保持 START/END 连接约束不变。
 
-## 5) Temp缓存区
-当前状态为 `正常`，本区留空。
+## 6) Temp缓存区
+- 本次任务流转: `待修改 -> 修改中 -> 修改完成`
+- 当前状态: `修改完成`

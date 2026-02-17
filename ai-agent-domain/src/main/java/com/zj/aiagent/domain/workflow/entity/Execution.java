@@ -174,6 +174,9 @@ public class Execution {
         if (this.status != ExecutionStatus.PAUSED_FOR_REVIEW && this.status != ExecutionStatus.PAUSED) {
             throw new IllegalStateException("当前执行未处于暂停状态");
         }
+        if (this.pausedNodeId != null && !this.pausedNodeId.equals(nodeId)) {
+            throw new IllegalArgumentException("恢复节点不匹配，期望: " + this.pausedNodeId + ", 实际: " + nodeId);
+        }
 
         // 合并额外输入 (通常由 SchedulerService 处理 Context 具体更新，这里作为备份)
         if (additionalInputs != null) {
@@ -338,7 +341,7 @@ public class Execution {
      * 创建检查点
      */
     public Checkpoint createCheckpoint(String nodeId) {
-        if (this.status == ExecutionStatus.PAUSED) {
+        if (this.status == ExecutionStatus.PAUSED || this.status == ExecutionStatus.PAUSED_FOR_REVIEW) {
             return Checkpoint.createPausePoint(executionId, nodeId, context);
         }
         return Checkpoint.create(executionId, nodeId, context);

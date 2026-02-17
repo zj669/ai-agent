@@ -14,9 +14,13 @@ import {
 } from '../types/auth';
 import { saveCredential, clearCredential } from './credentialStorageService';
 
+const apiHost = (import.meta.env.VITE_API_BASE_URL || '').trim().replace(/\/+$/, '');
+const clientBaseURL = apiHost ? `${apiHost}/client` : '/client';
+const clientUserBaseURL = apiHost ? `${apiHost}/client/user` : '/client/user';
+
 // Auth 专用 axios 实例，baseURL 为 /client（后端 UserController 路径前缀）
 const authClient: AxiosInstance = axios.create({
-  baseURL: '/client',
+  baseURL: clientBaseURL,
   timeout: 30000,
   headers: {
     'Content-Type': 'application/json'
@@ -103,7 +107,7 @@ authClient.interceptors.response.use(
       }
 
       try {
-        const response = await axios.post('/client/user/refresh', { refreshToken, deviceId });
+        const response = await axios.post(clientUserBaseURL + '/refresh', { refreshToken, deviceId });
         const { accessToken, refreshToken: newRefreshToken, expiresIn } = response.data.data;
         const expireAt = Date.now() + expiresIn * 1000;
 

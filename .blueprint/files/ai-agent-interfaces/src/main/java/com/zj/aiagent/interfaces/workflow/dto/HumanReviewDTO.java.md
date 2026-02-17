@@ -12,21 +12,21 @@
 
 ## 1) 整体文件职责
 - 主题: HumanReviewDTO.java
-- 该文件用于描述 `ai-agent-interfaces/src/main/java/com/zj/aiagent/interfaces/workflow/dto/HumanReviewDTO.java` 的职责边界与协作关系。
+- 人工审核模块 DTO 容器，定义待审核项、审核详情、恢复执行请求/响应等接口结构。
 
 ## 2) 核心方法
-- 当前文件待补充（可在后续按需细化）。
+- 无显式方法（静态内部 DTO 定义）
 
 ## 3) 具体方法
-### 3.1 文档型蓝图说明
+### 3.1 结构契约
 - 函数签名: `N/A`
-- 入参: 无
-- 出参: 无
-- 功能含义: 当前文件镜像蓝图占位，后续按实现补充方法契约。
-- 链路作用: 为实现层提供结构化导航。
+- 入参: `ResumeExecutionRequest`/`RejectExecutionRequest` 等
+- 出参: `PendingReviewDTO`/`ReviewDetailDTO`/`ResumeExecutionResponse`
+- 功能含义: 统一审核接口的数据边界，解耦 controller 与领域对象。
+- 链路作用: `HumanReviewController` 请求绑定与响应序列化。
 
 ## 4) 变更记录
-- 2026-02-14: 初始化镜像蓝图（自动补缺）。
+- 2026-02-15: 基于源码回填人工审核 DTO 分组语义。
 
 ## 5) Temp缓存区
 当前状态为 `正常`，本区留空。

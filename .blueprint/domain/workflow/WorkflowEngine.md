@@ -1,7 +1,7 @@
 ## Metadata
 - file: `.blueprint/domain/workflow/WorkflowEngine.md`
 - version: `1.0`
-- status: 正常
+- status: 修改完成
 - updated_at: 2026-02-14
 - owner: blueprint-team
 
@@ -65,6 +65,8 @@
 
 
 ## 4) 变更记录
+- 2026-02-15: 后端MVP修复（执行链路）：`Edge.isDefault` 收敛默认边判定；`Execution.createCheckpoint` 将 `PAUSED_FOR_REVIEW` 视为暂停点；`Execution.resume` 增加 `pausedNodeId` 一致性校验。
+- 2026-02-15: 后端MVP修复（调度链路）：`SchedulerService.checkPause` 仅在 `InterruptedException` 时设置线程中断标记；新增 `pauseExecution` 并通过 `scheduleNodes`/异步回调暂停门控阻断后续调度。
 - 2026-02-14: 统一重构为 Blueprint-Lite 最小结构，状态基线设为 `正常`，并保留原文关键语义摘要。
 - 2026-02-14: 补全方法签名与语义，从 Execution.java 提取真实实现契约。
 

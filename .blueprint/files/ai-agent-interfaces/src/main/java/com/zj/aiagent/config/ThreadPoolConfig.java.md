@@ -12,21 +12,21 @@
 
 ## 1) 整体文件职责
 - 主题: ThreadPoolConfig.java
-- 该文件用于描述 `ai-agent-interfaces/src/main/java/com/zj/aiagent/config/ThreadPoolConfig.java` 的职责边界与协作关系。
+- 根据外部配置创建全局 `ThreadPoolExecutor` Bean，并按策略名选择拒绝策略，供异步任务统一复用。
 
 ## 2) 核心方法
-- 当前文件待补充（可在后续按需细化）。
+- `threadPoolExecutor(ThreadPoolConfigProperties properties)`
 
 ## 3) 具体方法
-### 3.1 文档型蓝图说明
-- 函数签名: `N/A`
-- 入参: 无
-- 出参: 无
-- 功能含义: 当前文件镜像蓝图占位，后续按实现补充方法契约。
-- 链路作用: 为实现层提供结构化导航。
+### 3.1 threadPoolExecutor(ThreadPoolConfigProperties properties)
+- 函数签名: `threadPoolExecutor(ThreadPoolConfigProperties properties) -> ThreadPoolExecutor`
+- 入参: 线程池配置属性
+- 出参: `ThreadPoolExecutor`
+- 功能含义: 按 core/max/queue/keepAlive 与 policy 动态创建线程池，未命中策略时回退 `AbortPolicy`。
+- 链路作用: 异步执行入口 -> 注入线程池 -> 统一并发资源与拒绝行为。
 
 ## 4) 变更记录
-- 2026-02-14: 初始化镜像蓝图（自动补缺）。
+- 2026-02-15: 基于源码回填线程池组装与策略分发语义。
 
 ## 5) Temp缓存区
 当前状态为 `正常`，本区留空。

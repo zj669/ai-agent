@@ -1,8 +1,8 @@
 ## Metadata
 - file: `.blueprint/frontend/services/workflowService.md`
-- version: `1.0`
-- status: 正常
-- updated_at: 2026-02-14
+- version: `1.1`
+- status: 修改完成
+- updated_at: 2026-02-16
 - owner: blueprint-team
 
 ## 状态机
@@ -11,51 +11,45 @@
 - 允许回退: `修改中 -> 待修改`、`修改完成 -> 修改中`
 
 ## 1) 整体文件职责
-- 主题: workflowService
-- 该文件用于描述 workflowService 的职责边界与协作关系。
+- 主题: workflowService (MVP)
+- 对应 `ai-agent-foward/src/services/workflowService.ts`（新建），仅负责 MVP 编辑器所需的：
+  1) 加载 Agent 工作流定义（graphJson + metadata）；
+  2) 保存工作流（graphJson 提交）；
+  3) 版本冲突检测与乐观锁处理。
+- 注意：本文件与 `executionService.ts`（运行态执行）职责分离，编辑器不涉及 SSE 执行链路。
 
-## 2) 核心方法
-- `startExecution(request, callbacks)`
-- `stopExecution(request)`
-- `getExecutionContext(executionId)`
-- `getExecutionLogs(executionId)`
+## 2) 核心方法 (MVP裁剪)
+- `loadWorkflow(agentId)`
+- `saveWorkflow(agentId, graphJson, version)`
 
 ## 3) 具体方法
-### 3.1 startExecution(request, callbacks)
-- 函数签名: `async startExecution(request: StartExecutionRequest, onEvent: SSECallbacks): Promise<AbortController>`
-- 入参:
-  - `request`: 包含 `agentId`, `conversationId`, `userMessage`, `executionMode` 的启动请求对象
-  - `onEvent`: SSE 事件回调集合，包含 `onConnected`, `onStart`, `onUpdate`, `onFinish`, `onError`, `onPing`
-- 出参: 返回 `AbortController` 实例，用于取消 SSE 连接
-- 功能含义: 通过 `/api/workflow/execution/start` 发起 SSE 流式执行，建立长连接并持续接收执行事件。内部使用 `fetch` + `ReadableStream` 解析 SSE 协议（`event:` + `data:` 格式），根据事件类型分发到对应回调。
-- 链路作用: 前端执行入口，连接后端 `WorkflowController.startExecution`，驱动整个工作流执行生命周期。历史实现已迁移至 ChatPage 的 SSE 集成逻辑。
+### 3.1 loadWorkflow(agentId)
+- 函数签名: `async loadWorkflow(agentId: string): Promise<{ graphJson: GraphJson; metadata: NodeMetadata[]; version: number }>`
+- 入参: `agentId` Agent 唯一标识
+- 出参: 包含 graphJson、metadata 模板列表、当前版本号
+- 功能含义: 加载指定 Agent 的完整工作流定义，包括持久化图结构和节点元数据。metadata 默认包含节点三段结构定义：`inputSchema`、`outputSchema`、`userConfig`。
+- 链路作用: 编辑器初始化数据源，连接后端 Agent 查询接口。
 
-### 3.2 stopExecution(request)
-- 函数签名: `async stopExecution(request: StopExecutionRequest): Promise<void>`
-- 入参: `request` 包含 `executionId` 字符串
-- 出参: 无返回值（Promise<void>）
-- 功能含义: 调用 `/api/workflow/execution/stop` 终止指定执行实例，触发后端 `Execution.cancel()` 状态转换。
-- 链路作用: 用户主动停止执行的控制端点，配合 `AbortController.abort()` 实现前后端双向终止。
-
-### 3.3 getExecutionContext(executionId)
-- 函数签名: `async getExecutionContext(executionId: string): Promise<ExecutionContextDTO>`
-- 入参: `executionId` 执行实例唯一标识
-- 出参: 返回 `ExecutionContextDTO`，包含 `longTermMemory`, `shortTermMemory`, `awareness` 三层记忆结构
-- 功能含义: 查询执行上下文的记忆快照，用于调试或恢复场景。对应后端 `ExecutionContext` 的序列化视图。
-- 链路作用: 辅助查询接口，支持执行过程中的上下文可观测性。
-
-### 3.4 getExecutionLogs(executionId)
-- 函数签名: `async getExecutionLogs(executionId: string): Promise<WorkflowNodeExecutionLogDTO[]>`
-- 入参: `executionId` 执行实例唯一标识
-- 出参: 返回节点执行日志数组，每条日志包含 `nodeId`, `status`, `startTime`, `endTime`, `input`, `output`, `error`
-- 功能含义: 获取执行历史的详细日志，用于审计和问题排查。对应后端 `WorkflowNodeExecution` 表的查询结果。
-- 链路作用: 执行完成后的回溯查询接口，补充 SSE 实时流之外的持久化记录。
+### 3.2 saveWorkflow(agentId, graphJson, version)
+- 函数签名: `async saveWorkflow(agentId: string, graphJson: GraphJson, version: number): Promise<{ success: boolean; newVersion?: number; conflict?: boolean }>`
+- 入参: Agent ID、待保存的图结构、当前版本号（乐观锁）
+- 出参: 保存结果，若版本冲突返回 `conflict: true`
+- 功能含义: 提交工作流变更，携带 version 做乐观锁校验，服务端返回新版本号或冲突标记。
+- 链路作用: 编辑器保存接口，与 `WorkflowEditorPage.handleSaveWorkflow` 配合。
 
 
-## 4) 变更记录
-- 2026-02-14: 统一重构为 Blueprint-Lite 最小结构，状态基线设为 `正常`，并保留原文关键语义摘要。
-- 2026-02-14: 补全"具体方法"细节，基于历史实现（已删除）提供 SSE 流式执行、停止、上下文查询、日志查询的完整签名与语义。说明其在迁移链路中的定位：原独立 workflowService 已整合至 ChatPage 的 SSE 集成逻辑。
-- 2026-02-14: 移除重复方法占位条目，保留唯一契约定义。
+## 4) 关键协作契约（MVP裁剪）
+- workflowService 仅服务于编辑器的数据持久化，不负责执行态 SSE。
+- 初始化单路径：页面必须通过 `loadWorkflow` 一次性获取 `graphJson + metadata + version`，禁止并行拆分加载。
+- 保存操作必须携带 version，服务端返回冲突时由页面层处理（提示用户并加载最新快照）。
+- metadata 全量缓存于编辑器启动时，不支持运行时动态更新（MVP 简化）。
+- 不纳入本阶段：执行启动/停止、SSE 流处理、执行日志查询（这些由 executionService 负责）。
 
-## 5) Temp缓存区
-当前状态为 `正常`，本区留空。
+## 5) 变更记录
+- 2026-02-14: 初始版本，基于历史执行服务定义。
+- 2026-02-16: 按 MVP 目标重写为编辑器专用服务，移除执行态相关方法，仅保留 graphJson 读写与 metadata 加载。
+- 2026-02-16: 修复必修问题：初始化改为单路径 `loadWorkflow`，移除并行 metadata 加载歧义。
+
+## 6) Temp缓存区
+- 本次任务流转: `待修改 -> 修改中 -> 修改完成`
+- 当前状态: `修改完成`

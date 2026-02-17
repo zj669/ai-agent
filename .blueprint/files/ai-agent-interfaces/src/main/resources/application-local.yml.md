@@ -27,6 +27,7 @@
 
 ## 4) 变更记录
 - 2026-02-14: 初始化镜像蓝图（自动补缺）。
+- 2026-02-16: 修复配置占位符循环引用风险，`EMBEDDING_API_KEY` 与 `MAIL_*` 从自引用占位符调整为直接值，避免 Spring PlaceholderResolutionException。
 
 ## 5) Temp缓存区
 当前状态为 `正常`，本区留空。

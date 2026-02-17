@@ -126,6 +126,7 @@ class SchedulerServiceTest {
 
             // Mock Execution behavior
             when(executionRepository.findById(executionId)).thenReturn(Optional.of(execution));
+            when(execution.getPausedNodeId()).thenReturn(nodeId);
             when(execution.getPausedPhase()).thenReturn(TriggerPhase.BEFORE_EXECUTION);
             when(execution.resume(eq(nodeId), anyMap())).thenReturn(Collections.singletonList(node));
             lenient().when(execution.getExecutionId()).thenReturn(executionId);
@@ -163,6 +164,33 @@ class SchedulerServiceTest {
             verify(humanReviewQueuePort).removeFromPendingQueue(executionId);
         }
 
+        @Test
+        @DisplayName("pausedNodeId 与请求 nodeId 不匹配时应抛出异常")
+        void should_ThrowException_When_PausedNodeIdMismatch() {
+            // Given
+            String executionId = "exec-resume-mismatch";
+            when(cancellationPort.isCancelled(executionId)).thenReturn(false);
+            when(executionRepository.findById(executionId)).thenReturn(Optional.of(execution));
+            when(execution.getPausedNodeId()).thenReturn("node-expected");
+
+            // When & Then
+            assertThrows(IllegalArgumentException.class,
+                    () -> schedulerService.resumeExecution(executionId, "node-actual", null, 1L, ""));
+        }
+
+        @Test
+        @DisplayName("pausedNodeId 为空时应抛出异常")
+        void should_ThrowException_When_PausedNodeIdMissing() {
+            // Given
+            String executionId = "exec-resume-missing";
+            when(cancellationPort.isCancelled(executionId)).thenReturn(false);
+            when(executionRepository.findById(executionId)).thenReturn(Optional.of(execution));
+            when(execution.getPausedNodeId()).thenReturn(null);
+
+            // When & Then
+            assertThrows(IllegalStateException.class,
+                    () -> schedulerService.resumeExecution(executionId, "node-1", null, 1L, ""));
+        }
         @Test
         @DisplayName("Execution 不存在时应抛出异常")
         void should_ThrowException_When_ExecutionNotFound() {

@@ -245,6 +245,16 @@ public class SchedulerService {
             Execution execution = executionRepository.findById(executionId)
                     .orElseThrow(() -> new IllegalArgumentException("Execution not found: " + executionId));
 
+            // paused node consistency guard
+            String pausedNodeId = execution.getPausedNodeId();
+            if (!StringUtils.hasText(pausedNodeId)) {
+                throw new IllegalStateException("Execution is not paused at a concrete node");
+            }
+            if (!StringUtils.hasText(nodeId) || !pausedNodeId.equals(nodeId)) {
+                throw new IllegalArgumentException(
+                        "Resume nodeId mismatch, expected pausedNodeId=" + pausedNodeId + ", actual=" + nodeId);
+            }
+
             // Optimistic Lock Check (Implicit via execution version match in some patterns,
             // but here we just check logic)
             // Ideally we pass expected version from API to ensure no concurrent resume
@@ -343,6 +353,11 @@ public class SchedulerService {
             return;
         }
 
+        if (isExecutionPaused(executionId)) {
+            log.info("[Scheduler] Execution {} paused, skip scheduling nodes", executionId);
+            return;
+        }
+
         log.info("[Scheduler] Scheduling {} nodes for execution: {}, parentId: {}",
                 nodes.size(), executionId, parentId);
 
@@ -416,6 +431,21 @@ public class SchedulerService {
                 return;
             }
 
+            // pause gate: avoid in-flight callback continuing workflow after pause
+            try {
+                Execution latestExecution = executionRepository.findById(executionId)
+                        .orElseThrow(() -> new IllegalStateException("Execution not found: " + executionId));
+                if (latestExecution.getStatus() == ExecutionStatus.PAUSED
+                        || latestExecution.getStatus() == ExecutionStatus.PAUSED_FOR_REVIEW) {
+                    log.info("[Scheduler] Execution {} is paused, ignore in-flight callback for node {}",
+                            executionId, node.getNodeId());
+                    return;
+                }
+            } catch (Exception e) {
+                log.warn("[Scheduler] Failed to evaluate pause gate for execution {}: {}",
+                        executionId, e.getMessage());
+            }
+
             onNodeComplete(executionId, node.getNodeId(), node.getName(), node.getType(), result, resolvedInputs);
         });
     }
@@ -448,7 +478,7 @@ public class SchedulerService {
         RLock lock = redisService.getLock(lockKey);
 
         try {
-            lock.lock(10, TimeUnit.SECONDS);
+            lock.lockInterruptibly();
 
             Execution execution = executionRepository.findById(executionId)
                     .orElseThrow(() -> new IllegalStateException("Execution not found"));
@@ -472,8 +502,10 @@ public class SchedulerService {
             humanReviewQueuePort.addToPendingQueue(executionId);
 
             return true;
-        } catch (Exception e) {
+        } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
+            throw new RuntimeException(e);
+        } catch (Exception e) {
             throw new RuntimeException(e);
         } finally {
             if (lock.isHeldByCurrentThread()) {
@@ -577,8 +609,73 @@ public class SchedulerService {
         cancellationPort.markAsCancelled(executionId);
     }
 
+    public void pauseExecution(String executionId) {
+        log.info("[Scheduler] Pausing execution: {}", executionId);
+
+        String lockKey = "lock:exec:" + executionId;
+        RLock lock = redisService.getLock(lockKey);
+
+        try {
+            lock.lockInterruptibly();
+
+            Execution execution = executionRepository.findById(executionId)
+                    .orElseThrow(() -> new IllegalArgumentException("Execution not found: " + executionId));
+
+            if (execution.getStatus() == ExecutionStatus.PAUSED
+                    || execution.getStatus() == ExecutionStatus.PAUSED_FOR_REVIEW
+                    || execution.getStatus() == ExecutionStatus.SUCCEEDED
+                    || execution.getStatus() == ExecutionStatus.FAILED
+                    || execution.getStatus() == ExecutionStatus.CANCELLED) {
+                log.info("[Scheduler] Execution {} status is {}, skip pause", executionId, execution.getStatus());
+                return;
+            }
+
+            execution.setStatus(ExecutionStatus.PAUSED);
+            execution.setPausedNodeId("__MANUAL_PAUSE__");
+            execution.setPausedPhase(null);
+            execution.setUpdatedAt(java.time.LocalDateTime.now());
+            execution.setVersion(execution.getVersion() + 1);
+
+            checkpointRepository.save(execution.createCheckpoint("__MANUAL_PAUSE__"));
+            executionRepository.update(execution);
+
+            StreamContext streamContext = StreamContext.builder()
+                    .executionId(executionId)
+                    .nodeId("__MANUAL_PAUSE__")
+                    .build();
+            StreamPublisher publisher = streamPublisherFactory.create(streamContext);
+            Map<String, Object> payload = new HashMap<>();
+            payload.put("type", "workflow_paused");
+            payload.put("executionId", executionId);
+            payload.put("nodeId", "__MANUAL_PAUSE__");
+            payload.put("triggerPhase", "MANUAL");
+            publisher.publishEvent("workflow_paused", payload);
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            throw new RuntimeException(e);
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        } finally {
+            if (lock.isHeldByCurrentThread()) {
+                lock.unlock();
+            }
+        }
+    }
+
     private boolean isCancelled(String executionId) {
         return cancellationPort.isCancelled(executionId);
+    }
+
+    private boolean isExecutionPaused(String executionId) {
+        try {
+            return executionRepository.findById(executionId)
+                    .map(execution -> execution.getStatus() == ExecutionStatus.PAUSED
+                            || execution.getStatus() == ExecutionStatus.PAUSED_FOR_REVIEW)
+                    .orElse(false);
+        } catch (Exception e) {
+            log.warn("[Scheduler] Failed to check paused status for {}: {}", executionId, e.getMessage());
+            return false;
+        }
     }
 
     private String generateNodeSummary(NodeType nodeType, NodeExecutionResult result) {

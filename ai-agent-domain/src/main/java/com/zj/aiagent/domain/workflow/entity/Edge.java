@@ -52,14 +52,17 @@ public class Edge {
     }
 
     /**
-     * 检查是否为默认边（无条件或条件为 "default"/"true"）
+     * 检查是否为默认边
+     * 仅显式 DEFAULT 类型或条件标记为 default 时视为默认边，避免误判条件边。
      */
     public boolean isDefault() {
-        return edgeType == EdgeType.DEFAULT ||
-                condition == null ||
-                condition.isEmpty() ||
-                "default".equalsIgnoreCase(condition) ||
-                "true".equalsIgnoreCase(condition);
+        if (edgeType == EdgeType.DEFAULT) {
+            return true;
+        }
+        if (condition == null) {
+            return false;
+        }
+        return "default".equalsIgnoreCase(condition.trim());
     }
 
     /**

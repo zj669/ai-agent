@@ -13,6 +13,7 @@ import { AgentFormPage } from './pages/AgentFormPage';
 import { ChatPage } from './pages/ChatPage';
 import { KnowledgePage } from './pages/KnowledgePage';
 import { HumanReviewPage } from './pages/HumanReviewPage';
+import { WorkflowEditorPage } from './pages/WorkflowEditorPage';
 
 function App() {
   const { initializeAuth } = useAuthStore();
@@ -45,6 +46,7 @@ function App() {
           <Route path="agents" element={<AgentListPage />} />
           <Route path="agents/create" element={<AgentFormPage />} />
           <Route path="agents/:id/edit" element={<AgentFormPage />} />
+          <Route path="agents/:id/workflow" element={<WorkflowEditorPage />} />
 
           {/* Other routes */}
           <Route path="chat" element={<ChatPage />} />

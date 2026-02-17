@@ -1,7 +1,7 @@
 ## Metadata
 - file: `.blueprint/application/SchedulerService.md`
 - version: `1.0`
-- status: 正常
+- status: 修改完成
 - updated_at: 2026-02-14
 - owner: blueprint-team
 
@@ -58,6 +58,8 @@
 
 
 ## 4) 变更记录
+- 2026-02-15: 后端MVP修复（暂停/恢复）：`resumeExecution` 增加 `pausedNodeId` 一致性校验（非空且必须匹配请求 nodeId）；`checkPause` 异常处理中仅 `InterruptedException` 恢复线程中断标志。
+- 2026-02-15: 后端MVP修复（暂停守门）：在 `scheduleNodes` 与异步 `whenComplete` 回调增加暂停状态门控，阻止 pause 后 in-flight 回调继续推进执行。
 - 2026-02-14: 统一重构为 Blueprint-Lite 最小结构，状态基线设为 `正常`，并保留原文关键语义摘要。
 - 2026-02-14: 补全方法签名与语义，从 SchedulerService.java 提取真实实现契约。
 

@@ -12,21 +12,24 @@
 
 ## 1) 整体文件职责
 - 主题: RestClientConfig.java
-- 该文件用于描述 `ai-agent-interfaces/src/main/java/com/zj/aiagent/config/RestClientConfig.java` 的职责边界与协作关系。
+- 封装 Apache HttpClient 5 与 Spring `RestClient.Builder`，提供默认、简化、SSL 三类构建器及可选监控 Bean。
 
 ## 2) 核心方法
-- 当前文件待补充（可在后续按需细化）。
+- `restClientBuilder()`
+- `simpleRestClientBuilder()`
+- `sslRestClientBuilder()`
+- `restClient(RestClient.Builder)`
 
 ## 3) 具体方法
-### 3.1 文档型蓝图说明
-- 函数签名: `N/A`
+### 3.1 restClientBuilder()
+- 函数签名: `restClientBuilder() -> RestClient.Builder`
 - 入参: 无
-- 出参: 无
-- 功能含义: 当前文件镜像蓝图占位，后续按实现补充方法契约。
-- 链路作用: 为实现层提供结构化导航。
+- 出参: `RestClient.Builder`
+- 功能含义: 配置连接池、超时、重试、请求/响应日志拦截器和默认请求头，作为主 `@Primary` Builder。
+- 链路作用: 上游 HTTP 节点/适配器 -> 注入 Builder -> 统一网络参数与观测能力。
 
 ## 4) 变更记录
-- 2026-02-14: 初始化镜像蓝图（自动补缺）。
+- 2026-02-15: 基于源码回填 RestClient 多构建器与监控开关职责。
 
 ## 5) Temp缓存区
 当前状态为 `正常`，本区留空。

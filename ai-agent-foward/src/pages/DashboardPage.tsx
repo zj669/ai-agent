@@ -1,4 +1,5 @@
-import { Row, Col, Statistic, Button, Space, Progress, List } from 'antd';
+import { useState } from 'react';
+import { Row, Col, Statistic, Button, Space, Progress, List, message } from 'antd';
 import {
   RobotOutlined,
   MessageOutlined,
@@ -13,10 +14,32 @@ import {
 } from '@ant-design/icons';
 import { useNavigate } from 'react-router-dom';
 import { useDashboard } from '../hooks/useDashboard';
+import { agentService } from '../services/agentService';
 
 export const DashboardPage: React.FC = () => {
   const navigate = useNavigate();
   const { stats, loading, refresh } = useDashboard();
+  const [messageApi, contextHolder] = message.useMessage();
+  const [creatingAgent, setCreatingAgent] = useState(false);
+
+  const createAndOpenWorkflow = async () => {
+    if (creatingAgent) return;
+
+    setCreatingAgent(true);
+    try {
+      const id = await agentService.createAgent({
+        name: '新建 Agent',
+        description: '从看板快速创建',
+        icon: '🤖'
+      });
+      messageApi.success('创建成功，进入工作流编辑');
+      navigate(`/agents/${id}/workflow`);
+    } catch (error: any) {
+      messageApi.error(error?.response?.data?.message || '创建 Agent 失败');
+    } finally {
+      setCreatingAgent(false);
+    }
+  };
 
   const successRate = stats.totalExecutions > 0
     ? Math.round((stats.successfulExecutions / stats.totalExecutions) * 100)
@@ -26,7 +49,8 @@ export const DashboardPage: React.FC = () => {
     {
       title: '创建 Agent',
       icon: <RobotOutlined />,
-      onClick: () => navigate('/agents/create'),
+      onClick: createAndOpenWorkflow,
+      loading: creatingAgent,
       type: 'primary' as const
     },
     {
@@ -43,6 +67,7 @@ export const DashboardPage: React.FC = () => {
 
   return (
     <div>
+      {contextHolder}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 }}>
         <h1 style={{ margin: 0 }}>欢迎使用 AI Agent Platform</h1>
         <Button
@@ -210,6 +235,7 @@ export const DashboardPage: React.FC = () => {
                     type={item.type || 'default'}
                     icon={item.icon}
                     onClick={item.onClick}
+                    loading={item.loading}
                     block
                     size="large"
                   >
@@ -230,7 +256,7 @@ export const DashboardPage: React.FC = () => {
             {
               title: '1. 创建 Agent',
               description: '创建你的第一个 AI Agent，配置模型和参数',
-              action: () => navigate('/agents/create')
+              action: createAndOpenWorkflow
             },
             {
               title: '2. 上传知识库',

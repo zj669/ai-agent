@@ -1,7 +1,7 @@
 ## Metadata
 - file: `.blueprint/infrastructure/adapters/NodeExecutors.md`
 - version: `1.0`
-- status: 正常
+- status: 修改完成
 - updated_at: 2026-02-14
 - owner: blueprint-team
 
@@ -59,6 +59,7 @@
 
 
 ## 4) 变更记录
+- 2026-02-15: 后端MVP修复（分支选择）：legacy 条件边转换增强，非 default legacy 边优先转换为可评估 `ConditionGroup/ConditionItem`；仅在不可解析时降级 default 候选，降低误路由。
 - 2026-02-14: 统一重构为 Blueprint-Lite 最小结构，状态基线设为 `正常`，并保留原文关键语义摘要。
 - 2026-02-14: 补全所有方法签名、入参、出参、功能含义和链路作用，基于 ConditionNodeExecutorStrategy 和 LlmNodeExecutorStrategy 实现。
 

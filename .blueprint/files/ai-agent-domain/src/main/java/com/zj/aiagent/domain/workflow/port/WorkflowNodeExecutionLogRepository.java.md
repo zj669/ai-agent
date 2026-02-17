@@ -1,17 +1,30 @@
 # Blueprint Mirror: ai-agent-domain/src/main/java/com/zj/aiagent/domain/workflow/port/WorkflowNodeExecutionLogRepository.java
 
+## Metadata
+- file: `ai-agent-domain/src/main/java/com/zj/aiagent/domain/workflow/port/WorkflowNodeExecutionLogRepository.java`
+- version: `v0.1.0`
+- status: 正常
+- updated_at: 2026-02-15 07:49
+- owner: blueprint-team
+
+
 ## Source File
-- Path: 
-- Type: 
+- Path: ai-agent-domain/src/main/java/com/zj/aiagent/domain/workflow/port/WorkflowNodeExecutionLogRepository.java
+- Type: .java (interface)
+- Status: 正常
 
 ## Responsibility
-- (to be filled)
+- 节点执行日志仓储端口，定义节点日志写入与按执行/节点维度查询能力。
 
 ## Key Symbols / Structure
-- (to be filled)
+- `save(WorkflowNodeExecutionLog log)`
+- `findByExecutionId(String executionId)`
+- `findByExecutionIdAndNodeId(String executionId, String nodeId)`
+- `findByExecutionIdOrderByEndTime(String executionId)`
 
 ## Dependencies
-- (to be filled)
+- `WorkflowNodeExecutionLog`
+- `List`
 
 ## Notes
-- Auto-created blueprint mirror template.
+- `findByExecutionIdOrderByEndTime` 用于按执行顺序提取最终输出节点。

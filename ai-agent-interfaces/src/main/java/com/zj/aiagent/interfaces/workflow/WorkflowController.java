@@ -132,6 +132,16 @@ public class WorkflowController {
     }
 
     /**
+     * 暂停执行（人工触发）
+     */
+    @PostMapping("/pause")
+    public ResponseEntity<Void> pauseExecution(@RequestBody PauseExecutionRequest request) {
+        log.info("[API] Pausing execution: {}", request.getExecutionId());
+        schedulerService.pauseExecution(request.getExecutionId());
+        return ResponseEntity.ok().build();
+    }
+
+    /**
      * 获取执行详情 (Debug)
      */
     @GetMapping("/{executionId}")
@@ -254,6 +264,11 @@ public class WorkflowController {
 
     @Data
     public static class StopExecutionRequest {
+        private String executionId;
+    }
+
+    @Data
+    public static class PauseExecutionRequest {
         private String executionId;
     }
 }
