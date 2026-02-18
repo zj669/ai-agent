@@ -36,7 +36,7 @@ EMBEDDING_BASE_URL: https://dashscope.aliyuncs.com/compatible-mode/v1
 EMBEDDING_ENDPOINT: https://dashscope.aliyuncs.com/compatible-mode/v1/embeddings
 EMBEDDING_MODEL: text-embedding-v4
 EMBEDDING_NUM_CTX: 1,024
-EMBEDDING_API_KEY: Sk-fwa111  # 请通过 IDE 环境变量注入真实的 API Key 覆盖此值
+EMBEDDING_API_KEY: sk-ccf9acf852334b51bd914d42de7b6d01  # 请通过 IDE 环境变量注入真实的 API Key 覆盖此值
 
 
 # 邮件配置

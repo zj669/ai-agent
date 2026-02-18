@@ -1,7 +1,0 @@
-{"file": ".claude/commands/trellis/finish-work.md", "reason": "Finish work checklist"}
-{"file": ".trellis/spec/shared/index.md", "reason": "Shared coding standards"}
-{"file": ".claude/commands/trellis/check-frontend.md", "reason": "Frontend check spec"}
-{"file": ".blueprint/frontend/hooks/useWorkflowEditor.md", "reason": "Verify implementation respects mapping contract"}
-{"file": ".blueprint/frontend/pages/WorkflowEditorPage.md", "reason": "Verify page-level connection constraints"}
-{"file": "ai-agent-foward/src/hooks/useWorkflowEditor.ts", "reason": "Review actual mapping changes"}
-{"file": "ai-agent-foward/src/pages/WorkflowEditorPage.tsx", "reason": "Review connection guard logic"}

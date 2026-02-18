@@ -87,7 +87,12 @@
       "mcp__serena__search_for_pattern",
       "mcp__serena__get_current_config",
       "mcp__plugin_serena_serena__execute_shell_command",
-      "mcp__serena__think_about_task_adherence"
+      "mcp__serena__think_about_task_adherence",
+      "mcp__duckduckgo__search",
+      "mcp__duckduckgo__fetch_content",
+      "Skill(hookify:list)",
+      "mcp__desktop-commander__list_directory",
+      "mcp__desktop-commander__read_file"
     ]
   },
   "outputStyle": "Explanatory",
