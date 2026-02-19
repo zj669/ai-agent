@@ -180,15 +180,18 @@ Authorization: Bearer {token}
 ```
 
 **字段说明**:
-- `executionId`: 工作流执行ID（必填）
-- `nodeId`: 节点ID（必填）
-- `reason`: 拒绝原因（必填）
+| 参数名 | 类型 | 位置 | 必填 | 说明 |
+|--------|------|------|------|------|
+| executionId | String | Body | 是 | 工作流执行ID |
+| nodeId | String | Body | 是 | 节点ID |
+| reason | String | Body | 是 | 拒绝原因 |
 
 **响应示例**:
 ```json
 {
-  "success": true,
-  "message": "Execution rejected successfully"
+  "code": 200,
+  "message": "Execution rejected successfully",
+  "data": null
 }
 ```
 
@@ -206,35 +209,39 @@ Authorization: Bearer {token}
 **描述**: 分页查询审核历史记录
 
 **请求参数**:
-| 参数 | 类型 | 必填 | 说明 |
-|------|------|------|------|
-| userId | Long | 否 | 审核人ID（不传则查询所有） |
-| page | int | 否 | 页码（从0开始），默认0 |
-| size | int | 否 | 每页大小，默认20 |
+| 参数名 | 类型 | 位置 | 必填 | 说明 |
+|--------|------|------|------|------|
+| userId | Long | Query | 否 | 审核人ID（不传则查询所有） |
+| page | int | Query | 否 | 页码（从0开始），默认0 |
+| size | int | Query | 否 | 每页大小，默认20 |
 
 **响应示例**:
 ```json
 {
-  "content": [
-    {
-      "id": "1",
-      "executionId": "exec-123",
-      "nodeId": "node-456",
-      "reviewerId": 1,
-      "decision": "APPROVE",
-      "triggerPhase": "BEFORE_EXECUTION",
-      "originalData": "{\"query\":\"原始查询\"}",
-      "modifiedData": "{\"query\":\"修改后查询\"}",
-      "comment": "审核通过",
-      "reviewedAt": "2026-02-10T10:35:00"
-    }
-  ],
-  "pageable": {
-    "pageNumber": 0,
-    "pageSize": 20
-  },
-  "totalElements": 10,
-  "totalPages": 1
+  "code": 200,
+  "message": "success",
+  "data": {
+    "content": [
+      {
+        "id": "1",
+        "executionId": "exec-123",
+        "nodeId": "node-456",
+        "reviewerId": 1,
+        "decision": "APPROVE",
+        "triggerPhase": "BEFORE_EXECUTION",
+        "originalData": "{\"query\":\"原始查询\"}",
+        "modifiedData": "{\"query\":\"修改后查询\"}",
+        "comment": "审核通过",
+        "reviewedAt": "2026-02-10T10:35:00"
+      }
+    ],
+    "pageable": {
+      "pageNumber": 0,
+      "pageSize": 20
+    },
+    "totalElements": 10,
+    "totalPages": 1
+  }
 }
 ```
 
