@@ -3,8 +3,20 @@
 ## 基础信息
 
 - **Base URL**: `/client/user`
-- **认证方式**: JWT Bearer Token (除公开接口外)
 - **Content-Type**: `application/json`
+
+## 认证
+
+除公开接口外，所有接口需要 JWT Bearer Token 认证。
+
+**请求头格式**:
+```
+Authorization: Bearer {token}
+```
+
+**错误响应**:
+- `401 Unauthorized`: Token 无效或已过期
+- `403 Forbidden`: 无权限访问该资源
 
 ---
 
@@ -24,9 +36,9 @@
 ```
 
 **字段说明**:
-| 字段 | 类型 | 必填 | 说明 |
-|------|------|------|------|
-| email | string | 是 | 邮箱地址,需符合邮箱格式 |
+| 参数名 | 类型 | 位置 | 必填 | 说明 |
+|--------|------|------|------|------|
+| email | string | Body | 是 | 邮箱地址，需符合邮箱格式 |
 
 **成功响应** (200):
 ```json
@@ -68,12 +80,12 @@
 ```
 
 **字段说明**:
-| 字段 | 类型 | 必填 | 说明 |
-|------|------|------|------|
-| email | string | 是 | 邮箱地址 |
-| code | string | 是 | 6位验证码 |
-| password | string | 是 | 密码,至少8位 |
-| username | string | 否 | 用户名,不填则使用邮箱前缀 |
+| 参数名 | 类型 | 位置 | 必填 | 说明 |
+|--------|------|------|------|------|
+| email | string | Body | 是 | 邮箱地址 |
+| code | string | Body | 是 | 6位验证码 |
+| password | string | Body | 是 | 密码，至少8位 |
+| username | string | Body | 否 | 用户名，不填则使用邮箱前缀 |
 
 **成功响应** (200):
 ```json
@@ -135,10 +147,10 @@
 ```
 
 **字段说明**:
-| 字段 | 类型 | 必填 | 说明 |
-|------|------|------|------|
-| email | string | 是 | 邮箱地址 |
-| password | string | 是 | 密码 |
+| 参数名 | 类型 | 位置 | 必填 | 说明 |
+|--------|------|------|------|------|
+| email | string | Body | 是 | 邮箱地址 |
+| password | string | Body | 是 | 密码 |
 
 **成功响应** (200):
 ```json
@@ -192,12 +204,12 @@
 ```
 
 **字段说明**:
-| 字段 | 类型 | 必填 | 说明 |
-|------|------|------|------|
-| email | string | 是 | 邮箱地址 |
-| code | string | 是 | 6位验证码 |
-| newPassword | string | 是 | 新密码,至少8位 |
-| confirmPassword | string | 是 | 确认密码,需与新密码一致 |
+| 参数名 | 类型 | 位置 | 必填 | 说明 |
+|--------|------|------|------|------|
+| email | string | Body | 是 | 邮箱地址 |
+| code | string | Body | 是 | 6位验证码 |
+| newPassword | string | Body | 是 | 新密码，至少8位 |
+| confirmPassword | string | Body | 是 | 确认密码，需与新密码一致 |
 
 **成功响应** (200):
 ```json
@@ -283,11 +295,11 @@ Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
 ```
 
 **字段说明**:
-| 字段 | 类型 | 必填 | 说明 |
-|------|------|------|------|
-| username | string | 否 | 用户名 |
-| avatarUrl | string | 否 | 头像URL |
-| phone | string | 否 | 手机号 |
+| 参数名 | 类型 | 位置 | 必填 | 说明 |
+|--------|------|------|------|------|
+| username | string | Body | 否 | 用户名 |
+| avatarUrl | string | Body | 否 | 头像URL |
+| phone | string | Body | 否 | 手机号 |
 
 **成功响应** (200):
 ```json
