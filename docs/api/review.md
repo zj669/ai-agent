@@ -87,18 +87,22 @@ Authorization: Bearer {token}
 **响应示例**:
 ```json
 {
-  "executionId": "exec-123",
-  "nodeId": "node-456",
-  "nodeName": "数据审核节点",
-  "triggerPhase": "BEFORE_EXECUTION",
-  "contextData": {
-    "query": "用户输入的查询内容",
-    "temperature": 0.7,
-    "maxTokens": 2000
-  },
-  "config": {
-    "prompt": "请审核以下参数是否合理",
-    "editableFields": ["query", "temperature"]
+  "code": 200,
+  "message": "success",
+  "data": {
+    "executionId": "exec-123",
+    "nodeId": "node-456",
+    "nodeName": "数据审核节点",
+    "triggerPhase": "BEFORE_EXECUTION",
+    "contextData": {
+      "query": "用户输入的查询内容",
+      "temperature": 0.7,
+      "maxTokens": 2000
+    },
+    "config": {
+      "prompt": "请审核以下参数是否合理",
+      "editableFields": ["query", "temperature"]
+    }
   }
 }
 ```
@@ -136,16 +140,19 @@ Authorization: Bearer {token}
 ```
 
 **字段说明**:
-- `executionId`: 工作流执行ID（必填）
-- `nodeId`: 节点ID（必填，用于验证）
-- `edits`: 修改的数据（可选）
-- `comment`: 审核意见（可选）
+| 参数名 | 类型 | 位置 | 必填 | 说明 |
+|--------|------|------|------|------|
+| executionId | String | Body | 是 | 工作流执行ID |
+| nodeId | String | Body | 是 | 节点ID（用于验证） |
+| edits | Object | Body | 否 | 修改的数据 |
+| comment | String | Body | 否 | 审核意见 |
 
 **响应示例**:
 ```json
 {
-  "success": true,
-  "message": "Execution resumed successfully"
+  "code": 200,
+  "message": "Execution resumed successfully",
+  "data": null
 }
 ```
 
