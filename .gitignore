@@ -1,6 +1,6 @@
 # ===== 项目根目录排除规则 =====
 /data/
-/docs/
+/docs/plans/
 /todo/
 /.idea/
 /.vscode/
