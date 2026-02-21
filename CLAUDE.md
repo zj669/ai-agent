@@ -3,6 +3,8 @@
 1. 使用基本命令如文件操作等，去操控工作目录外的数据请使用Desktop Commander去执行
 2. 涉及网络搜索的时候使用duckduckgo进行搜索
 
+
+这个 team 模式下，成员是 mailbox/in-process 机制，不是每个都能用 resume 续跑， 后续统一使用发消息催办 + TaskList/TaskGet 看 owner 状态来跟踪，不再用 resume 误判。
 ---
 
 ## Project Overview

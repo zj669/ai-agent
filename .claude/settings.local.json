@@ -92,7 +92,11 @@
       "mcp__duckduckgo__fetch_content",
       "Skill(hookify:list)",
       "mcp__desktop-commander__list_directory",
-      "mcp__desktop-commander__read_file"
+      "mcp__desktop-commander__read_file",
+      "mcp__desktop-commander__get_config",
+      "mcp__desktop-commander__start_search",
+      "mcp__desktop-commander__get_more_search_results",
+      "Skill(planning-with-files)"
     ]
   },
   "outputStyle": "Explanatory",
