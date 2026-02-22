@@ -1,13 +1,16 @@
-import { Handle, Position } from '@xyflow/react'
 import { cn } from '../../../lib/utils'
 import { useEditorStore } from '../stores/useEditorStore'
+import { NodeTargetHandle, NodeSourceHandle } from './NodeHandle'
 import NodeConfigTabs from './NodeConfigTabs'
 
 export type WorkflowNodeType = 'START' | 'END' | 'LLM' | 'CONDITION' | 'TOOL' | 'HTTP'
 
+export type Branch = { id: string; name: string }
+
 export type WorkflowNodeData = {
   label: string
   nodeType: WorkflowNodeType
+  branches?: Branch[]
   inputSchema?: { key: string; label: string; type: string; sourceRef?: string }[]
   outputSchema?: { key: string; label: string; type: string }[]
   userConfig?: Record<string, unknown>
@@ -37,6 +40,7 @@ function WorkflowNode({ id, data, selected }: WorkflowNodeProps) {
   const style = NODE_STYLES[nodeData.nodeType] ?? NODE_STYLES.TOOL
   const isStart = nodeData.nodeType === 'START'
   const isEnd = nodeData.nodeType === 'END'
+  const isCondition = nodeData.nodeType === 'CONDITION'
   const canExpand = !isStart && !isEnd
 
   const expandedNodeId = useEditorStore((s) => s.expandedNodeId)
@@ -55,7 +59,7 @@ function WorkflowNode({ id, data, selected }: WorkflowNodeProps) {
         isExpanded ? 'min-w-[320px]' : 'min-w-[160px]'
       )}
     >
-      {!isStart && <Handle type="target" position={Position.Top} className="!bg-slate-400 !w-3 !h-3" />}
+      {!isStart && <NodeTargetHandle handleId="target" />}
 
       <div className="flex items-center gap-2 px-3 py-2.5">
         <span className="text-base">{style.icon}</span>
@@ -89,7 +93,18 @@ function WorkflowNode({ id, data, selected }: WorkflowNodeProps) {
         </div>
       )}
 
-      {!isEnd && <Handle type="source" position={Position.Bottom} className="!bg-slate-400 !w-3 !h-3" />}
+      {isCondition && (
+        <div className="flex flex-col gap-1 border-t border-slate-200 py-2 px-3">
+          {(nodeData.branches ?? []).map((branch) => (
+            <div key={branch.id} className="relative flex items-center justify-between py-1">
+              <span className="text-xs text-slate-600">{branch.name}</span>
+              <NodeSourceHandle handleId={branch.id} className="!relative !top-0 !right-0 !translate-x-0 !translate-y-0" />
+            </div>
+          ))}
+        </div>
+      )}
+
+      {!isEnd && !isCondition && <NodeSourceHandle handleId="source" />}
     </div>
   )
 }

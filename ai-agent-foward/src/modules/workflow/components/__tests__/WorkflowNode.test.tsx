@@ -19,8 +19,10 @@ vi.mock('../NodeConfigTabs', () => ({
 }))
 
 vi.mock('@xyflow/react', () => ({
-  Handle: () => null,
-  Position: { Top: 'top', Bottom: 'bottom' },
+  Handle: (props: Record<string, unknown>) => (
+    <div data-testid={`handle-${props.id ?? props.type}`} data-type={props.type} data-position={props.position} />
+  ),
+  Position: { Left: 'left', Right: 'right', Top: 'top', Bottom: 'bottom' },
 }))
 
 const { default: WorkflowNode } = await import('../WorkflowNode')
@@ -53,5 +55,30 @@ describe('WorkflowNode', () => {
     render(<WorkflowNode id="llm-1" data={{ label: 'LLM 节点', nodeType: 'LLM' }} selected={false} />)
     expect(screen.getByTestId('node-config-tabs')).toBeInTheDocument()
     mockStore.expandedNodeId = ''
+  })
+
+  it('renders left target handle and right source handle for LLM node', () => {
+    const { getByTestId } = render(
+      <WorkflowNode id="llm-1" data={{ label: 'LLM 节点', nodeType: 'LLM' }} selected={false} />
+    )
+    expect(getByTestId('handle-target').dataset.position).toBe('left')
+    expect(getByTestId('handle-source').dataset.position).toBe('right')
+  })
+
+  it('CONDITION node renders multiple source handles from branches', () => {
+    const data = {
+      label: '条件节点',
+      nodeType: 'CONDITION',
+      branches: [
+        { id: 'branch-0', name: '如果' },
+        { id: 'else', name: '否则' },
+      ],
+    }
+    const { getByTestId } = render(
+      <WorkflowNode id="cond-1" data={data} selected={false} />
+    )
+    expect(getByTestId('handle-target')).toBeInTheDocument()
+    expect(getByTestId('handle-branch-0')).toBeInTheDocument()
+    expect(getByTestId('handle-else')).toBeInTheDocument()
   })
 })
