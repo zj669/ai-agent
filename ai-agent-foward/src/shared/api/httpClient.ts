@@ -4,6 +4,7 @@ import { mapApiError } from './errorMapper'
 export interface HttpClientLike {
   get<T>(url: string, config?: AxiosRequestConfig): Promise<AxiosResponse<T>>
   post<T>(url: string, data?: unknown, config?: AxiosRequestConfig): Promise<AxiosResponse<T>>
+  delete?<T>(url: string, config?: AxiosRequestConfig): Promise<AxiosResponse<T>>
 }
 
 export function createHttpClient(baseURL = '/'): AxiosInstance {

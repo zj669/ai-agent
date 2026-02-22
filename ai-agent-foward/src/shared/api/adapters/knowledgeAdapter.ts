@@ -55,7 +55,8 @@ export async function deleteKnowledgeDataset(
   datasetId: string,
   client: ApiClientLike = apiClient
 ): Promise<void> {
-  await client.delete<ApiResponse<void>>(`/api/knowledge/dataset/${datasetId}`)
+  const c = client as ApiClientLike & { delete: ApiClientLike['get'] }
+  await c.delete<ApiResponse<void>>(`/api/knowledge/dataset/${datasetId}`)
 }
 
 export async function uploadKnowledgeDocument(
@@ -101,7 +102,8 @@ export async function deleteKnowledgeDocument(
   documentId: string,
   client: ApiClientLike = apiClient
 ): Promise<void> {
-  await client.delete<ApiResponse<void>>(`/api/knowledge/document/${documentId}`)
+  const c = client as ApiClientLike & { delete: ApiClientLike['get'] }
+  await c.delete<ApiResponse<void>>(`/api/knowledge/document/${documentId}`)
 }
 
 export async function retryKnowledgeDocument(

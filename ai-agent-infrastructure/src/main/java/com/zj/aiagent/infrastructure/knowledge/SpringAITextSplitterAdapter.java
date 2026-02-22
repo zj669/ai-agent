@@ -18,9 +18,9 @@ import java.util.stream.Collectors;
 public class SpringAITextSplitterAdapter implements TextSplitterPort {
 
     /**
-     * 将文档列表分块（Spring AI Document 版本）
+     * 将文档列表分块（Spring AI Document 版本，内部使用）
      */
-    public List<Document> split(List<Document> documents, int chunkSize, int overlap) {
+    public List<Document> splitDocuments(List<Document> documents, int chunkSize, int overlap) {
         try {
             log.info("Splitting documents: count={}, chunkSize={}, overlap={}",
                     documents.size(), chunkSize, overlap);
@@ -43,7 +43,7 @@ public class SpringAITextSplitterAdapter implements TextSplitterPort {
         List<Document> documents = texts.stream()
                 .map(Document::new)
                 .collect(Collectors.toList());
-        List<Document> chunks = split(documents, chunkSize, overlap);
+        List<Document> chunks = splitDocuments(documents, chunkSize, overlap);
         return chunks.stream()
                 .map(Document::getText)
                 .collect(Collectors.toList());
