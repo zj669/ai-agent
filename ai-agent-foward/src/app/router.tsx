@@ -25,8 +25,9 @@ function AppRoutes() {
           <Route path="agents" element={<AgentListPage />} />
           <Route path="knowledge" element={<KnowledgePage />} />
           <Route path="chat" element={<ChatPage />} />
-          <Route path="agents/:agentId/workflow" element={<WorkflowEditorPage />} />
         </Route>
+        {/* 全屏独立路由，不经过 AppShell */}
+        <Route path="agents/:agentId/workflow" element={<WorkflowEditorPage />} />
       </Route>
       <Route path="*" element={<NotFoundPage />} />
     </Routes>
