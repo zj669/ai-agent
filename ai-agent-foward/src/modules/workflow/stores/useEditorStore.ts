@@ -1,18 +1,5 @@
 import { create } from 'zustand'
-
-// Temporary type until metadataAdapter is ready (Task 1)
-export interface NodeTemplateDTO {
-  id: number
-  typeCode: string
-  name: string
-  description: string
-  icon: string
-  category: string
-  sortOrder: number
-  defaultSchemaPolicy: unknown
-  initialSchema: unknown
-  configFieldGroups: { groupName: string; fields: unknown[] }[]
-}
+import type { NodeTemplateDTO } from '../../../shared/api/adapters/metadataAdapter'
 
 interface EditorState {
   agentName: string
