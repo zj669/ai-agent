@@ -96,7 +96,7 @@ vi.mock('@xyflow/react', () => {
     Background: () => null,
     BackgroundVariant: { Dots: 'dots' },
     Handle: () => null,
-    Position: { Top: 'top', Bottom: 'bottom' },
+    Position: { Top: 'top', Bottom: 'bottom', Left: 'left', Right: 'right' },
   }
 })
 
@@ -123,6 +123,14 @@ vi.mock('../components/CanvasToolbar', () => ({
 
 vi.mock('../components/WorkflowNode', () => ({
   default: () => <div />,
+}))
+
+vi.mock('../components/CustomEdge', () => ({
+  default: () => <g />,
+}))
+
+vi.mock('../components/CustomConnectionLine', () => ({
+  default: () => <g />,
 }))
 
 // Lazy import so mocks are applied first
@@ -308,5 +316,13 @@ describe('workflow editor interaction', () => {
     expect(await screen.findByText('发布失败，请稍后重试')).toBeInTheDocument()
     expect(screen.getByRole('button', { name: '保存' })).toBeEnabled()
     expect(screen.getByRole('button', { name: '发布' })).toBeEnabled()
+  })
+
+  it('INITIAL_NODES 使用水平布局位置', async () => {
+    render(<WorkflowEditorPage />)
+    const startNode = await screen.findByText('开始节点（START）')
+    const endNode = screen.getByText('结束节点（END）')
+    expect(startNode).toBeInTheDocument()
+    expect(endNode).toBeInTheDocument()
   })
 })

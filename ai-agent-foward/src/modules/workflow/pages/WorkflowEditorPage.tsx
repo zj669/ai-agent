@@ -24,20 +24,23 @@ import { useEditorStore } from '../stores/useEditorStore'
 import EditorHeader from '../components/EditorHeader'
 import AgentConfigPanel from '../components/AgentConfigPanel'
 import CanvasToolbar from '../components/CanvasToolbar'
+import CustomEdge from '../components/CustomEdge'
+import CustomConnectionLine from '../components/CustomConnectionLine'
 
 const nodeTypes = { workflowNode: WorkflowNode }
+const edgeTypes = { custom: CustomEdge }
 
 const INITIAL_NODES: Node[] = [
   {
     id: 'start',
     type: 'workflowNode',
-    position: { x: 250, y: 50 },
+    position: { x: 50, y: 250 },
     data: { label: '开始节点', nodeType: 'START' } satisfies WorkflowNodeData,
   },
   {
     id: 'end',
     type: 'workflowNode',
-    position: { x: 250, y: 400 },
+    position: { x: 600, y: 250 },
     data: { label: '结束节点', nodeType: 'END' } satisfies WorkflowNodeData,
   },
 ]
@@ -111,6 +114,7 @@ function buildGraphPayload(nodes: Node[], edges: Edge[]) {
       edgeId: edge.id,
       source: edge.source,
       target: edge.target,
+      sourceHandle: edge.sourceHandle ?? null,
       edgeType: 'DEPENDENCY',
     })),
   }
@@ -171,12 +175,15 @@ function WorkflowEditorPage() {
         setConnectError(validation.message)
         return
       }
-      const duplicated = edges.some((e) => e.source === connection.source && e.target === connection.target)
+      const duplicated = edges.some(
+        (e) => e.source === connection.source && e.target === connection.target
+          && (e.sourceHandle ?? null) === (connection.sourceHandle ?? null)
+      )
       if (duplicated) {
         setConnectError('该连线已存在，请勿重复添加')
         return
       }
-      setEdges((eds) => addEdge(connection, eds))
+      setEdges((eds) => addEdge({ ...connection, type: 'custom' }, eds))
       store.markDirty()
       setConnectError('')
       setSaveMessage('')
@@ -208,7 +215,16 @@ function WorkflowEditorPage() {
         id: `${nodeType.toLowerCase()}-${Date.now()}-${nodeCounter}`,
         type: 'workflowNode',
         position,
-        data: { label: `${nodeType} 节点`, nodeType } satisfies WorkflowNodeData,
+        data: (nodeType === 'CONDITION'
+          ? {
+              label: `${nodeType} 节点`,
+              nodeType,
+              branches: [
+                { id: `branch-${Date.now()}-0`, name: '如果' },
+                { id: `else-${Date.now()}`, name: '否则' },
+              ],
+            }
+          : { label: `${nodeType} 节点`, nodeType }) satisfies WorkflowNodeData,
       }
       setNodes((nds) => [...nds, newNode])
       store.markDirty()
@@ -325,6 +341,9 @@ function WorkflowEditorPage() {
             onDragOver={onDragOver}
             onDrop={onDrop}
             nodeTypes={nodeTypes}
+            edgeTypes={edgeTypes}
+            defaultEdgeOptions={{ type: 'custom' }}
+            connectionLineComponent={CustomConnectionLine}
             fitView
           >
             <Controls position="bottom-right" />
