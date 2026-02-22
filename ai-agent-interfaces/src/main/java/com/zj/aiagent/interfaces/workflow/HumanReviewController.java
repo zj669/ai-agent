@@ -39,7 +39,6 @@ public class HumanReviewController {
 
     /**
      * 获取待审核列表
-     * 实际场景应查询 Redis 或 DB 中状态为 PAUSED_FOR_REVIEW 的任务
      */
     @GetMapping("/pending")
     public ResponseEntity<List<HumanReviewDTO.PendingReviewDTO>> getPendingReviews() {
@@ -80,8 +79,6 @@ public class HumanReviewController {
 
         if (execution.getStatus() != ExecutionStatus.PAUSED_FOR_REVIEW
                 && execution.getStatus() != ExecutionStatus.PAUSED) {
-            // throw new IllegalStateException("Execution is not paused");
-            // Just return info even if not paused? No, UI expects pending review.
         }
 
         String nodeId = execution.getPausedNodeId();
@@ -96,39 +93,9 @@ public class HumanReviewController {
         dto.setNodeName(node.getName());
         dto.setTriggerPhase(phase);
 
-        // Context Data
         if (phase == TriggerPhase.BEFORE_EXECUTION) {
-            // Inputs for the node (resolved)
             dto.setContextData(expressionResolver.resolveInputs(node.getInputs(), execution.getContext()));
         } else {
-            // Outputs of the node (calculated but waiting for approval)
-            // Where are they stored?
-            // In `onNodeComplete`, we called `execution.advance(paused(phase))`.
-            // `NodeExecutionResult` carrying output was passed?
-            // Wait, `NodeExecutionResult.paused(phase)` DOES NOT carry outputs in my
-            // implementation!
-            // `NodeExecutionResult` has `outputs` field.
-            // But `paused()` factory only set status.
-            // If AFTER_EXECUTION, we *executed* the node. We have outputs.
-            // We need to persist these 'pending outputs'.
-            // Execution entity currently doesn't have a field "pendingOutputs".
-            // It only has `context.nodeOutputs`.
-            // If we called `advance` with `paused`, did we save outputs?
-            // Look at Execution.advance:
-            // 1. `nodeStatuses.put(nodeId, result.getStatus())` (PAUSED)
-            // 2. `if (result.getOutputs() != null) context.setNodeOutput(...)`
-            // 3. `if (result.isPaused()) ... return`
-
-            // So inputs: `NodeExecutionResult.paused(phase)` needs to carry outputs if we
-            // want to save them!
-            // My implementation of `onNodeComplete` in `SchedulerService`:
-            // `if (checkPause(... AFTER ...))` -> `execution.advance(paused(phase))`
-            // It does NOT pass the outputs from the completed result!
-            // THIS IS A BUG in my `SchedulerService` implementation in Step 208.
-            // I need to fix `SchedulerService` to pass outputs when pausing
-            // AFTER_EXECUTION.
-
-            // Assuming I fix it: outputs are in `context.getNodeOutput(nodeId)`.
             dto.setContextData(execution.getContext().getNodeOutput(nodeId));
         }
 
@@ -148,7 +115,6 @@ public class HumanReviewController {
      */
     @PostMapping("/resume")
     public ResponseEntity<Void> resumeExecution(@RequestBody HumanReviewDTO.ResumeExecutionRequest request) {
-        // Get helper fields, e.g. current user
         Long userId = UserContext.getUserId();
         if (userId == null) {
             return ResponseEntity.status(401).build();
