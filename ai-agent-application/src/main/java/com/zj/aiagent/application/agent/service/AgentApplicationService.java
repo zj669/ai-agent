@@ -108,27 +108,9 @@ public class AgentApplicationService {
         agentRepository.save(agent);
         agentRepository.saveVersion(version);
 
-        // Update publishedVersionId on Agent to point to new version
-        // (Wait, `agent.publish` updates `publishedVersionId` field in Agent?
-        // No, `Agent.java` I wrote set status=PUBLISHED but didn't set
-        // `publishedVersionId`.
-        // I should set it here after getting the persisted version ID, OR Logic should
-        // be:
-        // agent.publish returns AgentVersion. We save AgentVersion. Get ID. Update
-        // Agent?
-        // Let's check Agent.java logic I wrote.
-        // It returns AgentVersion.
-        // To update `publishedVersionId` on Agent table, I need the ID of the inserted
-        // version.
-        // So:
-        // 1. Repo.saveVersion(version) -> fills ID.
-        // 2. agent.setPublishedVersionId(version.getId());
-        // 3. Repo.save(agent).
-        // I need to update Agent.java to allow setting publishedVersionId or add a
-        // method `onPublished(id)`.
-        // Or just `agent.setPublishedVersionId(...)` if Lombok Data is used (it is).
-        agent.setPublishedVersionId(version.getId());
-        agentRepository.save(agent); // Second save to update the pointer
+        // publishedVersionId 存储版本号（非 DB ID），与 findVersion(agentId, version) 对齐
+        agent.setPublishedVersionId(version.getVersion().longValue());
+        agentRepository.save(agent);
     }
 
     @Transactional(rollbackFor = Exception.class)
@@ -228,9 +210,6 @@ public class AgentApplicationService {
         return agentRepository.findSummaryByUserId(userId);
     }
 
-    /**
-     * 查询智能体的版本历史
-     */
     /**
      * 查询智能体的版本历史
      */
