@@ -51,6 +51,13 @@ export async function createKnowledgeDataset(
   return unwrapResponse(response)
 }
 
+export async function deleteKnowledgeDataset(
+  datasetId: string,
+  client: ApiClientLike = apiClient
+): Promise<void> {
+  await client.delete<ApiResponse<void>>(`/api/knowledge/dataset/${datasetId}`)
+}
+
 export async function uploadKnowledgeDocument(
   input: {
     datasetId: string
@@ -84,8 +91,23 @@ export async function getKnowledgeDocumentList(
     params: {
       datasetId,
       page: 0,
-      size: 20
+      size: 100
     }
   })
   return unwrapResponse(response).content
+}
+
+export async function deleteKnowledgeDocument(
+  documentId: string,
+  client: ApiClientLike = apiClient
+): Promise<void> {
+  await client.delete<ApiResponse<void>>(`/api/knowledge/document/${documentId}`)
+}
+
+export async function retryKnowledgeDocument(
+  documentId: string,
+  client: ApiClientLike = apiClient
+): Promise<KnowledgeDocument> {
+  const response = await client.post<ApiResponse<KnowledgeDocument>>(`/api/knowledge/document/${documentId}/retry`)
+  return unwrapResponse(response)
 }

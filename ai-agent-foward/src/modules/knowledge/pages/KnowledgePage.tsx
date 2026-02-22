@@ -1,254 +1,317 @@
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
+import {
+  Button,
+  Card,
+  Empty,
+  Form,
+  Input,
+  message,
+  Modal,
+  Popconfirm,
+  Progress,
+  Space,
+  Table,
+  Tag,
+  Tooltip,
+  Upload,
+} from 'antd'
+import {
+  DeleteOutlined,
+  FileTextOutlined,
+  InboxOutlined,
+  PlusOutlined,
+  ReloadOutlined,
+  UploadOutlined,
+} from '@ant-design/icons'
+import type { ColumnsType } from 'antd/es/table'
 import {
   createDataset,
   fetchDatasetList,
   fetchDocumentList,
+  removeDataset,
+  removeDocument,
+  retryDocument,
   uploadDocument,
   type DatasetListItem,
-  type DocumentListItem
+  type DocumentListItem,
 } from '../api/knowledgeService'
+
+const STATUS_MAP: Record<string, { color: string; label: string }> = {
+  PENDING: { color: 'default', label: '等待处理' },
+  PROCESSING: { color: 'processing', label: '处理中' },
+  COMPLETED: { color: 'success', label: '已完成' },
+  FAILED: { color: 'error', label: '失败' },
+}
+
+function formatFileSize(bytes: number): string {
+  if (bytes < 1024) return bytes + ' B'
+  if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB'
+  return (bytes / (1024 * 1024)).toFixed(1) + ' MB'
+}
 
 function KnowledgePage() {
   const [datasets, setDatasets] = useState<DatasetListItem[]>([])
+  const [selectedDataset, setSelectedDataset] = useState<DatasetListItem | null>(null)
   const [documents, setDocuments] = useState<DocumentListItem[]>([])
-  const [selectedDatasetId, setSelectedDatasetId] = useState<string>('')
+  const [loadingDatasets, setLoadingDatasets] = useState(false)
+  const [loadingDocs, setLoadingDocs] = useState(false)
+  const [createModalOpen, setCreateModalOpen] = useState(false)
+  const [creating, setCreating] = useState(false)
+  const [uploading, setUploading] = useState(false)
+  const [form] = Form.useForm()
+  const pollingRef = useRef<ReturnType<typeof setInterval> | null>(null)
 
-  const [datasetName, setDatasetName] = useState('')
-  const [datasetDescription, setDatasetDescription] = useState('')
-  const [selectedFile, setSelectedFile] = useState<File | null>(null)
-
-  const [isCreating, setIsCreating] = useState(false)
-  const [isUploading, setIsUploading] = useState(false)
-
-  const [listError, setListError] = useState('')
-  const [createError, setCreateError] = useState('')
-  const [uploadError, setUploadError] = useState('')
-
-  const [createMessage, setCreateMessage] = useState('')
-  const [uploadMessage, setUploadMessage] = useState('')
-
-  useEffect(() => {
-    void fetchDatasetList()
-      .then((items) => {
-        setDatasets(items)
-        setListError('')
-
-        if (items.length === 0) {
-          setSelectedDatasetId('')
-          return
-        }
-
-        setSelectedDatasetId((current) => {
-          if (current && items.some((item) => item.datasetId === current)) {
-            return current
-          }
-
-          return items[0].datasetId
-        })
-      })
-      .catch(() => {
-        setDatasets([])
-        setDocuments([])
-        setSelectedDatasetId('')
-        setListError('知识库列表加载失败，请稍后重试')
-      })
+  // ── 加载知识库列表 ──
+  const loadDatasets = useCallback(async () => {
+    setLoadingDatasets(true)
+    try {
+      const list = await fetchDatasetList()
+      setDatasets(list)
+    } catch {
+      message.error('加载知识库列表失败')
+    } finally {
+      setLoadingDatasets(false)
+    }
   }, [])
 
+  useEffect(() => { void loadDatasets() }, [loadDatasets])
+
+  // ── 加载文档列表 ──
+  const loadDocuments = useCallback(async (datasetId: string) => {
+    setLoadingDocs(true)
+    try {
+      const list = await fetchDocumentList(datasetId)
+      setDocuments(list)
+    } catch {
+      message.error('加载文档列表失败')
+    } finally {
+      setLoadingDocs(false)
+    }
+  }, [])
+
+  // ── 选中知识库时加载文档 + 轮询处理中的文档 ──
   useEffect(() => {
-    if (!selectedDatasetId) {
-      setDocuments([])
-      return
-    }
+    if (pollingRef.current) { clearInterval(pollingRef.current); pollingRef.current = null }
+    if (!selectedDataset) { setDocuments([]); return }
+    void loadDocuments(selectedDataset.datasetId)
+    pollingRef.current = setInterval(() => { void loadDocuments(selectedDataset.datasetId) }, 5000)
+    return () => { if (pollingRef.current) clearInterval(pollingRef.current) }
+  }, [selectedDataset, loadDocuments])
 
-    void fetchDocumentList(selectedDatasetId)
-      .then((docItems) => {
-        setDocuments(docItems)
-      })
-      .catch(() => {
-        setDocuments([])
-      })
-  }, [selectedDatasetId])
-
-  const handleCreateDataset = async () => {
-    if (isCreating) {
-      return
-    }
-
-    const name = datasetName.trim()
-    if (!name) {
-      setCreateError('请输入知识库名称')
-      return
-    }
-
-    setCreateError('')
-    setCreateMessage('')
-    setIsCreating(true)
-
+  // ── 创建知识库 ──
+  const handleCreate = async () => {
     try {
-      const created = await createDataset({
-        name,
-        description: datasetDescription.trim() || undefined
-      })
-
-      setDatasets((prev) => [created, ...prev])
-      setSelectedDatasetId(created.datasetId)
-      setDatasetName('')
-      setDatasetDescription('')
-      setCreateMessage('知识库创建成功')
+      const values = await form.validateFields()
+      setCreating(true)
+      const created = await createDataset({ name: values.name, description: values.description })
+      setDatasets(prev => [created, ...prev])
+      setSelectedDataset(created)
+      setCreateModalOpen(false)
+      form.resetFields()
+      message.success('知识库创建成功')
     } catch {
-      setCreateError('创建知识库失败，请稍后重试')
+      message.error('创建失败')
     } finally {
-      setIsCreating(false)
+      setCreating(false)
     }
   }
 
-  const handleUpload = async () => {
-    if (isUploading) {
-      return
-    }
-
-    if (!selectedDatasetId) {
-      setUploadError('请先创建或选择知识库')
-      return
-    }
-
-    if (!selectedFile) {
-      setUploadError('请选择上传文件')
-      return
-    }
-
-    setUploadError('')
-    setUploadMessage('')
-    setIsUploading(true)
-
+  // ── 删除知识库 ──
+  const handleDeleteDataset = async (ds: DatasetListItem) => {
     try {
-      await uploadDocument({
-        datasetId: selectedDatasetId,
-        file: selectedFile
-      })
-
-      const latestDocuments = await fetchDocumentList(selectedDatasetId)
-      setDocuments(latestDocuments)
-      setUploadMessage('上传成功')
-      setSelectedFile(null)
-    } catch {
-      setUploadError('上传失败，请稍后重试')
-    } finally {
-      setIsUploading(false)
-    }
+      await removeDataset(ds.datasetId)
+      setDatasets(prev => prev.filter(d => d.datasetId !== ds.datasetId))
+      if (selectedDataset?.datasetId === ds.datasetId) { setSelectedDataset(null) }
+      message.success('已删除')
+    } catch { message.error('删除失败') }
   }
 
+  // ── 上传文档 ──
+  const handleUpload = async (file: File) => {
+    if (!selectedDataset) { message.warning('请先选择知识库'); return false }
+    setUploading(true)
+    try {
+      await uploadDocument({ datasetId: selectedDataset.datasetId, file })
+      void loadDocuments(selectedDataset.datasetId)
+      void loadDatasets()
+      message.success('上传成功，正在处理...')
+    } catch { message.error('上传失败') } finally { setUploading(false) }
+    return false // prevent antd auto upload
+  }
+
+  // ── 删除文档 ──
+  const handleDeleteDoc = async (doc: DocumentListItem) => {
+    try {
+      await removeDocument(doc.documentId)
+      setDocuments(prev => prev.filter(d => d.documentId !== doc.documentId))
+      void loadDatasets()
+      message.success('文档已删除')
+    } catch { message.error('删除失败') }
+  }
+
+  // ── 重试文档 ──
+  const handleRetry = async (doc: DocumentListItem) => {
+    try {
+      await retryDocument(doc.documentId)
+      void loadDocuments(selectedDataset!.datasetId)
+      message.success('已重新提交处理')
+    } catch { message.error('重试失败') }
+  }
+
+  // ── 文档表格列定义 ──
+  const docColumns: ColumnsType<DocumentListItem> = [
+    {
+      title: '文件名', dataIndex: 'filename', key: 'filename', ellipsis: true,
+      render: (name: string) => <Space><FileTextOutlined />{name}</Space>,
+    },
+    {
+      title: '大小', dataIndex: 'fileSize', key: 'fileSize', width: 100,
+      render: (size: number) => formatFileSize(size),
+    },
+    {
+      title: '状态', dataIndex: 'status', key: 'status', width: 120,
+      render: (status: string) => {
+        const info = STATUS_MAP[status] ?? { color: 'default', label: status }
+        return <Tag color={info.color}>{info.label}</Tag>
+      },
+    },
+    {
+      title: '进度', key: 'progress', width: 180,
+      render: (_: unknown, record: DocumentListItem) => {
+        if (record.status === 'COMPLETED') return <Progress percent={100} size="small" />
+        if (record.status === 'FAILED') return <Tooltip title={record.errorMessage}><Progress percent={0} status="exception" size="small" /></Tooltip>
+        if (record.totalChunks > 0) {
+          const pct = Math.round((record.processedChunks / record.totalChunks) * 100)
+          return <Progress percent={pct} size="small" status="active" />
+        }
+        return <Progress percent={0} size="small" />
+      },
+    },
+    {
+      title: '上传时间', dataIndex: 'uploadedAt', key: 'uploadedAt', width: 170,
+    },
+    {
+      title: '操作', key: 'actions', width: 120,
+      render: (_: unknown, record: DocumentListItem) => (
+        <Space size="small">
+          {record.status === 'FAILED' && (
+            <Tooltip title="重试"><Button type="link" size="small" icon={<ReloadOutlined />} onClick={() => void handleRetry(record)} /></Tooltip>
+          )}
+          <Popconfirm title="确认删除此文档？" onConfirm={() => void handleDeleteDoc(record)} okText="删除" cancelText="取消">
+            <Button type="link" size="small" danger icon={<DeleteOutlined />} />
+          </Popconfirm>
+        </Space>
+      ),
+    },
+  ]
+
+  // ── 渲染 ──
   return (
-    <section>
-      <h2 className="text-2xl font-semibold">知识库</h2>
+    <div style={{ display: 'flex', gap: 16, height: '100%' }}>
+      {/* 左侧：知识库列表 */}
+      <Card
+        title="知识库"
+        style={{ width: 300, flexShrink: 0, overflow: 'auto' }}
+        extra={<Button type="primary" size="small" icon={<PlusOutlined />} onClick={() => setCreateModalOpen(true)}>新建</Button>}
+        loading={loadingDatasets}
+        bodyStyle={{ padding: 8 }}
+      >
+        {datasets.length === 0 ? (
+          <Empty description="暂无知识库" image={Empty.PRESENTED_IMAGE_SIMPLE} />
+        ) : (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+            {datasets.map(ds => (
+              <div
+                key={ds.datasetId}
+                onClick={() => setSelectedDataset(ds)}
+                style={{
+                  padding: '10px 12px',
+                  borderRadius: 6,
+                  cursor: 'pointer',
+                  background: selectedDataset?.datasetId === ds.datasetId ? '#e6f4ff' : 'transparent',
+                  border: selectedDataset?.datasetId === ds.datasetId ? '1px solid #91caff' : '1px solid transparent',
+                  transition: 'all 0.2s',
+                }}
+              >
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <span style={{ fontWeight: 500, fontSize: 14 }}>{ds.name}</span>
+                  <Popconfirm title="确认删除此知识库？" onConfirm={() => void handleDeleteDataset(ds)} okText="删除" cancelText="取消">
+                    <Button type="text" size="small" danger icon={<DeleteOutlined />} onClick={e => e.stopPropagation()} />
+                  </Popconfirm>
+                </div>
+                {ds.description && <div style={{ color: '#888', fontSize: 12, marginTop: 2 }}>{ds.description}</div>}
+                <div style={{ color: '#aaa', fontSize: 12, marginTop: 4 }}>
+                  {ds.documentCount} 文档 · {ds.totalChunks} 分块
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </Card>
 
-      <div className="mt-4 rounded border border-slate-200 p-3">
-        <h3 className="text-sm font-medium">创建知识库</h3>
-        <label className="mt-3 block text-sm" htmlFor="dataset-name">
-          名称
-        </label>
-        <input
-          id="dataset-name"
-          aria-label="dataset-name"
-          className="mt-1 w-full rounded border border-slate-300 px-2 py-1 text-sm"
-          value={datasetName}
-          onChange={(event) => setDatasetName(event.target.value)}
-        />
+      {/* 右侧：文档管理 */}
+      <Card
+        title={selectedDataset ? `${selectedDataset.name} - 文档管理` : '请选择知识库'}
+        style={{ flex: 1, overflow: 'auto' }}
+        extra={
+          selectedDataset && (
+            <Upload
+              beforeUpload={(file) => { void handleUpload(file as unknown as File); return false }}
+              showUploadList={false}
+              accept=".pdf,.txt,.md,.doc,.docx,.csv"
+            >
+              <Button icon={<UploadOutlined />} loading={uploading} type="primary">上传文档</Button>
+            </Upload>
+          )
+        }
+      >
+        {!selectedDataset ? (
+          <Empty description="请从左侧选择一个知识库" image={Empty.PRESENTED_IMAGE_SIMPLE} />
+        ) : (
+          <>
+            <Upload.Dragger
+              beforeUpload={(file) => { void handleUpload(file as unknown as File); return false }}
+              showUploadList={false}
+              accept=".pdf,.txt,.md,.doc,.docx,.csv"
+              style={{ marginBottom: 16 }}
+            >
+              <p className="ant-upload-drag-icon"><InboxOutlined /></p>
+              <p className="ant-upload-text">点击或拖拽文件到此区域上传</p>
+              <p className="ant-upload-hint">支持 PDF、TXT、Markdown、Word、CSV 格式</p>
+            </Upload.Dragger>
+            <Table<DocumentListItem>
+              columns={docColumns}
+              dataSource={documents}
+              rowKey="documentId"
+              loading={loadingDocs}
+              size="small"
+              pagination={false}
+              locale={{ emptyText: <Empty description="暂无文档" image={Empty.PRESENTED_IMAGE_SIMPLE} /> }}
+            />
+          </>
+        )}
+      </Card>
 
-        <label className="mt-3 block text-sm" htmlFor="dataset-description">
-          描述
-        </label>
-        <input
-          id="dataset-description"
-          aria-label="dataset-description"
-          className="mt-1 w-full rounded border border-slate-300 px-2 py-1 text-sm"
-          value={datasetDescription}
-          onChange={(event) => setDatasetDescription(event.target.value)}
-        />
-
-        <button
-          type="button"
-          className="mt-3 rounded bg-slate-900 px-3 py-2 text-sm text-white disabled:cursor-not-allowed disabled:bg-slate-400"
-          onClick={handleCreateDataset}
-          disabled={isCreating}
-        >
-          {isCreating ? '创建中...' : '创建知识库'}
-        </button>
-
-        {createMessage ? <p className="mt-2 text-sm text-green-700">{createMessage}</p> : null}
-        {createError ? <p className="mt-2 text-sm text-red-600">{createError}</p> : null}
-      </div>
-
-      <div className="mt-6 rounded border border-slate-200 p-3">
-        <h3 className="text-sm font-medium">知识库列表</h3>
-        {listError ? <p className="mt-2 text-sm text-red-600">{listError}</p> : null}
-
-        <ul className="mt-3 space-y-2 text-sm">
-          {datasets.map((dataset) => (
-            <li key={dataset.datasetId} className="rounded border border-slate-200 p-2">
-              <div className="font-medium">{dataset.name}</div>
-              {dataset.description ? <div className="text-slate-500">{dataset.description}</div> : null}
-            </li>
-          ))}
-        </ul>
-      </div>
-
-      <div className="mt-6 rounded border border-slate-200 p-3">
-        <h3 className="text-sm font-medium">上传文档</h3>
-
-        <label className="mt-3 block text-sm" htmlFor="dataset-select">
-          目标知识库
-        </label>
-        <select
-          id="dataset-select"
-          className="mt-1 w-full rounded border border-slate-300 px-2 py-1 text-sm"
-          value={selectedDatasetId}
-          onChange={(event) => setSelectedDatasetId(event.target.value)}
-        >
-          <option value="">请选择知识库</option>
-          {datasets.map((dataset) => (
-            <option key={dataset.datasetId} value={dataset.datasetId}>
-              {dataset.name}
-            </option>
-          ))}
-        </select>
-
-        <label className="mt-3 block text-sm" htmlFor="document-file">
-          文档文件
-        </label>
-        <input
-          id="document-file"
-          aria-label="document-file"
-          type="file"
-          className="mt-1 w-full text-sm"
-          onChange={(event) => setSelectedFile(event.target.files?.[0] ?? null)}
-        />
-
-        <button
-          type="button"
-          className="mt-3 rounded bg-slate-900 px-3 py-2 text-sm text-white disabled:cursor-not-allowed disabled:bg-slate-400"
-          onClick={handleUpload}
-          disabled={isUploading}
-        >
-          {isUploading ? '上传中...' : '上传文档'}
-        </button>
-
-        {uploadMessage ? <p className="mt-2 text-sm text-green-700">{uploadMessage}</p> : null}
-        {uploadError ? <p className="mt-2 text-sm text-red-600">{uploadError}</p> : null}
-      </div>
-
-      <div className="mt-6 rounded border border-slate-200 p-3">
-        <h3 className="text-sm font-medium">文档状态</h3>
-        <ul className="mt-3 space-y-2 text-sm">
-          {documents.map((document) => (
-            <li key={document.documentId} className="rounded border border-slate-200 p-2">
-              <div className="font-medium">{document.filename}</div>
-              <div className="text-slate-600">状态: {document.status}</div>
-            </li>
-          ))}
-        </ul>
-      </div>
-    </section>
+      {/* 创建知识库弹窗 */}
+      <Modal
+        title="新建知识库"
+        open={createModalOpen}
+        onOk={() => void handleCreate()}
+        onCancel={() => { setCreateModalOpen(false); form.resetFields() }}
+        confirmLoading={creating}
+        okText="创建"
+        cancelText="取消"
+      >
+        <Form form={form} layout="vertical">
+          <Form.Item name="name" label="名称" rules={[{ required: true, message: '请输入知识库名称' }]}>
+            <Input placeholder="输入知识库名称" />
+          </Form.Item>
+          <Form.Item name="description" label="描述">
+            <Input.TextArea placeholder="可选描述" rows={3} />
+          </Form.Item>
+        </Form>
+      </Modal>
+    </div>
   )
 }
 
