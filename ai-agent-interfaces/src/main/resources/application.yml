@@ -92,6 +92,13 @@ spring:
           timeout: 10000
           writetimeout: 10000
 
+# LLM 默认配置
+llm:
+  default:
+    base-url: ${LLM_DEFAULT_BASE_URL:}
+    model: ${LLM_DEFAULT_MODEL:}
+    api-key: ${LLM_DEFAULT_API_KEY:}
+
 server:
   port: 8080
 

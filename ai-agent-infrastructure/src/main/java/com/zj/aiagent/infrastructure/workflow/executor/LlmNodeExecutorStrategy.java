@@ -10,6 +10,7 @@ import com.zj.aiagent.domain.workflow.valobj.ExecutionContext;
 import com.zj.aiagent.domain.workflow.valobj.NodeExecutionResult;
 import com.zj.aiagent.domain.workflow.valobj.NodeType;
 
+import com.zj.aiagent.infrastructure.config.LlmDefaultConfig;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.ai.chat.client.ChatClient;
 import org.springframework.ai.chat.messages.AssistantMessage;
@@ -48,14 +49,17 @@ public class LlmNodeExecutorStrategy implements NodeExecutorStrategy {
     private final Executor executor;
     private final ObjectMapper objectMapper;
     private final RestClient.Builder restClientBuilder;
+    private final LlmDefaultConfig llmDefaultConfig;
 
     public LlmNodeExecutorStrategy(
             @Qualifier("nodeExecutorThreadPool") Executor executor,
             @Qualifier("restClientBuilder1") RestClient.Builder restClientBuilder,
-            ObjectMapper objectMapper) {
+            ObjectMapper objectMapper,
+            LlmDefaultConfig llmDefaultConfig) {
         this.executor = executor;
         this.restClientBuilder = restClientBuilder;
         this.objectMapper = objectMapper;
+        this.llmDefaultConfig = llmDefaultConfig;
     }
 
     @Override
@@ -70,6 +74,16 @@ public class LlmNodeExecutorStrategy implements NodeExecutorStrategy {
                 String model = config.getString("model");
                 String apiUrl = config.getString("baseUrl");
                 String apiKey = config.getString("apiKey");
+
+                // 回退到默认配置
+                if (!StringUtils.hasText(model)) model = llmDefaultConfig.getModel();
+                if (!StringUtils.hasText(apiUrl)) apiUrl = llmDefaultConfig.getBaseUrl();
+                if (!StringUtils.hasText(apiKey)) apiKey = llmDefaultConfig.getApiKey();
+
+                if (!StringUtils.hasText(model) || !StringUtils.hasText(apiUrl) || !StringUtils.hasText(apiKey)) {
+                    throw new IllegalStateException("LLM node missing required config (model/baseUrl/apiKey) and no default configured");
+                }
+
                 ChatClient.Builder chatClientBuilder = ChatClient.builder(OpenAiChatModel.builder()
                         .openAiApi(OpenAiApi.builder()
                                 .apiKey(apiKey)
