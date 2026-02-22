@@ -77,3 +77,6 @@ export async function publishWorkflow(agentId: number): Promise<WorkflowDetail> 
   await publishAgent({ id: agentId })
   return fetchWorkflowDetail(agentId)
 }
+
+export { fetchNodeTemplates } from '../../../shared/api/adapters/metadataAdapter'
+export type { NodeTemplateDTO, ConfigFieldGroupDTO, ConfigFieldDTO } from '../../../shared/api/adapters/metadataAdapter'

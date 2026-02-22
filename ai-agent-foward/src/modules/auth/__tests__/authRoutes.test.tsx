@@ -34,7 +34,7 @@ describe('auth routes', () => {
     render(<TestRouter initialEntries={['/forgot-password']} />)
 
     expect(await screen.findByRole('heading', { name: '忘记密码' })).toBeInTheDocument()
-    expect(screen.getByRole('button', { name: '发送重置邮件' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: '重置密码' })).toBeInTheDocument()
   })
 
   it('已登录访问受保护路由保持在工作台', async () => {
@@ -64,7 +64,7 @@ describe('auth routes', () => {
 
     render(<TestRouter initialEntries={['/agents/agent-123/workflow']} />)
 
-    expect(await screen.findByRole('heading', { name: 'Workflow 编辑' })).toBeInTheDocument()
-    expect(screen.getByText('当前 Agent: agent-123')).toBeInTheDocument()
+    expect(await screen.findByTestId('rf__wrapper')).toBeInTheDocument()
+    expect(screen.getByLabelText('返回')).toBeInTheDocument()
   })
 })

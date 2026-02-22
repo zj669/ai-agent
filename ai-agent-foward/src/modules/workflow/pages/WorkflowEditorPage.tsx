@@ -1,26 +1,45 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState, type DragEvent } from 'react'
 import { useParams } from 'react-router-dom'
-import { fetchWorkflowDetail, publishWorkflow, saveWorkflow } from '../api/workflowService'
+import {
+  ReactFlow,
+  addEdge,
+  useNodesState,
+  useEdgesState,
+  Controls,
+  MiniMap,
+  Background,
+  BackgroundVariant,
+  type Connection,
+  type Edge,
+  type Node,
+  type ReactFlowInstance,
+} from '@xyflow/react'
+import '@xyflow/react/dist/style.css'
+
+import { fetchWorkflowDetail, publishWorkflow, saveWorkflow, fetchNodeTemplates } from '../api/workflowService'
 import { validateConnection } from '../validation/validateConnection'
 import { validateWorkflowGraph } from '../validation/validateWorkflowGraph'
+import WorkflowNode, { type WorkflowNodeData, type WorkflowNodeType } from '../components/WorkflowNode'
+import { useEditorStore } from '../stores/useEditorStore'
+import EditorHeader from '../components/EditorHeader'
+import AgentConfigPanel from '../components/AgentConfigPanel'
+import CanvasToolbar from '../components/CanvasToolbar'
 
-type WorkflowNodeType = 'START' | 'END' | 'LLM' | 'CONDITION' | 'TOOL' | 'HTTP'
+const nodeTypes = { workflowNode: WorkflowNode }
 
-type WorkflowNode = {
-  id: string
-  name: string
-  type: WorkflowNodeType
-}
-
-type WorkflowEdge = {
-  id: string
-  source: string
-  target: string
-}
-
-const INITIAL_NODES: WorkflowNode[] = [
-  { id: 'start', name: '开始节点', type: 'START' },
-  { id: 'end', name: '结束节点', type: 'END' }
+const INITIAL_NODES: Node[] = [
+  {
+    id: 'start',
+    type: 'workflowNode',
+    position: { x: 250, y: 50 },
+    data: { label: '开始节点', nodeType: 'START' } satisfies WorkflowNodeData,
+  },
+  {
+    id: 'end',
+    type: 'workflowNode',
+    position: { x: 250, y: 400 },
+    data: { label: '结束节点', nodeType: 'END' } satisfies WorkflowNodeData,
+  },
 ]
 
 function normalizeNodeType(input: unknown): WorkflowNodeType {
@@ -31,88 +50,86 @@ function normalizeNodeType(input: unknown): WorkflowNodeType {
   return 'TOOL'
 }
 
-function mapGraphToNodes(graph: Record<string, unknown>): WorkflowNode[] {
+function mapGraphToFlowNodes(graph: Record<string, unknown>): Node[] {
   const rawNodes = Array.isArray(graph.nodes) ? graph.nodes : []
-
   return rawNodes
     .map((item, index) => {
-      if (!item || typeof item !== 'object') {
-        return null
-      }
-
+      if (!item || typeof item !== 'object') return null
       const node = item as Record<string, unknown>
       const id = typeof node.nodeId === 'string' ? node.nodeId : typeof node.id === 'string' ? node.id : `node-${index + 1}`
-      const name =
-        typeof node.nodeName === 'string' ? node.nodeName : typeof node.name === 'string' ? node.name : `节点-${index + 1}`
+      const name = typeof node.nodeName === 'string' ? node.nodeName : typeof node.name === 'string' ? node.name : `节点-${index + 1}`
+      const nodeType = normalizeNodeType(node.nodeType ?? node.type)
+      const pos = node.position as Record<string, unknown> | undefined
+      const x = typeof pos?.x === 'number' ? pos.x : 250
+      const y = typeof pos?.y === 'number' ? pos.y : index * 150 + 50
       return {
         id,
-        name,
-        type: normalizeNodeType(node.nodeType ?? node.type)
-      }
+        type: 'workflowNode',
+        position: { x, y },
+        data: { label: name, nodeType } satisfies WorkflowNodeData,
+      } as Node
     })
-    .filter((node): node is WorkflowNode => node !== null)
+    .filter((n): n is Node => n !== null)
 }
 
-function mapGraphToEdges(graph: Record<string, unknown>): WorkflowEdge[] {
+function mapGraphToFlowEdges(graph: Record<string, unknown>): Edge[] {
   const rawEdges = Array.isArray(graph.edges) ? graph.edges : []
-
   return rawEdges
     .map((item, index) => {
-      if (!item || typeof item !== 'object') {
-        return null
-      }
-
+      if (!item || typeof item !== 'object') return null
       const edge = item as Record<string, unknown>
       const source = typeof edge.source === 'string' ? edge.source : ''
       const target = typeof edge.target === 'string' ? edge.target : ''
-      if (!source || !target) {
-        return null
-      }
-
+      if (!source || !target) return null
       return {
         id: typeof edge.edgeId === 'string' ? edge.edgeId : typeof edge.id === 'string' ? edge.id : `edge-${index + 1}`,
         source,
-        target
-      }
+        target,
+      } as Edge
     })
-    .filter((edge): edge is WorkflowEdge => edge !== null)
+    .filter((e): e is Edge => e !== null)
 }
 
-function buildGraphPayload(nodes: WorkflowNode[], edges: WorkflowEdge[]) {
+function buildGraphPayload(nodes: Node[], edges: Edge[]) {
+  const startNode = nodes.find((n) => (n.data as unknown as WorkflowNodeData).nodeType === 'START')
   return {
-    version: '1.0.0',
-    nodes: nodes.map((node) => ({
-      nodeId: node.id,
-      nodeName: node.name,
-      nodeType: node.type,
-      userConfig: {}
-    })),
+    version: '1.0',
+    startNodeId: startNode?.id ?? 'start',
+    nodes: nodes.map((node) => {
+      const d = node.data as unknown as WorkflowNodeData
+      return {
+        id: node.id,
+        nodeId: node.id,
+        type: d.nodeType,
+        nodeName: d.label,
+        nodeType: d.nodeType,
+        position: { x: node.position.x, y: node.position.y },
+        userConfig: {},
+      }
+    }),
     edges: edges.map((edge) => ({
       edgeId: edge.id,
       source: edge.source,
       target: edge.target,
-      edgeType: 'DEPENDENCY'
-    }))
+      edgeType: 'DEPENDENCY',
+    })),
   }
 }
 
+let nodeCounter = 0
+
 function WorkflowEditorPage() {
   const { agentId } = useParams()
-  const [nodes, setNodes] = useState<WorkflowNode[]>(INITIAL_NODES)
-  const [edges, setEdges] = useState<WorkflowEdge[]>([])
-  const [sourceNodeId, setSourceNodeId] = useState('start')
-  const [targetNodeId, setTargetNodeId] = useState('end')
-  const [connectError, setConnectError] = useState('')
-  const [selectedNodeId, setSelectedNodeId] = useState<string>('')
-  const [agentName, setAgentName] = useState('')
-  const [version, setVersion] = useState<number | null>(null)
+  const [nodes, setNodes, onNodesChange] = useNodesState(INITIAL_NODES)
+  const [edges, setEdges, onEdgesChange] = useEdgesState<Edge>([])
   const [loadMessage, setLoadMessage] = useState('')
   const [saveMessage, setSaveMessage] = useState('')
   const [publishMessage, setPublishMessage] = useState('')
-  const [operationState, setOperationState] = useState<'idle' | 'saving' | 'publishing'>('idle')
-  const [isDirty, setIsDirty] = useState(false)
+  const [connectError, setConnectError] = useState('')
+  const reactFlowWrapper = useRef<HTMLDivElement>(null)
+  const [rfInstance, setRfInstance] = useState<ReactFlowInstance | null>(null)
 
-  const selectedNode = useMemo(() => nodes.find((node) => node.id === selectedNodeId), [nodes, selectedNodeId])
+  const store = useEditorStore()
   const numericAgentId = agentId ? Number(agentId) : NaN
 
   useEffect(() => {
@@ -120,238 +137,202 @@ function WorkflowEditorPage() {
       setLoadMessage('Agent ID 无效，无法加载 workflow')
       return
     }
-
     void fetchWorkflowDetail(numericAgentId)
       .then((detail) => {
-        setAgentName(detail.name)
-        setVersion(detail.version)
+        store.setAgentInfo({
+          agentName: detail.name,
+          agentDescription: detail.description ?? '',
+          agentIcon: detail.icon ?? '',
+          version: detail.version,
+        })
         setLoadMessage('')
-
         if (detail.graph && typeof detail.graph === 'object') {
-          const nextNodes = mapGraphToNodes(detail.graph as Record<string, unknown>)
-          const nextEdges = mapGraphToEdges(detail.graph as Record<string, unknown>)
-          if (nextNodes.length > 0) {
-            setNodes(nextNodes)
-            setSourceNodeId(nextNodes[0].id)
-            setTargetNodeId(nextNodes[nextNodes.length - 1].id)
-          }
+          const nextNodes = mapGraphToFlowNodes(detail.graph as Record<string, unknown>)
+          const nextEdges = mapGraphToFlowEdges(detail.graph as Record<string, unknown>)
+          if (nextNodes.length > 0) setNodes(nextNodes)
           setEdges(nextEdges)
-          setIsDirty(false)
+          store.markClean()
         }
       })
       .catch(() => {
         setLoadMessage('workflow 加载失败，请稍后重试')
       })
-  }, [numericAgentId])
 
-  const handleConnect = () => {
-    if (!sourceNodeId || !targetNodeId) {
-      setConnectError('请选择起点和终点节点')
-      return
-    }
+    void fetchNodeTemplates()
+      .then((templates) => store.setNodeTemplates(templates))
+      .catch(() => {})
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [numericAgentId, setNodes, setEdges])
 
-    const validation = validateConnection({ source: sourceNodeId, target: targetNodeId })
-    if (!validation.ok) {
-      setConnectError(validation.message)
-      return
-    }
-
-    const duplicated = edges.some((edge) => edge.source === sourceNodeId && edge.target === targetNodeId)
-    if (duplicated) {
-      setConnectError('该连线已存在，请勿重复添加')
-      return
-    }
-
-    setEdges((previous) => [
-      ...previous,
-      {
-        id: `${sourceNodeId}-${targetNodeId}-${previous.length + 1}`,
-        source: sourceNodeId,
-        target: targetNodeId
+  const onConnect = useCallback(
+    (connection: Connection) => {
+      const validation = validateConnection({ source: connection.source, target: connection.target })
+      if (!validation.ok) {
+        setConnectError(validation.message)
+        return
       }
-    ])
-    setIsDirty(true)
-    setSaveMessage('')
-    setPublishMessage('')
-    setConnectError('')
-  }
+      const duplicated = edges.some((e) => e.source === connection.source && e.target === connection.target)
+      if (duplicated) {
+        setConnectError('该连线已存在，请勿重复添加')
+        return
+      }
+      setEdges((eds) => addEdge(connection, eds))
+      store.markDirty()
+      setConnectError('')
+      setSaveMessage('')
+      setPublishMessage('')
+    },
+    [edges, setEdges, store],
+  )
+
+  const onDragOver = useCallback((event: DragEvent) => {
+    event.preventDefault()
+    event.dataTransfer.dropEffect = 'move'
+  }, [])
+
+  const onDrop = useCallback(
+    (event: DragEvent) => {
+      event.preventDefault()
+      const nodeType = event.dataTransfer.getData('application/workflow-node-type') as WorkflowNodeType
+      if (!nodeType) return
+      if (!rfInstance || !reactFlowWrapper.current) return
+
+      const bounds = reactFlowWrapper.current.getBoundingClientRect()
+      const position = rfInstance.screenToFlowPosition({
+        x: event.clientX - bounds.left,
+        y: event.clientY - bounds.top,
+      })
+
+      nodeCounter += 1
+      const newNode: Node = {
+        id: `${nodeType.toLowerCase()}-${Date.now()}-${nodeCounter}`,
+        type: 'workflowNode',
+        position,
+        data: { label: `${nodeType} 节点`, nodeType } satisfies WorkflowNodeData,
+      }
+      setNodes((nds) => [...nds, newNode])
+      store.markDirty()
+      setSaveMessage('')
+      setPublishMessage('')
+    },
+    [rfInstance, setNodes, store],
+  )
+
+  const validationNodes = useMemo(
+    () => nodes.map((n) => ({ id: n.id })),
+    [nodes],
+  )
+  const validationEdges = useMemo(
+    () => edges.map((e) => ({ source: e.source, target: e.target })),
+    [edges],
+  )
 
   const handleSave = async () => {
     setSaveMessage('')
     setPublishMessage('')
-
-    if (!Number.isFinite(numericAgentId) || version === null || !agentName) {
+    if (!Number.isFinite(numericAgentId) || store.version === null || !store.agentName) {
       setSaveMessage('缺少保存所需信息，请刷新页面重试')
       return
     }
-
-    const validation = validateWorkflowGraph({ nodes, edges })
+    const validation = validateWorkflowGraph({ nodes: validationNodes, edges: validationEdges })
     if (!validation.ok) {
       setSaveMessage(validation.message)
       return
     }
-
-    setOperationState('saving')
+    store.setOperationState('saving')
     try {
       const result = await saveWorkflow({
         agentId: numericAgentId,
-        version,
-        name: agentName,
-        graph: buildGraphPayload(nodes, edges)
+        version: store.version,
+        name: store.agentName,
+        graph: buildGraphPayload(nodes, edges),
       })
-      setVersion(result.version)
-      setIsDirty(false)
+      store.setAgentInfo({ version: result.version })
+      store.markClean()
       setSaveMessage('保存成功')
     } catch {
       setSaveMessage('保存失败，请稍后重试')
     } finally {
-      setOperationState('idle')
+      store.setOperationState('idle')
     }
   }
 
   const handlePublish = async () => {
     setPublishMessage('')
-
+    setSaveMessage('')
     if (!Number.isFinite(numericAgentId)) {
       setPublishMessage('Agent ID 无效，无法发布')
       return
     }
-
-    const validation = validateWorkflowGraph({ nodes, edges })
+    const validation = validateWorkflowGraph({ nodes: validationNodes, edges: validationEdges })
     if (!validation.ok) {
       setPublishMessage(validation.message)
       return
     }
-
-    if (isDirty) {
+    if (store.isDirty) {
       setPublishMessage('请先保存后再发布')
       return
     }
-
-    setOperationState('publishing')
+    store.setOperationState('publishing')
     try {
       const result = await publishWorkflow(numericAgentId)
-      setVersion(result.version)
-      setIsDirty(false)
+      store.setAgentInfo({ version: result.version })
+      store.markClean()
       setPublishMessage('发布成功')
     } catch {
       setPublishMessage('发布失败，请稍后重试')
     } finally {
-      setOperationState('idle')
+      store.setOperationState('idle')
     }
   }
 
+  const errorBanner = saveMessage || publishMessage || connectError || loadMessage
+
   return (
-    <section>
-      <h2 className="text-2xl font-semibold">Workflow 编辑</h2>
-      <p className="mt-3 text-sm text-muted-foreground">当前 Agent: {agentId}</p>
-      {version !== null ? <p className="mt-1 text-sm text-slate-600">当前版本: {version}</p> : null}
-      <p className="mt-1 text-sm text-slate-600">状态: {isDirty ? '未保存' : '已保存'}</p>
-      {loadMessage ? <p className="mt-2 text-sm text-red-600">{loadMessage}</p> : null}
+    <section className="flex h-screen flex-col bg-white">
+      <EditorHeader
+        agentName={store.agentName}
+        isDirty={store.isDirty}
+        operationState={store.operationState}
+        onSave={handleSave}
+        onPublish={handlePublish}
+      />
 
-      <div className="mt-4 flex gap-2">
-        <button
-          type="button"
-          className="rounded bg-slate-900 px-3 py-1 text-sm text-white disabled:cursor-not-allowed disabled:bg-slate-400"
-          onClick={handleSave}
-          disabled={operationState !== 'idle'}
-        >
-          {operationState === 'saving' ? '保存中...' : '保存'}
-        </button>
-        <button
-          type="button"
-          className="rounded border border-slate-300 px-3 py-1 text-sm disabled:cursor-not-allowed disabled:text-slate-400"
-          onClick={handlePublish}
-          disabled={operationState !== 'idle'}
-        >
-          {operationState === 'publishing' ? '发布中...' : '发布'}
-        </button>
-      </div>
-      {saveMessage ? <p className="mt-2 text-sm text-red-600">{saveMessage}</p> : null}
-      {publishMessage ? <p className="mt-1 text-sm text-red-600">{publishMessage}</p> : null}
-
-      <div className="mt-6 grid gap-6 lg:grid-cols-2">
-        <div>
-          <h3 className="text-base font-medium">节点列表</h3>
-          <ul className="mt-3 space-y-2 text-sm">
-            {nodes.map((node) => (
-              <li key={node.id} className="flex items-center justify-between rounded border border-slate-200 px-3 py-2">
-                <span>
-                  {node.name}（{node.type}）
-                </span>
-                <button
-                  type="button"
-                  className="rounded border border-slate-300 px-2 py-1 text-xs"
-                  onClick={() => setSelectedNodeId(node.id)}
-                >
-                  节点配置
-                </button>
-              </li>
-            ))}
-          </ul>
+      {errorBanner && (
+        <div className="border-b border-red-100 bg-red-50 px-4 py-1 text-sm text-red-600">
+          {saveMessage || publishMessage || connectError || loadMessage}
         </div>
+      )}
 
-        <div>
-          <h3 className="text-base font-medium">连线交互</h3>
-          <div className="mt-3 flex flex-wrap items-center gap-2 text-sm">
-            <select
-              aria-label="source-node"
-              className="rounded border border-slate-300 px-2 py-1"
-              value={sourceNodeId}
-              onChange={(event) => setSourceNodeId(event.target.value)}
-            >
-              {nodes.map((node) => (
-                <option key={node.id} value={node.id}>
-                  {node.name}
-                </option>
-              ))}
-            </select>
-            <span>→</span>
-            <select
-              aria-label="target-node"
-              className="rounded border border-slate-300 px-2 py-1"
-              value={targetNodeId}
-              onChange={(event) => setTargetNodeId(event.target.value)}
-            >
-              {nodes.map((node) => (
-                <option key={node.id} value={node.id}>
-                  {node.name}
-                </option>
-              ))}
-            </select>
-            <button
-              type="button"
-              className="rounded bg-slate-900 px-3 py-1 text-white"
-              onClick={handleConnect}
-            >
-              添加连线
-            </button>
-          </div>
-          {connectError ? <p className="mt-2 text-sm text-red-600">{connectError}</p> : null}
+      <div className="flex flex-1 overflow-hidden">
+        <AgentConfigPanel
+          agentName={store.agentName}
+          agentDescription={store.agentDescription}
+          agentIcon={store.agentIcon}
+          collapsed={store.panelCollapsed}
+          onToggle={store.togglePanel}
+          onChange={(field, value) => { store.setAgentInfo({ [field]: value }); store.markDirty() }}
+        />
 
-          <h4 className="mt-4 text-sm font-medium">当前连线</h4>
-          <ul className="mt-2 space-y-1 text-sm text-slate-700">
-            {edges.map((edge) => (
-              <li key={edge.id}>
-                {edge.source} → {edge.target}
-              </li>
-            ))}
-            {edges.length === 0 ? <li className="text-slate-500">暂无连线</li> : null}
-          </ul>
+        <div className="relative flex-1" ref={reactFlowWrapper}>
+          <ReactFlow
+            nodes={nodes}
+            edges={edges}
+            onNodesChange={onNodesChange}
+            onEdgesChange={onEdgesChange}
+            onConnect={onConnect}
+            onInit={setRfInstance}
+            onDragOver={onDragOver}
+            onDrop={onDrop}
+            nodeTypes={nodeTypes}
+            fitView
+          >
+            <Controls position="bottom-right" />
+            <MiniMap position="top-right" />
+            <Background variant={BackgroundVariant.Dots} gap={16} size={1} />
+          </ReactFlow>
+          <CanvasToolbar />
         </div>
-      </div>
-
-      <div className="mt-6 rounded border border-slate-200 p-3 text-sm">
-        <h3 className="font-medium">节点配置入口</h3>
-        {selectedNode ? (
-          <div className="mt-2 space-y-1">
-            <p>节点 ID: {selectedNode.id}</p>
-            <p>节点名称: {selectedNode.name}</p>
-            <p>节点类型: {selectedNode.type}</p>
-          </div>
-        ) : (
-          <p className="mt-2 text-slate-500">请选择一个节点进入配置</p>
-        )}
       </div>
     </section>
   )
