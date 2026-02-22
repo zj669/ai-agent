@@ -2,6 +2,7 @@ package com.zj.aiagent.infrastructure.workflow.executor;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.zj.aiagent.domain.knowledge.service.KnowledgeRetrievalService;
 import com.zj.aiagent.domain.workflow.config.NodeConfig;
 import com.zj.aiagent.domain.workflow.entity.Node;
 import com.zj.aiagent.domain.workflow.port.NodeExecutorStrategy;
@@ -50,16 +51,19 @@ public class LlmNodeExecutorStrategy implements NodeExecutorStrategy {
     private final ObjectMapper objectMapper;
     private final RestClient.Builder restClientBuilder;
     private final LlmDefaultConfig llmDefaultConfig;
+    private final KnowledgeRetrievalService knowledgeRetrievalService;
 
     public LlmNodeExecutorStrategy(
             @Qualifier("nodeExecutorThreadPool") Executor executor,
             @Qualifier("restClientBuilder1") RestClient.Builder restClientBuilder,
             ObjectMapper objectMapper,
-            LlmDefaultConfig llmDefaultConfig) {
+            LlmDefaultConfig llmDefaultConfig,
+            KnowledgeRetrievalService knowledgeRetrievalService) {
         this.executor = executor;
         this.restClientBuilder = restClientBuilder;
         this.objectMapper = objectMapper;
         this.llmDefaultConfig = llmDefaultConfig;
+        this.knowledgeRetrievalService = knowledgeRetrievalService;
     }
 
     @Override
@@ -96,9 +100,11 @@ public class LlmNodeExecutorStrategy implements NodeExecutorStrategy {
                         .build());
                 // 获取执行上下文（用于 LTM/STM/Awareness）
                 ExecutionContext context = (ExecutionContext) resolvedInputs.get("__context__");
+                Long agentId = (Long) resolvedInputs.get("__agentId__");
 
-                // Step 1: 构建 System Prompt（包含 LTM + Awareness）
-                String systemPrompt = buildSystemPrompt(config, context, resolvedInputs);
+                // Step 1: 构建 System Prompt（包含 LTM + RAG + Awareness）
+                String userInput = buildUserPrompt(config, resolvedInputs);
+                String systemPrompt = buildSystemPrompt(config, context, resolvedInputs, agentId, userInput);
 
                 // Step 2: 构建 Message Chain（包含 STM）
                 List<Message> messageChain = buildMessageChain(config, context, resolvedInputs, systemPrompt);
@@ -157,16 +163,34 @@ public class LlmNodeExecutorStrategy implements NodeExecutorStrategy {
 
     /**
      * 构建增强的 System Prompt
-     * 包含：基础人设 + LTM + Awareness + Context Ref
+     * 包含：基础人设 + RAG知识库 + LTM + Awareness + Context Ref
      */
     private String buildSystemPrompt(NodeConfig config, ExecutionContext context,
-            Map<String, Object> resolvedInputs) {
+            Map<String, Object> resolvedInputs, Long agentId, String userInput) {
         StringBuilder sb = new StringBuilder();
 
         // 1. 基础系统提示词
         String systemPromptConfig = config.getString("systemPrompt");
         if (StringUtils.hasText(systemPromptConfig)) {
             sb.append(systemPromptConfig).append("\n\n");
+        }
+
+        // 2. [RAG] 知识库检索 - 根据用户输入从 Milvus 检索相关文档片段
+        if (agentId != null && StringUtils.hasText(userInput)) {
+            try {
+                int ragTopK = config.getInteger("ragTopK", 5);
+                List<String> knowledgeResults = knowledgeRetrievalService.retrieve(agentId, userInput, ragTopK);
+                if (knowledgeResults != null && !knowledgeResults.isEmpty()) {
+                    sb.append("### 相关知识库内容 (Knowledge Base):\n");
+                    for (int i = 0; i < knowledgeResults.size(); i++) {
+                        sb.append("[").append(i + 1).append("] ").append(knowledgeResults.get(i)).append("\n\n");
+                    }
+                    sb.append("请基于以上知识库内容回答用户问题。如果知识库内容与问题无关，可以忽略。\n\n");
+                    log.info("[LLM Node] RAG retrieved {} knowledge chunks for agentId: {}", knowledgeResults.size(), agentId);
+                }
+            } catch (Exception e) {
+                log.warn("[LLM Node] RAG retrieval failed for agentId {}: {}", agentId, e.getMessage());
+            }
         }
 
         if (context == null) {

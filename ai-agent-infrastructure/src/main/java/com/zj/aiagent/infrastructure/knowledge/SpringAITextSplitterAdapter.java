@@ -1,11 +1,13 @@
 package com.zj.aiagent.infrastructure.knowledge;
 
+import com.zj.aiagent.domain.knowledge.port.TextSplitterPort;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.ai.document.Document;
 import org.springframework.ai.transformer.splitter.TokenTextSplitter;
 import org.springframework.stereotype.Component;
 
 import java.util.List;
+import java.util.stream.Collectors;
 
 /**
  * Spring AI 文本分块适配器
@@ -13,15 +15,10 @@ import java.util.List;
  */
 @Slf4j
 @Component
-public class SpringAITextSplitterAdapter {
+public class SpringAITextSplitterAdapter implements TextSplitterPort {
 
     /**
-     * 将文档列表分块
-     * 
-     * @param documents 待分块的文档列表
-     * @param chunkSize 分块大小（Token 数量）
-     * @param overlap   重叠大小（Token 数量）
-     * @return 分块后的 Document 列表
+     * 将文档列表分块（Spring AI Document 版本）
      */
     public List<Document> split(List<Document> documents, int chunkSize, int overlap) {
         try {
@@ -41,13 +38,14 @@ public class SpringAITextSplitterAdapter {
         }
     }
 
-    /**
-     * 使用默认配置分块（500 Token, 50 overlap）
-     * 
-     * @param documents 待分块的文档列表
-     * @return 分块后的 Document 列表
-     */
-    public List<Document> splitWithDefaults(List<Document> documents) {
-        return split(documents, 500, 50);
+    @Override
+    public List<String> split(List<String> texts, int chunkSize, int overlap) {
+        List<Document> documents = texts.stream()
+                .map(Document::new)
+                .collect(Collectors.toList());
+        List<Document> chunks = split(documents, chunkSize, overlap);
+        return chunks.stream()
+                .map(Document::getText)
+                .collect(Collectors.toList());
     }
 }

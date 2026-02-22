@@ -413,6 +413,9 @@ public class SchedulerService {
         // Inject Context
         resolvedInputs.put("__context__", context);
 
+        // Inject agentId for knowledge retrieval
+        resolvedInputs.put("__agentId__", execution.getAgentId());
+
         // Inject outgoing edges for condition nodes
         resolvedInputs.put("__outgoingEdges__", execution.getGraph().getOutgoingEdges(node.getNodeId()));
 

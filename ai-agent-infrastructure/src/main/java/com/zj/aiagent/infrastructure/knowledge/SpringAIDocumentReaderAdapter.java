@@ -1,12 +1,16 @@
 package com.zj.aiagent.infrastructure.knowledge;
 
+import com.zj.aiagent.domain.knowledge.port.DocumentReaderPort;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.ai.document.Document;
 import org.springframework.ai.reader.tika.TikaDocumentReader;
+import org.springframework.core.io.InputStreamResource;
 import org.springframework.core.io.Resource;
 import org.springframework.stereotype.Component;
 
+import java.io.InputStream;
 import java.util.List;
+import java.util.stream.Collectors;
 
 /**
  * Spring AI 文档读取适配器
@@ -14,13 +18,10 @@ import java.util.List;
  */
 @Slf4j
 @Component
-public class SpringAIDocumentReaderAdapter {
+public class SpringAIDocumentReaderAdapter implements DocumentReaderPort {
 
     /**
      * 读取文档并解析为 Spring AI Document 列表
-     * 
-     * @param resource 文件资源（可以是 FileSystemResource 或 InputStreamResource）
-     * @return Document 列表
      */
     public List<Document> readDocuments(Resource resource) {
         try {
@@ -39,5 +40,19 @@ public class SpringAIDocumentReaderAdapter {
             log.error("Failed to read document: {}", resource.getFilename(), e);
             throw new RuntimeException("文档读取失败: " + e.getMessage(), e);
         }
+    }
+
+    @Override
+    public List<String> readDocument(InputStream inputStream, String filename) {
+        InputStreamResource resource = new InputStreamResource(inputStream) {
+            @Override
+            public String getFilename() {
+                return filename;
+            }
+        };
+        List<Document> documents = readDocuments(resource);
+        return documents.stream()
+                .map(Document::getText)
+                .collect(Collectors.toList());
     }
 }

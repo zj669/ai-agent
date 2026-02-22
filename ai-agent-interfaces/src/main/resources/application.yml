@@ -223,7 +223,7 @@ milvus:
   password: ${MILVUS_PASSWORD:}
   knowledge-collection-name: agent_knowledge_base
   memory-collection-name: agent_chat_memory
-  embedding-dimension: 768
+  embedding-dimension: 1024
 
 # MinIO 对象存储配置 (用于知识库文件存储)
 minio:
