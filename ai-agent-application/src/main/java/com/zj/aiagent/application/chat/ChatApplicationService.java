@@ -142,6 +142,10 @@ public class ChatApplicationService {
         return conversationRepository.findMessageByRunId(runId);
     }
 
+    public Optional<Conversation> getConversationById(String conversationId) {
+        return conversationRepository.findById(conversationId);
+    }
+
     public List<Message> getMessages(String conversationId, Pageable pageable) {
         return conversationRepository.findMessagesByConversationId(conversationId, pageable);
     }
