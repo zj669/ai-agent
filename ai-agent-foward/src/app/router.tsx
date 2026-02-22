@@ -11,6 +11,7 @@ import AgentListPage from '../modules/agent/pages/AgentListPage'
 import WorkflowEditorPage from '../modules/workflow/pages/WorkflowEditorPage'
 import KnowledgePage from '../modules/knowledge/pages/KnowledgePage'
 import ChatPage from '../modules/chat/pages/ChatPage'
+import ReviewPage from '../modules/review/pages/ReviewPage'
 
 function AppRoutes() {
   return (
@@ -25,6 +26,7 @@ function AppRoutes() {
           <Route path="agents" element={<AgentListPage />} />
           <Route path="knowledge" element={<KnowledgePage />} />
           <Route path="chat" element={<ChatPage />} />
+          <Route path="reviews" element={<ReviewPage />} />
         </Route>
         {/* 全屏独立路由，不经过 AppShell */}
         <Route path="agents/:agentId/workflow" element={<WorkflowEditorPage />} />
