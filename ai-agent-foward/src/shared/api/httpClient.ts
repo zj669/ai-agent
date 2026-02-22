@@ -12,6 +12,11 @@ export function createHttpClient(baseURL = '/'): AxiosInstance {
     timeout: 10000
   })
 
+  instance.interceptors.request.use((config) => {
+    config.headers.set('debug-user', '1')
+    return config
+  })
+
   instance.interceptors.response.use(
     (response) => response,
     (error: unknown) => Promise.reject(mapApiError(error))

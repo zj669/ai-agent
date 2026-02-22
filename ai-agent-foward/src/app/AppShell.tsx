@@ -1,53 +1,47 @@
-import { NavLink, Outlet } from 'react-router-dom'
+import { Layout, Menu } from 'antd'
+import {
+  DashboardOutlined,
+  RobotOutlined,
+  BookOutlined,
+  MessageOutlined,
+  AuditOutlined
+} from '@ant-design/icons'
+import { Outlet, useLocation, useNavigate } from 'react-router-dom'
+
+const { Sider, Content } = Layout
+
+const menuItems = [
+  { key: '/dashboard', icon: <DashboardOutlined />, label: '工作台' },
+  { key: '/agents', icon: <RobotOutlined />, label: 'Agent' },
+  { key: '/knowledge', icon: <BookOutlined />, label: '知识库' },
+  { key: '/chat', icon: <MessageOutlined />, label: '聊天' },
+  { key: '/reviews', icon: <AuditOutlined />, label: '审核' }
+]
 
 function AppShell() {
+  const location = useLocation()
+  const navigate = useNavigate()
+
   return (
-    <main className="min-h-screen bg-background text-foreground">
-      <header className="border-b border-slate-200 px-6 py-4">
-        <h1 className="text-lg font-semibold">AI Agent 平台</h1>
-      </header>
-      <section className="mx-auto flex max-w-6xl gap-6 px-6 py-8">
-        <aside className="w-56 shrink-0 border-r border-slate-200 pr-4" aria-label="主导航">
-          <nav className="space-y-2">
-            <NavLink
-              to="/dashboard"
-              className={({ isActive }) =>
-                `block rounded px-3 py-2 text-sm ${isActive ? 'bg-slate-100 font-medium' : 'text-muted-foreground'}`
-              }
-            >
-              工作台
-            </NavLink>
-            <NavLink
-              to="/agents"
-              className={({ isActive }) =>
-                `block rounded px-3 py-2 text-sm ${isActive ? 'bg-slate-100 font-medium' : 'text-muted-foreground'}`
-              }
-            >
-              Agent
-            </NavLink>
-            <NavLink
-              to="/knowledge"
-              className={({ isActive }) =>
-                `block rounded px-3 py-2 text-sm ${isActive ? 'bg-slate-100 font-medium' : 'text-muted-foreground'}`
-              }
-            >
-              知识库
-            </NavLink>
-            <NavLink
-              to="/chat"
-              className={({ isActive }) =>
-                `block rounded px-3 py-2 text-sm ${isActive ? 'bg-slate-100 font-medium' : 'text-muted-foreground'}`
-              }
-            >
-              聊天
-            </NavLink>
-          </nav>
-        </aside>
-        <div className="flex-1">
-          <Outlet />
+    <Layout style={{ minHeight: '100vh' }}>
+      <Sider theme="light" width={200} style={{ borderRight: '1px solid #f0f0f0' }}>
+        <div style={{ padding: '16px 24px', fontWeight: 600, fontSize: 16 }}>
+          AI Agent 平台
         </div>
-      </section>
-    </main>
+        <Menu
+          mode="inline"
+          selectedKeys={[location.pathname]}
+          items={menuItems}
+          onClick={({ key }) => navigate(key)}
+          style={{ borderRight: 'none' }}
+        />
+      </Sider>
+      <Layout>
+        <Content style={{ padding: 24, background: '#fff' }}>
+          <Outlet />
+        </Content>
+      </Layout>
+    </Layout>
   )
 }
 

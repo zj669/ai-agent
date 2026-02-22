@@ -11,6 +11,8 @@ vi.mock('@xyflow/react', () => ({
   Position: { Left: 'left', Right: 'right' },
 }))
 
+import { Position } from '@xyflow/react'
+
 const { default: CustomEdge } = await import('../CustomEdge')
 
 describe('CustomEdge', () => {
@@ -22,8 +24,8 @@ describe('CustomEdge', () => {
     sourceY: 200,
     targetX: 300,
     targetY: 200,
-    sourcePosition: 'right' as const,
-    targetPosition: 'left' as const,
+    sourcePosition: Position.Right,
+    targetPosition: Position.Left,
   }
 
   it('calls getBezierPath with horizontal positions and curvature 0.16', () => {

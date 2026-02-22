@@ -66,3 +66,13 @@ export async function publishAgent(payload: PublishAgentPayload, client: ApiClie
   const response = await client.post<ApiResponse<null>>('/api/agent/publish', payload)
   unwrapResponse(response)
 }
+
+export async function offlineAgent(id: number, client: ApiClientLike = apiClient): Promise<void> {
+  const response = await client.post<ApiResponse<null>>('/api/agent/offline', { id })
+  unwrapResponse(response)
+}
+
+export async function deleteAgent(id: number, client: ApiClientLike = apiClient): Promise<void> {
+  const response = await client.post<ApiResponse<null>>('/api/agent/delete', { id })
+  unwrapResponse(response)
+}

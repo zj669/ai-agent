@@ -1,4 +1,6 @@
 import { useEffect } from 'react'
+import { ConfigProvider } from 'antd'
+import zhCN from 'antd/locale/zh_CN'
 import { AppRouter } from './router'
 
 function App() {
@@ -8,7 +10,11 @@ function App() {
     root.classList.add('light')
   }, [])
 
-  return <AppRouter />
+  return (
+    <ConfigProvider locale={zhCN} theme={{ token: { colorPrimary: '#1677ff' } }}>
+      <AppRouter />
+    </ConfigProvider>
+  )
 }
 
 export default App
