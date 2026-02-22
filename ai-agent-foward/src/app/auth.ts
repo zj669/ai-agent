@@ -4,6 +4,11 @@ export function isAuthenticated(): boolean {
   return Boolean(localStorage.getItem(ACCESS_TOKEN_KEY) || sessionStorage.getItem(ACCESS_TOKEN_KEY))
 }
 
+export function clearAccessToken(): void {
+  localStorage.removeItem(ACCESS_TOKEN_KEY)
+  sessionStorage.removeItem(ACCESS_TOKEN_KEY)
+}
+
 export function saveAccessToken(token: string, rememberMe: boolean): void {
   if (rememberMe) {
     localStorage.setItem(ACCESS_TOKEN_KEY, token)

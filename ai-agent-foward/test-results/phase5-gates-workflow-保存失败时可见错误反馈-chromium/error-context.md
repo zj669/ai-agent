@@ -1,0 +1,64 @@
+# Page snapshot
+
+```yaml
+- main [ref=e3]:
+  - heading "AI Agent 平台" [level=1] [ref=e5]
+  - generic [ref=e6]:
+    - complementary "主导航" [ref=e7]:
+      - navigation [ref=e8]:
+        - link "工作台" [ref=e9] [cursor=pointer]:
+          - /url: /dashboard
+        - link "Agent" [ref=e10] [cursor=pointer]:
+          - /url: /agents
+        - link "知识库" [ref=e11] [cursor=pointer]:
+          - /url: /knowledge
+        - link "聊天" [ref=e12] [cursor=pointer]:
+          - /url: /chat
+    - generic [ref=e14]:
+      - generic [ref=e15]:
+        - generic [ref=e16]:
+          - heading "Workflow 编辑" [level=2] [ref=e17]
+          - paragraph [ref=e18]: "当前 Agent: 101"
+          - paragraph [ref=e19]: "当前版本: 1"
+          - paragraph [ref=e20]: "状态: 已保存"
+        - generic [ref=e21]:
+          - button "保存" [ref=e22] [cursor=pointer]
+          - button "发布" [ref=e23] [cursor=pointer]
+      - generic [ref=e24]:
+        - generic [ref=e25]:
+          - heading "节点面板" [level=3] [ref=e26]
+          - generic [ref=e27]:
+            - generic [ref=e28]: 🤖LLM 节点
+            - generic [ref=e29]: ◇条件节点
+            - generic [ref=e30]: ⚙工具节点
+            - generic [ref=e31]: ↗HTTP 节点
+        - application [ref=e33]:
+          - generic [ref=e35]:
+            - generic:
+              - generic:
+                - group [ref=e36]:
+                  - generic [ref=e38]:
+                    - generic [ref=e39]: ▶
+                    - generic [ref=e40]:
+                      - generic [ref=e41]: 开始
+                      - generic [ref=e42]: 开始节点
+                - group [ref=e44]:
+                  - generic [ref=e47]:
+                    - generic [ref=e48]: ■
+                    - generic [ref=e49]:
+                      - generic [ref=e50]: 结束
+                      - generic [ref=e51]: 结束节点
+          - generic "Control Panel" [ref=e52]:
+            - button "Zoom In" [ref=e53] [cursor=pointer]:
+              - img [ref=e54]
+            - button "Zoom Out" [ref=e56] [cursor=pointer]:
+              - img [ref=e57]
+            - button "Fit View" [ref=e59] [cursor=pointer]:
+              - img [ref=e60]
+            - button "Toggle Interactivity" [ref=e62] [cursor=pointer]:
+              - img [ref=e63]
+          - img
+          - link "React Flow attribution" [ref=e66] [cursor=pointer]:
+            - /url: https://reactflow.dev
+            - text: React Flow
+```
