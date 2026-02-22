@@ -155,6 +155,7 @@ export async function startChatStream(
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
+      'debug-user': '1',
       ...(token ? { Authorization: `Bearer ${token}` } : {})
     },
     body: JSON.stringify({

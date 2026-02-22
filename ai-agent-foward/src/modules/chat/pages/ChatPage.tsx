@@ -1,4 +1,9 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
+import { Button, Input, List, Select, Space, Typography, Alert, Spin, Empty } from 'antd'
+import { SendOutlined, StopOutlined, PlusOutlined } from '@ant-design/icons'
+import ReactMarkdown from 'react-markdown'
+import remarkGfm from 'remark-gfm'
+import rehypeHighlight from 'rehype-highlight'
 import {
   createChatConversation,
   fetchConversationList,
@@ -8,126 +13,95 @@ import {
   type ChatConversation,
   type ChatMessage
 } from '../api/chatService'
+import { fetchAgentList, type AgentListItem } from '../../agent/api/agentService'
+
+const { Text, Title } = Typography
+const USER_ID = 1
 
 function makeLocalId(prefix: string): string {
   return `${prefix}-${Date.now()}-${Math.random().toString(16).slice(2)}`
 }
 
-function ChatPage() {
-  const [userId, setUserId] = useState(1)
-  const [agentId, setAgentId] = useState(1)
+function formatTime(iso: string): string {
+  try {
+    return new Date(iso).toLocaleString('zh-CN', { hour12: false })
+  } catch {
+    return iso
+  }
+}
 
+function ChatPage() {
+  const [agents, setAgents] = useState<AgentListItem[]>([])
+  const [selectedAgentId, setSelectedAgentId] = useState<number | null>(null)
   const [conversations, setConversations] = useState<ChatConversation[]>([])
   const [activeConversationId, setActiveConversationId] = useState<string>('')
   const [messages, setMessages] = useState<ChatMessage[]>([])
-
   const [input, setInput] = useState('')
   const [listError, setListError] = useState('')
   const [streamError, setStreamError] = useState('')
   const [isSending, setIsSending] = useState(false)
+  const [loadingAgents, setLoadingAgents] = useState(true)
 
   const abortControllerRef = useRef<AbortController | null>(null)
   const executionIdRef = useRef('')
   const isStoppedRef = useRef(false)
   const hasStreamErrorRef = useRef(false)
   const pendingStopRef = useRef(false)
+  const messagesEndRef = useRef<HTMLDivElement>(null)
 
+  // Load agent list
   useEffect(() => {
-    void fetchConversationList(userId, agentId)
+    setLoadingAgents(true)
+    void fetchAgentList()
       .then((data) => {
-        setConversations(data)
-        setListError('')
+        const published = data.filter((a) => a.status === 'PUBLISHED' || a.status === '1')
+        setAgents(published.length > 0 ? published : data)
       })
-      .catch(() => {
-        setConversations([])
-        setListError('会话列表加载失败')
-      })
-  }, [userId, agentId])
+      .catch(() => setAgents([]))
+      .finally(() => setLoadingAgents(false))
+  }, [])
 
+  // Load conversations when agent selected
   useEffect(() => {
-    if (!activeConversationId) {
+    if (!selectedAgentId) {
+      setConversations([])
+      setActiveConversationId('')
       setMessages([])
       return
     }
+    void fetchConversationList(USER_ID, selectedAgentId)
+      .then((data) => { setConversations(data); setListError('') })
+      .catch(() => { setConversations([]); setListError('会话列表加载失败') })
+  }, [selectedAgentId])
 
-    void fetchConversationMessages(userId, activeConversationId)
-      .then((data) => {
-        setMessages(data)
-        setStreamError('')
-      })
-      .catch(() => {
-        setMessages([])
-        setStreamError('消息加载失败')
-      })
-  }, [userId, activeConversationId])
-
+  // Load messages when conversation selected
   useEffect(() => {
-    return () => {
-      abortControllerRef.current?.abort()
-    }
-  }, [])
+    if (!activeConversationId) { setMessages([]); return }
+    void fetchConversationMessages(USER_ID, activeConversationId)
+      .then((data) => { setMessages(data); setStreamError('') })
+      .catch(() => { setMessages([]); setStreamError('消息加载失败') })
+  }, [activeConversationId])
 
-  const canSend = useMemo(() => {
-    return input.trim().length > 0 && !isSending
-  }, [input, isSending])
+  // Auto-scroll
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
+  }, [messages])
 
-  const appendAssistantDelta = (targetMessageId: string, delta: string) => {
-    setMessages((current) =>
-      current.map((message) => {
-        if (message.id !== targetMessageId) {
-          return message
-        }
+  // Cleanup
+  useEffect(() => { return () => { abortControllerRef.current?.abort() } }, [])
 
-        return {
-          ...message,
-          content: `${message.content}${delta}`,
-          status: 'STREAMING'
-        }
-      })
-    )
+  const canSend = useMemo(() => input.trim().length > 0 && !isSending && !!selectedAgentId, [input, isSending, selectedAgentId])
+
+  const appendDelta = (id: string, delta: string) => {
+    setMessages((cur) => cur.map((m) => m.id === id ? { ...m, content: m.content + delta, status: 'STREAMING' } : m))
   }
 
-  const finishAssistantMessage = (targetMessageId: string, status: 'COMPLETED' | 'FAILED') => {
-    setMessages((current) =>
-      current.map((message) => {
-        if (message.id !== targetMessageId) {
-          return message
-        }
-
-        return {
-          ...message,
-          status
-        }
-      })
-    )
+  const finishMsg = (id: string, status: 'COMPLETED' | 'FAILED') => {
+    setMessages((cur) => cur.map((m) => m.id === id ? { ...m, status } : m))
   }
 
-  const markLastStreamingAsFailed = () => {
-    setMessages((current) => {
-      const lastStreamingIndex = [...current].reverse().findIndex((message) => message.status === 'STREAMING')
-      if (lastStreamingIndex < 0) {
-        return current
-      }
-
-      const index = current.length - 1 - lastStreamingIndex
-      return current.map((message, messageIndex) => {
-        if (messageIndex !== index) {
-          return message
-        }
-
-        return {
-          ...message,
-          status: 'FAILED'
-        }
-      })
-    })
-  }
-
-  const resetStreamRuntime = (controller?: AbortController) => {
-    if (controller && abortControllerRef.current !== controller) {
-      return
-    }
-
+  const resetRuntime = (ctrl?: AbortController) => {
+    if (ctrl && abortControllerRef.current !== ctrl) return
     abortControllerRef.current = null
     executionIdRef.current = ''
     pendingStopRef.current = false
@@ -135,256 +109,182 @@ function ChatPage() {
     hasStreamErrorRef.current = false
   }
 
-  const submitStopRequest = async () => {
-    const executionId = executionIdRef.current
-    if (!executionId) {
-      return
-    }
-
-    try {
-      await stopChatExecution(executionId)
-    } catch {
-      setStreamError('中断请求提交失败')
-    }
+  const submitStop = async () => {
+    const eid = executionIdRef.current
+    if (!eid) return
+    try { await stopChatExecution(eid) } catch { setStreamError('中断请求提交失败') }
   }
 
   const handleCreateConversation = async () => {
+    if (!selectedAgentId) return
     setListError('')
-
     try {
-      const id = await createChatConversation(userId, agentId)
-      const list = await fetchConversationList(userId, agentId)
+      const id = await createChatConversation(USER_ID, selectedAgentId)
+      const list = await fetchConversationList(USER_ID, selectedAgentId)
       setConversations(list)
       setActiveConversationId(id)
-    } catch {
-      setListError('创建会话失败')
-    }
+    } catch { setListError('创建会话失败') }
   }
 
   const handleSend = async () => {
     const content = input.trim()
-    if (!content || isSending) {
-      return
-    }
+    if (!content || isSending || !selectedAgentId) return
+    setStreamError(''); setIsSending(true); setInput('')
 
-    setStreamError('')
-    setIsSending(true)
-    setInput('')
-
-    let conversationId = activeConversationId
-    if (!conversationId) {
+    let convId = activeConversationId
+    if (!convId) {
       try {
-        conversationId = await createChatConversation(userId, agentId)
-        const list = await fetchConversationList(userId, agentId)
-        setConversations(list)
-        setActiveConversationId(conversationId)
-      } catch {
-        setStreamError('创建会话失败')
-        setIsSending(false)
-        return
-      }
+        convId = await createChatConversation(USER_ID, selectedAgentId)
+        const list = await fetchConversationList(USER_ID, selectedAgentId)
+        setConversations(list); setActiveConversationId(convId)
+      } catch { setStreamError('创建会话失败'); setIsSending(false); return }
     }
 
-    const userMessage: ChatMessage = {
-      id: makeLocalId('user'),
-      role: 'USER',
-      content,
-      status: 'COMPLETED',
-      createdAt: new Date().toISOString()
-    }
+    const userMsg: ChatMessage = { id: makeLocalId('u'), role: 'USER', content, status: 'COMPLETED', createdAt: new Date().toISOString() }
+    const aId = makeLocalId('a')
+    const assistantMsg: ChatMessage = { id: aId, role: 'ASSISTANT', content: '', status: 'STREAMING', createdAt: new Date().toISOString() }
+    setMessages((cur) => [...cur, userMsg, assistantMsg])
 
-    const assistantMessageId = makeLocalId('assistant')
-    const assistantMessage: ChatMessage = {
-      id: assistantMessageId,
-      role: 'ASSISTANT',
-      content: '',
-      status: 'STREAMING',
-      createdAt: new Date().toISOString()
-    }
-
-    setMessages((current) => [...current, userMessage, assistantMessage])
-
-    const controller = new AbortController()
-    abortControllerRef.current = controller
-    executionIdRef.current = ''
-    pendingStopRef.current = false
-    isStoppedRef.current = false
-    hasStreamErrorRef.current = false
+    const ctrl = new AbortController()
+    abortControllerRef.current = ctrl
+    executionIdRef.current = ''; pendingStopRef.current = false; isStoppedRef.current = false; hasStreamErrorRef.current = false
 
     try {
       await startChatStream(
+        { userId: USER_ID, agentId: selectedAgentId, conversationId: convId, content },
         {
-          userId,
-          agentId,
-          conversationId,
-          content
+          onConnected: (id) => { executionIdRef.current = id; if (pendingStopRef.current) void submitStop() },
+          onDelta: (d) => { if (!isStoppedRef.current && !hasStreamErrorRef.current) appendDelta(aId, d) },
+          onFinish: () => { if (!isStoppedRef.current && !hasStreamErrorRef.current) finishMsg(aId, 'COMPLETED') },
+          onError: (msg) => { hasStreamErrorRef.current = true; finishMsg(aId, 'FAILED'); setStreamError(msg) }
         },
-        {
-          onConnected: (id) => {
-            executionIdRef.current = id
-            if (pendingStopRef.current) {
-              void submitStopRequest()
-            }
-          },
-          onDelta: (delta) => {
-            if (isStoppedRef.current || hasStreamErrorRef.current) {
-              return
-            }
-            appendAssistantDelta(assistantMessageId, delta)
-          },
-          onFinish: () => {
-            if (isStoppedRef.current || hasStreamErrorRef.current) {
-              return
-            }
-            finishAssistantMessage(assistantMessageId, 'COMPLETED')
-          },
-          onError: (message) => {
-            hasStreamErrorRef.current = true
-            finishAssistantMessage(assistantMessageId, 'FAILED')
-            setStreamError(message)
-          }
-        },
-        controller.signal
+        ctrl.signal
       )
-
-      if (!isStoppedRef.current && !hasStreamErrorRef.current) {
-        finishAssistantMessage(assistantMessageId, 'COMPLETED')
-      }
+      if (!isStoppedRef.current && !hasStreamErrorRef.current) finishMsg(aId, 'COMPLETED')
     } catch {
-      if (!isStoppedRef.current) {
-        finishAssistantMessage(assistantMessageId, 'FAILED')
-        setStreamError('流式消息发送失败')
-      }
-    } finally {
-      setIsSending(false)
-      resetStreamRuntime(controller)
-    }
+      if (!isStoppedRef.current) { finishMsg(aId, 'FAILED'); setStreamError('流式消息发送失败') }
+    } finally { setIsSending(false); resetRuntime(ctrl) }
   }
 
   const handleStop = async () => {
-    if (!isSending) {
-      return
-    }
-
-    isStoppedRef.current = true
-    pendingStopRef.current = true
-
+    if (!isSending) return
+    isStoppedRef.current = true; pendingStopRef.current = true
     abortControllerRef.current?.abort()
-    await submitStopRequest()
+    await submitStop()
+    setMessages((cur) => cur.map((m) => m.status === 'STREAMING' ? { ...m, status: 'FAILED' } : m))
+    setStreamError((c) => c || '已手动中断'); setIsSending(false)
+  }
 
-    markLastStreamingAsFailed()
-    setStreamError((current) => current || '已手动中断')
-    setIsSending(false)
+  if (!selectedAgentId) {
+    return (
+      <div style={{ padding: 24 }}>
+        <Title level={4}>聊天</Title>
+        {loadingAgents ? <Spin /> : (
+          <div style={{ maxWidth: 400, marginTop: 16 }}>
+            <Text>请选择一个 Agent 开始聊天：</Text>
+            <Select
+              style={{ width: '100%', marginTop: 8 }}
+              placeholder="选择 Agent"
+              options={agents.map((a) => ({ value: a.id, label: a.name }))}
+              onChange={(v) => setSelectedAgentId(v)}
+            />
+            {agents.length === 0 && <Empty description="暂无可用 Agent" style={{ marginTop: 24 }} />}
+          </div>
+        )}
+      </div>
+    )
   }
 
   return (
-    <section>
-      <h2 className="text-2xl font-semibold">聊天</h2>
-
-      <div className="mt-3 flex items-center gap-3 text-sm">
-        <label className="flex items-center gap-2">
-          用户ID
-          <input
-            className="w-20 rounded border border-slate-300 px-2 py-1"
-            type="number"
-            value={userId}
-            onChange={(event) => setUserId(Number(event.target.value) || 1)}
+    <div style={{ display: 'flex', height: 'calc(100vh - 80px)' }}>
+      {/* Left: conversations */}
+      <div style={{ width: 260, borderRight: '1px solid #f0f0f0', display: 'flex', flexDirection: 'column', padding: 12 }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
+          <Select
+            size="small"
+            value={selectedAgentId}
+            style={{ flex: 1, marginRight: 8 }}
+            options={agents.map((a) => ({ value: a.id, label: a.name }))}
+            onChange={(v) => setSelectedAgentId(v)}
           />
-        </label>
-        <label className="flex items-center gap-2">
-          AgentID
-          <input
-            className="w-20 rounded border border-slate-300 px-2 py-1"
-            type="number"
-            value={agentId}
-            onChange={(event) => setAgentId(Number(event.target.value) || 1)}
+          <Button size="small" icon={<PlusOutlined />} onClick={() => void handleCreateConversation()} />
+        </div>
+        {listError && <Alert type="error" message={listError} showIcon style={{ marginBottom: 8 }} />}
+        <div style={{ flex: 1, overflow: 'auto' }}>
+          <List
+            size="small"
+            dataSource={conversations}
+            renderItem={(c) => (
+              <List.Item
+                onClick={() => setActiveConversationId(c.id)}
+                style={{
+                  cursor: 'pointer', padding: '8px 12px', borderRadius: 6,
+                  background: activeConversationId === c.id ? '#e6f4ff' : undefined
+                }}
+              >
+                <div style={{ width: '100%', overflow: 'hidden' }}>
+                  <Text ellipsis style={{ fontSize: 13 }}>{c.title || c.id.slice(0, 8)}</Text>
+                  <br />
+                  <Text type="secondary" style={{ fontSize: 11 }}>{formatTime(c.updatedAt)}</Text>
+                </div>
+              </List.Item>
+            )}
           />
-        </label>
-      </div>
-
-      <div className="mt-4 grid grid-cols-[260px_1fr] gap-4">
-        <aside className="rounded border border-slate-200 p-3">
-          <div className="flex items-center justify-between">
-            <h3 className="text-sm font-medium">会话</h3>
-            <button
-              type="button"
-              className="rounded bg-slate-900 px-2 py-1 text-xs text-white"
-              onClick={handleCreateConversation}
-            >
-              新建
-            </button>
-          </div>
-
-          {listError ? <p className="mt-2 text-xs text-red-600">{listError}</p> : null}
-
-          <ul className="mt-3 space-y-2 text-sm">
-            {conversations.map((conversation) => (
-              <li key={conversation.id}>
-                <button
-                  type="button"
-                  className={`w-full rounded border px-2 py-1 text-left ${
-                    activeConversationId === conversation.id ? 'border-slate-800' : 'border-slate-200'
-                  }`}
-                  onClick={() => setActiveConversationId(conversation.id)}
-                >
-                  <div className="truncate font-medium">{conversation.title || conversation.id}</div>
-                  <div className="truncate text-xs text-slate-500">{conversation.updatedAt}</div>
-                </button>
-              </li>
-            ))}
-          </ul>
-        </aside>
-
-        <div className="rounded border border-slate-200 p-3">
-          <div className="h-[360px] overflow-y-auto rounded border border-slate-200 p-3">
-            {messages.length === 0 ? <p className="text-sm text-slate-500">请选择会话或直接发送消息。</p> : null}
-
-            <ul className="space-y-3">
-              {messages.map((message) => (
-                <li key={message.id}>
-                  <div className="text-xs text-slate-500">{message.role}</div>
-                  <div className="rounded bg-slate-50 px-3 py-2 text-sm whitespace-pre-wrap">{message.content || '...'}</div>
-                  <div className="mt-1 text-xs text-slate-400">{message.status}</div>
-                </li>
-              ))}
-            </ul>
-          </div>
-
-          {streamError ? <p className="mt-2 text-sm text-red-600">{streamError}</p> : null}
-
-          <div className="mt-3 flex items-center gap-2">
-            <input
-              className="flex-1 rounded border border-slate-300 px-3 py-2 text-sm"
-              value={input}
-              placeholder="输入消息后发送"
-              onChange={(event) => setInput(event.target.value)}
-              onKeyDown={(event) => {
-                if (event.key === 'Enter') {
-                  event.preventDefault()
-                  void handleSend()
-                }
-              }}
-            />
-            <button
-              type="button"
-              className="rounded bg-slate-900 px-3 py-2 text-sm text-white disabled:cursor-not-allowed disabled:bg-slate-400"
-              disabled={!canSend}
-              onClick={() => void handleSend()}
-            >
-              发送
-            </button>
-            <button
-              type="button"
-              className="rounded border border-slate-300 px-3 py-2 text-sm disabled:cursor-not-allowed disabled:text-slate-400"
-              disabled={!isSending}
-              onClick={() => void handleStop()}
-            >
-              中断
-            </button>
-          </div>
         </div>
       </div>
-    </section>
+
+      {/* Right: messages */}
+      <div style={{ flex: 1, display: 'flex', flexDirection: 'column', padding: 16 }}>
+        <div style={{ flex: 1, overflow: 'auto', paddingBottom: 16 }}>
+          {messages.length === 0 && <Empty description="发送消息开始对话" />}
+          {messages.map((m) => (
+            <div key={m.id} style={{
+              display: 'flex', justifyContent: m.role === 'USER' ? 'flex-end' : 'flex-start',
+              marginBottom: 12
+            }}>
+              <div style={{
+                maxWidth: '70%', padding: '8px 14px', borderRadius: 8,
+                background: m.role === 'USER' ? '#1677ff' : '#f5f5f5',
+                color: m.role === 'USER' ? '#fff' : '#333'
+              }}>
+                {m.role === 'USER' ? (
+                  <div style={{ whiteSpace: 'pre-wrap', fontSize: 14 }}>{m.content || '...'}</div>
+                ) : (
+                  <div className="markdown-body" style={{ fontSize: 14 }}>
+                    <ReactMarkdown remarkPlugins={[remarkGfm]} rehypePlugins={[rehypeHighlight]}>
+                      {m.content || '...'}
+                    </ReactMarkdown>
+                    {m.status === 'STREAMING' && <Spin size="small" style={{ marginLeft: 4 }} />}
+                  </div>
+                )}
+                <div style={{ fontSize: 11, marginTop: 4, opacity: 0.6, textAlign: 'right' }}>
+                  {formatTime(m.createdAt)}
+                </div>
+              </div>
+            </div>
+          ))}
+          <div ref={messagesEndRef} />
+        </div>
+
+        {streamError && <Alert type="error" message={streamError} showIcon closable onClose={() => setStreamError('')} style={{ marginBottom: 8 }} />}
+
+        <div style={{ display: 'flex', gap: 8 }}>
+          <Input
+            value={input}
+            placeholder="输入消息..."
+            onChange={(e) => setInput(e.target.value)}
+            onPressEnter={() => void handleSend()}
+            disabled={isSending}
+          />
+          <Button type="primary" icon={<SendOutlined />} disabled={!canSend} onClick={() => void handleSend()}>
+            发送
+          </Button>
+          <Button icon={<StopOutlined />} disabled={!isSending} onClick={() => void handleStop()}>
+            中断
+          </Button>
+        </div>
+      </div>
+    </div>
   )
 }
 
