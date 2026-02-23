@@ -1,27 +1,29 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import {
+  Badge,
   Button,
-  Card,
   Empty,
   Form,
   Input,
   message,
   Modal,
   Popconfirm,
-  Progress,
   Space,
+  Spin,
   Table,
   Tag,
-  Tooltip,
+  Typography,
   Upload,
 } from 'antd'
 import {
+  DatabaseOutlined,
   DeleteOutlined,
   FileTextOutlined,
+  FolderOutlined,
   InboxOutlined,
   PlusOutlined,
   ReloadOutlined,
-  UploadOutlined,
+  SearchOutlined,
 } from '@ant-design/icons'
 import type { ColumnsType } from 'antd/es/table'
 import {
@@ -36,20 +38,16 @@ import {
   type DocumentListItem,
 } from '../api/knowledgeService'
 
+const { Text } = Typography
+
 const STATUS_MAP: Record<string, { color: string; label: string }> = {
-  PENDING: { color: 'default', label: '等待处理' },
+  PENDING: { color: 'default', label: '等待中' },
   PROCESSING: { color: 'processing', label: '处理中' },
-  COMPLETED: { color: 'success', label: '已完成' },
-  FAILED: { color: 'error', label: '失败' },
+  COMPLETED: { color: 'green', label: '已完成' },
+  FAILED: { color: 'red', label: '失败' },
 }
 
-function formatFileSize(bytes: number): string {
-  if (bytes < 1024) return bytes + ' B'
-  if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB'
-  return (bytes / (1024 * 1024)).toFixed(1) + ' MB'
-}
-
-function KnowledgePage() {
+export default function KnowledgePage() {
   const [datasets, setDatasets] = useState<DatasetListItem[]>([])
   const [selectedDataset, setSelectedDataset] = useState<DatasetListItem | null>(null)
   const [documents, setDocuments] = useState<DocumentListItem[]>([])
@@ -58,10 +56,11 @@ function KnowledgePage() {
   const [createModalOpen, setCreateModalOpen] = useState(false)
   const [creating, setCreating] = useState(false)
   const [uploading, setUploading] = useState(false)
+  const [searchText, setSearchText] = useState('')
   const [form] = Form.useForm()
   const pollingRef = useRef<ReturnType<typeof setInterval> | null>(null)
 
-  // ── 加载知识库列表 ──
+  // -- Load dataset list --
   const loadDatasets = useCallback(async () => {
     setLoadingDatasets(true)
     try {
@@ -76,7 +75,7 @@ function KnowledgePage() {
 
   useEffect(() => { void loadDatasets() }, [loadDatasets])
 
-  // ── 加载文档列表 ──
+  // -- Load document list --
   const loadDocuments = useCallback(async (datasetId: string) => {
     setLoadingDocs(true)
     try {
@@ -89,7 +88,7 @@ function KnowledgePage() {
     }
   }, [])
 
-  // ── 选中知识库时加载文档 + 轮询处理中的文档 ──
+  // -- Polling when dataset selected --
   useEffect(() => {
     if (pollingRef.current) { clearInterval(pollingRef.current); pollingRef.current = null }
     if (!selectedDataset) { setDocuments([]); return }
@@ -98,7 +97,7 @@ function KnowledgePage() {
     return () => { if (pollingRef.current) clearInterval(pollingRef.current) }
   }, [selectedDataset, loadDocuments])
 
-  // ── 创建知识库 ──
+  // -- Create dataset --
   const handleCreate = async () => {
     try {
       const values = await form.validateFields()
@@ -116,7 +115,7 @@ function KnowledgePage() {
     }
   }
 
-  // ── 删除知识库 ──
+  // -- Delete dataset --
   const handleDeleteDataset = async (ds: DatasetListItem) => {
     try {
       await removeDataset(ds.datasetId)
@@ -126,7 +125,7 @@ function KnowledgePage() {
     } catch { message.error('删除失败') }
   }
 
-  // ── 上传文档 ──
+  // -- Upload document --
   const handleUpload = async (file: File) => {
     if (!selectedDataset) { message.warning('请先选择知识库'); return false }
     setUploading(true)
@@ -136,10 +135,10 @@ function KnowledgePage() {
       void loadDatasets()
       message.success('上传成功，正在处理...')
     } catch { message.error('上传失败') } finally { setUploading(false) }
-    return false // prevent antd auto upload
+    return false
   }
 
-  // ── 删除文档 ──
+  // -- Delete document --
   const handleDeleteDoc = async (doc: DocumentListItem) => {
     try {
       await removeDocument(doc.documentId)
@@ -149,7 +148,7 @@ function KnowledgePage() {
     } catch { message.error('删除失败') }
   }
 
-  // ── 重试文档 ──
+  // -- Retry document --
   const handleRetry = async (doc: DocumentListItem) => {
     try {
       await retryDocument(doc.documentId)
@@ -158,15 +157,18 @@ function KnowledgePage() {
     } catch { message.error('重试失败') }
   }
 
-  // ── 文档表格列定义 ──
+  // -- Filtered datasets --
+  const filteredDatasets = datasets.filter(ds =>
+    ds.name.toLowerCase().includes(searchText.toLowerCase())
+  )
+
+  // -- Document table columns --
   const docColumns: ColumnsType<DocumentListItem> = [
     {
       title: '文件名', dataIndex: 'filename', key: 'filename', ellipsis: true,
-      render: (name: string) => <Space><FileTextOutlined />{name}</Space>,
-    },
-    {
-      title: '大小', dataIndex: 'fileSize', key: 'fileSize', width: 100,
-      render: (size: number) => formatFileSize(size),
+      render: (name: string) => (
+        <Space><FileTextOutlined style={{ color: '#1677ff' }} />{name}</Space>
+      ),
     },
     {
       title: '状态', dataIndex: 'status', key: 'status', width: 120,
@@ -176,16 +178,8 @@ function KnowledgePage() {
       },
     },
     {
-      title: '进度', key: 'progress', width: 180,
-      render: (_: unknown, record: DocumentListItem) => {
-        if (record.status === 'COMPLETED') return <Progress percent={100} size="small" />
-        if (record.status === 'FAILED') return <Tooltip title={record.errorMessage}><Progress percent={0} status="exception" size="small" /></Tooltip>
-        if (record.totalChunks > 0) {
-          const pct = Math.round((record.processedChunks / record.totalChunks) * 100)
-          return <Progress percent={pct} size="small" status="active" />
-        }
-        return <Progress percent={0} size="small" />
-      },
+      title: '分片数', dataIndex: 'totalChunks', key: 'totalChunks', width: 90,
+      align: 'center',
     },
     {
       title: '上传时间', dataIndex: 'uploadedAt', key: 'uploadedAt', width: 170,
@@ -195,9 +189,11 @@ function KnowledgePage() {
       render: (_: unknown, record: DocumentListItem) => (
         <Space size="small">
           {record.status === 'FAILED' && (
-            <Tooltip title="重试"><Button type="link" size="small" icon={<ReloadOutlined />} onClick={() => void handleRetry(record)} /></Tooltip>
+            <Button type="link" size="small" icon={<ReloadOutlined />}
+              onClick={() => void handleRetry(record)}>重试</Button>
           )}
-          <Popconfirm title="确认删除此文档？" onConfirm={() => void handleDeleteDoc(record)} okText="删除" cancelText="取消">
+          <Popconfirm title="确认删除此文档？" onConfirm={() => void handleDeleteDoc(record)}
+            okText="删除" cancelText="取消">
             <Button type="link" size="small" danger icon={<DeleteOutlined />} />
           </Popconfirm>
         </Space>
@@ -205,94 +201,129 @@ function KnowledgePage() {
     },
   ]
 
-  // ── 渲染 ──
+  // -- Render --
   return (
-    <div style={{ display: 'flex', gap: 16, height: '100%' }}>
-      {/* 左侧：知识库列表 */}
-      <Card
-        title="知识库"
-        style={{ width: 300, flexShrink: 0, overflow: 'auto' }}
-        extra={<Button type="primary" size="small" icon={<PlusOutlined />} onClick={() => setCreateModalOpen(true)}>新建</Button>}
-        loading={loadingDatasets}
-        bodyStyle={{ padding: 8 }}
-      >
-        {datasets.length === 0 ? (
-          <Empty description="暂无知识库" image={Empty.PRESENTED_IMAGE_SIMPLE} />
-        ) : (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-            {datasets.map(ds => (
-              <div
-                key={ds.datasetId}
-                onClick={() => setSelectedDataset(ds)}
-                style={{
-                  padding: '10px 12px',
-                  borderRadius: 6,
-                  cursor: 'pointer',
-                  background: selectedDataset?.datasetId === ds.datasetId ? '#e6f4ff' : 'transparent',
-                  border: selectedDataset?.datasetId === ds.datasetId ? '1px solid #91caff' : '1px solid transparent',
-                  transition: 'all 0.2s',
-                }}
-              >
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <span style={{ fontWeight: 500, fontSize: 14 }}>{ds.name}</span>
-                  <Popconfirm title="确认删除此知识库？" onConfirm={() => void handleDeleteDataset(ds)} okText="删除" cancelText="取消">
-                    <Button type="text" size="small" danger icon={<DeleteOutlined />} onClick={e => e.stopPropagation()} />
-                  </Popconfirm>
-                </div>
-                {ds.description && <div style={{ color: '#888', fontSize: 12, marginTop: 2 }}>{ds.description}</div>}
-                <div style={{ color: '#aaa', fontSize: 12, marginTop: 4 }}>
-                  {ds.documentCount} 文档 · {ds.totalChunks} 分块
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
-      </Card>
+    <div style={{ display: 'flex', height: '100%' }}>
+      {/* Left Panel */}
+      <div style={{
+        width: 300, flexShrink: 0, background: '#fff', borderRight: '1px solid #f0f0f0',
+        padding: 16, display: 'flex', flexDirection: 'column', overflow: 'hidden',
+      }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+          <Text strong style={{ fontSize: 16 }}>知识库</Text>
+          <Button type="primary" size="small" icon={<PlusOutlined />}
+            onClick={() => setCreateModalOpen(true)} />
+        </div>
 
-      {/* 右侧：文档管理 */}
-      <Card
-        title={selectedDataset ? `${selectedDataset.name} - 文档管理` : '请选择知识库'}
-        style={{ flex: 1, overflow: 'auto' }}
-        extra={
-          selectedDataset && (
-            <Upload
-              beforeUpload={(file) => { void handleUpload(file as unknown as File); return false }}
-              showUploadList={false}
-              accept=".pdf,.txt,.md,.doc,.docx,.csv"
-            >
-              <Button icon={<UploadOutlined />} loading={uploading} type="primary">上传文档</Button>
-            </Upload>
-          )
-        }
-      >
+        <Input.Search
+          placeholder="搜索知识库"
+          prefix={<SearchOutlined style={{ color: '#bfbfbf' }} />}
+          allowClear
+          value={searchText}
+          onChange={e => setSearchText(e.target.value)}
+          style={{ marginBottom: 12 }}
+        />
+
+        <div style={{ flex: 1, overflowY: 'auto' }}>
+          {loadingDatasets ? (
+            <div style={{ textAlign: 'center', paddingTop: 40 }}><Spin /></div>
+          ) : filteredDatasets.length === 0 ? (
+            <Empty description="暂无知识库" image={Empty.PRESENTED_IMAGE_SIMPLE} />
+          ) : (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+              {filteredDatasets.map(ds => {
+                const isSelected = selectedDataset?.datasetId === ds.datasetId
+                return (
+                  <div
+                    key={ds.datasetId}
+                    onClick={() => setSelectedDataset(ds)}
+                    className="knowledge-dataset-item"
+                    style={{
+                      padding: '10px 12px', borderRadius: 6, cursor: 'pointer',
+                      background: isSelected ? '#e6f7ff' : 'transparent',
+                      borderLeft: isSelected ? '3px solid #1677ff' : '3px solid transparent',
+                      transition: 'all 0.2s',
+                    }}
+                  >
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                      <div style={{
+                        width: 32, height: 32, borderRadius: '50%', background: isSelected ? '#1677ff' : '#f0f0f0',
+                        display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
+                      }}>
+                        <DatabaseOutlined style={{ color: isSelected ? '#fff' : '#8c8c8c', fontSize: 14 }} />
+                      </div>
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <div style={{ fontWeight: 600, fontSize: 14, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                          {ds.name}
+                        </div>
+                        <div style={{ color: '#8c8c8c', fontSize: 12 }}>
+                          {ds.documentCount} 个文档
+                        </div>
+                      </div>
+                      <Popconfirm title="确认删除此知识库？" onConfirm={() => void handleDeleteDataset(ds)}
+                        okText="删除" cancelText="取消">
+                        <Button type="text" size="small" danger icon={<DeleteOutlined />}
+                          onClick={e => e.stopPropagation()}
+                          className="knowledge-delete-btn"
+                          style={{ opacity: 0, transition: 'opacity 0.2s' }} />
+                      </Popconfirm>
+                    </div>
+                  </div>
+                )
+              })}
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Right Panel */}
+      <div style={{ flex: 1, padding: 24, overflowY: 'auto', background: '#fafafa' }}>
         {!selectedDataset ? (
-          <Empty description="请从左侧选择一个知识库" image={Empty.PRESENTED_IMAGE_SIMPLE} />
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%' }}>
+            <Empty
+              image={<FolderOutlined style={{ fontSize: 64, color: '#d9d9d9' }} />}
+              description={<Text type="secondary">选择或创建一个知识库</Text>}
+            />
+          </div>
         ) : (
           <>
+            <div style={{ marginBottom: 20, display: 'flex', alignItems: 'center', gap: 12 }}>
+              <Text strong style={{ fontSize: 18 }}>{selectedDataset.name}</Text>
+              <Badge count={documents.length} style={{ backgroundColor: '#1677ff' }}
+                overflowCount={999} showZero />
+            </div>
+
             <Upload.Dragger
               beforeUpload={(file) => { void handleUpload(file as unknown as File); return false }}
               showUploadList={false}
               accept=".pdf,.txt,.md,.doc,.docx,.csv"
-              style={{ marginBottom: 16 }}
+              disabled={uploading}
+              style={{ marginBottom: 20, background: '#fff' }}
             >
-              <p className="ant-upload-drag-icon"><InboxOutlined /></p>
-              <p className="ant-upload-text">点击或拖拽文件到此区域上传</p>
-              <p className="ant-upload-hint">支持 PDF、TXT、Markdown、Word、CSV 格式</p>
+              {uploading ? <Spin /> : (
+                <>
+                  <p className="ant-upload-drag-icon"><InboxOutlined /></p>
+                  <p className="ant-upload-text">点击或拖拽文件上传</p>
+                  <p className="ant-upload-hint">支持 PDF, TXT, MD, DOC, DOCX, CSV 格式</p>
+                </>
+              )}
             </Upload.Dragger>
+
             <Table<DocumentListItem>
               columns={docColumns}
               dataSource={documents}
               rowKey="documentId"
               loading={loadingDocs}
-              size="small"
-              pagination={false}
+              size="middle"
+              pagination={{ pageSize: 10, showSizeChanger: true, showTotal: total => `共 ${total} 条` }}
               locale={{ emptyText: <Empty description="暂无文档" image={Empty.PRESENTED_IMAGE_SIMPLE} /> }}
+              style={{ background: '#fff', borderRadius: 8 }}
             />
           </>
         )}
-      </Card>
+      </div>
 
-      {/* 创建知识库弹窗 */}
+      {/* Create dataset modal */}
       <Modal
         title="新建知识库"
         open={createModalOpen}
@@ -311,8 +342,13 @@ function KnowledgePage() {
           </Form.Item>
         </Form>
       </Modal>
+
+      {/* Hover style for delete button */}
+      <style>{`
+        .knowledge-dataset-item:hover .knowledge-delete-btn {
+          opacity: 1 !important;
+        }
+      `}</style>
     </div>
   )
 }
-
-export default KnowledgePage
