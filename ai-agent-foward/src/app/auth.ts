@@ -1,6 +1,10 @@
 const ACCESS_TOKEN_KEY = 'accessToken'
 
 export function isAuthenticated(): boolean {
+  // Debug mode: skip auth in development
+  if (import.meta.env.DEV) {
+    return true
+  }
   return Boolean(localStorage.getItem(ACCESS_TOKEN_KEY) || sessionStorage.getItem(ACCESS_TOKEN_KEY))
 }
 
