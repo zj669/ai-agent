@@ -23,6 +23,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 @Slf4j
@@ -106,6 +107,32 @@ public class HumanReviewController {
             configDTO.setEditableFields(config.getEditableFields());
         }
         dto.setConfig(configDTO);
+
+        // 填充上游各节点的输入输出
+        List<HumanReviewDTO.NodeContextDTO> upstreamNodes = execution.getGraph().getNodes().values().stream()
+                .filter(n -> {
+                    ExecutionStatus ns = execution.getNodeStatuses().get(n.getNodeId());
+                    return ns == ExecutionStatus.SUCCEEDED || n.getNodeId().equals(nodeId);
+                })
+                .map(n -> {
+                    Map<String, Object> nodeOutputs = execution.getContext().getNodeOutput(n.getNodeId());
+                    Map<String, Object> nodeInputs = null;
+                    try {
+                        nodeInputs = expressionResolver.resolveInputs(n.getInputs(), execution.getContext());
+                    } catch (Exception e) {
+                        log.debug("Failed to resolve inputs for node {}: {}", n.getNodeId(), e.getMessage());
+                    }
+                    return HumanReviewDTO.NodeContextDTO.builder()
+                            .nodeId(n.getNodeId())
+                            .nodeName(n.getName())
+                            .nodeType(n.getType().name())
+                            .status(execution.getNodeStatuses().getOrDefault(n.getNodeId(), ExecutionStatus.PENDING).name())
+                            .inputs(nodeInputs)
+                            .outputs(nodeOutputs)
+                            .build();
+                })
+                .collect(Collectors.toList());
+        dto.setUpstreamNodes(upstreamNodes);
 
         return ResponseEntity.ok(dto);
     }

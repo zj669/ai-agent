@@ -80,6 +80,19 @@ public class Execution {
     private TriggerPhase pausedPhase;
 
     /**
+     * 已通过人工审核的节点（避免恢复后重复暂停）
+     */
+    @Builder.Default
+    private Set<String> reviewedNodes = new HashSet<>();
+
+    /**
+     * 检查节点是否已通过人工审核
+     */
+    public boolean isNodeReviewed(String nodeId) {
+        return reviewedNodes != null && reviewedNodes.contains(nodeId);
+    }
+
+    /**
      * 乐观锁版本
      */
     @Builder.Default
@@ -145,6 +158,8 @@ public class Execution {
             this.status = ExecutionStatus.PAUSED_FOR_REVIEW;
             this.pausedNodeId = nodeId;
             this.pausedPhase = result.getTriggerPhase();
+            this.updatedAt = LocalDateTime.now();
+            this.version++;
             return Collections.emptyList();
         }
 
@@ -195,6 +210,9 @@ public class Execution {
         this.pausedPhase = null;
         this.updatedAt = LocalDateTime.now();
         this.version++;
+
+        // 标记节点已通过审核，避免重新调度时再次暂停
+        this.reviewedNodes.add(nodeId);
 
         Node pausedNode = graph.getNode(nodeId);
         if (pausedNode == null)

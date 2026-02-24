@@ -110,37 +110,37 @@
     - 测试重试逻辑（mock LLM 返回无效 ID → 重试 → 成功/失败）
     - _Requirements: 7.2, 7.3_
 
-- [-] 7. 实现旧模型兼容转换
-  - [ ] 7.1 在 WorkflowGraphFactoryImpl 中添加 convertLegacyEdgesToBranches 方法
+- [x] 7. 实现旧模型兼容转换
+  - [x] 7.1 在 WorkflowGraphFactoryImpl 中添加 convertLegacyEdgesToBranches 方法
     - 将旧 Edge 列表转换为 List\<ConditionBranch\>
     - CONDITIONAL 边 → 非 default 分支（尝试解析 SpEL 为 ConditionItem）
     - DEFAULT 边 → default 分支
     - 无法解析的 SpEL → 作为 default 处理并 log warn
     - _Requirements: 9.1, 9.2, 9.3_
-  - [ ] 7.2 在 NodeConfigConverter 中支持 branches 字段解析
+  - [x] 7.2 在 NodeConfigConverter 中支持 branches 字段解析
     - 确保 condition 节点的 userConfig 中 branches 字段被正确传递到 NodeConfig.properties
     - _Requirements: 1.1, 5.1_
-  - [ ] 7.3 编写 Property Test: 旧模型转换
+  - [x] 7.3 编写 Property Test: 旧模型转换
     - **Property 10: Legacy edge to branch conversion**
     - **Validates: Requirements 9.1, 9.2**
-  - [ ] 7.4 编写单元测试: 兼容转换边界情况
+  - [x] 7.4 编写单元测试: 兼容转换边界情况
     - 测试典型 SpEL 表达式转换（如 `#input > 100`）
     - 测试无法解析的复杂 SpEL 表达式降级为 default
     - 测试混合 CONDITIONAL + DEFAULT 边的转换
     - _Requirements: 9.1, 9.2, 9.3_
 
-- [ ] 8. 集成与蓝图同步
-  - [ ] 8.1 更新 SchedulerService 中条件节点的边注入逻辑
+- [x] 8. 集成与蓝图同步
+  - [x] 8.1 更新 SchedulerService 中条件节点的边注入逻辑
     - 确保 `__outgoingEdges__` 仍然注入（兼容旧模型）
     - 同时注入 `__context__` 供评估器使用
     - _Requirements: 8.1_
-  - [ ] 8.2 更新 `.blueprint/` 蓝图文件
+  - [x] 8.2 更新 `.blueprint/` 蓝图文件
     - 更新 `WorkflowEngine.md`: 新增 ConditionBranch/Group/Item 值对象描述，更新剪枝逻辑说明
     - 更新 `NodeExecutors.md`: 更新 ConditionNodeExecutorStrategy 设计，新增 StructuredConditionEvaluator
     - 更新 `_overview.md`: 新增 ConditionEvaluatorPort 端口
     - _Requirements: all_
 
-- [ ] 9. Final checkpoint - 确保所有测试通过
+- [x] 9. Final checkpoint - 确保所有测试通过
   - Ensure all tests pass, ask the user if questions arise.
 
 ## Notes

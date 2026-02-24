@@ -9,6 +9,7 @@ import {
   SettingOutlined,
   BellOutlined,
   LogoutOutlined,
+  ClusterOutlined,
 } from '@ant-design/icons'
 import { Outlet, useLocation, useNavigate } from 'react-router-dom'
 import { useState } from 'react'
@@ -24,7 +25,9 @@ const menuItems = [
   { key: '/agents', icon: <RobotOutlined />, label: 'Agent 管理' },
   { key: '/knowledge', icon: <BookOutlined />, label: '知识库' },
   { key: '/chat', icon: <MessageOutlined />, label: '智能对话' },
+  { key: '/swarm', icon: <ClusterOutlined />, label: '多Agent协作' },
   { key: '/reviews', icon: <AuditOutlined />, label: '审核中心' },
+  { key: '/llm-config', icon: <SettingOutlined />, label: '模型配置' },
 ]
 
 const breadcrumbMap: Record<string, string> = {
@@ -32,7 +35,9 @@ const breadcrumbMap: Record<string, string> = {
   '/agents': 'Agent 管理',
   '/knowledge': '知识库',
   '/chat': '智能对话',
+  '/swarm': '多Agent协作',
   '/reviews': '审核中心',
+  '/llm-config': '模型配置',
 }
 
 function AppShell() {

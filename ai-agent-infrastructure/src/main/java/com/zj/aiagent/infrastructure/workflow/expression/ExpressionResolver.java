@@ -94,7 +94,10 @@ public class ExpressionResolver implements ExpressionResolverPort {
         // 注册 sharedState
         evaluationContext.setVariable("sharedState", context.getSharedState());
 
-        // 注册所有节点输出
+        // 注册所有节点输出（两种方式访问）
+        // 1. 整体注册为 nodeOutputs map，支持 #nodeOutputs['llm-1']['response'] 语法
+        evaluationContext.setVariable("nodeOutputs", context.getNodeOutputs());
+        // 2. 逐个注册（仅对合法变量名有效，如 start, end）
         for (Map.Entry<String, Map<String, Object>> entry : context.getNodeOutputs().entrySet()) {
             evaluationContext.setVariable(entry.getKey(), entry.getValue());
         }

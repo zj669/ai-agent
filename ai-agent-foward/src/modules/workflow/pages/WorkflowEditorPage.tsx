@@ -19,7 +19,7 @@ import '@xyflow/react/dist/style.css'
 import { fetchWorkflowDetail, publishWorkflow, saveWorkflow, fetchNodeTemplates } from '../api/workflowService'
 import { validateConnection } from '../validation/validateConnection'
 import { validateWorkflowGraph } from '../validation/validateWorkflowGraph'
-import WorkflowNode, { type WorkflowNodeData, type WorkflowNodeType } from '../components/WorkflowNode'
+import WorkflowNode, { type WorkflowNodeData, type WorkflowNodeType, type SchemaPolicy, type FieldSchema } from '../components/WorkflowNode'
 import { useEditorStore } from '../stores/useEditorStore'
 import EditorHeader from '../components/EditorHeader'
 import AgentConfigPanel from '../components/AgentConfigPanel'
@@ -47,7 +47,7 @@ const INITIAL_NODES: Node[] = [
 
 function normalizeNodeType(input: unknown): WorkflowNodeType {
   const value = typeof input === 'string' ? input.toUpperCase() : ''
-  if (value === 'START' || value === 'END' || value === 'LLM' || value === 'CONDITION' || value === 'TOOL' || value === 'HTTP') {
+  if (value === 'START' || value === 'END' || value === 'LLM' || value === 'CONDITION' || value === 'TOOL' || value === 'HTTP' || value === 'KNOWLEDGE') {
     return value
   }
   return 'TOOL'
@@ -62,6 +62,10 @@ function mapGraphToFlowNodes(graph: Record<string, unknown>): Node[] {
       const id = typeof node.nodeId === 'string' ? node.nodeId : typeof node.id === 'string' ? node.id : `node-${index + 1}`
       const name = typeof node.nodeName === 'string' ? node.nodeName : typeof node.name === 'string' ? node.name : `节点-${index + 1}`
       const nodeType = normalizeNodeType(node.nodeType ?? node.type)
+      const userConfig = (node.userConfig && typeof node.userConfig === 'object') ? node.userConfig as Record<string, unknown> : {}
+      const policy = (node.policy && typeof node.policy === 'object') ? node.policy as SchemaPolicy : undefined
+      const inputSchema = Array.isArray(node.inputSchema) ? node.inputSchema as FieldSchema[] : undefined
+      const outputSchema = Array.isArray(node.outputSchema) ? node.outputSchema as FieldSchema[] : undefined
       const pos = node.position as Record<string, unknown> | undefined
       const x = typeof pos?.x === 'number' ? pos.x : 250
       const y = typeof pos?.y === 'number' ? pos.y : index * 150 + 50
@@ -69,7 +73,7 @@ function mapGraphToFlowNodes(graph: Record<string, unknown>): Node[] {
         id,
         type: 'workflowNode',
         position: { x, y },
-        data: { label: name, nodeType } satisfies WorkflowNodeData,
+        data: { label: name, nodeType, userConfig, policy, inputSchema, outputSchema } satisfies WorkflowNodeData,
       } as Node
     })
     .filter((n): n is Node => n !== null)
@@ -107,7 +111,10 @@ function buildGraphPayload(nodes: Node[], edges: Edge[]) {
         nodeName: d.label,
         nodeType: d.nodeType,
         position: { x: node.position.x, y: node.position.y },
-        userConfig: {},
+        policy: d.policy,
+        inputSchema: d.inputSchema,
+        outputSchema: d.outputSchema,
+        userConfig: d.userConfig ?? {},
       }
     }),
     edges: edges.map((edge) => ({
@@ -211,18 +218,30 @@ function WorkflowEditorPage() {
       })
 
       nodeCounter += 1
+      const ts = Date.now()
+      const ifBranchId = `branch-${ts}-0`
+      const elseBranchId = `else-${ts}`
       const newNode: Node = {
         id: `${nodeType.toLowerCase()}-${Date.now()}-${nodeCounter}`,
         type: 'workflowNode',
         position,
         data: (nodeType === 'CONDITION'
           ? {
-              label: `${nodeType} 节点`,
+              label: `条件节点`,
               nodeType,
               branches: [
-                { id: `branch-${Date.now()}-0`, name: '如果' },
-                { id: `else-${Date.now()}`, name: '否则' },
+                { id: ifBranchId, name: '如果' },
+                { id: elseBranchId, name: '否则' },
               ],
+              userConfig: {
+                conditionConfig: {
+                  routingStrategy: 'EXPRESSION',
+                  branches: [
+                    { id: ifBranchId, name: '如果', type: 'if', priority: 1, logic: 'AND', conditions: [{ sourceRef: '', operator: 'EQUALS', value: '', valueType: 'literal' }] },
+                    { id: elseBranchId, name: '否则', type: 'else', priority: 0, logic: 'AND', conditions: [] },
+                  ],
+                },
+              },
             }
           : { label: `${nodeType} 节点`, nodeType }) satisfies WorkflowNodeData,
       }

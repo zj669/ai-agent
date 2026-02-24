@@ -58,6 +58,20 @@
 - 链路作用: parseBranchesFromConfig() 返回 null 时触发 → convertLegacyEdgesToBranches() → 构建兼容分支列表 → 继续条件评估流程
 
 
+## 条件评估器实现
+
+### StructuredConditionEvaluator
+- 实现 `ConditionEvaluatorPort` 接口
+- 位置: `ai-agent-infrastructure/.../workflow/condition/StructuredConditionEvaluator.java`
+- 核心流程:
+  1. `validateBranches()` — 校验恰好一个 default 分支
+  2. 按 priority 升序排列非 default 分支
+  3. 逐个评估分支的 conditionGroups（多组间 AND 关系）
+  4. 每组内按 LogicalOperator（AND/OR）评估 ConditionItem
+  5. 首个命中的分支胜出，无命中返回 default
+- 变量解析: `resolveOperand()` 支持 `nodes.{nodeId}.{key}` 和 `inputs.{key}` 格式
+- 类型安全比较: `compareValues()` 基于 ComparisonOperator 执行，支持数值/字符串/布尔值
+
 ## 4) 变更记录
 - 2026-02-15: 后端MVP修复（分支选择）：legacy 条件边转换增强，非 default legacy 边优先转换为可评估 `ConditionGroup/ConditionItem`；仅在不可解析时降级 default 候选，降低误路由。
 - 2026-02-14: 统一重构为 Blueprint-Lite 最小结构，状态基线设为 `正常`，并保留原文关键语义摘要。

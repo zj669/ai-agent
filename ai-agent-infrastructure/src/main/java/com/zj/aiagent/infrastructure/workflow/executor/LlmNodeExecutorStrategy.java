@@ -71,9 +71,9 @@ public class LlmNodeExecutorStrategy implements NodeExecutorStrategy {
         return CompletableFuture.supplyAsync(() -> {
             try {
                 NodeConfig config = node.getConfig();
-                String model = config.getString("model");
-                String apiUrl = config.getString("baseUrl");
-                String apiKey = config.getString("apiKey");
+                String model = config.getString("llm_model") != null ? config.getString("llm_model") : config.getString("model");
+                String apiUrl = config.getString("llm_base_url") != null ? config.getString("llm_base_url") : config.getString("baseUrl");
+                String apiKey = config.getString("llm_api_key") != null ? config.getString("llm_api_key") : config.getString("apiKey");
 
                 if (!StringUtils.hasText(model) || !StringUtils.hasText(apiUrl) || !StringUtils.hasText(apiKey)) {
                     throw new IllegalStateException("LLM 节点缺少必要配置（model/baseUrl/apiKey），请在工作流编辑器中配置 LLM 节点参数");

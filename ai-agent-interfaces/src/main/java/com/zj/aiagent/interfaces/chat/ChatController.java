@@ -13,6 +13,7 @@ import com.zj.aiagent.interfaces.chat.dto.ConversationResponse;
 import com.zj.aiagent.interfaces.chat.dto.MessageResponse;
 import com.zj.aiagent.shared.context.UserContext;
 import com.zj.aiagent.shared.response.PageResult;
+import com.zj.aiagent.shared.response.Response;
 import lombok.Data;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -57,16 +58,16 @@ public class ChatController {
      * 创建会话
      */
     @PostMapping("/conversations")
-    public String createConversation(@RequestParam String agentId) {
+    public Response<String> createConversation(@RequestParam String agentId) {
         Long userId = UserContext.getUserId();
-        return chatApplicationService.createConversation(String.valueOf(userId), agentId);
+        return Response.success(chatApplicationService.createConversation(String.valueOf(userId), agentId));
     }
 
     /**
      * 获取会话列表
      */
     @GetMapping("/conversations")
-    public PageResult<ConversationResponse> getConversations(
+    public Response<PageResult<ConversationResponse>> getConversations(
             @RequestParam String agentId,
             @RequestParam(defaultValue = "1") int page,
             @RequestParam(defaultValue = "20") int size) {
@@ -79,14 +80,14 @@ public class ChatController {
                 .map(ConversationResponse::from)
                 .collect(Collectors.toList());
 
-        return new PageResult<>(result.getTotal(), result.getPages(), list);
+        return Response.success(new PageResult<>(result.getTotal(), result.getPages(), list));
     }
 
     /**
      * 获取会话消息历史
      */
     @GetMapping("/conversations/{conversationId}/messages")
-    public List<MessageResponse> getMessages(
+    public Response<List<MessageResponse>> getMessages(
             @PathVariable String conversationId,
             @RequestParam(defaultValue = "1") int page,
             @RequestParam(defaultValue = "50") int size,
@@ -97,9 +98,9 @@ public class ChatController {
         Pageable pageable = PageRequest.of(page - 1, size, Sort.by(direction, "createdAt"));
 
         List<Message> messages = chatApplicationService.getMessagesWithAuth(conversationId, userId, pageable);
-        return messages.stream()
+        return Response.success(messages.stream()
                 .map(MessageResponse::from)
-                .collect(Collectors.toList());
+                .collect(Collectors.toList()));
     }
 
     /**
@@ -142,6 +143,16 @@ public class ChatController {
                 String eventName = payload.getEventType() != null
                         ? payload.getEventType().name().toLowerCase() : "message";
                 emitter.send(SseEmitter.event().name(eventName).data(payload));
+                
+                // 当收到最终 FINISH 事件时，关闭 SSE 流
+                if ("finish".equals(eventName) && payload.getStatus() != null &&
+                    (payload.getStatus() == com.zj.aiagent.domain.workflow.valobj.ExecutionStatus.SUCCEEDED ||
+                     payload.getStatus() == com.zj.aiagent.domain.workflow.valobj.ExecutionStatus.FAILED)) {
+                    String nodeType = payload.getNodeType();
+                    if ("END".equals(nodeType) || nodeType == null) {
+                        emitter.complete();
+                    }
+                }
             } catch (IOException e) {
                 log.error("[Chat SSE] Error sending event: {}", e.getMessage());
                 emitter.completeWithError(e);

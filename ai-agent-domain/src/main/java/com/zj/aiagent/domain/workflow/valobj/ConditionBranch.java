@@ -1,5 +1,6 @@
 package com.zj.aiagent.domain.workflow.valobj;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -40,7 +41,12 @@ public class ConditionBranch {
 
     /**
      * 是否为默认分支（else）
+     * 注意：Lombok 对 boolean isXxx 字段生成 isXxx() getter，
+     * Jackson 会将其映射为 JSON 属性 "xxx"（去掉 is 前缀），
+     * 导致 JSON 中的 "isDefault" 无法正确反序列化。
+     * 必须用 @JsonProperty 显式指定 JSON 属性名。
      */
+    @JsonProperty("isDefault")
     private boolean isDefault;
 
     /**

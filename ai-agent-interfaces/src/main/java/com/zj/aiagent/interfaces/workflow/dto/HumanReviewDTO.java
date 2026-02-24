@@ -7,6 +7,7 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 import java.time.LocalDateTime;
+import java.util.List;
 import java.util.Map;
 
 public class HumanReviewDTO {
@@ -30,6 +31,21 @@ public class HumanReviewDTO {
         private TriggerPhase triggerPhase;
         private Map<String, Object> contextData;
         private HumanReviewConfigDTO config;
+        /** 上游各节点的输入输出 */
+        private List<NodeContextDTO> upstreamNodes;
+    }
+
+    @Data
+    @Builder
+    @NoArgsConstructor
+    @AllArgsConstructor
+    public static class NodeContextDTO {
+        private String nodeId;
+        private String nodeName;
+        private String nodeType;
+        private String status;
+        private Map<String, Object> inputs;
+        private Map<String, Object> outputs;
     }
 
     @Data

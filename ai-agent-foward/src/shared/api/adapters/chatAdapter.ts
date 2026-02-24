@@ -105,3 +105,51 @@ export async function stopWorkflowExecution(
   const response = await client.post<ApiResponse<null>>('/api/workflow/execution/stop', input)
   unwrapResponse(response)
 }
+
+/* ========== Human Review APIs ========== */
+
+export interface NodeContextData {
+  nodeId: string
+  nodeName: string
+  nodeType: string
+  status: string
+  inputs: Record<string, unknown> | null
+  outputs: Record<string, unknown> | null
+}
+
+export interface ReviewDetailData {
+  executionId: string
+  nodeId: string
+  nodeName: string
+  triggerPhase: 'BEFORE_EXECUTION' | 'AFTER_EXECUTION'
+  contextData: Record<string, unknown>
+  config: {
+    prompt?: string
+    editableFields?: string[]
+  }
+  upstreamNodes: NodeContextData[]
+}
+
+export interface ResumeExecutionInput {
+  executionId: string
+  nodeId: string
+  edits?: Record<string, unknown>
+  comment?: string
+}
+
+export async function getReviewDetail(
+  executionId: string,
+  client: ApiClientLike = apiClient
+): Promise<ReviewDetailData> {
+  const response = await client.get<ReviewDetailData>(
+    `/api/workflow/reviews/${executionId}`
+  )
+  return response.data
+}
+
+export async function resumeExecution(
+  input: ResumeExecutionInput,
+  client: ApiClientLike = apiClient
+): Promise<void> {
+  await client.post(`/api/workflow/reviews/resume`, input)
+}

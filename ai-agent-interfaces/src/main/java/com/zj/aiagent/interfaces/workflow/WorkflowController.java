@@ -64,6 +64,18 @@ public class WorkflowController {
                 emitter.send(SseEmitter.event()
                         .name(eventName)
                         .data(payload));
+                
+                // 当收到 FINISH 事件且状态为 SUCCEEDED 或 FAILED 时，关闭 SSE 流
+                if ("finish".equals(eventName) && payload.getStatus() != null &&
+                    (payload.getStatus() == com.zj.aiagent.domain.workflow.valobj.ExecutionStatus.SUCCEEDED ||
+                     payload.getStatus() == com.zj.aiagent.domain.workflow.valobj.ExecutionStatus.FAILED)) {
+                    // 检查是否是 END 节点或最终的 finish 事件
+                    String nodeType = payload.getNodeType();
+                    if ("END".equals(nodeType) || nodeType == null) {
+                        log.info("[SSE] Execution complete, closing emitter for: {}", executionId);
+                        emitter.complete();
+                    }
+                }
             } catch (IOException e) {
                 log.error("[SSE] Error sending event to emitter: {}", e.getMessage());
                 emitter.completeWithError(e);

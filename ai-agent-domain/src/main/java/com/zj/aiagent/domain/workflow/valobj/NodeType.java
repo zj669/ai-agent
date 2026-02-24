@@ -25,6 +25,11 @@ public enum NodeType {
     HTTP,
 
     /**
+     * 知识库检索节点
+     */
+    KNOWLEDGE,
+
+    /**
      * 条件路由节点
      */
     CONDITION,

@@ -64,6 +64,28 @@
 - 链路作用: 在 SchedulerService.onNodeComplete() 和 checkPause() 中调用，持久化执行状态。
 
 
+## 条件分支模型
+
+### 值对象层次
+- `ConditionBranch`: 条件分支，包含 priority（优先级）、targetNodeId（目标节点）、isDefault（是否默认）、conditionGroups（条件组列表）、description（描述）
+- `ConditionGroup`: 条件组，包含 operator（AND/OR 逻辑运算符）、conditions（条件项列表）
+- `ConditionItem`: 条件项，包含 leftOperand（左操作数，格式 `nodes.{nodeId}.{key}` 或 `inputs.{key}`）、operator（ComparisonOperator 枚举）、rightOperand（右操作数）
+- `ComparisonOperator`: 比较操作符枚举（EQUALS, NOT_EQUALS, CONTAINS, NOT_CONTAINS, GREATER_THAN, LESS_THAN, GREATER_THAN_OR_EQUAL, LESS_THAN_OR_EQUAL, IS_EMPTY, IS_NOT_EMPTY, STARTS_WITH, ENDS_WITH）
+- `LogicalOperator`: 逻辑运算符枚举（AND, OR）
+
+### 端口接口
+- `ConditionEvaluatorPort`: 条件评估端口，方法 `evaluate(List<ConditionBranch>, ExecutionContext) → ConditionBranch`，按 priority 升序评估非 default 分支，首个命中胜出，无命中返回 default
+
+### 剪枝逻辑（Execution.advance 中）
+- 条件节点选中分支后，`pruneUnselectedBranches` 直接比较 successor.getNodeId() 与 selectedBranchId，跳过未选中的直接后继
+- `skipNodeRecursively` 处理汇聚节点：单前驱直接递归跳过；多前驱（汇聚）节点仅当所有前驱都是 SKIPPED 时才跳过，有 PENDING 前驱则不跳过
+
+### 旧模型兼容
+- `WorkflowGraphFactoryImpl.convertLegacyEdgesToBranches`: 将旧 Edge 列表转换为 ConditionBranch 列表
+- DEFAULT 边 → isDefault=true 分支（priority=MAX_VALUE）
+- CONDITIONAL 边 → 尝试解析 SpEL 为 ConditionItem，失败则降级为 default
+- 支持的 SpEL 模式：`#var op value`（比较）、`#var.method('arg')`（方法调用）
+
 ## 4) 变更记录
 - 2026-02-15: 后端MVP修复（执行链路）：`Edge.isDefault` 收敛默认边判定；`Execution.createCheckpoint` 将 `PAUSED_FOR_REVIEW` 视为暂停点；`Execution.resume` 增加 `pausedNodeId` 一致性校验。
 - 2026-02-15: 后端MVP修复（调度链路）：`SchedulerService.checkPause` 仅在 `InterruptedException` 时设置线程中断标记；新增 `pauseExecution` 并通过 `scheduleNodes`/异步回调暂停门控阻断后续调度。

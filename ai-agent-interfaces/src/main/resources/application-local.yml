@@ -88,3 +88,10 @@ management:
   health:
     mail:
       enabled: false
+
+# 蜂群模式 LLM 默认配置
+llm:
+  default:
+    base-url: http://127.0.0.1:8317
+    api-key: your-api-key-1
+    model: gpt-5.3-codex

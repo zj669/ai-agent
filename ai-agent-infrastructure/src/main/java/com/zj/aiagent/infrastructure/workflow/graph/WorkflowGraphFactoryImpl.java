@@ -154,11 +154,18 @@ public class WorkflowGraphFactoryImpl implements WorkflowGraphFactory {
                 log.warn("[GraphFactory] sourceRef 格式不匹配, output 后缺少 key: sourceRef={}", sourceRef);
                 return sourceRef;
             }
-            return "#{#" + firstSegment + "['" + key + "']}";
+            // 对包含特殊字符的 nodeId 使用 nodeOutputs map 语法
+            if (firstSegment.matches("[a-zA-Z_][a-zA-Z0-9_]*")) {
+                return "#{#" + firstSegment + "['" + key + "']}";
+            }
+            return "#{#nodeOutputs['" + firstSegment + "']['" + key + "']}";
         }
 
         // 格式: <nodeId>.<key>
-        return "#{#" + firstSegment + "['" + rest + "']}";
+        if (firstSegment.matches("[a-zA-Z_][a-zA-Z0-9_]*")) {
+            return "#{#" + firstSegment + "['" + rest + "']}";
+        }
+        return "#{#nodeOutputs['" + firstSegment + "']['" + rest + "']}";
     }
 
     /**

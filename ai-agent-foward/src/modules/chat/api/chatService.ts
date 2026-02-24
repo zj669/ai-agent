@@ -3,9 +3,13 @@ import {
   getConversationList,
   getConversationMessages,
   stopWorkflowExecution,
+  getReviewDetail,
+  resumeExecution,
   type ConversationSummary,
   type MessageDTO,
-  type MessageStatus
+  type MessageStatus,
+  type ReviewDetailData,
+  type ResumeExecutionInput
 } from '../../../shared/api/adapters/chatAdapter'
 
 export type ChatConversation = ConversationSummary
@@ -36,6 +40,7 @@ export interface StartExecutionHandlers {
   onDelta?: (delta: string) => void
   onFinish?: () => void
   onError?: (message: string) => void
+  onPaused?: (executionId: string, nodeId: string) => void
 }
 
 const textDecoder = new TextDecoder()
@@ -144,6 +149,16 @@ export async function stopChatExecution(executionId: string): Promise<void> {
   await stopWorkflowExecution({ executionId })
 }
 
+export async function fetchReviewDetail(executionId: string): Promise<ReviewDetailData> {
+  return getReviewDetail(executionId)
+}
+
+export async function submitResumeExecution(input: ResumeExecutionInput): Promise<void> {
+  return resumeExecution(input)
+}
+
+export type { ReviewDetailData }
+
 export async function startChatStream(
   input: SendMessageInput,
   handlers: StartExecutionHandlers,
@@ -183,6 +198,9 @@ export async function startChatStream(
       const { done, value } = await reader.read()
 
       if (done) {
+        // 某些情况下服务端会直接关闭 SSE 连接而没有显式 finish 事件
+        // 这里兜底触发完成，避免前端一直停留在 STREAMING
+        handlers.onFinish?.()
         break
       }
 
@@ -225,6 +243,25 @@ function handleSseEvent(event: StartExecutionEvent, handlers: StartExecutionHand
   }
 
   if (event.event === 'update') {
+    // Check for custom JSON events (e.g., workflow_paused)
+    const payload = event.data?.payload as Record<string, unknown> | undefined
+    if (payload?.renderMode === 'JSON_EVENT' && typeof payload?.title === 'string') {
+      const eventTitle = payload.title
+      if (eventTitle === 'workflow_paused') {
+        try {
+          const content = typeof payload.content === 'string' ? JSON.parse(payload.content) : payload.content
+          const executionId = content?.executionId
+          const nodeId = content?.nodeId
+          if (typeof executionId === 'string' && typeof nodeId === 'string') {
+            handlers.onPaused?.(executionId, nodeId)
+          }
+        } catch {
+          // ignore parse errors
+        }
+      }
+      return
+    }
+
     const delta = extractDelta(event.data)
     if (delta) {
       handlers.onDelta?.(delta)
@@ -233,6 +270,21 @@ function handleSseEvent(event: StartExecutionEvent, handlers: StartExecutionHand
   }
 
   if (event.event === 'finish') {
+    // 仅在执行级完成事件或 END 节点完成时触发 onFinish
+    const nodeType = event.data?.nodeType
+    const status = event.data?.status
+    const executionComplete =
+      status === 'SUCCEEDED' ||
+      status === 'FAILED' ||
+      status === 'COMPLETED' ||
+      status === 'CANCELLED'
+    if (executionComplete || nodeType === 'END') {
+      handlers.onFinish?.()
+    }
+    return
+  }
+
+  if (event.event === 'execution_complete') {
     handlers.onFinish?.()
     return
   }
@@ -240,5 +292,13 @@ function handleSseEvent(event: StartExecutionEvent, handlers: StartExecutionHand
   if (event.event === 'error') {
     const message = event.data.message
     handlers.onError?.(typeof message === 'string' ? message : '流式执行失败')
+  }
+
+  if (event.event === 'workflow_paused') {
+    const executionId = event.data.executionId
+    const nodeId = event.data.nodeId
+    if (typeof executionId === 'string' && typeof nodeId === 'string') {
+      handlers.onPaused?.(executionId, nodeId)
+    }
   }
 }

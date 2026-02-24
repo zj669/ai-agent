@@ -11,6 +11,7 @@ const SELECTABLE_NODES: { type: WorkflowNodeType; label: string; icon: string; i
   { type: 'CONDITION',  label: '条件', icon: '🔀', iconBg: 'bg-cyan-500' },
   { type: 'TOOL',       label: '工具', icon: '🔧', iconBg: 'bg-blue-500' },
   { type: 'HTTP',       label: 'HTTP', icon: '🌐', iconBg: 'bg-violet-500' },
+  { type: 'KNOWLEDGE',  label: '知识库', icon: '📚', iconBg: 'bg-teal-500' },
 ]
 
 function NodeSelector({ onSelect, onClose }: NodeSelectorProps) {

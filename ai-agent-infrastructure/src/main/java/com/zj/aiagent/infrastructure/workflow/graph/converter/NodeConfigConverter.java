@@ -1,8 +1,10 @@
 package com.zj.aiagent.infrastructure.workflow.graph.converter;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.zj.aiagent.domain.workflow.config.HumanReviewConfig;
 import com.zj.aiagent.domain.workflow.config.NodeConfig;
 import com.zj.aiagent.domain.workflow.valobj.NodeType;
+import com.zj.aiagent.domain.workflow.valobj.TriggerPhase;
 import com.zj.aiagent.infrastructure.meta.mapper.NodeTemplateConfigMappingMapper;
 import com.zj.aiagent.infrastructure.meta.mapper.NodeTemplateMapper;
 import com.zj.aiagent.infrastructure.meta.mapper.SysConfigFieldDefMapper;
@@ -74,6 +76,35 @@ public class NodeConfigConverter {
 
         return NodeConfig.builder()
                 .properties(properties)
+                .humanReviewConfig(extractHumanReviewConfig(userConfig))
+                .build();
+    }
+
+    /**
+     * 从 userConfig 提取人工审核配置
+     */
+    private HumanReviewConfig extractHumanReviewConfig(Map<String, Object> userConfig) {
+        Object enabledVal = userConfig.get("human_pause_enabled");
+        boolean enabled = "true".equals(String.valueOf(enabledVal));
+        if (!enabled) {
+            return null;
+        }
+
+        String phaseStr = String.valueOf(userConfig.getOrDefault("human_pause_phase", "BEFORE_EXECUTION"));
+        TriggerPhase phase;
+        try {
+            phase = TriggerPhase.valueOf(phaseStr);
+        } catch (IllegalArgumentException e) {
+            phase = TriggerPhase.BEFORE_EXECUTION;
+        }
+
+        String prompt = userConfig.get("human_pause_prompt") != null
+                ? userConfig.get("human_pause_prompt").toString() : null;
+
+        return HumanReviewConfig.builder()
+                .enabled(true)
+                .triggerPhase(phase)
+                .prompt(prompt)
                 .build();
     }
 

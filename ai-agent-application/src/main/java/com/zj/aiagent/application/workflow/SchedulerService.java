@@ -288,7 +288,7 @@ public class SchedulerService {
                     .reviewerId(reviewerId)
                     .decision("APPROVE") // resume implies approve
                     .triggerPhase(pausedPhase)
-                    .modifiedData(edits != null ? edits.toString() : null) // Handle serialization better in real impl
+                    .modifiedData(edits != null ? serializeToJson(edits) : null)
                     .comment(comment)
                     .reviewedAt(java.time.LocalDateTime.now())
                     .build();
@@ -464,6 +464,13 @@ public class SchedulerService {
             return false;
         }
 
+        // 已通过审核的节点不再暂停
+        Execution exec = executionRepository.findById(executionId).orElse(null);
+        if (exec != null && exec.isNodeReviewed(node.getNodeId())) {
+            log.info("[Scheduler] Node {} already reviewed, skipping pause", node.getNodeId());
+            return false;
+        }
+
         HumanReviewConfig config = node.getConfig().getHumanReviewConfig();
         if (config.getTriggerPhase() != phase) {
             // Config default might be null or default to BEFORE?
@@ -593,6 +600,16 @@ public class SchedulerService {
                 
                 // 保存最终消息
                 onExecutionComplete(execution);
+                
+                // 发送 execution-level FINISH 事件，通知前端 SSE 流可以关闭
+                try {
+                    NodeExecutionResult finishResult = NodeExecutionResult.success(
+                        java.util.Map.of("status", execution.getStatus().name())
+                    );
+                    publisher.publishFinish(finishResult);
+                } catch (Exception ex) {
+                    log.warn("[Scheduler] Failed to publish execution finish event: {}", ex.getMessage());
+                }
                 return;
             }
 
@@ -810,7 +827,7 @@ public class SchedulerService {
     
     /**
      * 从 Execution 上下文直接提取最终响应
-     * 优先级: END 节点输出 > 最后一个节点输出
+     * 优先级: END 节点输出（通过 sourceRef 引用上游） > LLM 节点输出 > fallback
      */
     private String extractFinalResponseFromExecution(Execution execution) {
         try {
@@ -820,38 +837,48 @@ public class SchedulerService {
                 return "执行完成";
             }
             
-            // 1. 尝试获取 END 节点的输出
-            Map<String, Object> endNodeOutput = context.getNodeOutput("END");
-            if (endNodeOutput != null && !endNodeOutput.isEmpty()) {
-                log.info("[Scheduler] Found END node output in context: {}", endNodeOutput.keySet());
-                
-                // 提取响应字段
-                Object response = endNodeOutput.get("response");
-                if (response == null) response = endNodeOutput.get("text");
-                if (response == null) response = endNodeOutput.get("output");
-                if (response == null) response = endNodeOutput.get("result");
-                
-                if (response != null) {
-                    log.info("[Scheduler] Extracted response from END node context: {}", 
-                        response.toString().substring(0, Math.min(100, response.toString().length())));
-                    return response.toString();
-                } else {
-                    log.warn("[Scheduler] END node output exists but no response field. Keys: {}", 
-                        endNodeOutput.keySet());
+            // 1. 优先从 END 节点输出获取（按节点类型查找，避免硬编码 nodeId 大小写问题）
+            String endNodeId = null;
+            for (Map.Entry<String, ExecutionStatus> entry : execution.getNodeStatuses().entrySet()) {
+                String nid = entry.getKey();
+                Node n = execution.getGraph().getNode(nid);
+                if (n != null && n.getType() == NodeType.END) {
+                    endNodeId = nid;
+                    break;
                 }
-            } else {
-                log.warn("[Scheduler] No END node output found in context");
+            }
+
+            if (StringUtils.hasText(endNodeId)) {
+                Map<String, Object> endNodeOutput = context.getNodeOutput(endNodeId);
+                if (endNodeOutput != null && !endNodeOutput.isEmpty()) {
+                    for (Map.Entry<String, Object> outputEntry : endNodeOutput.entrySet()) {
+                        String key = outputEntry.getKey();
+                        if (key.startsWith("__")) continue;
+                        Object value = outputEntry.getValue();
+                        if (value != null && !value.toString().isEmpty()) {
+                            log.info("[Scheduler] Extracted response from END node output, nodeId={}, key={}, length={}",
+                                endNodeId, key, value.toString().length());
+                            return value.toString();
+                        }
+                    }
+                }
             }
             
-            // 2. 如果 END 节点没有输出，尝试获取最后执行的节点输出
-            // 从执行日志中找到最后一个节点
-            String logContent = context.getExecutionLogContent();
-            if (StringUtils.hasText(logContent)) {
-                String[] lines = logContent.split("\n");
-                if (lines.length > 0) {
-                    // 简单返回日志内容作为响应
-                    log.info("[Scheduler] Using execution log as fallback response");
-                    return logContent;
+            // 2. Fallback: 从 LLM 节点输出中提取
+            for (Map.Entry<String, ExecutionStatus> entry : execution.getNodeStatuses().entrySet()) {
+                String nid = entry.getKey();
+                Node node = execution.getGraph().getNode(nid);
+                if (node != null && node.getType() == NodeType.LLM) {
+                    Map<String, Object> llmOutput = context.getNodeOutput(nid);
+                    if (llmOutput != null) {
+                        Object response = llmOutput.get("response");
+                        if (response == null) response = llmOutput.get("text");
+                        if (response != null && !response.toString().isEmpty()) {
+                            log.info("[Scheduler] Extracted response from LLM node {}: length={}",
+                                nid, response.toString().length());
+                            return response.toString();
+                        }
+                    }
                 }
             }
             
@@ -1041,6 +1068,15 @@ public class SchedulerService {
             log.error("[Scheduler] Error extracting final response for execution {}: {}", 
                 executionId, e.getMessage(), e);
             return "执行完成";
+        }
+    }
+
+    private String serializeToJson(Map<String, Object> map) {
+        try {
+            return new com.fasterxml.jackson.databind.ObjectMapper().writeValueAsString(map);
+        } catch (Exception e) {
+            log.warn("[Scheduler] Failed to serialize map to JSON: {}", e.getMessage());
+            return "{}";
         }
     }
 }

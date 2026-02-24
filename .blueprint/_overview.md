@@ -35,6 +35,7 @@
 
 
 ## 4) 变更记录
+- 2026-02-23: 条件分支改造完成，新增 ConditionEvaluatorPort 端口、ConditionBranch/ConditionGroup/ConditionItem 值对象、StructuredConditionEvaluator 实现、旧模型兼容转换、剪枝逻辑修复。
 - 2026-02-14: 统一重构为 Blueprint-Lite 最小结构，状态基线设为 `正常`，并保留原文关键语义摘要。
 - 2026-02-14: 补全概念性流程方法，描述蓝图索引和状态校验的契约级功能，作为文档型蓝图的指导性说明。
 
