@@ -1,4 +1,4 @@
-import { Layout, Menu, Avatar, Dropdown, Breadcrumb, Badge, Space, Typography } from 'antd'
+import { Layout, Menu, Avatar, Dropdown, Breadcrumb, Badge, Space, Typography, ConfigProvider } from 'antd'
 import {
   DashboardOutlined,
   RobotOutlined,
@@ -18,7 +18,7 @@ const { Sider, Header, Content } = Layout
 const { Text } = Typography
 
 const SIDER_WIDTH = 220
-const SIDER_COLLAPSED_WIDTH = 80
+const SIDER_COLLAPSED_WIDTH = 64
 
 const menuItems = [
   { key: '/dashboard', icon: <DashboardOutlined />, label: '工作台' },
@@ -38,6 +38,24 @@ const breadcrumbMap: Record<string, string> = {
   '/swarm': '多Agent协作',
   '/reviews': '审核中心',
   '/llm-config': '模型配置',
+}
+
+/* Light-theme sider menu overrides */
+const siderMenuTheme = {
+  components: {
+    Menu: {
+      itemBg: 'transparent',
+      itemColor: '#344054',
+      itemHoverColor: '#2970FF',
+      itemHoverBg: '#EFF4FF',
+      itemSelectedColor: '#2970FF',
+      itemSelectedBg: '#EFF4FF',
+      iconSize: 16,
+      itemHeight: 40,
+      itemBorderRadius: 8,
+      itemMarginInline: 8,
+    },
+  },
 }
 
 function AppShell() {
@@ -62,21 +80,24 @@ function AppShell() {
 
   return (
     <Layout style={{ minHeight: '100vh' }}>
-      {/* Sider */}
+      {/* Sider — light theme */}
       <Sider
-        theme="dark"
+        theme="light"
         width={SIDER_WIDTH}
         collapsedWidth={SIDER_COLLAPSED_WIDTH}
         collapsible
         collapsed={collapsed}
         onCollapse={setCollapsed}
         breakpoint="lg"
-        style={{ background: '#001529' }}
+        style={{
+          background: '#fff',
+          borderRight: '1px solid #EAECF0',
+        }}
       >
         {/* Logo */}
         <div
           style={{
-            height: 64,
+            height: 56,
             display: 'flex',
             alignItems: 'center',
             justifyContent: collapsed ? 'center' : 'flex-start',
@@ -84,27 +105,24 @@ function AppShell() {
             cursor: 'pointer',
             overflow: 'hidden',
             whiteSpace: 'nowrap',
+            borderBottom: '1px solid #EAECF0',
           }}
           onClick={() => navigate('/dashboard')}
         >
           <RobotOutlined
             style={{
-              fontSize: 24,
-              background: 'linear-gradient(135deg, #1677ff, #722ed1)',
-              WebkitBackgroundClip: 'text',
-              WebkitTextFillColor: 'transparent',
+              fontSize: 22,
+              color: '#2970FF',
               flexShrink: 0,
             }}
           />
           {!collapsed && (
             <span
               style={{
-                marginLeft: 12,
-                fontSize: 18,
+                marginLeft: 10,
+                fontSize: 16,
                 fontWeight: 700,
-                background: 'linear-gradient(135deg, #1677ff, #722ed1)',
-                WebkitBackgroundClip: 'text',
-                WebkitTextFillColor: 'transparent',
+                color: '#101828',
               }}
             >
               AI Agent
@@ -113,14 +131,15 @@ function AppShell() {
         </div>
 
         {/* Navigation Menu */}
-        <Menu
-          theme="dark"
-          mode="inline"
-          selectedKeys={[location.pathname]}
-          items={menuItems}
-          onClick={({ key }) => navigate(key)}
-          style={{ borderRight: 'none' }}
-        />
+        <ConfigProvider theme={siderMenuTheme}>
+          <Menu
+            mode="inline"
+            selectedKeys={[location.pathname]}
+            items={menuItems}
+            onClick={({ key }) => navigate(key)}
+            style={{ borderRight: 'none', marginTop: 8 }}
+          />
+        </ConfigProvider>
 
         {/* Bottom User Area */}
         <div
@@ -134,17 +153,17 @@ function AppShell() {
             alignItems: 'center',
             justifyContent: collapsed ? 'center' : 'flex-start',
             gap: 10,
-            borderTop: '1px solid rgba(255,255,255,0.1)',
+            borderTop: '1px solid #EAECF0',
           }}
         >
-          <Avatar size={32} icon={<UserOutlined />} style={{ backgroundColor: '#1677ff', flexShrink: 0 }} />
+          <Avatar size={32} icon={<UserOutlined />} style={{ backgroundColor: '#2970FF', flexShrink: 0 }} />
           {!collapsed && (
             <>
-              <Text style={{ color: 'rgba(255,255,255,0.85)', flex: 1 }} ellipsis>
+              <Text style={{ color: '#344054', flex: 1 }} ellipsis>
                 管理员
               </Text>
               <SettingOutlined
-                style={{ color: 'rgba(255,255,255,0.45)', cursor: 'pointer', fontSize: 14 }}
+                style={{ color: '#667085', cursor: 'pointer', fontSize: 14 }}
                 onClick={() => navigate('/settings')}
               />
             </>
@@ -153,18 +172,18 @@ function AppShell() {
       </Sider>
 
       {/* Right Layout */}
-      <Layout>
+      <Layout style={{ background: '#F9FAFB' }}>
         {/* Header */}
         <Header
           style={{
-            height: 64,
+            height: 56,
             background: '#fff',
             padding: '0 24px',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'space-between',
-            boxShadow: '0 1px 4px rgba(0,0,0,0.08)',
-            zIndex: 1,
+            borderBottom: '1px solid #EAECF0',
+            lineHeight: '56px',
           }}
         >
           {/* Left: Breadcrumb */}
@@ -178,19 +197,19 @@ function AppShell() {
           {/* Right: Actions */}
           <Space size={16}>
             <Badge count={0} showZero={false}>
-              <BellOutlined style={{ fontSize: 18, cursor: 'pointer', color: '#595959' }} />
+              <BellOutlined style={{ fontSize: 18, cursor: 'pointer', color: '#667085' }} />
             </Badge>
             <Dropdown menu={userDropdownItems} placement="bottomRight" arrow>
               <Space style={{ cursor: 'pointer' }}>
-                <Avatar size={28} icon={<UserOutlined />} style={{ backgroundColor: '#1677ff' }} />
-                <Text style={{ color: '#595959' }}>管理员</Text>
+                <Avatar size={28} icon={<UserOutlined />} style={{ backgroundColor: '#2970FF' }} />
+                <Text style={{ color: '#344054' }}>管理员</Text>
               </Space>
             </Dropdown>
           </Space>
         </Header>
 
         {/* Content */}
-        <Content style={{ padding: 24, background: '#f5f7fa', overflow: 'auto' }}>
+        <Content style={{ padding: 24, background: '#F9FAFB', overflow: 'auto' }}>
           <Outlet />
         </Content>
       </Layout>
