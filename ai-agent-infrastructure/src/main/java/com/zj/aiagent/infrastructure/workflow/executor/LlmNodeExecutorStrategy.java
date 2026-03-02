@@ -3,6 +3,8 @@ package com.zj.aiagent.infrastructure.workflow.executor;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.zj.aiagent.domain.knowledge.service.KnowledgeRetrievalService;
+import com.zj.aiagent.domain.llm.entity.LlmProviderConfig;
+import com.zj.aiagent.domain.llm.repository.LlmProviderConfigRepository;
 import com.zj.aiagent.domain.workflow.config.NodeConfig;
 import com.zj.aiagent.domain.workflow.entity.Node;
 import com.zj.aiagent.domain.workflow.port.NodeExecutorStrategy;
@@ -50,16 +52,19 @@ public class LlmNodeExecutorStrategy implements NodeExecutorStrategy {
     private final ObjectMapper objectMapper;
     private final RestClient.Builder restClientBuilder;
     private final KnowledgeRetrievalService knowledgeRetrievalService;
+    private final LlmProviderConfigRepository llmProviderConfigRepository;
 
     public LlmNodeExecutorStrategy(
             @Qualifier("nodeExecutorThreadPool") Executor executor,
             @Qualifier("restClientBuilder1") RestClient.Builder restClientBuilder,
             ObjectMapper objectMapper,
-            KnowledgeRetrievalService knowledgeRetrievalService) {
+            KnowledgeRetrievalService knowledgeRetrievalService,
+            LlmProviderConfigRepository llmProviderConfigRepository) {
         this.executor = executor;
         this.restClientBuilder = restClientBuilder;
         this.objectMapper = objectMapper;
         this.knowledgeRetrievalService = knowledgeRetrievalService;
+        this.llmProviderConfigRepository = llmProviderConfigRepository;
     }
 
     @Override
@@ -71,18 +76,36 @@ public class LlmNodeExecutorStrategy implements NodeExecutorStrategy {
         return CompletableFuture.supplyAsync(() -> {
             try {
                 NodeConfig config = node.getConfig();
-                String model = config.getString("llm_model") != null ? config.getString("llm_model") : config.getString("model");
-                String apiUrl = config.getString("llm_base_url") != null ? config.getString("llm_base_url") : config.getString("baseUrl");
-                String apiKey = config.getString("llm_api_key") != null ? config.getString("llm_api_key") : config.getString("apiKey");
+
+                // 优先通过 llmConfigId 引用模型配置
+                String model;
+                String apiUrl;
+                String apiKey;
+                Long llmConfigId = config.getLong("llmConfigId");
+                if (llmConfigId != null) {
+                    LlmProviderConfig providerConfig = llmProviderConfigRepository.findById(llmConfigId)
+                            .orElseThrow(() -> new IllegalStateException("模型配置不存在（ID: " + llmConfigId + "），请在模型配置页面检查"));
+                    model = providerConfig.getModel();
+                    apiUrl = providerConfig.getBaseUrl();
+                    apiKey = providerConfig.getApiKey();
+                } else {
+                    // 兼容旧数据：直接从节点配置读取
+                    model = config.getString("llm_model") != null ? config.getString("llm_model") : config.getString("model");
+                    apiUrl = config.getString("llm_base_url") != null ? config.getString("llm_base_url") : config.getString("baseUrl");
+                    apiKey = config.getString("llm_api_key") != null ? config.getString("llm_api_key") : config.getString("apiKey");
+                }
 
                 if (!StringUtils.hasText(model) || !StringUtils.hasText(apiUrl) || !StringUtils.hasText(apiKey)) {
                     throw new IllegalStateException("LLM 节点缺少必要配置（model/baseUrl/apiKey），请在工作流编辑器中配置 LLM 节点参数");
                 }
 
+                // Spring AI OpenAiApi 会自动拼 /v1 前缀，去掉用户配置中多余的 /v1
+                String normalizedUrl = apiUrl.replaceAll("/v1/?$", "");
+
                 ChatClient.Builder chatClientBuilder = ChatClient.builder(OpenAiChatModel.builder()
                         .openAiApi(OpenAiApi.builder()
                                 .apiKey(apiKey)
-                                .baseUrl(apiUrl)
+                                .baseUrl(normalizedUrl)
                                 .restClientBuilder(restClientBuilder)
                                 .build())
                         .defaultOptions(OpenAiChatOptions.builder()
@@ -129,6 +152,7 @@ public class LlmNodeExecutorStrategy implements NodeExecutorStrategy {
 
                 // 构建输出
                 Map<String, Object> outputs = new HashMap<>();
+                outputs.put("llm_output", response); // 与 node template outputSchema key 一致
                 outputs.put("response", response);
                 outputs.put("text", response); // 兼容常用 key
 

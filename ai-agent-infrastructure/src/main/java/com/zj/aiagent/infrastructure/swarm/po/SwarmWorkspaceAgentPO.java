@@ -15,6 +15,7 @@ public class SwarmWorkspaceAgentPO {
     private Long workspaceId;
     private Long agentId;
     private String role;
+    private String description;
     private Long parentId;
     private String llmHistory;
     private String status;

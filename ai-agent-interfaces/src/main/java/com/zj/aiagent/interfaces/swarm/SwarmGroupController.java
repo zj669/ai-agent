@@ -10,6 +10,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.Map;
 
 @Slf4j
 @RestController
@@ -31,6 +32,16 @@ public class SwarmGroupController {
             @RequestParam(defaultValue = "false") boolean markRead,
             @RequestParam(required = false) Long readerId) {
         return Response.success(messageService.getMessages(gid, markRead, readerId));
+    }
+
+    @PostMapping("/api/swarm/workspace/{wid}/groups/p2p")
+    public Response<SwarmGroupDTO> createP2PGroup(
+            @PathVariable Long wid,
+            @RequestBody Map<String, Long> body) {
+        Long agentId1 = body.get("agentId1");
+        Long agentId2 = body.get("agentId2");
+        SwarmGroupDTO group = messageService.createP2PGroup(wid, agentId1, agentId2);
+        return Response.success(group);
     }
 
     @PostMapping("/api/swarm/group/{gid}/messages")

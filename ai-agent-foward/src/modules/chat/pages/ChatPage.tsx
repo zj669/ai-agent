@@ -25,10 +25,25 @@ import {
   fetchReviewDetail,
   submitResumeExecution,
   type ChatConversation,
-  type ChatMessage,
+  type ChatMessage as BaseChatMessage,
   type ReviewDetailData
 } from '../api/chatService'
 import { fetchAgentList, type AgentListItem } from '../../agent/api/agentService'
+import { getPendingReviews, type PendingReview } from '../../../shared/api/adapters/reviewAdapter'
+
+/** 思考步骤 */
+interface ThinkingStep {
+  nodeId: string
+  nodeName: string
+  nodeType: string
+  content: string
+  status: 'running' | 'done' | 'failed'
+}
+
+/** 扩展的聊天消息，包含思考步骤 */
+interface ChatMessage extends BaseChatMessage {
+  thinkingSteps?: ThinkingStep[]
+}
 
 const { Text } = Typography
 const { TextArea } = Input
@@ -75,6 +90,104 @@ function TypingDots() {
   )
 }
 
+/* ---- Node type icons ---- */
+const NODE_ICONS: Record<string, string> = {
+  LLM: '🧠', KNOWLEDGE: '📚', TOOL: '🔧', HTTP: '🌐', CONDITION: '🔀', START: '▶', END: '■',
+}
+
+/* ---- Thinking Steps Block ---- */
+function ThinkingStepItem({ step }: { step: ThinkingStep }) {
+  const [expanded, setExpanded] = useState(false)
+  const icon = NODE_ICONS[step.nodeType] ?? '⚙️'
+  const statusIcon = step.status === 'running' ? '⏳' : step.status === 'done' ? '✅' : '❌'
+
+  return (
+    <div
+      style={{
+        background: '#f8f9fa',
+        border: '1px solid #e8e8e8',
+        borderRadius: 8,
+        marginBottom: 6,
+        overflow: 'hidden',
+        transition: 'all 0.2s',
+      }}
+    >
+      <div
+        onClick={() => step.content && setExpanded(!expanded)}
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: 8,
+          padding: '8px 12px',
+          cursor: step.content ? 'pointer' : 'default',
+          userSelect: 'none',
+        }}
+      >
+        <span style={{ fontSize: 14 }}>{statusIcon}</span>
+        <span style={{ fontSize: 13 }}>{icon}</span>
+        <span style={{ fontSize: 13, fontWeight: 500, color: '#333', flex: 1 }}>{step.nodeName}</span>
+        {step.content && (
+          <span style={{ fontSize: 11, color: '#999', transform: expanded ? 'rotate(180deg)' : 'rotate(0)', transition: 'transform 0.2s' }}>▼</span>
+        )}
+      </div>
+      {expanded && step.content && (
+        <div style={{
+          padding: '0 12px 10px',
+          fontSize: 12,
+          color: '#555',
+          lineHeight: 1.6,
+          borderTop: '1px solid #f0f0f0',
+          maxHeight: 200,
+          overflowY: 'auto',
+          whiteSpace: 'pre-wrap',
+          wordBreak: 'break-word',
+        }}>
+          {step.content}
+        </div>
+      )}
+    </div>
+  )
+}
+
+function ThinkingStepsBlock({ steps, isStreaming }: { steps: ThinkingStep[]; isStreaming: boolean }) {
+  const [collapsed, setCollapsed] = useState(false)
+  const doneCount = steps.filter((s) => s.status === 'done').length
+  const totalCount = steps.length
+
+  return (
+    <div style={{ marginBottom: 8 }}>
+      <div
+        onClick={() => setCollapsed(!collapsed)}
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: 6,
+          padding: '6px 0',
+          cursor: 'pointer',
+          userSelect: 'none',
+        }}
+      >
+        {isStreaming && !collapsed ? (
+          <Spin size="small" />
+        ) : (
+          <span style={{ fontSize: 13 }}>💭</span>
+        )}
+        <span style={{ fontSize: 13, color: '#666', fontWeight: 500 }}>
+          {isStreaming ? '思考中...' : `已完成 ${doneCount}/${totalCount} 步`}
+        </span>
+        <span style={{ fontSize: 11, color: '#999', transform: collapsed ? 'rotate(0)' : 'rotate(180deg)', transition: 'transform 0.2s' }}>▼</span>
+      </div>
+      {!collapsed && (
+        <div style={{ paddingLeft: 4 }}>
+          {steps.map((step) => (
+            <ThinkingStepItem key={step.nodeId} step={step} />
+          ))}
+        </div>
+      )}
+    </div>
+  )
+}
+
 /* ---- Human Review Modal ---- */
 interface HumanReviewModalProps {
   open: boolean
@@ -100,15 +213,23 @@ function HumanReviewModal({ open, loading, detail, onClose, onResume }: HumanRev
   const [editValues, setEditValues] = useState<Record<string, string>>({})
   const [comment, setComment] = useState('')
 
+  const isBefore = detail?.triggerPhase === 'BEFORE_EXECUTION'
+  const nodes = detail?.nodes ?? []
+  const currentNode = nodes.find(n => n.nodeId === detail?.nodeId)
+  const completedNodes = nodes.filter(n => n.nodeId !== detail?.nodeId)
+  
+  // 当前节点的可编辑数据：BEFORE 使用 inputs，AFTER 使用 outputs
+  const currentNodeData = isBefore ? (currentNode?.inputs ?? {}) : (currentNode?.outputs ?? {})
+
   useEffect(() => {
-    if (detail?.contextData) {
+    if (currentNodeData && Object.keys(currentNodeData).length > 0) {
       const initial: Record<string, string> = {}
-      Object.entries(detail.contextData).forEach(([k, v]) => {
+      Object.entries(currentNodeData).forEach(([k, v]) => {
         initial[k] = formatValue(v)
       })
       setEditValues(initial)
     }
-  }, [detail])
+  }, [detail, isBefore])
 
   const handleOk = () => {
     const edits: Record<string, unknown> = {}
@@ -117,15 +238,6 @@ function HumanReviewModal({ open, loading, detail, onClose, onResume }: HumanRev
     })
     onResume(edits, comment)
   }
-
-  const editableSet = new Set(detail?.config?.editableFields ?? [])
-  const upstreamNodes = detail?.upstreamNodes ?? []
-  const currentNodeData = detail?.contextData ?? {}
-  const isBefore = detail?.triggerPhase === 'BEFORE_EXECUTION'
-
-  // Separate upstream (completed) nodes from current paused node
-  const completedNodes = upstreamNodes.filter(n => n.nodeId !== detail?.nodeId && n.status === 'SUCCEEDED')
-  const currentNode = upstreamNodes.find(n => n.nodeId === detail?.nodeId)
 
   return (
     <Modal
@@ -146,10 +258,6 @@ function HumanReviewModal({ open, loading, detail, onClose, onResume }: HumanRev
       destroyOnClose
       styles={{ body: { maxHeight: '70vh', overflowY: 'auto' } }}
     >
-      {detail?.config?.prompt && (
-        <Alert message={detail.config.prompt} type="info" showIcon style={{ marginBottom: 16 }} />
-      )}
-
       <div style={{ marginBottom: 12 }}>
         <Tag color={isBefore ? 'blue' : 'green'}>
           {isBefore ? '执行前暂停（审核输入）' : '执行后暂停（审核输出）'}
@@ -184,18 +292,15 @@ function HumanReviewModal({ open, loading, detail, onClose, onResume }: HumanRev
                   <Empty description="暂无数据" image={Empty.PRESENTED_IMAGE_SIMPLE} />
                 ) : (
                   Object.entries(currentNodeData).map(([key, val]) => {
-                    const isEditable = editableSet.size === 0 || editableSet.has(key)
                     return (
                       <div key={key} style={{ marginBottom: 12 }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 4 }}>
                           <Text strong style={{ fontSize: 12 }}>{key}</Text>
-                          {isEditable && <Tag color="blue" style={{ fontSize: 10 }}>可编辑</Tag>}
                         </div>
                         <Input.TextArea
                           value={editValues[key] ?? formatValue(val)}
                           onChange={(e) => setEditValues(prev => ({ ...prev, [key]: e.target.value }))}
                           autoSize={{ minRows: 2, maxRows: 10 }}
-                          disabled={!isEditable}
                           style={{ fontFamily: 'monospace', fontSize: 12 }}
                         />
                       </div>
@@ -320,6 +425,7 @@ function ChatPage() {
   const [reviewDetail, setReviewDetail] = useState<ReviewDetailData | null>(null)
   const [reviewLoading, setReviewLoading] = useState(false)
   const pausedExecutionRef = useRef<{ executionId: string; nodeId: string } | null>(null)
+  const [pendingReviewsForAgent, setPendingReviewsForAgent] = useState<PendingReview[]>([])
 
   // Load agent list
   useEffect(() => {
@@ -339,11 +445,19 @@ function ChatPage() {
       setConversations([])
       setActiveConversationId('')
       setMessages([])
+      setPendingReviewsForAgent([])
       return
     }
     void fetchConversationList(USER_ID, selectedAgentId)
       .then((data) => { setConversations(data); setListError('') })
       .catch(() => { setConversations([]); setListError('会话列表加载失败') })
+    // Also load pending reviews for this agent
+    void getPendingReviews()
+      .then((reviews) => {
+        const agentReviews = reviews.filter((r) => r.agentName === `Agent-${selectedAgentId}`)
+        setPendingReviewsForAgent(agentReviews)
+      })
+      .catch(() => setPendingReviewsForAgent([]))
   }, [selectedAgentId])
 
   // Load messages when conversation selected
@@ -375,6 +489,34 @@ function ChatPage() {
 
   const appendDelta = (id: string, delta: string) => {
     setMessages((cur) => cur.map((m) => m.id === id ? { ...m, content: m.content + delta, status: 'STREAMING' } : m))
+  }
+
+  const appendThought = (id: string, delta: string, nodeId: string, nodeName: string, nodeType: string) => {
+    setMessages((cur) => cur.map((m) => {
+      if (m.id !== id) return m
+      const steps = [...(m.thinkingSteps ?? [])]
+      const existing = steps.find((s) => s.nodeId === nodeId)
+      if (existing) {
+        existing.content += delta
+      } else {
+        steps.push({ nodeId, nodeName, nodeType, content: delta, status: 'running' })
+      }
+      return { ...m, thinkingSteps: steps }
+    }))
+  }
+
+  const updateNodeStatus = (id: string, nodeId: string, nodeName: string, nodeType: string, status: 'running' | 'done' | 'failed') => {
+    setMessages((cur) => cur.map((m) => {
+      if (m.id !== id) return m
+      const steps = [...(m.thinkingSteps ?? [])]
+      const existing = steps.find((s) => s.nodeId === nodeId)
+      if (existing) {
+        existing.status = status
+      } else if (status === 'running') {
+        steps.push({ nodeId, nodeName, nodeType, content: '', status: 'running' })
+      }
+      return { ...m, thinkingSteps: steps }
+    }))
   }
 
   const activeConversationIdRef = useRef(activeConversationId)
@@ -454,6 +596,9 @@ function ChatPage() {
         {
           onConnected: (id) => { executionIdRef.current = id; if (pendingStopRef.current) void submitStop() },
           onDelta: (d) => { if (!isStoppedRef.current && !hasStreamErrorRef.current) appendDelta(aId, d) },
+          onThought: (d, nid, name, ntype) => { if (!isStoppedRef.current && !hasStreamErrorRef.current) appendThought(aId, d, nid, name, ntype) },
+          onNodeStart: (nid, name, ntype) => { if (!isStoppedRef.current && !hasStreamErrorRef.current) updateNodeStatus(aId, nid, name, ntype, 'running') },
+          onNodeFinish: (nid, name, ntype, st) => { if (!isStoppedRef.current && !hasStreamErrorRef.current) updateNodeStatus(aId, nid, name, ntype, st === 'FAILED' ? 'failed' : 'done') },
           onFinish: () => { if (!isStoppedRef.current && !hasStreamErrorRef.current) finishMsg(aId, 'COMPLETED') },
           onError: (msg) => { hasStreamErrorRef.current = true; finishMsg(aId, 'FAILED'); setStreamError(msg) },
           onPaused: (eid, nid) => { void handlePaused(eid, nid) }
@@ -519,6 +664,9 @@ function ChatPage() {
       setReviewModalOpen(false)
       setReviewDetail(null)
       pausedExecutionRef.current = null
+
+      // Remove from pending list
+      setPendingReviewsForAgent((prev) => prev.filter((r) => r.executionId !== paused.executionId))
 
       // Add a system message to indicate resume
       const resumeMsg: ChatMessage = {
@@ -658,6 +806,39 @@ function ChatPage() {
 
             {/* Message area */}
             <div style={{ flex: 1, overflowY: 'auto', padding: '16px 20px' }}>
+              {/* Pending review banner */}
+              {pendingReviewsForAgent.length > 0 && !reviewModalOpen && (
+                <Alert
+                  type="warning"
+                  showIcon
+                  icon={<PauseCircleOutlined />}
+                  message={
+                    <span>
+                      有 {pendingReviewsForAgent.length} 个待审核项
+                      {pendingReviewsForAgent.map((r) => (
+                        <Button
+                          key={`${r.executionId}-${r.nodeId}`}
+                          type="link"
+                          size="small"
+                          onClick={async () => {
+                            pausedExecutionRef.current = { executionId: r.executionId, nodeId: r.nodeId }
+                            try {
+                              const detail = await fetchReviewDetail(r.executionId)
+                              setReviewDetail(detail)
+                              setReviewModalOpen(true)
+                            } catch {
+                              setStreamError('获取审核详情失败')
+                            }
+                          }}
+                        >
+                          查看 {r.nodeName}
+                        </Button>
+                      ))}
+                    </span>
+                  }
+                  style={{ marginBottom: 12 }}
+                />
+              )}
               {messages.length === 0 && (
                 <div style={{ textAlign: 'center', paddingTop: 80 }}>
                   <Empty description="发送消息开始对话" />
@@ -688,6 +869,10 @@ function ChatPage() {
                       <Avatar size={32} icon={<RobotOutlined />} style={{ background: '#1677ff', flexShrink: 0, marginTop: 2 }} />
                     )}
                     <div style={{ maxWidth: '70%' }}>
+                      {/* 思考步骤折叠区域 */}
+                      {!isUser && m.thinkingSteps && m.thinkingSteps.length > 0 && (
+                        <ThinkingStepsBlock steps={m.thinkingSteps} isStreaming={m.status === 'STREAMING'} />
+                      )}
                       <div style={{
                         padding: '10px 14px',
                         borderRadius: isUser ? '12px 12px 2px 12px' : '12px 12px 12px 2px',

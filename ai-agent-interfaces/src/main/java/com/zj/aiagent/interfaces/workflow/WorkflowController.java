@@ -46,8 +46,11 @@ public class WorkflowController {
      * 启动工作流执行 (Direct POST Streaming)
      * POST 请求建立连接并直接返回 SSE 流
      */
-    @PostMapping(value = "/start", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
-    public SseEmitter startExecution(@RequestBody StartExecutionRequest request) {
+    @PostMapping(value = "/start", produces = "text/event-stream;charset=UTF-8")
+    public SseEmitter startExecution(@RequestBody StartExecutionRequest request,
+                                     jakarta.servlet.http.HttpServletResponse response) {
+        // 强制 response 使用 UTF-8 编码，解决 SSE 中文乱码
+        response.setCharacterEncoding("UTF-8");
         log.info("[API] Starting execution stream for agent: {}", request.getAgentId());
 
         String executionId = UUID.randomUUID().toString();
@@ -63,7 +66,7 @@ public class WorkflowController {
 
                 emitter.send(SseEmitter.event()
                         .name(eventName)
-                        .data(payload));
+                        .data(payload, MediaType.APPLICATION_JSON));
                 
                 // 当收到 FINISH 事件且状态为 SUCCEEDED 或 FAILED 时，关闭 SSE 流
                 if ("finish".equals(eventName) && payload.getStatus() != null &&
@@ -108,7 +111,7 @@ public class WorkflowController {
         CompletableFuture.runAsync(() -> {
             try {
                 // 发送初始连接成功事件
-                emitter.send(SseEmitter.event().name("connected").data(Map.of("executionId", executionId)));
+                emitter.send(SseEmitter.event().name("connected").data(Map.of("executionId", executionId), MediaType.APPLICATION_JSON));
 
                 // 调用新的启动方法，由 SchedulerService 负责查询 Agent 和解析 WorkflowGraph
                 schedulerService.startExecution(
@@ -122,7 +125,7 @@ public class WorkflowController {
             } catch (Exception e) {
                 log.error("[API] Failed to start execution: {}", e.getMessage(), e);
                 try {
-                    emitter.send(SseEmitter.event().name("error").data(Map.of("message", e.getMessage())));
+                    emitter.send(SseEmitter.event().name("error").data(Map.of("message", e.getMessage()), MediaType.APPLICATION_JSON));
                     emitter.completeWithError(e);
                 } catch (IOException ex) {
                     // ignore

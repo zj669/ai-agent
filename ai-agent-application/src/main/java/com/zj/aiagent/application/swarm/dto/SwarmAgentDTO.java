@@ -12,6 +12,7 @@ public class SwarmAgentDTO {
     private Long workspaceId;
     private Long agentId;
     private String role;
+    private String description;
     private Long parentId;
     private String status;
     private LocalDateTime createdAt;

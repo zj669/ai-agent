@@ -5,4 +5,5 @@ import lombok.Data;
 @Data
 public class CreateWorkspaceRequest {
     private String name;
+    private Long llmConfigId;
 }

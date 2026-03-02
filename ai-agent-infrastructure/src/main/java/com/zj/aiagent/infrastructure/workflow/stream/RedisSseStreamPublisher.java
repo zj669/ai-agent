@@ -63,9 +63,18 @@ public class RedisSseStreamPublisher implements StreamPublisher {
 
         String content = null;
         if (result.getOutputs() != null) {
+            // 优先取 response/text，兼容 LLM 节点
             Object response = result.getOutputs().get("response");
             if (response == null) {
                 response = result.getOutputs().get("text");
+            }
+            // 兼容 END 节点：取 output 字段（最终结果）
+            if (response == null) {
+                response = result.getOutputs().get("output");
+            }
+            // 兜底：取 finalResult 字段
+            if (response == null) {
+                response = result.getOutputs().get("finalResult");
             }
             content = response != null ? response.toString() : null;
         }

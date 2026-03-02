@@ -6,6 +6,11 @@ interface UIStreamCallbacks {
   onMessageCreated?: (data: string) => void
   onLlmStart?: (data: string) => void
   onLlmDone?: (data: string) => void
+  onStreamStart?: (data: string) => void
+  onStreamChunk?: (data: string) => void
+  onStreamDone?: (data: string) => void
+  onWaiting?: (data: string) => void
+  onWaitingDone?: (data: string) => void
 }
 
 export function useUIStream(workspaceId: number | null, callbacks: UIStreamCallbacks) {
@@ -15,7 +20,10 @@ export function useUIStream(workspaceId: number | null, callbacks: UIStreamCallb
   useEffect(() => {
     if (!workspaceId) return
 
+    console.log('[SSE] connecting to workspace', workspaceId)
+
     const handler = (event: MessageEvent) => {
+      console.log('[SSE] event received:', event.type)
       const cb = callbacksRef.current
       switch (event.type) {
         case 'ui.agent.created':
@@ -30,10 +38,32 @@ export function useUIStream(workspaceId: number | null, callbacks: UIStreamCallb
         case 'ui.agent.llm.done':
           cb.onLlmDone?.(event.data)
           break
+        case 'ui.agent.stream.start':
+          cb.onStreamStart?.(event.data)
+          break
+        case 'ui.agent.stream.chunk':
+          cb.onStreamChunk?.(event.data)
+          break
+        case 'ui.agent.stream.done':
+          cb.onStreamDone?.(event.data)
+          break
+        case 'ui.agent.waiting':
+          cb.onWaiting?.(event.data)
+          break
+        case 'ui.agent.waiting.done':
+          cb.onWaitingDone?.(event.data)
+          break
       }
     }
 
     const es = subscribeUIStream(workspaceId, handler)
-    return () => es.close()
+
+    es.onopen = () => console.log('[SSE] connection opened, readyState:', es.readyState)
+    es.onerror = (e) => console.error('[SSE] connection error, readyState:', es.readyState, e)
+
+    return () => {
+      console.log('[SSE] disconnecting from workspace', workspaceId, new Error().stack)
+      es.close()
+    }
   }, [workspaceId])
 }

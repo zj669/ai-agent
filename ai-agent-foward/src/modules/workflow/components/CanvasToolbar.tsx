@@ -7,6 +7,7 @@ const TOOLBAR_ITEMS: { type: WorkflowNodeType; label: string; icon: string; colo
   { type: 'CONDITION', label: '条件', icon: '🔀', color: 'bg-amber-50 border-amber-200 text-amber-700' },
   { type: 'TOOL', label: '工具', icon: '🔧', color: 'bg-emerald-50 border-emerald-200 text-emerald-700' },
   { type: 'HTTP', label: 'HTTP', icon: '🌐', color: 'bg-violet-50 border-violet-200 text-violet-700' },
+  { type: 'KNOWLEDGE', label: '知识库', icon: '📚', color: 'bg-teal-50 border-teal-200 text-teal-700' },
 ]
 
 function CanvasToolbar() {

@@ -1,5 +1,5 @@
-import { useCallback } from 'react'
-import { ReactFlow, Background, Controls, MiniMap, type NodeTypes, type EdgeTypes } from '@xyflow/react'
+import { useCallback, useEffect, useRef } from 'react'
+import { ReactFlow, Background, Controls, MiniMap, type NodeTypes, type EdgeTypes, type ReactFlowInstance } from '@xyflow/react'
 import '@xyflow/react/dist/style.css'
 import GraphNodeComponent from './GraphNode'
 import GraphEdgeComponent from './GraphEdge'
@@ -23,10 +23,20 @@ interface Props {
 
 export default function SwarmGraph({ agents, graphEdges = [], onNodeClick }: Props) {
   const { nodes, edges } = useSwarmGraph(agents, graphEdges)
+  const rfInstance = useRef<ReactFlowInstance | null>(null)
+  const prevNodeCount = useRef(nodes.length)
 
   const handleNodeClick = useCallback((_: React.MouseEvent, node: { id: string }) => {
     onNodeClick?.(Number(node.id))
   }, [onNodeClick])
+
+  // 当节点数量变化时自动 fitView
+  useEffect(() => {
+    if (nodes.length !== prevNodeCount.current && rfInstance.current) {
+      prevNodeCount.current = nodes.length
+      setTimeout(() => rfInstance.current?.fitView({ duration: 300 }), 100)
+    }
+  }, [nodes.length])
 
   return (
     <div style={{ width: '100%', height: '100%' }}>
@@ -37,6 +47,7 @@ export default function SwarmGraph({ agents, graphEdges = [], onNodeClick }: Pro
         nodeTypes={nodeTypes}
         edgeTypes={edgeTypes}
         onNodeClick={handleNodeClick}
+        onInit={(instance) => { rfInstance.current = instance }}
         fitView
         proOptions={{ hideAttribution: true }}
         nodesDraggable

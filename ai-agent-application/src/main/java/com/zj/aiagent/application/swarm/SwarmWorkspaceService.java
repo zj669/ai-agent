@@ -37,6 +37,7 @@ public class SwarmWorkspaceService {
         SwarmWorkspace workspace = SwarmWorkspace.builder()
                 .name(request.getName())
                 .userId(userId)
+                .llmConfigId(request.getLlmConfigId())
                 .maxRoundsPerTurn(10)
                 .build();
         workspaceRepository.save(workspace);
@@ -152,6 +153,7 @@ public class SwarmWorkspaceService {
                         .workspaceId(a.getWorkspaceId())
                         .agentId(a.getAgentId())
                         .role(a.getRole())
+                        .description(a.getDescription())
                         .parentId(a.getParentId())
                         .status(a.getStatus() != null ? a.getStatus().getCode() : "IDLE")
                         .createdAt(a.getCreatedAt())
@@ -160,13 +162,14 @@ public class SwarmWorkspaceService {
     }
 
     /**
-     * 手动创建 Agent（人类操作）
+     * 创建 Agent（支持 description + 三方群：human + parent + 新agent）
      */
     @Transactional(rollbackFor = Exception.class)
-    public WorkspaceDefaultsDTO createAgent(Long workspaceId, String role, Long parentId) {
+    public WorkspaceDefaultsDTO createAgent(Long workspaceId, String role, Long parentId, String description) {
         SwarmAgent agent = SwarmAgent.builder()
                 .workspaceId(workspaceId)
                 .role(role)
+                .description(description)
                 .parentId(parentId)
                 .build();
         agentRepository.save(agent);
@@ -174,7 +177,7 @@ public class SwarmWorkspaceService {
         // emit UI event
         emitAgentCreated(workspaceId, agent);
 
-        // 如果有 parent，创建 P2P 群
+        // 创建任务群：parent + 新agent + human（三方群）
         Long groupId = null;
         if (parentId != null) {
             SwarmGroup group = SwarmGroup.builder()
@@ -184,6 +187,13 @@ public class SwarmWorkspaceService {
             groupRepository.save(group);
             groupRepository.addMember(group.getId(), parentId);
             groupRepository.addMember(group.getId(), agent.getId());
+
+            // 把 human 也加入群（三方群），让用户能看到对话并直接插话
+            agentRepository.findByWorkspaceId(workspaceId).stream()
+                    .filter(a -> "human".equals(a.getRole()))
+                    .findFirst()
+                    .ifPresent(human -> groupRepository.addMember(group.getId(), human.getId()));
+
             groupId = group.getId();
         }
 
@@ -270,6 +280,7 @@ public class SwarmWorkspaceService {
                         .workspaceId(a.getWorkspaceId())
                         .agentId(a.getAgentId())
                         .role(a.getRole())
+                        .description(a.getDescription())
                         .parentId(a.getParentId())
                         .status(a.getStatus() != null ? a.getStatus().getCode() : "IDLE")
                         .createdAt(a.getCreatedAt())

@@ -43,13 +43,13 @@ EMBEDDING_API_KEY: sk-ccf9acf852334b51bd914d42de7b6d01  # 请通过 IDE 环境�
 MAIL_HOST: smtp.qq.com
 MAIL_PORT: 465
 MAIL_USERNAME: 3218356902@qq.com
-MAIL_PASSWORD: lpwsqvvijxbided
+MAIL_PASSWORD: kgntyjxqfjtvdede
 
 # Redis配置 (Docker)
 # 密码: redis123
 # 注意: 使用 127.0.0.1 避免 IPv6 解析问题
 REDIS_HOST: 127.0.0.1
-REDIS_PORT: 16379
+REDIS_PORT: 6379
 REDIS_POOL_SIZE: 10
 REDIS_PASSWORD: redis123
 REDIS_MIN_IDLE_SIZE: 5
@@ -88,10 +88,3 @@ management:
   health:
     mail:
       enabled: false
-
-# 蜂群模式 LLM 默认配置
-llm:
-  default:
-    base-url: http://127.0.0.1:8317
-    api-key: your-api-key-1
-    model: gpt-5.3-codex

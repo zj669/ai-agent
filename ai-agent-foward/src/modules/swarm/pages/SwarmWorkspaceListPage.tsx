@@ -11,8 +11,8 @@ export default function SwarmWorkspaceListPage() {
   const { workspaces, loading, create, remove } = useSwarmWorkspace()
   const [modalOpen, setModalOpen] = useState(false)
 
-  const handleCreate = async (name: string) => {
-    const result = await create(name)
+  const handleCreate = async (name: string, llmConfigId: number) => {
+    const result = await create(name, llmConfigId)
     setModalOpen(false)
     message.success('创建成功')
     navigate(`/swarm/${result.workspaceId}`)

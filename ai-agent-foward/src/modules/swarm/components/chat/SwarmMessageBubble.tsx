@@ -1,4 +1,5 @@
 import { Typography } from 'antd'
+import ToolCallBadge from './ToolCallBadge'
 import type { SwarmMessage, SwarmAgent } from '../../types/swarm'
 
 const { Text } = Typography
@@ -16,6 +17,20 @@ export default function SwarmMessageBubble({ message, agents, humanAgentId }: Pr
   const sender = agents.find(a => a.id === message.senderId)
   const colorIndex = agents.findIndex(a => a.id === message.senderId)
   const color = AGENT_COLORS[colorIndex % AGENT_COLORS.length]
+
+  // tool_call 类型消息特殊渲染
+  const isToolCall = message.contentType === 'tool_call'
+  let toolData: { tool: string; args: string; result: string } | null = null
+  if (isToolCall) {
+    try {
+      const parsed = JSON.parse(message.content)
+      toolData = {
+        tool: parsed.tool,
+        args: typeof parsed.args === 'string' ? parsed.args : JSON.stringify(parsed.args, null, 2),
+        result: typeof parsed.result === 'string' ? parsed.result : JSON.stringify(parsed.result, null, 2),
+      }
+    } catch { /* fallback to plain text */ }
+  }
 
   return (
     <div style={{
@@ -41,16 +56,20 @@ export default function SwarmMessageBubble({ message, agents, humanAgentId }: Pr
             {sender?.role ?? `agent_${message.senderId}`}
           </Text>
         )}
-        <div style={{
-          padding: '8px 12px',
-          borderRadius: 8,
-          background: isHuman ? '#1677ff' : '#f0f0f0',
-          color: isHuman ? '#fff' : '#000',
-          wordBreak: 'break-word',
-          whiteSpace: 'pre-wrap',
-        }}>
-          {message.content}
-        </div>
+        {toolData ? (
+          <ToolCallBadge toolName={toolData.tool} args={toolData.args} result={toolData.result} />
+        ) : (
+          <div style={{
+            padding: '8px 12px',
+            borderRadius: 8,
+            background: isHuman ? '#1677ff' : '#f0f0f0',
+            color: isHuman ? '#fff' : '#000',
+            wordBreak: 'break-word',
+            whiteSpace: 'pre-wrap',
+          }}>
+            {message.content}
+          </div>
+        )}
       </div>
     </div>
   )

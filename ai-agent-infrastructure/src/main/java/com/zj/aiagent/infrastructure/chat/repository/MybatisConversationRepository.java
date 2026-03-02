@@ -115,18 +115,22 @@ public class MybatisConversationRepository implements ConversationRepository {
 
         // 根据 Pageable 的排序规则决定查询顺序
         // 默认按创建时间正序（历史记录从旧到新）
+        // 同一秒内的消息用 id（雪花算法，天然有序）作为二级排序
         if (pageable.getSort().isSorted()) {
             pageable.getSort().forEach(order -> {
                 if ("createdAt".equals(order.getProperty())) {
                     if (order.isAscending()) {
                         wrapper.orderByAsc(MessageDO::getCreatedAt);
+                        wrapper.orderByAsc(MessageDO::getId);
                     } else {
                         wrapper.orderByDesc(MessageDO::getCreatedAt);
+                        wrapper.orderByDesc(MessageDO::getId);
                     }
                 }
             });
         } else {
             wrapper.orderByAsc(MessageDO::getCreatedAt);
+            wrapper.orderByAsc(MessageDO::getId);
         }
 
         return messageMapper.selectPage(page, wrapper).getRecords().stream().map(doObj -> {

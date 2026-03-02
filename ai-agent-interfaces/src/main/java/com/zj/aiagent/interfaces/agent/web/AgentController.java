@@ -92,6 +92,20 @@ public class AgentController {
         return Response.success();
     }
 
+    @PostMapping("/delete")
+    public Response<Void> deleteAgentByPost(@RequestBody AgentRequest.DeleteAgentRequest req) {
+        Long userId = UserContext.getUserId();
+        if (userId == null) {
+            return Response.error(401, "Unauthorized");
+        }
+        AgentCommand.DeleteAgentCmd cmd = new AgentCommand.DeleteAgentCmd();
+        cmd.setId(req.getId());
+        cmd.setUserId(userId);
+
+        agentApplicationService.forceDeleteAgent(cmd);
+        return Response.success();
+    }
+
     /**
      * 删除指定版本
      */

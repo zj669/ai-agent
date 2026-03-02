@@ -212,7 +212,7 @@ export default function AgentListPage() {
                       key="delete"
                       title="确认删除"
                       description="删除后不可恢复，确定要删除该 Agent 吗？"
-                      onConfirm={() => void handleDelete(agent.id)}
+                      onConfirm={(e) => { e?.stopPropagation(); void handleDelete(agent.id) }}
                       okText="删除"
                       okButtonProps={{ danger: true }}
                       cancelText="取消"

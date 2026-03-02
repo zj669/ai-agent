@@ -46,7 +46,7 @@ public class SwarmUIEventBus {
     @Data
     @Builder
     public static class UIEvent {
-        private String type; // ui.agent.created, ui.message.created, ui.agent.llm.start, ui.agent.llm.done, ui.agent.tool_call.start, ui.agent.tool_call.done
+        private String type; // ui.agent.created, ui.message.created, ui.agent.llm.start, ui.agent.llm.done, ui.agent.tool_call.start, ui.agent.tool_call.done, ui.agent.stream.start, ui.agent.stream.chunk, ui.agent.stream.done
         private String data; // JSON payload
         private long timestamp;
     }

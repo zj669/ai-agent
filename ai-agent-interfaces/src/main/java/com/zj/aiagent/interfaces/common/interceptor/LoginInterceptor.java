@@ -59,21 +59,35 @@ public class LoginInterceptor implements HandlerInterceptor {
         String token = request.getHeader(HEADER_AUTHORIZATION);
         if (token != null && token.startsWith("Bearer ")) {
             String jwtToken = token.substring(7);
-            boolean jwtAuth = authStrategyFactory.getStrategy("JWT")
-                    .map(s -> s.authenticate(jwtToken))
-                    .orElse(false);
-            if (jwtAuth) {
-                // 从 Token 解析用户 ID 并设置上下文
-                Long userId = tokenService.getUserIdFromToken(jwtToken);
-                if (userId != null) {
-                    UserContext.setUserId(userId);
-                    log.debug("JWT Authentication successful for UserID: {}", userId);
-                    return true;
-                }
+            if (authenticateJwt(jwtToken, response)) {
+                return true;
+            }
+        }
+
+        // 3. Check query parameter token (for SSE/EventSource which can't set headers)
+        String queryToken = request.getParameter("token");
+        if (queryToken != null && !queryToken.isBlank()) {
+            if (authenticateJwt(queryToken, response)) {
+                return true;
             }
         }
 
         response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+        return false;
+    }
+
+    private boolean authenticateJwt(String jwtToken, HttpServletResponse response) {
+        boolean jwtAuth = authStrategyFactory.getStrategy("JWT")
+                .map(s -> s.authenticate(jwtToken))
+                .orElse(false);
+        if (jwtAuth) {
+            Long userId = tokenService.getUserIdFromToken(jwtToken);
+            if (userId != null) {
+                UserContext.setUserId(userId);
+                log.debug("JWT Authentication successful for UserID: {}", userId);
+                return true;
+            }
+        }
         return false;
     }
 

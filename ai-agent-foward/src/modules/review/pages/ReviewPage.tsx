@@ -97,9 +97,20 @@ export default function ReviewPage() {
       render: (v: string) => <Tag color="blue">{v || '-'}</Tag>,
     },
     {
-      title: '提交时间',
-      dataIndex: 'createdAt',
-      key: 'createdAt',
+      title: '审核阶段',
+      dataIndex: 'triggerPhase',
+      key: 'triggerPhase',
+      width: 120,
+      render: (v: string) => (
+        <Tag color={v === 'BEFORE_EXECUTION' ? 'orange' : 'green'}>
+          {v === 'BEFORE_EXECUTION' ? '执行前' : '执行后'}
+        </Tag>
+      ),
+    },
+    {
+      title: '暂停时间',
+      dataIndex: 'pausedAt',
+      key: 'pausedAt',
       width: 180,
       render: (v: string) => {
         try {

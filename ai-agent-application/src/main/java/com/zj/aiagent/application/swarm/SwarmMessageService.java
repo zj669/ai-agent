@@ -113,6 +113,46 @@ public class SwarmMessageService {
         }).collect(Collectors.toList());
     }
 
+    /**
+     * 创建 human-agent P2P 群（幂等：已存在则直接返回）
+     */
+    @Transactional(rollbackFor = Exception.class)
+    public SwarmGroupDTO createP2PGroup(Long workspaceId, Long agentId1, Long agentId2) {
+        // 先检查是否已存在
+        List<SwarmGroup> existingGroups = groupRepository.findByWorkspaceId(workspaceId);
+        for (SwarmGroup g : existingGroups) {
+            List<Long> memberIds = groupRepository.findMemberIds(g.getId());
+            if (memberIds.size() == 2 && memberIds.contains(agentId1) && memberIds.contains(agentId2)) {
+                return SwarmGroupDTO.builder()
+                        .id(g.getId())
+                        .workspaceId(g.getWorkspaceId())
+                        .name(g.getName())
+                        .memberIds(memberIds)
+                        .unreadCount(0)
+                        .contextTokens(g.getContextTokens())
+                        .build();
+            }
+        }
+
+        // 不存在则创建
+        SwarmGroup group = SwarmGroup.builder()
+                .workspaceId(workspaceId)
+                .name("p2p")
+                .build();
+        groupRepository.save(group);
+        groupRepository.addMember(group.getId(), agentId1);
+        groupRepository.addMember(group.getId(), agentId2);
+
+        return SwarmGroupDTO.builder()
+                .id(group.getId())
+                .workspaceId(workspaceId)
+                .name("p2p")
+                .memberIds(List.of(agentId1, agentId2))
+                .unreadCount(0)
+                .contextTokens(0)
+                .build();
+    }
+
     private SwarmMessageDTO toDTO(SwarmMessage msg) {
         return SwarmMessageDTO.builder()
                 .id(msg.getId())

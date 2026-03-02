@@ -60,6 +60,15 @@ public class AgentRequest {
     }
 
     /**
+     * 删除智能体请求
+     */
+    @Data
+    public static class DeleteAgentRequest {
+        @NotNull(message = "Agent ID required")
+        private Long id;
+    }
+
+    /**
      * 调试智能体请求
      */
     @Data

@@ -8,6 +8,7 @@ import {
   type ConversationSummary,
   type MessageDTO,
   type MessageStatus,
+  type ThoughtStepDTO,
   type ReviewDetailData,
   type ResumeExecutionInput
 } from '../../../shared/api/adapters/chatAdapter'
@@ -20,6 +21,7 @@ export interface ChatMessage {
   content: string
   status: MessageStatus
   createdAt: string
+  thinkingSteps?: { nodeId: string; nodeName: string; nodeType: string; content: string; status: 'running' | 'done' | 'failed' }[]
 }
 
 export interface SendMessageInput {
@@ -38,6 +40,9 @@ export interface StartExecutionEvent {
 export interface StartExecutionHandlers {
   onConnected?: (executionId: string) => void
   onDelta?: (delta: string) => void
+  onThought?: (delta: string, nodeId: string, nodeName: string, nodeType: string) => void
+  onNodeStart?: (nodeId: string, nodeName: string, nodeType: string) => void
+  onNodeFinish?: (nodeId: string, nodeName: string, nodeType: string, status: string) => void
   onFinish?: () => void
   onError?: (message: string) => void
   onPaused?: (executionId: string, nodeId: string) => void
@@ -125,6 +130,9 @@ export async function createChatConversation(userId: number, agentId: number): P
   return createConversation({ userId, agentId })
 }
 
+/** 角色排序权重：同一秒内 USER 在前，ASSISTANT 在后，SYSTEM 最后 */
+const ROLE_ORDER: Record<string, number> = { USER: 0, ASSISTANT: 1, SYSTEM: 2 }
+
 export async function fetchConversationMessages(userId: number, conversationId: string): Promise<ChatMessage[]> {
   const messages = await getConversationMessages({
     conversationId,
@@ -132,17 +140,55 @@ export async function fetchConversationMessages(userId: number, conversationId: 
     order: 'asc'
   })
 
-  return messages.map(toChatMessage)
+  const mapped = messages.map(toChatMessage)
+
+  // 后端按 createdAt 排序，但同一秒内 UUID 主键无序，
+  // 需要二次排序：同一秒内 USER 消息排在 ASSISTANT 前面
+  mapped.sort((a, b) => {
+    const ta = new Date(a.createdAt).getTime()
+    const tb = new Date(b.createdAt).getTime()
+    if (ta !== tb) return ta - tb
+    return (ROLE_ORDER[a.role] ?? 9) - (ROLE_ORDER[b.role] ?? 9)
+  })
+
+  return mapped
+}
+
+function mapThoughtStatus(status: string): 'running' | 'done' | 'failed' {
+  if (status === 'RUNNING') return 'running'
+  if (status === 'FAILED') return 'failed'
+  return 'done'
+}
+
+function flattenThoughtSteps(steps: ThoughtStepDTO[]): ChatMessage['thinkingSteps'] {
+  const result: NonNullable<ChatMessage['thinkingSteps']> = []
+  for (const step of steps) {
+    result.push({
+      nodeId: step.stepId ?? '',
+      nodeName: step.title ?? '',
+      nodeType: step.type ?? '',
+      content: step.content ?? '',
+      status: mapThoughtStatus(step.status),
+    })
+    if (step.children?.length) {
+      result.push(...(flattenThoughtSteps(step.children!) ?? []))
+    }
+  }
+  return result
 }
 
 function toChatMessage(message: MessageDTO): ChatMessage {
-  return {
+  const msg: ChatMessage = {
     id: message.id,
     role: message.role,
     content: message.content,
     status: message.status,
     createdAt: message.createdAt
   }
+  if (message.thoughtProcess?.length) {
+    msg.thinkingSteps = flattenThoughtSteps(message.thoughtProcess)
+  }
+  return msg
 }
 
 export async function stopChatExecution(executionId: string): Promise<void> {
@@ -242,6 +288,17 @@ function handleSseEvent(event: StartExecutionEvent, handlers: StartExecutionHand
     return
   }
 
+  if (event.event === 'start') {
+    const nodeId = event.data.nodeId as string | undefined
+    const nodeType = event.data.nodeType as string | undefined
+    const payload = event.data.payload as Record<string, unknown> | undefined
+    const nodeName = (payload?.title as string) ?? nodeId ?? ''
+    if (nodeId && nodeType) {
+      handlers.onNodeStart?.(nodeId, nodeName, nodeType)
+    }
+    return
+  }
+
   if (event.event === 'update') {
     // Check for custom JSON events (e.g., workflow_paused)
     const payload = event.data?.payload as Record<string, unknown> | undefined
@@ -264,21 +321,43 @@ function handleSseEvent(event: StartExecutionEvent, handlers: StartExecutionHand
 
     const delta = extractDelta(event.data)
     if (delta) {
-      handlers.onDelta?.(delta)
+      const isThought = payload?.isThought === true || payload?.renderMode === 'THOUGHT'
+      if (isThought) {
+        const nodeId = (event.data.nodeId as string) ?? ''
+        const nodeName = (payload?.title as string) ?? nodeId
+        const nodeType = (event.data.nodeType as string) ?? ''
+        handlers.onThought?.(delta, nodeId, nodeName, nodeType)
+      } else {
+        handlers.onDelta?.(delta)
+      }
     }
     return
   }
 
   if (event.event === 'finish') {
-    // 仅在执行级完成事件或 END 节点完成时触发 onFinish
-    const nodeType = event.data?.nodeType
-    const status = event.data?.status
-    const executionComplete =
-      status === 'SUCCEEDED' ||
-      status === 'FAILED' ||
-      status === 'COMPLETED' ||
-      status === 'CANCELLED'
-    if (executionComplete || nodeType === 'END') {
+    const nodeId = event.data.nodeId as string | undefined
+    const nodeType = event.data.nodeType as string | undefined
+    const status = event.data.status as string | undefined
+    const payload = event.data.payload as Record<string, unknown> | undefined
+    const nodeName = (payload?.title as string) ?? nodeId ?? ''
+
+    // 推送节点完成事件
+    if (nodeId && nodeType) {
+      handlers.onNodeFinish?.(nodeId, nodeName, nodeType, status ?? 'SUCCEEDED')
+    }
+
+    // END 节点完成时，把最终输出内容作为正文推送
+    if (nodeType === 'END') {
+      const content = payload?.content
+      if (typeof content === 'string' && content) {
+        handlers.onDelta?.(content)
+      }
+    }
+
+    // 仅在 END 节点完成 或 执行级完成事件（无 nodeId）时触发 onFinish
+    // 注意：status 是节点状态，不是执行状态，所以不能用 status 判断执行是否完成
+    const isExecutionLevelFinish = !nodeId
+    if (isExecutionLevelFinish || nodeType === 'END') {
       handlers.onFinish?.()
     }
     return

@@ -29,10 +29,8 @@ public class HumanReviewDTO {
         private String nodeId;
         private String nodeName;
         private TriggerPhase triggerPhase;
-        private Map<String, Object> contextData;
-        private HumanReviewConfigDTO config;
-        /** 上游各节点的输入输出 */
-        private List<NodeContextDTO> upstreamNodes;
+        /** 所有节点的输入输出（包含上游节点和当前节点） */
+        private List<NodeContextDTO> nodes;
     }
 
     @Data

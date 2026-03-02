@@ -25,6 +25,9 @@ export default function SwarmMainPage() {
   const [drawerOpen, setDrawerOpen] = useState(false)
 
   const { messages, load: loadMessages, send } = useSwarmMessages(selectedGroupId, humanAgentId ?? undefined)
+  const [streamingContent, setStreamingContent] = useState<string | null>(null)
+  const [streamingAgentId, setStreamingAgentId] = useState<number | null>(null)
+  const [waitingForAgent, setWaitingForAgent] = useState<number | null>(null)
 
   // 加载默认资源
   useEffect(() => {
@@ -37,29 +40,37 @@ export default function SwarmMainPage() {
   }, [wid])
 
   // 加载群组
-  useEffect(() => {
+  const loadGroups = useCallback(() => {
     if (!wid) return
     listGroups(wid).then(setGroups)
   }, [wid])
 
+  useEffect(() => { loadGroups() }, [loadGroups])
+
   // 选中 agent 时加载对应群消息
+  // 现在群是三方群（human + 主agent + 子agent），选中子agent时找到包含该agent的群即可
   useEffect(() => {
-    if (!selectedAgentId || !humanAgentId) return
-    // 找到 human 和 selected agent 的 P2P 群
+    if (!selectedAgentId || !humanAgentId || !wid) return
+    // 找到包含 human 和 selected agent 的群（三方群或P2P群都行）
     const group = groups.find(g =>
-      g.memberIds?.includes(humanAgentId) && g.memberIds?.includes(selectedAgentId) && g.memberIds.length === 2
+      g.memberIds?.includes(humanAgentId) && g.memberIds?.includes(selectedAgentId)
     )
     if (group) {
       setSelectedGroupId(group.id)
     }
-  }, [selectedAgentId, humanAgentId, groups])
+    // 如果没找到群，不再自动创建P2P群（三方群在后端创建agent时已建好）
+  }, [selectedAgentId, humanAgentId, groups, wid])
 
   // 加载消息
   useEffect(() => { loadMessages() }, [loadMessages])
 
   // SSE 实时更新
   useUIStream(wid, {
-    onAgentCreated: () => reloadAgents(),
+    onAgentCreated: (data) => {
+      console.log('[SSE] onAgentCreated fired, reloading agents and groups', data)
+      reloadAgents()
+      loadGroups()
+    },
     onMessageCreated: (data) => {
       try {
         const parsed = JSON.parse(data)
@@ -67,6 +78,49 @@ export default function SwarmMainPage() {
           loadMessages()
         }
       } catch { /* ignore */ }
+    },
+    onStreamStart: (data) => {
+      try {
+        const parsed = JSON.parse(data)
+        if (parsed.groupId === selectedGroupId) {
+          setStreamingContent('')
+          setStreamingAgentId(parsed.agentId)
+        }
+      } catch {}
+    },
+    onStreamChunk: (data) => {
+      try {
+        const parsed = JSON.parse(data)
+        if (parsed.groupId === selectedGroupId) {
+          setStreamingContent(prev => (prev ?? '') + parsed.chunk)
+        }
+      } catch {}
+    },
+    onStreamDone: (data) => {
+      try {
+        const parsed = JSON.parse(data)
+        if (parsed.groupId === selectedGroupId) {
+          setStreamingContent(null)
+          setStreamingAgentId(null)
+          loadMessages()
+        }
+      } catch {}
+    },
+    onWaiting: (data) => {
+      try {
+        const parsed = JSON.parse(data)
+        if (parsed.groupId === selectedGroupId) {
+          setWaitingForAgent(parsed.targetAgentId)
+        }
+      } catch {}
+    },
+    onWaitingDone: (data) => {
+      try {
+        const parsed = JSON.parse(data)
+        if (parsed.groupId === selectedGroupId) {
+          setWaitingForAgent(null)
+        }
+      } catch {}
     },
   })
 
@@ -76,9 +130,12 @@ export default function SwarmMainPage() {
   }, [humanAgentId, send])
 
   const handleSelectAgent = useCallback((agentId: number) => {
+    const agent = agents.find(a => a.id === agentId)
+    if (!agent || agent.role === 'human') return
     setSelectedAgentId(agentId)
-    setDrawerOpen(true)
-  }, [])
+  }, [agents])
+
+  const selectedAgentBusy = agents.find(a => a.id === selectedAgentId)?.status === 'BUSY'
 
   if (!wid) return <Spin />
 
@@ -104,6 +161,10 @@ export default function SwarmMainPage() {
             humanAgentId={humanAgentId ?? undefined}
             onSend={handleSend}
             selectedGroupId={selectedGroupId}
+            streamingContent={streamingContent}
+            streamingAgentId={streamingAgentId}
+            agentBusy={selectedAgentBusy}
+            waitingForAgent={waitingForAgent}
           />
         </Content>
       </Layout>

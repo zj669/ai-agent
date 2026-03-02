@@ -2,15 +2,19 @@ package com.zj.aiagent.application.swarm;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.zj.aiagent.application.swarm.runtime.SwarmAgentRunner;
-import com.zj.aiagent.application.swarm.runtime.SwarmToolExecutor;
+import com.zj.aiagent.application.swarm.runtime.SwarmTools;
+import com.zj.aiagent.domain.llm.entity.LlmProviderConfig;
+import com.zj.aiagent.domain.llm.repository.LlmProviderConfigRepository;
 import com.zj.aiagent.domain.swarm.entity.SwarmAgent;
 import com.zj.aiagent.domain.swarm.entity.SwarmWorkspace;
 import com.zj.aiagent.domain.swarm.repository.SwarmAgentRepository;
+import com.zj.aiagent.domain.swarm.repository.SwarmGroupRepository;
+import com.zj.aiagent.domain.swarm.repository.SwarmMessageRepository;
 import com.zj.aiagent.domain.swarm.repository.SwarmWorkspaceRepository;
 import com.zj.aiagent.domain.swarm.service.SwarmDomainService;
 import com.zj.aiagent.infrastructure.swarm.llm.SwarmLlmCaller;
 import com.zj.aiagent.infrastructure.swarm.sse.SwarmAgentEventBus;
-import com.zj.aiagent.infrastructure.swarm.tool.SwarmToolRegistry;
+import com.zj.aiagent.infrastructure.swarm.sse.SwarmUIEventBus;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -29,12 +33,16 @@ public class SwarmAgentRuntimeService {
 
     private final SwarmDomainService domainService;
     private final SwarmAgentRepository agentRepository;
+    private final SwarmGroupRepository groupRepository;
+    private final SwarmMessageRepository messageRepository;
     private final SwarmWorkspaceRepository workspaceRepository;
     private final SwarmLlmCaller llmCaller;
-    private final SwarmToolRegistry toolRegistry;
-    private final SwarmToolExecutor toolExecutor;
+    private final SwarmWorkspaceService workspaceService;
+    private final SwarmMessageService messageService;
     private final SwarmAgentEventBus agentEventBus;
+    private final SwarmUIEventBus uiEventBus;
     private final ObjectMapper objectMapper;
+    private final LlmProviderConfigRepository llmProviderConfigRepository;
 
     /** agentId -> runner */
     private final Map<Long, SwarmAgentRunner> runners = new ConcurrentHashMap<>();
@@ -52,10 +60,28 @@ public class SwarmAgentRuntimeService {
                 .map(SwarmWorkspace::getMaxRoundsPerTurn)
                 .orElse(10);
 
+        // 查 workspace 的 LLM 配置
+        LlmProviderConfig llmConfig = workspaceRepository.findById(agent.getWorkspaceId())
+                .map(SwarmWorkspace::getLlmConfigId)
+                .flatMap(configId -> configId != null ? llmProviderConfigRepository.findById(configId) : java.util.Optional.empty())
+                .orElse(null);
+
+        // 查 workspace 下 role=human 的 agent id
+        Long humanAgentId = agentRepository.findByWorkspaceId(agent.getWorkspaceId()).stream()
+                .filter(a -> "human".equals(a.getRole()))
+                .map(SwarmAgent::getId)
+                .findFirst()
+                .orElse(null);
+
+        // 为每个 agent 创建独立的 SwarmTools 实例
+        SwarmTools swarmTools = new SwarmTools(
+                workspaceService, messageService, agentRepository,
+                objectMapper, agent.getId(), agent.getWorkspaceId());
+
         SwarmAgentRunner runner = new SwarmAgentRunner(
-                agent, domainService, agentRepository,
-                llmCaller, toolRegistry, toolExecutor,
-                objectMapper, agentEventBus, maxRounds);
+                agent, domainService, agentRepository, groupRepository, messageRepository,
+                llmCaller, swarmTools,
+                objectMapper, agentEventBus, uiEventBus, maxRounds, humanAgentId, llmConfig);
 
         runners.put(agent.getId(), runner);
 
@@ -96,6 +122,12 @@ public class SwarmAgentRuntimeService {
             runner.stop();
             log.info("[Swarm] Stopped runner for agent {}", agentId);
         }
+        // 停止后唤醒父 agent
+        agentRepository.findById(agentId).ifPresent(agent -> {
+            if (agent.getParentId() != null) {
+                wakeAgent(agent.getParentId());
+            }
+        });
     }
 
     /**

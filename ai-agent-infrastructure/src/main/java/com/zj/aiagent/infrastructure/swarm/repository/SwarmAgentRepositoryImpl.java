@@ -69,6 +69,7 @@ public class SwarmAgentRepositoryImpl implements SwarmAgentRepository {
         po.setWorkspaceId(domain.getWorkspaceId());
         po.setAgentId(domain.getAgentId());
         po.setRole(domain.getRole());
+        po.setDescription(domain.getDescription());
         po.setParentId(domain.getParentId());
         po.setLlmHistory(domain.getLlmHistory());
         po.setStatus(domain.getStatus() != null ? domain.getStatus().getCode() : "IDLE");
@@ -82,6 +83,7 @@ public class SwarmAgentRepositoryImpl implements SwarmAgentRepository {
                 .workspaceId(po.getWorkspaceId())
                 .agentId(po.getAgentId())
                 .role(po.getRole())
+                .description(po.getDescription())
                 .parentId(po.getParentId())
                 .llmHistory(po.getLlmHistory())
                 .status(SwarmAgentStatus.fromCode(po.getStatus()))

@@ -92,6 +92,7 @@ function mapGraphToFlowEdges(graph: Record<string, unknown>): Edge[] {
         id: typeof edge.edgeId === 'string' ? edge.edgeId : typeof edge.id === 'string' ? edge.id : `edge-${index + 1}`,
         source,
         target,
+        type: 'custom',
       } as Edge
     })
     .filter((e): e is Edge => e !== null)
@@ -148,8 +149,15 @@ function WorkflowEditorPage() {
       setLoadMessage('Agent ID 无效，无法加载 workflow')
       return
     }
-    void fetchWorkflowDetail(numericAgentId)
-      .then((detail) => {
+
+    const loadAll = async () => {
+      try {
+        const [detail, templates] = await Promise.all([
+          fetchWorkflowDetail(numericAgentId),
+          fetchNodeTemplates(),
+        ])
+
+        store.setNodeTemplates(templates)
         store.setAgentInfo({
           agentName: detail.name,
           agentDescription: detail.description ?? '',
@@ -157,21 +165,44 @@ function WorkflowEditorPage() {
           version: detail.version,
         })
         setLoadMessage('')
+
         if (detail.graph && typeof detail.graph === 'object') {
-          const nextNodes = mapGraphToFlowNodes(detail.graph as Record<string, unknown>)
+          let nextNodes = mapGraphToFlowNodes(detail.graph as Record<string, unknown>)
           const nextEdges = mapGraphToFlowEdges(detail.graph as Record<string, unknown>)
+
+          // 用 template 的 initialSchema / defaultSchemaPolicy 补全缺失的 schema 和 policy
+          nextNodes = nextNodes.map((n) => {
+            const d = n.data as unknown as WorkflowNodeData
+            const tpl = templates.find((t) => t.typeCode === d.nodeType)
+            if (!tpl) return n
+            const initial = tpl.initialSchema as { inputSchema?: FieldSchema[]; outputSchema?: FieldSchema[] } | undefined
+            const defaultPolicy = tpl.defaultSchemaPolicy as SchemaPolicy | undefined
+            // 如果已有 schema 为空数组但 template 有 system 字段，用 template 的补全
+            const mergeSchema = (existing: FieldSchema[] | undefined, tplSchema: FieldSchema[] | undefined): FieldSchema[] => {
+              if (!existing || existing.length === 0) return tplSchema ?? []
+              // 补全缺失的 system 字段
+              const systemFields = (tplSchema ?? []).filter((f) => f.system && !existing.some((e) => e.key === f.key))
+              return systemFields.length > 0 ? [...existing, ...systemFields] : existing
+            }
+            const patched: WorkflowNodeData = {
+              ...d,
+              inputSchema: mergeSchema(d.inputSchema, initial?.inputSchema),
+              outputSchema: mergeSchema(d.outputSchema, initial?.outputSchema),
+              policy: d.policy ?? defaultPolicy,
+            }
+            return { ...n, data: patched }
+          })
+
           if (nextNodes.length > 0) setNodes(nextNodes)
           setEdges(nextEdges)
           store.markClean()
         }
-      })
-      .catch(() => {
+      } catch {
         setLoadMessage('workflow 加载失败，请稍后重试')
-      })
+      }
+    }
 
-    void fetchNodeTemplates()
-      .then((templates) => store.setNodeTemplates(templates))
-      .catch(() => {})
+    void loadAll()
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [numericAgentId, setNodes, setEdges])
 
@@ -217,6 +248,11 @@ function WorkflowEditorPage() {
         y: event.clientY - bounds.top,
       })
 
+      // 从 nodeTemplates 获取默认 schema 和 policy
+      const tpl = store.nodeTemplates.find((t) => t.typeCode === nodeType)
+      const initialSchema = tpl?.initialSchema as { inputSchema?: FieldSchema[]; outputSchema?: FieldSchema[] } | undefined
+      const policy = tpl?.defaultSchemaPolicy as SchemaPolicy | undefined
+
       nodeCounter += 1
       const ts = Date.now()
       const ifBranchId = `branch-${ts}-0`
@@ -233,6 +269,9 @@ function WorkflowEditorPage() {
                 { id: ifBranchId, name: '如果' },
                 { id: elseBranchId, name: '否则' },
               ],
+              policy,
+              inputSchema: initialSchema?.inputSchema ?? [],
+              outputSchema: initialSchema?.outputSchema ?? [],
               userConfig: {
                 conditionConfig: {
                   routingStrategy: 'EXPRESSION',
@@ -243,7 +282,13 @@ function WorkflowEditorPage() {
                 },
               },
             }
-          : { label: `${nodeType} 节点`, nodeType }) satisfies WorkflowNodeData,
+          : {
+              label: `${nodeType} 节点`,
+              nodeType,
+              policy,
+              inputSchema: initialSchema?.inputSchema ?? [],
+              outputSchema: initialSchema?.outputSchema ?? [],
+            }) satisfies WorkflowNodeData,
       }
       setNodes((nds) => [...nds, newNode])
       store.markDirty()
@@ -280,6 +325,8 @@ function WorkflowEditorPage() {
         agentId: numericAgentId,
         version: store.version,
         name: store.agentName,
+        description: store.agentDescription,
+        icon: store.agentIcon,
         graph: buildGraphPayload(nodes, edges),
       })
       store.setAgentInfo({ version: result.version })

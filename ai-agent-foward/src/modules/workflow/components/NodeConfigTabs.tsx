@@ -220,7 +220,7 @@ function NodeConfigTabs({
         ))}
       </div>
 
-      <div className="max-h-72 overflow-y-auto p-3">
+      <div className="nowheel max-h-72 overflow-y-auto p-3">
         {activeTab === 'input' && (
           <div className="space-y-2">
             {inputSchema.length === 0 ? <p className="text-xs text-slate-400">暂无输入字段</p> : inputSchema.map((field, i) => (

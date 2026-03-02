@@ -26,7 +26,7 @@ export default function GraphNode({ data }: { data: NodeData }) {
       border: `3px solid ${isHuman ? '#1677ff' : '#722ed1'}`,
       display: 'flex', flexDirection: 'column',
       alignItems: 'center', justifyContent: 'center',
-      cursor: 'pointer', position: 'relative',
+      cursor: isHuman ? 'default' : 'pointer', position: 'relative',
       boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
     }}>
       {/* 状态灯 */}
@@ -46,7 +46,6 @@ export default function GraphNode({ data }: { data: NodeData }) {
         position: 'absolute', bottom: -20,
         fontSize: 11, color: '#595959',
         whiteSpace: 'nowrap', textAlign: 'center',
-        maxWidth: 100, overflow: 'hidden', textOverflow: 'ellipsis',
       }}>
         {data.role}
       </div>

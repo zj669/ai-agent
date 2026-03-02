@@ -973,9 +973,11 @@ public class SchedulerService {
     private String mapExecutionStatus(Integer status) {
         if (status == null) return "UNKNOWN";
         switch (status) {
-            case 0: return "RUNNING";
-            case 1: return "SUCCESS";
-            case 2: return "FAILED";
+            case 0: return "PENDING";
+            case 1: return "RUNNING";
+            case 2: return "SUCCESS";
+            case 3: return "FAILED";
+            case 4: return "SKIPPED";
             default: return "UNKNOWN";
         }
     }

@@ -244,7 +244,7 @@ function WorkflowNode({ id, data, selected }: WorkflowNodeProps) {
       {isExpanded && canExpand && (
         <div className="border-t border-slate-200">
           {isCondition && conditionConfig ? (
-            <div className="p-3 max-h-80 overflow-y-auto">
+            <div className="nowheel p-3 max-h-80 overflow-y-auto">
               <ConditionBranchEditor
                 config={conditionConfig}
                 onChange={handleConditionConfigChange}

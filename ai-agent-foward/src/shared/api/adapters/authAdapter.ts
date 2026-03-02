@@ -36,3 +36,20 @@ export async function login(input: LoginRequest, client: ApiClientLike = apiClie
   const response = await client.post<ApiResponse<LoginDataDTO>>('/client/user/login', input)
   return unwrapResponse(response)
 }
+
+export async function sendEmailCode(email: string, client: ApiClientLike = apiClient): Promise<void> {
+  const response = await client.post<ApiResponse<null>>('/client/user/email/sendCode', { email })
+  unwrapResponse(response)
+}
+
+interface RegisterRequest {
+  email: string
+  code: string
+  password: string
+  username?: string
+}
+
+export async function register(input: RegisterRequest, client: ApiClientLike = apiClient): Promise<AuthSession> {
+  const response = await client.post<ApiResponse<LoginDataDTO>>('/client/user/email/register', input)
+  return unwrapResponse(response)
+}

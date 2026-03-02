@@ -18,8 +18,8 @@ export function useSwarmWorkspace() {
 
   useEffect(() => { load() }, [load])
 
-  const create = useCallback(async (name: string): Promise<WorkspaceDefaults> => {
-    const result = await createWorkspace(name)
+  const create = useCallback(async (name: string, llmConfigId: number): Promise<WorkspaceDefaults> => {
+    const result = await createWorkspace(name, llmConfigId)
     await load()
     return result
   }, [load])

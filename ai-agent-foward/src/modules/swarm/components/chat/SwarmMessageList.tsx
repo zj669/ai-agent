@@ -7,14 +7,16 @@ interface Props {
   messages: SwarmMessage[]
   agents: SwarmAgent[]
   humanAgentId?: number
+  streamingContent?: string | null
+  streamingAgentId?: number | null
 }
 
-export default function SwarmMessageList({ messages, agents, humanAgentId }: Props) {
+export default function SwarmMessageList({ messages, agents, humanAgentId, streamingContent, streamingAgentId }: Props) {
   const bottomRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
-  }, [messages.length])
+  }, [messages.length, streamingContent])
 
   if (messages.length === 0) {
     return <Empty description="暂无消息" style={{ marginTop: 40 }} />
@@ -30,6 +32,20 @@ export default function SwarmMessageList({ messages, agents, humanAgentId }: Pro
           humanAgentId={humanAgentId}
         />
       ))}
+      {streamingContent !== null && streamingContent !== undefined && streamingAgentId && (
+        <SwarmMessageBubble
+          message={{
+            id: -1,
+            groupId: 0,
+            senderId: streamingAgentId,
+            content: streamingContent + '▌',
+            contentType: 'text',
+            sendTime: new Date().toISOString(),
+          }}
+          agents={agents}
+          humanAgentId={humanAgentId}
+        />
+      )}
       <div ref={bottomRef} />
     </div>
   )

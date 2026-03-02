@@ -44,8 +44,9 @@ public class SwarmToolExecutor {
 
     private String executeCreate(JsonNode args, SwarmAgent caller) throws Exception {
         String role = args.has("role") ? args.get("role").asText() : "assistant";
+        String description = args.has("description") ? args.get("description").asText() : null;
         WorkspaceDefaultsDTO result = workspaceService.createAgent(
-                caller.getWorkspaceId(), role, caller.getId());
+                caller.getWorkspaceId(), role, caller.getId(), description);
         return objectMapper.writeValueAsString(result);
     }
 
@@ -64,7 +65,7 @@ public class SwarmToolExecutor {
 
         if (groupId == null) {
             WorkspaceDefaultsDTO newAgent = workspaceService.createAgent(
-                    caller.getWorkspaceId(), "p2p", caller.getId());
+                    caller.getWorkspaceId(), "p2p", caller.getId(), null);
             groupId = newAgent.getDefaultGroupId();
         }
 

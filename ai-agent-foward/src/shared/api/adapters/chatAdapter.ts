@@ -19,11 +19,22 @@ export interface ConversationListData {
 export type MessageRole = 'USER' | 'ASSISTANT' | 'SYSTEM'
 export type MessageStatus = 'PENDING' | 'STREAMING' | 'COMPLETED' | 'FAILED'
 
+export interface ThoughtStepDTO {
+  stepId: string
+  title: string
+  content: string
+  durationMs: number | null
+  status: string // RUNNING, SUCCESS, FAILED
+  type: string | null
+  children: ThoughtStepDTO[] | null
+}
+
 export interface MessageDTO {
   id: string
   conversationId: string
   role: MessageRole
   content: string
+  thoughtProcess: ThoughtStepDTO[] | null
   status: MessageStatus
   createdAt: string
 }
@@ -122,12 +133,7 @@ export interface ReviewDetailData {
   nodeId: string
   nodeName: string
   triggerPhase: 'BEFORE_EXECUTION' | 'AFTER_EXECUTION'
-  contextData: Record<string, unknown>
-  config: {
-    prompt?: string
-    editableFields?: string[]
-  }
-  upstreamNodes: NodeContextData[]
+  nodes: NodeContextData[]
 }
 
 export interface ResumeExecutionInput {

@@ -81,7 +81,8 @@ describe('chatAdapter', () => {
         role: 'USER',
         content: 'hello',
         status: 'COMPLETED',
-        createdAt: '2026-02-21T00:00:00'
+        createdAt: '2026-02-21T00:00:00',
+        thoughtProcess: null
       }
     ]
 

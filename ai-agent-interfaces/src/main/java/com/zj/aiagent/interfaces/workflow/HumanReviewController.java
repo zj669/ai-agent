@@ -84,9 +84,9 @@ public class HumanReviewController {
 
         String nodeId = execution.getPausedNodeId();
         Node node = execution.getGraph().getNode(nodeId);
-        TriggerPhase phase = execution.getPausedPhase();
-        if (phase == null)
-            phase = TriggerPhase.AFTER_EXECUTION;
+        final TriggerPhase phase = execution.getPausedPhase() != null 
+            ? execution.getPausedPhase() 
+            : TriggerPhase.AFTER_EXECUTION;
 
         HumanReviewDTO.ReviewDetailDTO dto = new HumanReviewDTO.ReviewDetailDTO();
         dto.setExecutionId(executionId);
@@ -94,34 +94,37 @@ public class HumanReviewController {
         dto.setNodeName(node.getName());
         dto.setTriggerPhase(phase);
 
-        if (phase == TriggerPhase.BEFORE_EXECUTION) {
-            dto.setContextData(expressionResolver.resolveInputs(node.getInputs(), execution.getContext()));
-        } else {
-            dto.setContextData(execution.getContext().getNodeOutput(nodeId));
-        }
-
-        HumanReviewConfig config = node.getConfig().getHumanReviewConfig();
-        HumanReviewDTO.HumanReviewConfigDTO configDTO = new HumanReviewDTO.HumanReviewConfigDTO();
-        if (config != null) {
-            configDTO.setPrompt(config.getPrompt());
-            configDTO.setEditableFields(config.getEditableFields());
-        }
-        dto.setConfig(configDTO);
-
-        // 填充上游各节点的输入输出
-        List<HumanReviewDTO.NodeContextDTO> upstreamNodes = execution.getGraph().getNodes().values().stream()
+        // 收集所有需要展示的节点：上游已成功节点 + 当前暂停节点
+        List<HumanReviewDTO.NodeContextDTO> nodes = execution.getGraph().getNodes().values().stream()
                 .filter(n -> {
                     ExecutionStatus ns = execution.getNodeStatuses().get(n.getNodeId());
+                    // 包含已成功的节点 + 当前暂停的节点
                     return ns == ExecutionStatus.SUCCEEDED || n.getNodeId().equals(nodeId);
                 })
                 .map(n -> {
-                    Map<String, Object> nodeOutputs = execution.getContext().getNodeOutput(n.getNodeId());
+                    boolean isCurrentNode = n.getNodeId().equals(nodeId);
                     Map<String, Object> nodeInputs = null;
+                    Map<String, Object> nodeOutputs = null;
+
                     try {
+                        // 所有节点都展示输入
                         nodeInputs = expressionResolver.resolveInputs(n.getInputs(), execution.getContext());
                     } catch (Exception e) {
                         log.debug("Failed to resolve inputs for node {}: {}", n.getNodeId(), e.getMessage());
                     }
+
+                    if (isCurrentNode) {
+                        // 当前暂停节点：根据 phase 决定是否展示输出
+                        if (phase == TriggerPhase.AFTER_EXECUTION) {
+                            // 执行后暂停：展示输出
+                            nodeOutputs = execution.getContext().getNodeOutput(n.getNodeId());
+                        }
+                        // BEFORE_EXECUTION：不展示输出（还没执行）
+                    } else {
+                        // 上游节点：展示输出
+                        nodeOutputs = execution.getContext().getNodeOutput(n.getNodeId());
+                    }
+
                     return HumanReviewDTO.NodeContextDTO.builder()
                             .nodeId(n.getNodeId())
                             .nodeName(n.getName())
@@ -132,7 +135,7 @@ public class HumanReviewController {
                             .build();
                 })
                 .collect(Collectors.toList());
-        dto.setUpstreamNodes(upstreamNodes);
+        dto.setNodes(nodes);
 
         return ResponseEntity.ok(dto);
     }

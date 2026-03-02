@@ -7,8 +7,8 @@ import type {
 
 // --- Workspace ---
 
-export async function createWorkspace(name: string): Promise<WorkspaceDefaults> {
-  const res = await apiClient.post<ApiResponse<WorkspaceDefaults>>('/api/swarm/workspace', { name })
+export async function createWorkspace(name: string, llmConfigId: number): Promise<WorkspaceDefaults> {
+  const res = await apiClient.post<ApiResponse<WorkspaceDefaults>>('/api/swarm/workspace', { name, llmConfigId })
   return unwrapResponse(res)
 }
 
@@ -81,10 +81,23 @@ export async function searchWorkspace(workspaceId: number, query: string): Promi
   return unwrapResponse(res)
 }
 
+// --- Agent Control ---
+
+export async function stopAgent(agentId: number): Promise<void> {
+  const res = await apiClient.post<ApiResponse<null>>(`/api/swarm/agent/${agentId}/stop`)
+  unwrapResponse(res)
+}
+
+export async function createHumanAgentGroup(workspaceId: number, agentId1: number, agentId2: number): Promise<SwarmGroup> {
+  const res = await apiClient.post<ApiResponse<SwarmGroup>>(`/api/swarm/workspace/${workspaceId}/groups/p2p`, { agentId1, agentId2 })
+  return unwrapResponse(res)
+}
+
 // --- SSE ---
 
 export function subscribeAgentStream(agentId: number, onEvent: (event: MessageEvent) => void): EventSource {
-  const es = new EventSource(`/api/swarm/agent/${agentId}/stream`)
+  const token = sessionStorage.getItem('accessToken') || localStorage.getItem('accessToken') || ''
+  const es = new EventSource(`/api/swarm/agent/${agentId}/stream?token=${encodeURIComponent(token)}`)
   es.onmessage = onEvent
   es.addEventListener('agent.stream', onEvent)
   es.addEventListener('agent.done', onEvent)
@@ -93,10 +106,16 @@ export function subscribeAgentStream(agentId: number, onEvent: (event: MessageEv
 }
 
 export function subscribeUIStream(workspaceId: number, onEvent: (event: MessageEvent) => void): EventSource {
-  const es = new EventSource(`/api/swarm/workspace/${workspaceId}/ui-stream`)
+  const token = sessionStorage.getItem('accessToken') || localStorage.getItem('accessToken') || ''
+  const es = new EventSource(`/api/swarm/workspace/${workspaceId}/ui-stream?token=${encodeURIComponent(token)}`)
   es.addEventListener('ui.agent.created', onEvent)
   es.addEventListener('ui.message.created', onEvent)
   es.addEventListener('ui.agent.llm.start', onEvent)
   es.addEventListener('ui.agent.llm.done', onEvent)
+  es.addEventListener('ui.agent.stream.start', onEvent)
+  es.addEventListener('ui.agent.stream.chunk', onEvent)
+  es.addEventListener('ui.agent.stream.done', onEvent)
+  es.addEventListener('ui.agent.waiting', onEvent)
+  es.addEventListener('ui.agent.waiting.done', onEvent)
   return es
 }

@@ -21,6 +21,8 @@ public class SwarmAgent {
     /** 关联的 agent_info.id，人类节点为 null */
     private Long agentId;
     private String role;
+    /** 子Agent的能力边界和职责描述 */
+    private String description;
     /** 父Agent ID（谁创建的，指向本表 id） */
     private Long parentId;
     private String llmHistory;
