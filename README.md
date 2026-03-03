@@ -1,169 +1,57 @@
 # AI Agent Platform
 
-> 基于 Spring Boot 和 Spring AI 构建的企业级 AI 智能体编排平台
+## 项目一句话定位
+这是一个面向真实业务流程的 AI 执行平台：让流程不再是“黑盒自动跑完”，而是“可编排、可审批、可追溯”。
 
-[![Java](https://img.shields.io/badge/Java-21-orange.svg)](https://openjdk.java.net/)
-[![Spring Boot](https://img.shields.io/badge/Spring%20Boot-3.4.9-brightgreen.svg)](https://spring.io/projects/spring-boot)
-[![React](https://img.shields.io/badge/React-19.2.0-blue.svg)](https://reactjs.org/)
-[![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
+## 为什么要做这个项目
+我们在实际业务中反复看到同一个问题：团队可以很快把流程拖拉拽出来，但一旦流程进入执行阶段，关键环节往往缺少人工把关。  
+尤其是涉及高风险动作时，如果没有审批闸门，业务负责人不放心放开执行，技术团队也难以给出可追责的保障。
 
-## 🚀 快速开始
+我们不希望只做一个“能跑起来”的自动化系统，而是希望做一个“业务敢用”的执行系统。
 
-### 前置要求
+## 我们在解决什么问题
+1. 复杂任务协作低效，流程从设计到落地经常断层。
+2. 执行过程缺少审批机制，高风险动作无法安全落地。
+3. 结果可见但过程不可见，复盘和责任界定成本高。
 
-- Java 21+
-- Node.js 16+
-- Docker & Docker Compose
-- Maven 3.8+
+## 我们做了什么
+1. 提供可视化流程编排能力，让业务流程可以被明确表达和持续迭代。
+2. 在流程执行中引入人工审核节点，让关键操作具备“先审后执行”的安全闸门。
+3. 支持执行过程可中断、可恢复，让自动化与人工决策可以自然协同。
+4. 保留全链路执行记录，便于复盘、审计与责任追踪。
+5. 打通从需求输入到结果输出的完整闭环，减少跨角色沟通损耗。
 
-### 启动服务
-
-```bash
-# 1. 启动依赖服务（MySQL, Redis, Milvus, MinIO）
-cd ai-agent-infrastructure/src/main/resources/docker
-docker-compose up -d
-
-# 2. 启动后端
-mvn spring-boot:run -pl ai-agent-interfaces -Dspring-boot.run.profiles=local
-
-# 3. 启动前端
-cd app/frontend
-npm install
-npm run dev
+## 当前业务流程架构图
+```mermaid
+flowchart LR
+  A[业务需求输入] --> B[可视化流程编排]
+  B --> C[自动化节点执行]
+  C --> D{是否命中高风险操作}
+  D -- 否 --> G[继续自动执行]
+  D -- 是 --> E[人工审核闸门]
+  E -- 通过 --> G
+  E -- 驳回 --> H[中止并反馈原因]
+  G --> I[产出业务结果]
+  I --> J[全链路留痕与可回看]
+  H --> J
 ```
 
-访问：
-- 前端：http://localhost:5173
-- 后端 API：http://localhost:8080
-- API 文档：http://localhost:8080/swagger-ui.html
+## 一次完整业务闭环示例
+1. 团队先把业务流程配置为可执行的节点链路。
+2. 用户发起任务后，系统按流程自动推进。
+3. 当执行到高风险节点时，系统自动暂停并进入人工审核。
+4. 审核通过则继续执行，审核驳回则终止并返回原因。
+5. 最终输出业务结果，同时沉淀完整执行轨迹用于复盘。
 
-## 📖 文档
+## 现在已经达到什么程度
+当前项目处于 MVP 可演示阶段，已经打通“流程编排 -> 执行 -> 审核 -> 继续/终止 -> 结果回看”的核心主链路，可用于场景演示和流程验证。
 
-- **[📚 完整文档索引](DOCUMENTATION_INDEX.md)** - 所有文档的导航
-- **[🏭 开发环境配置](.kiro/README.md)** - Kiro 工业级开发环境
-- **[📋 产品概述](.kiro/steering/product.md)** - 核心功能和特性
-- **[🔧 技术栈](.kiro/steering/tech.md)** - 技术选型和构建指南
-- **[🏗️ 项目结构](.kiro/steering/structure.md)** - DDD 架构设计
-- **[📡 API 文档](app/APIDocumentation.md)** - REST API 完整文档
+## 适用场景与价值
+1. 需要在自动化执行中保留人工决策权的业务场景。
+2. 对执行安全性、可追溯性有明确要求的团队。
+3. 希望缩短“流程设计”到“业务落地”周期的组织。
 
-## ✨ 核心功能
+核心价值是：在保证效率的同时，建立可控、可信、可复盘的执行体系。
 
-### 🔄 工作流编排
-- DAG 执行引擎
-- 可视化拖拽设计
-- 多节点类型支持
-
-### 🤖 AI 智能体管理
-- 动态模型配置
-- 多模型支持
-- Agent 生命周期管理
-
-### 📚 知识库系统
-- 文档管理和解析
-- 向量检索（Milvus）
-- RAG 集成
-
-### 💬 对话系统
-- 流式响应（SSE）
-- 上下文管理
-- 可视化追踪
-
-### 👥 人工审核
-- 暂停/恢复机制
-- 审核队列
-- 审批流程
-
-## 🏗️ 架构
-
-### 后端架构（DDD + 六边形架构）
-
-```
-┌─────────────────────────────────────────┐
-│         Interfaces Layer                │  REST API, WebSocket
-│    (ai-agent-interfaces)                │
-└────────────┬────────────────────────────┘
-             │
-┌────────────▼────────────────────────────┐
-│       Application Layer                 │  用例编排, DTO
-│    (ai-agent-application)               │
-└────────────┬────────────────────────────┘
-             │
-┌────────────▼────────────────────────────┐
-│         Domain Layer                    │  核心业务逻辑
-│      (ai-agent-domain)                  │
-└────────────┬────────────────────────────┘
-             │
-┌────────────▼────────────────────────────┐
-│     Infrastructure Layer                │  数据库, 缓存
-│   (ai-agent-infrastructure)             │
-└─────────────────────────────────────────┘
-```
-
-### 前端架构（Feature-Based）
-
-```
-src/
-├── app/                    # 应用层（路由）
-├── features/               # 功能模块
-│   ├── auth/              # 认证
-│   ├── agent/             # Agent 管理
-│   ├── orchestration/     # 工作流编排
-│   ├── chat/              # 对话
-│   └── knowledge/         # 知识库
-└── shared/                # 共享组件
-```
-
-## 🛠️ 技术栈
-
-### 后端
-- **框架**: Spring Boot 3.4.9, Spring AI 1.0.1
-- **数据库**: MySQL 8.0, Redis 7.x, Milvus 2.3
-- **存储**: MinIO
-- **ORM**: MyBatis Plus 3.5.5
-- **认证**: JWT 0.12.3
-
-### 前端
-- **框架**: React 19.2.0, TypeScript 5.9.3
-- **构建**: Vite 7.2.4
-- **样式**: Tailwind CSS 3.4.17
-- **工作流**: React Flow 11.11.4
-- **路由**: React Router DOM 7.12.0
-
-## 📊 项目状态
-
-- ✅ 核心功能完成
-- ✅ 工作流引擎稳定
-- ✅ 知识库集成完成
-- 🚧 性能优化进行中
-- 🚧 测试覆盖率提升中
-
-## 🤝 贡献
-
-欢迎贡献！请查看 [贡献指南](CONTRIBUTING.md)。
-
-## 📝 开发规范
-
-本项目使用工业级开发规范：
-
-- **代码质量**: [代码质量规范](.kiro/steering/code-quality.md)
-- **数据库设计**: [数据库规范](.kiro/steering/database-standards.md)
-- **架构原则**: [项目结构](.kiro/steering/structure.md)
-- **自动化检查**: [Hooks 配置](.kiro/hooks/)
-
-## 🔗 相关链接
-
-- [在线演示](https://demo.ai-agent-platform.com)
-- [问题反馈](https://github.com/your-org/ai-agent/issues)
-- [更新日志](CHANGELOG.md)
-
-## 📄 许可证
-
-[MIT License](LICENSE)
-
-## 👥 团队
-
-由 AI Agent Platform Team 开发和维护。
-
----
-
-**最后更新**: 2026-02-03
+## 结语
+我们相信，真正可落地的 AI 流程平台，不是追求“全自动”，而是把自动化能力与人的判断力放在同一条闭环里。
