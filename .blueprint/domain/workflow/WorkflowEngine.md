@@ -45,7 +45,7 @@
   - `nodeId`: 暂停节点的ID
   - `additionalInputs`: 人工审核提供的额外输入/修改
 - 出参: 恢复后的就绪节点列表（BEFORE_EXECUTION 返回当前节点，AFTER_EXECUTION 返回空列表）
-- 功能含义: 恢复暂停的工作流执行，合并人工审核的输入/输出修改，重置暂停状态，根据 TriggerPhase 决定返回节点。
+- 功能含义: 恢复暂停的工作流执行，合并人工审核的输入/输出修改，重置暂停状态，根据 TriggerPhase 决定返回节点。当前阶段仅覆盖“审核通过后继续执行”。
 - 链路作用: 在 SchedulerService.resumeExecution() 中调用，处理人工审核后的恢复逻辑。
 
 ### 3.4 getReadyNodes()
@@ -60,7 +60,8 @@
 - 入参:
   - `nodeId`: 当前节点ID
 - 出参: 检查点对象（包含 executionId、nodeId、context 快照）
-- 功能含义: 创建执行检查点，保存当前上下文快照到 Redis，用于暂停/恢复或故障恢复。
+- 功能含义: 创建执行检查点，保存当前上下文快照到 Redis，用于暂停态快照与执行轨迹留存。
+- 约束说明: 当前阶段不把“从 checkpoint 反序列化恢复执行”作为必选契约。
 - 链路作用: 在 SchedulerService.onNodeComplete() 和 checkPause() 中调用，持久化执行状态。
 
 
@@ -88,7 +89,8 @@
 
 ## 4) 变更记录
 - 2026-02-15: 后端MVP修复（执行链路）：`Edge.isDefault` 收敛默认边判定；`Execution.createCheckpoint` 将 `PAUSED_FOR_REVIEW` 视为暂停点；`Execution.resume` 增加 `pausedNodeId` 一致性校验。
-- 2026-02-15: 后端MVP修复（调度链路）：`SchedulerService.checkPause` 仅在 `InterruptedException` 时设置线程中断标记；新增 `pauseExecution` 并通过 `scheduleNodes`/异步回调暂停门控阻断后续调度。
+- 2026-02-15: 后端MVP修复（调度链路）：`SchedulerService.checkPause` 仅在 `InterruptedException` 时设置线程中断标记；通过 `scheduleNodes`/异步回调暂停门控阻断后续调度。
+- 2026-03-02: 收敛蓝图范围，仅保留“暂停/恢复 + 人审通过继续”主路径，checkpoint 读取恢复降级为后续扩展能力。
 - 2026-02-14: 统一重构为 Blueprint-Lite 最小结构，状态基线设为 `正常`，并保留原文关键语义摘要。
 - 2026-02-14: 补全方法签名与语义，从 Execution.java 提取真实实现契约。
 

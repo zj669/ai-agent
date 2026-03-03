@@ -13,6 +13,7 @@
 ## 1) 整体文件职责
 - 主题: HumanReview
 - 该文件用于描述 HumanReview 的职责边界与协作关系。
+- 当前阶段范围：仅定义“人工审核通过后恢复执行”链路，不包含“驳回并终止”接口契约与权限细粒度策略。
 
 ## 2) 核心方法
 - `save()`
@@ -28,6 +29,7 @@
   - `record`: 人工审核记录实体（包含 executionId、nodeId、reviewerId、decision、triggerPhase、modifiedData、comment 等）
 - 出参: 无（void）
 - 功能含义: 保存人工审核记录到数据库，记录审核决策和修改内容，用于审计追踪。
+- 约束说明: 当前主路径的决策语义聚焦 `APPROVE -> resumeExecution`。
 - 链路作用: 在 SchedulerService.resumeExecution() 中调用，持久化审核日志。
 
 ### 3.2 findByExecutionId()
@@ -66,6 +68,7 @@
 
 ## 4) 变更记录
 - 2026-02-15: 后端MVP修复（审核恢复）：`SchedulerService.resumeExecution` 与 `Execution.resume` 双重校验 `pausedNodeId` 与请求 `nodeId` 一致，避免错误节点恢复。
+- 2026-03-02: 收敛蓝图范围，仅保留“审核通过后恢复执行”主路径描述。
 - 2026-02-14: 统一重构为 Blueprint-Lite 最小结构，状态基线设为 `正常`，并保留原文关键语义摘要。
 - 2026-02-14: 补全方法签名与语义，从 HumanReviewRepository.java 和 HumanReviewQueuePort.java 提取真实实现契约。
 

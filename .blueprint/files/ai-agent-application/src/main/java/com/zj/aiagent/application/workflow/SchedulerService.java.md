@@ -15,6 +15,7 @@
 ## Responsibility
 - 工作流执行总编排器：启动、节点调度、暂停/恢复、取消、完成收口与消息回填。
 - 串联 Execution 聚合、节点执行策略、检查点、人工审核、SSE 推流与聊天消息生命周期。
+- 当前阶段目标：聚焦“暂停/恢复 + 人审通过继续”主链路。
 
 ## Key Symbols / Structure
 - 启动
@@ -28,7 +29,6 @@
 - 人审与暂停恢复
   - `checkPause(...)`
   - `resumeExecution(...)`
-  - `pauseExecution(...)`
 - 收口
   - `onExecutionComplete(execution)`
   - `extractFinalResponseFromExecution(...)`

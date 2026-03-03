@@ -13,6 +13,7 @@
 ## 1) 整体文件职责
 - 主题: SchedulerService
 - 该文件用于描述 SchedulerService 的职责边界与协作关系。
+- 当前阶段需求边界：聚焦“暂停/恢复 + 人审通过继续”主链路，不包含驳回终止、细粒度审核权限、checkpoint 读取恢复闭环。
 
 ## 2) 核心方法
 - `cancelExecution()`
@@ -59,7 +60,8 @@
 
 ## 4) 变更记录
 - 2026-02-15: 后端MVP修复（暂停/恢复）：`resumeExecution` 增加 `pausedNodeId` 一致性校验（非空且必须匹配请求 nodeId）；`checkPause` 异常处理中仅 `InterruptedException` 恢复线程中断标志。
-- 2026-02-15: 后端MVP修复（暂停守门）：在 `scheduleNodes` 与异步 `whenComplete` 回调增加暂停状态门控，阻止 pause 后 in-flight 回调继续推进执行。
+- 2026-02-15: 后端MVP修复（暂停守门）：在 `scheduleNodes` 与异步 `whenComplete` 回调增加暂停状态门控，阻止暂停后 in-flight 回调继续推进执行。
+- 2026-03-02: 收敛蓝图范围，仅保留“暂停/恢复 + 人审通过继续”主路径，移除非目标需求描述。
 - 2026-02-14: 统一重构为 Blueprint-Lite 最小结构，状态基线设为 `正常`，并保留原文关键语义摘要。
 - 2026-02-14: 补全方法签名与语义，从 SchedulerService.java 提取真实实现契约。
 

@@ -12,7 +12,8 @@
 
 ## 1) 整体文件职责
 - 主题: Controllers
-- 该文件描述 REST API 控制器层的职责边界，负责接收 HTTP 请求、参数校验、调用应用服务、返回响应。主要包括 AgentController（智能体管理）和 WorkflowController（工作流执行）。
+- 该文件描述 REST API 控制器层的职责边界，负责接收 HTTP 请求、参数校验、调用应用服务、返回响应。主要包括 AgentController（智能体管理）、WorkflowController（工作流执行）和 HumanReviewController（人工审核恢复）。
+- 当前阶段接口目标：仅保障“暂停/恢复 + 人审通过继续”主路径。
 
 ## 2) 核心方法
 - `createAgent()`
@@ -20,6 +21,7 @@
 - `startExecution()`
 - `getExecution()`
 - `stopExecution()`
+- `resumeExecution()`
 
 ## 3) 具体方法
 ### 3.1 createAgent()
@@ -57,10 +59,22 @@
 - 功能含义: 取消正在运行的工作流执行，调用 SchedulerService.cancelExecution() 标记取消状态
 - 链路作用: 接口层入口 → SchedulerService.cancelExecution() → WorkflowCancellationPort.markAsCancelled() → Redis 标记
 
+### 3.6 resumeExecution()
+- 函数签名: `POST /api/workflow/reviews/resume → ResponseEntity<Void> resumeExecution(@RequestBody ResumeExecutionRequest req)`
+- 入参: `ResumeExecutionRequest{executionId, nodeId, edits?, comment?}`
+- 出参: `ResponseEntity<Void>` 表示恢复成功
+- 功能含义: 人工审核通过后恢复执行，调用 `SchedulerService.resumeExecution()` 推进主链路。
+- 链路作用: 接口层入口 → HumanReviewController.resumeExecution() → SchedulerService.resumeExecution()。
 
-## 4) 变更记录
+## 4) 非目标说明
+- 本阶段不包含 `POST /api/workflow/reviews/reject` 契约。
+- 本阶段不包含审核权限细粒度策略（owner/reviewer role）的强约束说明。
+
+
+## 5) 变更记录
+- 2026-03-02: 收敛控制器蓝图范围，仅保留“人审通过恢复”主路径相关契约，移除非目标需求描述。
 - 2026-02-14: 统一重构为 Blueprint-Lite 最小结构，状态基线设为 `正常`，并保留原文关键语义摘要。
 - 2026-02-14: 补全所有方法签名、入参、出参、功能含义和链路作用，基于 AgentController 和 WorkflowController 实现。
 
-## 5) Temp缓存区
+## 6) Temp缓存区
 当前状态为 `正常`，本区留空。

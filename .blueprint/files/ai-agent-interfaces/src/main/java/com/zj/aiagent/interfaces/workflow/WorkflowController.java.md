@@ -12,13 +12,13 @@
 
 ## 1) 整体文件职责
 - 主题: WorkflowController.java
-- 该控制器暴露工作流执行入口与调试查询接口：启动 SSE 执行流、停止/暂停执行、查询执行详情、节点日志、会话历史与上下文快照。
+- 该控制器暴露工作流执行入口与调试查询接口：启动 SSE 执行流、停止执行、查询执行详情、节点日志、会话历史与上下文快照。
 - 在接口层负责 HTTP/SSE 协议编排与资源清理（Redis 订阅、心跳任务、Emitter 生命周期），实际调度交给 `SchedulerService`。
+- 当前阶段主链路不要求手动暂停的对外契约。
 
 ## 2) 核心方法
 - `startExecution(StartExecutionRequest request)`
 - `stopExecution(StopExecutionRequest request)`
-- `pauseExecution(PauseExecutionRequest request)`
 - `getExecution(String executionId)`
 - `getNodeExecutionLog(String executionId, String nodeId)`
 - `getExecutionLogs(String executionId)`
@@ -40,22 +40,16 @@
 - 功能含义: 调用 `schedulerService.cancelExecution` 标记执行取消。
 - 链路作用: 人工中断执行链路的外部控制点。
 
-### 3.3 pauseExecution(PauseExecutionRequest request)
-- 函数签名: `public ResponseEntity<Void> pauseExecution(@RequestBody PauseExecutionRequest request)`
-- 入参: `executionId`
-- 出参: `200 OK`
-- 功能含义: 调用 `schedulerService.pauseExecution` 触发手动暂停。
-- 链路作用: 与审核暂停并存的人工暂停入口。
-
-### 3.4 getExecution(String executionId)
+### 3.3 getExecution(String executionId)
 - 函数签名: `public ResponseEntity<ExecutionDTO> getExecution(@PathVariable String executionId)`
 - 功能含义: 从 `ExecutionRepository` 查询执行并映射 DTO。
 
-### 3.5 getExecutionLogs(String executionId)
+### 3.4 getExecutionLogs(String executionId)
 - 函数签名: `public ResponseEntity<List<WorkflowNodeExecutionLogDTO>> getExecutionLogs(@PathVariable String executionId)`
 - 功能含义: 查询执行下所有节点日志并转换为接口 DTO 返回。
 
 ## 4) 变更记录
+- 2026-03-02: 收敛蓝图范围，移除手动暂停主链路契约，聚焦“暂停/恢复 + 人审通过继续”。
 - 2026-02-15: 回填蓝图语义，补充真实职责、核心接口与执行流说明。
 
 ## 5) Temp缓存区

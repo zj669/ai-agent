@@ -15,6 +15,7 @@
 
 ## Responsibility
 - 检查点持久化端口，负责保存、读取与删除执行检查点/暂停点。
+- 当前阶段主链路仅强依赖 `save(Checkpoint)`；读取与删除能力为预留扩展接口。
 
 ## Key Symbols / Structure
 - `save(Checkpoint checkpoint)`
@@ -28,3 +29,4 @@
 
 ## Notes
 - 为执行恢复能力提供存储抽象。
+- 需求边界：不将 checkpoint 读取恢复作为本阶段验收前提。
