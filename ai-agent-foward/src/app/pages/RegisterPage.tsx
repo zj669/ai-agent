@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { Form, Input, Button, Typography, message, Steps } from 'antd'
 import { LockOutlined, MailOutlined, RobotOutlined, UserOutlined, SafetyOutlined } from '@ant-design/icons'
@@ -15,6 +15,7 @@ export default function RegisterPage() {
   const [sendingCode, setSendingCode] = useState(false)
   const [countdown, setCountdown] = useState(0)
   const [loading, setLoading] = useState(false)
+  const countdownTimerRef = useRef<ReturnType<typeof setInterval> | null>(null)
   const [form] = Form.useForm()
 
   // 已登录用户直接跳转
@@ -24,26 +25,49 @@ export default function RegisterPage() {
     }
   }, [navigate])
 
+  useEffect(() => {
+    return () => {
+      if (countdownTimerRef.current) {
+        clearInterval(countdownTimerRef.current)
+      }
+    }
+  }, [])
+
+  const startCountdown = () => {
+    if (countdownTimerRef.current) {
+      clearInterval(countdownTimerRef.current)
+    }
+    setCountdown(60)
+    countdownTimerRef.current = setInterval(() => {
+      setCountdown(prev => {
+        if (prev <= 1) {
+          if (countdownTimerRef.current) {
+            clearInterval(countdownTimerRef.current)
+            countdownTimerRef.current = null
+          }
+          return 0
+        }
+        return prev - 1
+      })
+    }, 1000)
+  }
+
   const handleSendCode = async () => {
     const emailValue = form.getFieldValue('email')
     if (!emailValue) {
       message.warning('请输入邮箱')
       return
     }
+
+    // 方案A：点击后立即进入第二步并启动倒计时，避免卡在发送阶段
+    setEmail(emailValue)
+    setStep(1)
+    startCountdown()
+
     setSendingCode(true)
     try {
       await sendEmailCode(emailValue)
-      setEmail(emailValue)
-      setStep(1)
       message.success('验证码已发送')
-      // 倒计时
-      setCountdown(60)
-      const timer = setInterval(() => {
-        setCountdown(prev => {
-          if (prev <= 1) { clearInterval(timer); return 0 }
-          return prev - 1
-        })
-      }, 1000)
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : '发送失败，请重试'
       message.error(msg)
