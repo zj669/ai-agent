@@ -12,7 +12,9 @@ import {
   ClusterOutlined,
 } from '@ant-design/icons'
 import { Outlet, useLocation, useNavigate } from 'react-router-dom'
-import { useState } from 'react'
+import { useState, useMemo } from 'react'
+import { clearAccessToken } from './auth'
+import { getSavedUserInfo, clearSavedUserInfo } from '../shared/api/adapters/authAdapter'
 
 const { Sider, Header, Content } = Layout
 const { Text } = Typography
@@ -64,6 +66,7 @@ function AppShell() {
   const [collapsed, setCollapsed] = useState(false)
 
   const currentLabel = breadcrumbMap[location.pathname] ?? ''
+  const displayName = useMemo(() => getSavedUserInfo()?.username ?? '用户', [])
 
   const userDropdownItems = {
     items: [
@@ -73,7 +76,11 @@ function AppShell() {
     ],
     onClick: ({ key }: { key: string }) => {
       if (key === 'logout') {
+        clearAccessToken()
+        clearSavedUserInfo()
         navigate('/login')
+      } else if (key === 'settings') {
+        navigate('/settings')
       }
     },
   }
@@ -160,7 +167,7 @@ function AppShell() {
           {!collapsed && (
             <>
               <Text style={{ color: '#344054', flex: 1 }} ellipsis>
-                管理员
+                {displayName}
               </Text>
               <SettingOutlined
                 style={{ color: '#667085', cursor: 'pointer', fontSize: 14 }}
@@ -202,7 +209,7 @@ function AppShell() {
             <Dropdown menu={userDropdownItems} placement="bottomRight" arrow>
               <Space style={{ cursor: 'pointer' }}>
                 <Avatar size={28} icon={<UserOutlined />} style={{ backgroundColor: '#2970FF' }} />
-                <Text style={{ color: '#344054' }}>管理员</Text>
+                <Text style={{ color: '#344054' }}>{displayName}</Text>
               </Space>
             </Dropdown>
           </Space>

@@ -187,7 +187,11 @@ public class SchedulerService {
                 log.info("[MemoryHydration] Loaded {} LTM entries for execution: {}",
                         memories.size(), execution.getExecutionId());
             } catch (Exception e) {
-                log.warn("[MemoryHydration] Failed to load LTM: {}", e.getMessage());
+                log.warn("[MemoryHydration] Failed to load LTM (workflow will continue without memory): {}",
+                        e.getMessage());
+                if (e.getMessage() != null && e.getMessage().contains("404")) {
+                    log.warn("[MemoryHydration] Embedding API returned 404 - please check embedding model configuration (baseUrl/model name)");
+                }
             }
         }
 
@@ -228,7 +232,7 @@ public class SchedulerService {
      * 恢复暂停的执行
      */
     public void resumeExecution(String executionId, String nodeId, Map<String, Object> edits, Long reviewerId,
-            String comment) {
+            String comment, Map<String, Map<String, Object>> nodeEdits) {
         log.info("[Scheduler] Resuming execution: {}, node: {}", executionId, nodeId);
 
         if (isCancelled(executionId)) {
@@ -264,20 +268,25 @@ public class SchedulerService {
             if (pausedPhase == null)
                 pausedPhase = TriggerPhase.AFTER_EXECUTION; // Default
 
-            // 3. Context Merging
+            // 3. Context Merging — 当前节点 edits
             if (edits != null && !edits.isEmpty()) {
                 if (pausedPhase == TriggerPhase.BEFORE_EXECUTION) {
-                    // Update Inputs: Usually means updating Shared State or inputs for next run
-                    // Since Node execution pulls from inputs, putting in context should work if
-                    // node is configured to read from it
-                    // Or we assume `edits` are the NEW inputs for the node.
-                    // Execution.resume logic takes `additionalInputs` and puts into SharedState.
-                    // Ideally we should pass these as overrides to strategy.executeAsync, but
-                    // resuming calls execution.resume()
+                    // BEFORE: edits 作为 additionalInputs，后续 resume 会放入 SharedState
                 } else {
-                    // AFTER_EXECUTION: Update Outputs
-                    // This outputs will be used as the result of the node
+                    // AFTER: 更新当前节点的输出
                     execution.getContext().setNodeOutput(nodeId, edits);
+                }
+            }
+
+            // 3b. 多节点 edits — 更新上游节点的输出
+            if (nodeEdits != null && !nodeEdits.isEmpty()) {
+                for (Map.Entry<String, Map<String, Object>> entry : nodeEdits.entrySet()) {
+                    String editNodeId = entry.getKey();
+                    Map<String, Object> editData = entry.getValue();
+                    if (editData != null && !editData.isEmpty()) {
+                        execution.getContext().setNodeOutput(editNodeId, editData);
+                        log.info("[Scheduler] Applied nodeEdits for node: {}", editNodeId);
+                    }
                 }
             }
 
@@ -511,6 +520,15 @@ public class SchedulerService {
             // 添加到待审核队列
             humanReviewQueuePort.addToPendingQueue(executionId);
 
+            // 暂停时更新 assistant 消息，避免切换会话后内容为空显示 "..."
+            String assistantMessageId = execution.getAssistantMessageId();
+            if (StringUtils.hasText(assistantMessageId)) {
+                String pauseContent = buildPauseSummary(execution, node, phase);
+                List<com.zj.aiagent.domain.chat.valobj.ThoughtStep> thoughtSteps = buildThoughtSteps(executionId);
+                chatApplicationService.finalizeMessage(assistantMessageId, pauseContent, thoughtSteps,
+                        com.zj.aiagent.domain.chat.valobj.MessageStatus.COMPLETED);
+            }
+
             return true;
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
@@ -522,6 +540,31 @@ public class SchedulerService {
                 lock.unlock();
             }
         }
+    }
+
+    private String buildPauseSummary(Execution execution, Node node, TriggerPhase phase) {
+        StringBuilder sb = new StringBuilder();
+        sb.append("⏸️ 工作流已在节点「").append(node.getName()).append("」");
+        sb.append(phase == TriggerPhase.BEFORE_EXECUTION ? "执行前" : "执行后");
+        sb.append("暂停，等待人工审核。\n\n");
+
+        ExecutionContext ctx = execution.getContext();
+        if (ctx != null) {
+            for (Map.Entry<String, ExecutionStatus> entry : execution.getNodeStatuses().entrySet()) {
+                if (entry.getValue() == ExecutionStatus.SUCCEEDED) {
+                    Map<String, Object> output = ctx.getNodeOutput(entry.getKey());
+                    if (output != null && !output.isEmpty()) {
+                        Node n = execution.getGraph().getNodes().get(entry.getKey());
+                        String name = n != null ? n.getName() : entry.getKey();
+                        sb.append("**").append(name).append("**: ");
+                        String val = output.values().iterator().next().toString();
+                        sb.append(val.length() > 200 ? val.substring(0, 200) + "..." : val);
+                        sb.append("\n\n");
+                    }
+                }
+            }
+        }
+        return sb.toString();
     }
 
     private void onNodeComplete(String executionId, String nodeId, String nodeName, NodeType nodeType,

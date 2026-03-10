@@ -1,4 +1,5 @@
 import { Typography } from 'antd'
+import { LoadingOutlined } from '@ant-design/icons'
 import ToolCallBadge from './ToolCallBadge'
 import type { SwarmMessage, SwarmAgent } from '../../types/swarm'
 
@@ -18,8 +19,9 @@ export default function SwarmMessageBubble({ message, agents, humanAgentId }: Pr
   const colorIndex = agents.findIndex(a => a.id === message.senderId)
   const color = AGENT_COLORS[colorIndex % AGENT_COLORS.length]
 
-  // tool_call 类型消息特殊渲染
   const isToolCall = message.contentType === 'tool_call'
+  const isThinking = message.contentType === 'thinking'
+
   let toolData: { tool: string; args: string; result: string } | null = null
   if (isToolCall) {
     try {
@@ -39,7 +41,6 @@ export default function SwarmMessageBubble({ message, agents, humanAgentId }: Pr
       marginBottom: 12,
       gap: 8,
     }}>
-      {/* Avatar */}
       <div style={{
         width: 32, height: 32, borderRadius: '50%',
         background: isHuman ? '#1677ff' : color,
@@ -49,7 +50,6 @@ export default function SwarmMessageBubble({ message, agents, humanAgentId }: Pr
         {isHuman ? '我' : (sender?.role?.charAt(0).toUpperCase() ?? '?')}
       </div>
 
-      {/* Bubble */}
       <div style={{ maxWidth: '70%' }}>
         {!isHuman && (
           <Text type="secondary" style={{ fontSize: 12, marginBottom: 2, display: 'block' }}>
@@ -58,6 +58,19 @@ export default function SwarmMessageBubble({ message, agents, humanAgentId }: Pr
         )}
         {toolData ? (
           <ToolCallBadge toolName={toolData.tool} args={toolData.args} result={toolData.result} />
+        ) : isThinking ? (
+          <div style={{
+            padding: '8px 12px',
+            borderRadius: 8,
+            background: '#f0f0f0',
+            color: '#8c8c8c',
+            display: 'flex',
+            alignItems: 'center',
+            gap: 8,
+          }}>
+            <LoadingOutlined style={{ fontSize: 14 }} />
+            <span>{message.content}</span>
+          </div>
         ) : (
           <div style={{
             padding: '8px 12px',

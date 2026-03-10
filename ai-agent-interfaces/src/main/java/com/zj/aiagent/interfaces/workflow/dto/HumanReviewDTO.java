@@ -58,6 +58,8 @@ public class HumanReviewDTO {
         private String nodeId;
         private Map<String, Object> edits;
         private String comment;
+        /** 多节点编辑：key=nodeId, value=该节点的 edits */
+        private Map<String, Map<String, Object>> nodeEdits;
     }
 
     @Data

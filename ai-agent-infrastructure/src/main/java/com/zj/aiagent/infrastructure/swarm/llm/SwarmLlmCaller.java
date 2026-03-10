@@ -18,6 +18,7 @@ import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestClient;
 import reactor.core.publisher.Flux;
 
+import java.time.Duration;
 import java.util.List;
 import java.util.function.Consumer;
 
@@ -179,7 +180,7 @@ public class SwarmLlmCaller {
                     }
                 }
             }
-        }).blockLast();
+        }).blockLast(Duration.ofMinutes(5));
 
         // 合并 tool_calls
         List<AssistantMessage.ToolCall> mergedToolCalls = new java.util.ArrayList<>();
@@ -263,7 +264,7 @@ public class SwarmLlmCaller {
                     }
                 }
             }
-        }).blockLast();
+        }).blockLast(Duration.ofMinutes(5));
 
         List<AssistantMessage.ToolCall> mergedToolCalls = new java.util.ArrayList<>();
         for (Integer idx : toolCallIdMap.keySet().stream().sorted().toList()) {

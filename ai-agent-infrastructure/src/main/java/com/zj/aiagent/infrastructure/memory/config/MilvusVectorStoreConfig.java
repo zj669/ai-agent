@@ -89,10 +89,13 @@ public class MilvusVectorStoreConfig {
             MilvusServiceClient milvusClient,
             EmbeddingModel embeddingModel) {
         log.info("[Milvus] Initializing knowledge VectorStore: collection={}", knowledgeCollectionName);
+        log.warn("[Milvus] knowledgeVectorStore embeddingModelBean={}, dimensions={}",
+                embeddingModel.getClass().getName(), embeddingModel.dimensions());
 
         return MilvusVectorStore.builder(milvusClient, embeddingModel)
                 .collectionName(knowledgeCollectionName)
                 .embeddingDimension(embeddingDimension)
+                .initializeSchema(true)
                 .build();
     }
 

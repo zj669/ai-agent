@@ -19,9 +19,22 @@ export function useSwarmMessages(groupId: number | null, readerId?: number) {
 
   const send = useCallback(async (senderId: number, content: string) => {
     if (!groupId) return
-    const msg = await sendMessage(groupId, senderId, content)
-    setMessages(prev => [...prev, msg])
-    return msg
+    const optimistic: SwarmMessage = {
+      id: -Date.now(),
+      groupId,
+      senderId,
+      content,
+      contentType: 'text',
+      sendTime: new Date().toISOString(),
+    }
+    setMessages(prev => [...prev, optimistic])
+    try {
+      const msg = await sendMessage(groupId, senderId, content)
+      setMessages(prev => prev.map(m => m.id === optimistic.id ? msg : m))
+      return msg
+    } catch {
+      setMessages(prev => prev.filter(m => m.id !== optimistic.id))
+    }
   }, [groupId])
 
   const appendMessage = useCallback((msg: SwarmMessage) => {

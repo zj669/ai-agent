@@ -38,8 +38,8 @@ export default function SwarmMessageList({ messages, agents, humanAgentId, strea
             id: -1,
             groupId: 0,
             senderId: streamingAgentId,
-            content: streamingContent + '▌',
-            contentType: 'text',
+            content: streamingContent === '' ? '正在思考...' : streamingContent + '▌',
+            contentType: streamingContent === '' ? 'thinking' : 'text',
             sendTime: new Date().toISOString(),
           }}
           agents={agents}

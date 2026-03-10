@@ -78,10 +78,18 @@ public class SwarmAgentRuntimeService {
                 workspaceService, messageService, agentRepository,
                 objectMapper, agent.getId(), agent.getWorkspaceId());
 
+        // 判断 Root/Sub：parentId 对应的 Agent role 为 human 则为 Root
+        boolean isRoot = false;
+        if (agent.getParentId() != null) {
+            isRoot = agentRepository.findById(agent.getParentId())
+                    .map(parent -> "human".equals(parent.getRole()))
+                    .orElse(false);
+        }
+
         SwarmAgentRunner runner = new SwarmAgentRunner(
                 agent, domainService, agentRepository, groupRepository, messageRepository,
                 llmCaller, swarmTools,
-                objectMapper, agentEventBus, uiEventBus, maxRounds, humanAgentId, llmConfig);
+                objectMapper, agentEventBus, uiEventBus, maxRounds, humanAgentId, llmConfig, isRoot);
 
         runners.put(agent.getId(), runner);
 

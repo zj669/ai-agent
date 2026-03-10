@@ -14,7 +14,7 @@ describe('app boot', () => {
   it('渲染登录页作为应用入口', () => {
     render(<App />)
 
-    expect(screen.getByRole('heading', { name: '登录' })).toBeInTheDocument()
-    expect(screen.getByText('请先登录后访问工作台。')).toBeInTheDocument()
+    expect(screen.getByRole('heading', { name: 'AI Agent' })).toBeInTheDocument()
+    expect(screen.getByText('智能工作流编排平台')).toBeInTheDocument()
   })
 })

@@ -23,6 +23,12 @@ vi.mock('@xyflow/react', () => ({
     <div data-testid={`handle-${props.id ?? props.type}`} data-type={props.type} data-position={props.position} />
   ),
   Position: { Left: 'left', Right: 'right', Top: 'top', Bottom: 'bottom' },
+  useReactFlow: () => ({
+    setNodes: vi.fn(),
+    setEdges: vi.fn(),
+    getEdges: vi.fn(() => []),
+    getNodes: vi.fn(() => []),
+  }),
 }))
 
 const { default: WorkflowNode } = await import('../WorkflowNode')
@@ -39,9 +45,9 @@ describe('WorkflowNode', () => {
     expect(screen.getByLabelText('展开配置')).toBeInTheDocument()
   })
 
-  it('does NOT show expand arrow for START node', () => {
+  it('shows expand arrow for START node (canExpand is always true)', () => {
     render(<WorkflowNode id="start" data={{ label: '开始', nodeType: 'START' }} selected={false} />)
-    expect(screen.queryByLabelText('展开配置')).not.toBeInTheDocument()
+    expect(screen.getByLabelText('展开配置')).toBeInTheDocument()
   })
 
   it('calls toggleNodeExpand when arrow clicked', () => {

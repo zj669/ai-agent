@@ -3,6 +3,8 @@ package com.zj.aiagent.infrastructure.workflow.executor;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.zj.aiagent.domain.workflow.config.NodeConfig;
+import com.zj.aiagent.domain.llm.entity.LlmProviderConfig;
+import com.zj.aiagent.domain.llm.repository.LlmProviderConfigRepository;
 import com.zj.aiagent.domain.workflow.entity.Edge;
 import com.zj.aiagent.domain.workflow.entity.Node;
 import com.zj.aiagent.domain.workflow.port.ConditionEvaluatorPort;
@@ -60,16 +62,19 @@ public class ConditionNodeExecutorStrategy implements NodeExecutorStrategy {
     private final ObjectMapper objectMapper;
     private final Executor executor;
     private final RestClient.Builder restClientBuilder;
+    private final LlmProviderConfigRepository llmProviderConfigRepository;
 
     public ConditionNodeExecutorStrategy(
             ConditionEvaluatorPort conditionEvaluator,
             ObjectMapper objectMapper,
             @Qualifier("nodeExecutorThreadPool") Executor executor,
-            @Qualifier("restClientBuilder1") RestClient.Builder restClientBuilder) {
+            @Qualifier("restClientBuilder1") RestClient.Builder restClientBuilder,
+            LlmProviderConfigRepository llmProviderConfigRepository) {
         this.conditionEvaluator = conditionEvaluator;
         this.objectMapper = objectMapper;
         this.executor = executor;
         this.restClientBuilder = restClientBuilder;
+        this.llmProviderConfigRepository = llmProviderConfigRepository;
     }
 
     @Override
@@ -435,9 +440,74 @@ public class ConditionNodeExecutorStrategy implements NodeExecutorStrategy {
      * 注意：使用 package-private 可见性以支持单元测试中的 mock（通过 Mockito spy）
      */
     ChatClient buildChatClient(NodeConfig config) {
-        String model = config.getString("model");
-        String apiUrl = config.getString("baseUrl");
-        String apiKey = config.getString("apiKey");
+        String model = null;
+        String apiUrl = null;
+        String apiKey = null;
+
+        // 1. 优先通过 llmConfigId 引用模型配置（与 LlmNodeExecutorStrategy 保持一致）
+        Long llmConfigId = config.getLong("llmConfigId");
+        if (llmConfigId == null) {
+            // conditionConfig 嵌套结构中也可能包含 llmConfigId
+            Object cc = config.getProperties().get("conditionConfig");
+            if (cc instanceof Map<?, ?> ccMap) {
+                Object idObj = ccMap.get("llmConfigId");
+                if (idObj instanceof Number n) {
+                    llmConfigId = n.longValue();
+                } else if (idObj instanceof String s) {
+                    try {
+                        llmConfigId = Long.parseLong(s);
+                    } catch (NumberFormatException ignore) {
+                        // ignore
+                    }
+                }
+            }
+        }
+
+        if (llmConfigId != null) {
+            LlmProviderConfig providerConfig = llmProviderConfigRepository.findById(llmConfigId).orElse(null);
+            if (providerConfig == null) {
+                throw new IllegalStateException(
+                        "条件节点引用的模型配置不存在（ID: " + llmConfigId + "），请在模型配置页面检查");
+            }
+            model = providerConfig.getModel();
+            apiUrl = providerConfig.getBaseUrl();
+            apiKey = providerConfig.getApiKey();
+        } else {
+            // 2. 兼容旧数据：直接从节点配置读取 model/baseUrl/apiKey
+            model = config.getString("model");
+            apiUrl = config.getString("baseUrl");
+            apiKey = config.getString("apiKey");
+
+            // conditionConfig 嵌套下的字段兜底
+            if ((model == null || apiUrl == null || apiKey == null)) {
+                Object cc = config.getProperties().get("conditionConfig");
+                if (cc instanceof Map<?, ?> ccMap) {
+                    if (model == null && ccMap.get("model") instanceof String s) model = s;
+                    if (apiUrl == null && ccMap.get("baseUrl") instanceof String s) apiUrl = s;
+                    if (apiKey == null && ccMap.get("apiKey") instanceof String s) apiKey = s;
+                }
+            }
+
+            // 3. 如果仍然没有配置，尝试使用当前用户的默认模型（此处 userId 暂时置空，将来可从 ExecutionContext 中传入）
+            if ((model == null || apiUrl == null || apiKey == null)) {
+                LlmProviderConfig defaultCfg = llmProviderConfigRepository.findDefault(null).orElse(null);
+                if (defaultCfg != null) {
+                    if (model == null) {
+                        model = defaultCfg.getModel();
+                    }
+                    if (apiUrl == null) {
+                        apiUrl = defaultCfg.getBaseUrl();
+                    }
+                    if (apiKey == null) {
+                        apiKey = defaultCfg.getApiKey();
+                    }
+                }
+            }
+        }
+
+        if (model == null || apiUrl == null || apiKey == null) {
+            throw new IllegalStateException("条件节点 LLM 模式缺少模型配置，请在条件节点中选择 LLM 配置或在模型配置中心设置默认模型。");
+        }
 
         return ChatClient.builder(OpenAiChatModel.builder()
                 .openAiApi(OpenAiApi.builder()

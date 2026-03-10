@@ -40,21 +40,30 @@ public class SwarmTools {
         this.callerWorkspaceId = callerWorkspaceId;
     }
 
-    @Tool(description = "创建子Agent。根据任务复杂度决定是否需要创建专门的子Agent来处理子任务。创建后会自动建立包含人类的任务群。")
-    public String create(
-            @ToolParam(description = "子Agent的角色名称，如 coder/researcher/reviewer/analyst") String role,
-            @ToolParam(description = "子Agent的能力边界和职责描述，详细说明它负责什么任务") String description) {
+    @Tool(description = "创建子Agent。可选附带工作流图（graphJson）。创建后会自动建立包含人类的任务群。")
+    public String createAgent(
+            @ToolParam(description = "子Agent的角色名称，如 researcher/writer/analyst") String role,
+            @ToolParam(description = "子Agent的能力边界和职责描述") String description,
+            @ToolParam(description = "可选的工作流图JSON，如果不需要工作流可传null") String graphJson) {
         try {
             WorkspaceDefaultsDTO result = workspaceService.createAgent(
                     callerWorkspaceId, role, callerAgentId, description);
             return objectMapper.writeValueAsString(result);
         } catch (Exception e) {
-            log.error("[SwarmTools] create failed", e);
+            log.error("[SwarmTools] createAgent failed", e);
             return "{\"error\": \"" + e.getMessage() + "\"}";
         }
     }
 
-    @Tool(description = "向指定Agent发送消息。用于委派任务给子Agent或回复其他Agent的消息。注意：不要用此工具回复人类，你的文字输出会直接展示给人类。")
+    @Tool(description = "执行某个已发布Agent的工作流，返回执行结果")
+    public String executeWorkflow(
+            @ToolParam(description = "要执行的Agent ID") long agentId,
+            @ToolParam(description = "可选的输入内容") String input) {
+        // TODO: 对接 SchedulerService 执行工作流
+        return "{\"status\": \"not_implemented\", \"message\": \"工作流执行功能尚未实现\"}";
+    }
+
+    @Tool(description = "向指定Agent发送消息。用于委派任务给子Agent或回复其他Agent的消息。注意：不要用此工具回复人类。")
     public String send(
             @ToolParam(description = "目标Agent的ID") long agentId,
             @ToolParam(description = "消息内容") String message) {
@@ -106,31 +115,6 @@ public class SwarmTools {
         try {
             List<SwarmAgentDTO> agents = workspaceService.listAgents(callerWorkspaceId);
             return objectMapper.writeValueAsString(agents);
-        } catch (Exception e) {
-            return "{\"error\": \"" + e.getMessage() + "\"}";
-        }
-    }
-
-    @Tool(description = "向指定群组发送消息")
-    public String sendGroupMessage(
-            @ToolParam(description = "群组ID") long groupId,
-            @ToolParam(description = "消息内容") String message) {
-        try {
-            SendMessageRequest req = new SendMessageRequest();
-            req.setSenderId(callerAgentId);
-            req.setContent(message);
-            SwarmMessageDTO sent = messageService.sendMessage(groupId, req);
-            return objectMapper.writeValueAsString(sent);
-        } catch (Exception e) {
-            return "{\"error\": \"" + e.getMessage() + "\"}";
-        }
-    }
-
-    @Tool(description = "列出当前Agent可见的所有群组")
-    public String listGroups() {
-        try {
-            List<SwarmGroupDTO> groups = messageService.listGroups(callerWorkspaceId, callerAgentId);
-            return objectMapper.writeValueAsString(groups);
         } catch (Exception e) {
             return "{\"error\": \"" + e.getMessage() + "\"}";
         }

@@ -1,4 +1,5 @@
-import { useCallback } from 'react'
+import { useCallback, useEffect, useState } from 'react'
+import { getLlmConfigs, type LlmConfig } from '../../llm-config/api/llmConfigService'
 
 /* ========== Types ========== */
 
@@ -22,6 +23,8 @@ export interface Branch {
 export interface ConditionConfig {
   routingStrategy: 'EXPRESSION' | 'LLM'
   routingPrompt?: string
+  /** 关联的 LLM 配置 ID（用于 LLM 语义路由） */
+  llmConfigId?: number
   branches: Branch[]
 }
 
@@ -334,6 +337,15 @@ function ConditionBranchEditor({ config, onChange, availableVars = [] }: Conditi
     onChange({ ...config, branches: updated })
   }, [config, onChange])
 
+  // LLM 配置列表（仅在 LLM 模式下懒加载）
+  const [llmConfigs, setLlmConfigs] = useState<LlmConfig[]>([])
+  useEffect(() => {
+    if (config.routingStrategy !== 'LLM') return
+    void getLlmConfigs()
+      .then(setLlmConfigs)
+      .catch(() => setLlmConfigs([]))
+  }, [config.routingStrategy])
+
   return (
     <div className="space-y-3">
       {/* Strategy selector */}
@@ -347,6 +359,26 @@ function ConditionBranchEditor({ config, onChange, availableVars = [] }: Conditi
 
       {config.routingStrategy === 'LLM' && (
         <div className="space-y-2">
+          {/* 模型选择 */}
+          <div className="space-y-1">
+            <label className="text-xs font-medium text-slate-600">选择 LLM 模型</label>
+            <select
+              className={`w-full ${sel}`}
+              value={config.llmConfigId ?? ''}
+              onChange={(e) => {
+                const val = e.target.value
+                onChange({ ...config, llmConfigId: val ? Number(val) : undefined })
+              }}
+            >
+              <option value="">请选择模型配置</option>
+              {llmConfigs.map((c) => (
+                <option key={c.id} value={c.id}>
+                  {c.name} ({c.provider})
+                </option>
+              ))}
+            </select>
+          </div>
+
           <div className="space-y-1">
             <label className="text-xs font-medium text-slate-600">路由提示词（可选）</label>
             <textarea

@@ -145,7 +145,7 @@ class SchedulerServiceTest {
                     .completedFuture(NodeExecutionResult.success(Map.of("res", "done"))));
 
             // When
-            schedulerService.resumeExecution(executionId, nodeId, edits, reviewerId, comment);
+            schedulerService.resumeExecution(executionId, nodeId, edits, reviewerId, comment, null);
 
             // Then
             // 1. HumanReviewRecord saved
@@ -175,7 +175,7 @@ class SchedulerServiceTest {
 
             // When & Then
             assertThrows(IllegalArgumentException.class,
-                    () -> schedulerService.resumeExecution(executionId, "node-actual", null, 1L, ""));
+                    () -> schedulerService.resumeExecution(executionId, "node-actual", null, 1L, "", null));
         }
 
         @Test
@@ -189,7 +189,7 @@ class SchedulerServiceTest {
 
             // When & Then
             assertThrows(IllegalStateException.class,
-                    () -> schedulerService.resumeExecution(executionId, "node-1", null, 1L, ""));
+                    () -> schedulerService.resumeExecution(executionId, "node-1", null, 1L, "", null));
         }
         @Test
         @DisplayName("Execution 不存在时应抛出异常")
@@ -200,7 +200,7 @@ class SchedulerServiceTest {
 
             // When & Then
             assertThrows(IllegalArgumentException.class,
-                    () -> schedulerService.resumeExecution(unknownId, "node-1", null, 1L, ""));
+                    () -> schedulerService.resumeExecution(unknownId, "node-1", null, 1L, "", null));
         }
 
         @Test
@@ -211,7 +211,7 @@ class SchedulerServiceTest {
             when(cancellationPort.isCancelled(executionId)).thenReturn(true);
 
             // When
-            schedulerService.resumeExecution(executionId, "node-1", null, 1L, "");
+            schedulerService.resumeExecution(executionId, "node-1", null, 1L, "", null);
 
             // Then
             verify(executionRepository, never()).findById(anyString());

@@ -13,7 +13,7 @@ describe('App', () => {
 
     render(<TestRouter initialEntries={['/dashboard']} />)
 
-    expect(await screen.findByRole('heading', { name: 'AI Agent 平台' })).toBeInTheDocument()
-    expect(screen.getByRole('heading', { name: '工作台' })).toBeInTheDocument()
+    expect(await screen.findByText('AI Agent')).toBeInTheDocument()
+    expect(await screen.findByRole('heading', { name: '欢迎回来，管理员' })).toBeInTheDocument()
   })
 })

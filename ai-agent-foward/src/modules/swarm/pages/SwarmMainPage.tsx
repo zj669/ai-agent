@@ -3,12 +3,10 @@ import { useParams } from 'react-router-dom'
 import { Layout, Spin } from 'antd'
 import SwarmSidebar from '../components/sidebar/SwarmSidebar'
 import SwarmChatPanel from '../components/chat/SwarmChatPanel'
-import SwarmGraph from '../components/graph/SwarmGraph'
-import AgentDetailDrawer from '../components/drawer/AgentDetailDrawer'
 import { useSwarmAgents } from '../hooks/useSwarmAgents'
 import { useSwarmMessages } from '../hooks/useSwarmMessages'
 import { useUIStream } from '../hooks/useUIStream'
-import { getWorkspaceDefaults, listGroups } from '../api/swarmService'
+import { getWorkspaceDefaults, listGroups, stopAgent } from '../api/swarmService'
 import type { SwarmGroup } from '../types/swarm'
 
 const { Sider, Content } = Layout
@@ -22,14 +20,12 @@ export default function SwarmMainPage() {
   const [selectedAgentId, setSelectedAgentId] = useState<number | null>(null)
   const [selectedGroupId, setSelectedGroupId] = useState<number | null>(null)
   const [groups, setGroups] = useState<SwarmGroup[]>([])
-  const [drawerOpen, setDrawerOpen] = useState(false)
 
   const { messages, load: loadMessages, send } = useSwarmMessages(selectedGroupId, humanAgentId ?? undefined)
   const [streamingContent, setStreamingContent] = useState<string | null>(null)
   const [streamingAgentId, setStreamingAgentId] = useState<number | null>(null)
   const [waitingForAgent, setWaitingForAgent] = useState<number | null>(null)
 
-  // 加载默认资源
   useEffect(() => {
     if (!wid) return
     getWorkspaceDefaults(wid).then(defaults => {
@@ -39,7 +35,6 @@ export default function SwarmMainPage() {
     })
   }, [wid])
 
-  // 加载群组
   const loadGroups = useCallback(() => {
     if (!wid) return
     listGroups(wid).then(setGroups)
@@ -47,33 +42,29 @@ export default function SwarmMainPage() {
 
   useEffect(() => { loadGroups() }, [loadGroups])
 
-  // 选中 agent 时加载对应群消息
-  // 现在群是三方群（human + 主agent + 子agent），选中子agent时找到包含该agent的群即可
   useEffect(() => {
     if (!selectedAgentId || !humanAgentId || !wid) return
-    // 找到包含 human 和 selected agent 的群（三方群或P2P群都行）
     const group = groups.find(g =>
       g.memberIds?.includes(humanAgentId) && g.memberIds?.includes(selectedAgentId)
     )
     if (group) {
       setSelectedGroupId(group.id)
     }
-    // 如果没找到群，不再自动创建P2P群（三方群在后端创建agent时已建好）
   }, [selectedAgentId, humanAgentId, groups, wid])
 
-  // 加载消息
   useEffect(() => { loadMessages() }, [loadMessages])
 
-  // SSE 实时更新
   useUIStream(wid, {
-    onAgentCreated: (data) => {
-      console.log('[SSE] onAgentCreated fired, reloading agents and groups', data)
+    onAgentCreated: () => {
       reloadAgents()
       loadGroups()
     },
     onMessageCreated: (data) => {
       try {
         const parsed = JSON.parse(data)
+        // #region agent log
+        console.warn('[DEBUG d9647c] onMessageCreated', { parsedGroupId: parsed.groupId, typeGroupId: typeof parsed.groupId, selectedGroupId, typeSelected: typeof selectedGroupId, match: parsed.groupId === selectedGroupId })
+        // #endregion
         if (parsed.groupId === selectedGroupId) {
           loadMessages()
         }
@@ -86,7 +77,7 @@ export default function SwarmMainPage() {
           setStreamingContent('')
           setStreamingAgentId(parsed.agentId)
         }
-      } catch {}
+      } catch { /* ignore */ }
     },
     onStreamChunk: (data) => {
       try {
@@ -94,17 +85,21 @@ export default function SwarmMainPage() {
         if (parsed.groupId === selectedGroupId) {
           setStreamingContent(prev => (prev ?? '') + parsed.chunk)
         }
-      } catch {}
+      } catch { /* ignore */ }
     },
     onStreamDone: (data) => {
       try {
         const parsed = JSON.parse(data)
+        // #region agent log
+        console.warn('[DEBUG d9647c] onStreamDone', { parsedGroupId: parsed.groupId, selectedGroupId, match: parsed.groupId === selectedGroupId })
+        // #endregion
         if (parsed.groupId === selectedGroupId) {
           setStreamingContent(null)
           setStreamingAgentId(null)
           loadMessages()
+          reloadAgents()
         }
-      } catch {}
+      } catch { /* ignore */ }
     },
     onWaiting: (data) => {
       try {
@@ -112,7 +107,7 @@ export default function SwarmMainPage() {
         if (parsed.groupId === selectedGroupId) {
           setWaitingForAgent(parsed.targetAgentId)
         }
-      } catch {}
+      } catch { /* ignore */ }
     },
     onWaitingDone: (data) => {
       try {
@@ -120,14 +115,40 @@ export default function SwarmMainPage() {
         if (parsed.groupId === selectedGroupId) {
           setWaitingForAgent(null)
         }
-      } catch {}
+      } catch { /* ignore */ }
     },
   })
 
   const handleSend = useCallback(async (content: string) => {
-    if (!humanAgentId) return
+    if (!humanAgentId || !selectedAgentId) return
+    setStreamingContent('')
+    setStreamingAgentId(selectedAgentId)
     await send(humanAgentId, content)
-  }, [humanAgentId, send])
+  }, [humanAgentId, selectedAgentId, send])
+
+  const handleStop = useCallback(async () => {
+    if (!selectedAgentId) return
+    // #region agent log
+    console.warn('[DEBUG d9647c] handleStop called', { selectedAgentId })
+    // #endregion
+    try {
+      await stopAgent(selectedAgentId)
+      // #region agent log
+      console.warn('[DEBUG d9647c] stopAgent API succeeded', { selectedAgentId })
+      // #endregion
+    } catch (err) {
+      // #region agent log
+      console.warn('[DEBUG d9647c] stopAgent API FAILED', { selectedAgentId, error: String(err) })
+      // #endregion
+    }
+    setStreamingContent(null)
+    setStreamingAgentId(null)
+    setWaitingForAgent(null)
+    loadMessages()
+    reloadAgents()
+  }, [selectedAgentId, loadMessages, reloadAgents])
+
+  const isStreaming = streamingContent !== null
 
   const handleSelectAgent = useCallback((agentId: number) => {
     const agent = agents.find(a => a.id === agentId)
@@ -135,46 +156,35 @@ export default function SwarmMainPage() {
     setSelectedAgentId(agentId)
   }, [agents])
 
-  const selectedAgentBusy = agents.find(a => a.id === selectedAgentId)?.status === 'BUSY'
+  const selectedAgent = agents.find(a => a.id === selectedAgentId)
 
   if (!wid) return <Spin />
 
   return (
     <Layout style={{ height: 'calc(100vh - 112px)', background: '#fff' }}>
-      <Sider width={240} style={{ background: '#fafafa', borderRight: '1px solid #f0f0f0' }}>
+      <Sider width={260} style={{ background: '#fafafa', borderRight: '1px solid #f0f0f0' }}>
         <SwarmSidebar
           agents={agents}
           selectedAgentId={selectedAgentId}
           onSelectAgent={handleSelectAgent}
         />
       </Sider>
-      <Layout>
-        {/* Graph 区域 */}
-        <div style={{ height: '40%', borderBottom: '1px solid #f0f0f0' }}>
-          <SwarmGraph agents={agents} onNodeClick={handleSelectAgent} />
-        </div>
-        {/* Chat 区域 */}
-        <Content style={{ height: '60%' }}>
-          <SwarmChatPanel
-            messages={messages}
-            agents={agents}
-            humanAgentId={humanAgentId ?? undefined}
-            onSend={handleSend}
-            selectedGroupId={selectedGroupId}
-            streamingContent={streamingContent}
-            streamingAgentId={streamingAgentId}
-            agentBusy={selectedAgentBusy}
-            waitingForAgent={waitingForAgent}
-          />
-        </Content>
-      </Layout>
-
-      <AgentDetailDrawer
-        open={drawerOpen}
-        onClose={() => setDrawerOpen(false)}
-        agentId={selectedAgentId}
-        agentRole={agents.find(a => a.id === selectedAgentId)?.role}
-      />
+      <Content style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
+        <SwarmChatPanel
+          messages={messages}
+          agents={agents}
+          humanAgentId={humanAgentId ?? undefined}
+          onSend={handleSend}
+          onStop={handleStop}
+          selectedGroupId={selectedGroupId}
+          selectedAgent={selectedAgent}
+          streamingContent={streamingContent}
+          streamingAgentId={streamingAgentId}
+          agentBusy={selectedAgent?.status === 'BUSY'}
+          isStreaming={isStreaming}
+          waitingForAgent={waitingForAgent}
+        />
+      </Content>
     </Layout>
   )
 }

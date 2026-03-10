@@ -23,6 +23,7 @@ export interface SwarmAgent {
   workspaceId: number
   agentId?: number
   role: string
+  description?: string
   parentId?: number
   status: AgentStatus
   createdAt: string
@@ -47,24 +48,6 @@ export interface SwarmMessage {
   content: string
   contentType: string
   sendTime: string
-}
-
-export interface SwarmGraphData {
-  nodes: GraphNode[]
-  edges: GraphEdge[]
-}
-
-export interface GraphNode {
-  id: number
-  role: string
-  parentId?: number
-  status: AgentStatus
-}
-
-export interface GraphEdge {
-  from: number
-  to: number
-  count: number
 }
 
 export interface SwarmSearchResult {

@@ -33,6 +33,9 @@ import java.util.concurrent.CompletableFuture;
 @Slf4j
 public class SwarmAgentRunner implements Runnable {
 
+    private static final java.util.Set<String> SUB_AGENT_FORBIDDEN_TOOLS =
+            java.util.Set.of("createAgent", "executeWorkflow", "listAgents");
+
     private final SwarmAgent agent;
     private final SwarmDomainService domainService;
     private final SwarmAgentRepository agentRepository;
@@ -47,8 +50,10 @@ public class SwarmAgentRunner implements Runnable {
     private final int maxRoundsPerTurn;
     private final Long humanAgentId;
     private final LlmProviderConfig llmConfig;
+    private final boolean isRoot;
 
     private volatile boolean running = true;
+    private volatile Thread runThread;
     private final CompletableFuture<Void> wakeSignal = new CompletableFuture<>();
     private CompletableFuture<Void> currentWakeSignal;
 
@@ -65,7 +70,8 @@ public class SwarmAgentRunner implements Runnable {
             SwarmUIEventBus uiEventBus,
             int maxRoundsPerTurn,
             Long humanAgentId,
-            LlmProviderConfig llmConfig) {
+            LlmProviderConfig llmConfig,
+            boolean isRoot) {
         this.agent = agent;
         this.domainService = domainService;
         this.agentRepository = agentRepository;
@@ -80,27 +86,30 @@ public class SwarmAgentRunner implements Runnable {
         this.maxRoundsPerTurn = maxRoundsPerTurn;
         this.humanAgentId = humanAgentId;
         this.llmConfig = llmConfig;
+        this.isRoot = isRoot;
         this.currentWakeSignal = new CompletableFuture<>();
     }
 
     @Override
     public void run() {
+        runThread = Thread.currentThread();
         log.info("[Swarm] AgentRunner started: agent={}, role={}", agent.getId(), agent.getRole());
 
         while (running) {
             try {
-                // 阻塞等待唤醒信号
                 currentWakeSignal.join();
                 if (!running) break;
 
-                // 重置唤醒信号
                 currentWakeSignal = new CompletableFuture<>();
 
-                // 执行一轮推理
                 processTurn();
 
             } catch (Exception e) {
                 if (!running) break;
+                if (Thread.currentThread().isInterrupted()) {
+                    log.info("[Swarm] AgentRunner interrupted: agent={}", agent.getId());
+                    break;
+                }
                 log.error("[Swarm] AgentRunner error: agent={}", agent.getId(), e);
                 emitEvent("agent.error", null, e.getMessage());
             }
@@ -117,11 +126,15 @@ public class SwarmAgentRunner implements Runnable {
     }
 
     /**
-     * 停止 Agent
+     * 停止 Agent — 设置标志 + 中断线程以打断 blockLast 等阻塞调用
      */
     public void stop() {
         running = false;
         currentWakeSignal.complete(null);
+        Thread t = runThread;
+        if (t != null) {
+            t.interrupt();
+        }
     }
 
     /**
@@ -187,7 +200,7 @@ public class SwarmAgentRunner implements Runnable {
         Long primaryGroupId = humanMsgsByGroup.keySet().iterator().next();
         int round = 0;
 
-        while (round < maxRoundsPerTurn) {
+        while (round < maxRoundsPerTurn && running) {
             round++;
             log.info("[Swarm] Agent {} human-round {}/{}", agent.getId(), round, maxRoundsPerTurn);
 
@@ -231,7 +244,9 @@ public class SwarmAgentRunner implements Runnable {
             }
 
             if (response.hasToolCalls()) {
+                boolean hasSend = false;
                 for (AssistantMessage.ToolCall toolCall : response.getToolCalls()) {
+                    if (!running) break;
                     String toolName = toolCall.name();
                     String toolArgs = toolCall.arguments();
 
@@ -239,6 +254,7 @@ public class SwarmAgentRunner implements Runnable {
                     emitEvent("agent.stream", "tool_calls", toolName + ": " + toolArgs);
 
                     if ("send".equals(toolName)) {
+                        hasSend = true;
                         try {
                             com.fasterxml.jackson.databind.JsonNode sendArgs = objectMapper.readTree(toolArgs);
                             long targetAgentId = sendArgs.has("agent_id") ? sendArgs.get("agent_id").asLong() : 0;
@@ -259,22 +275,15 @@ public class SwarmAgentRunner implements Runnable {
 
                     saveToolCallMessage(primaryGroupId, toolName, toolArgs, result);
 
-                    if ("send".equals(toolName)) {
-                        // send 工具执行后 break，等子 agent 回复后再被唤醒继续
-                        break;
-                    }
-
                     messages.add(new AssistantMessage(response.getContent(),
                             Map.of(), List.of(toolCall)));
                     messages.add(new org.springframework.ai.chat.messages.ToolResponseMessage(
                             List.of(new org.springframework.ai.chat.messages.ToolResponseMessage.ToolResponse(
                                     toolCall.id(), toolCall.name(), result))));
                 }
-                // 如果最后一个 tool 是 send，跳出外层循环
-                if (response.getToolCalls().stream().anyMatch(tc -> "send".equals(tc.name()))) {
+                if (hasSend) {
                     break;
                 }
-                // 继续下一轮 LLM（非 send 工具如 create）
             } else {
                 break;
             }
@@ -313,7 +322,7 @@ public class SwarmAgentRunner implements Runnable {
                 String toolName = toolCall.name();
                 String toolArgs = toolCall.arguments();
 
-                if (isCoordinator && ("send".equals(toolName) || "sendGroupMessage".equals(toolName))) {
+                if (isCoordinator && "send".equals(toolName)) {
                     // 协调者收到子 agent 回复后，跳过 send 防止 ping-pong
                     // 把 send 的 message 内容提取出来作为投递给人类的文字
                     log.info("[Swarm] Agent {} (coordinator) skipping {} to prevent ping-pong", agent.getId(), toolName);
@@ -379,6 +388,34 @@ public class SwarmAgentRunner implements Runnable {
     }
 
     /**
+     * 从持久化的 llm_history 中恢复历史消息上下文
+     */
+    private void loadLlmHistory(List<Message> messages) {
+        try {
+            SwarmAgent freshAgent = agentRepository.findById(agent.getId()).orElse(agent);
+            String historyJson = freshAgent.getLlmHistory();
+            if (historyJson == null || historyJson.isBlank()) return;
+
+            com.fasterxml.jackson.databind.JsonNode historyArray = objectMapper.readTree(historyJson);
+            if (!historyArray.isArray()) return;
+
+            for (com.fasterxml.jackson.databind.JsonNode entry : historyArray) {
+                String role = entry.has("role") ? entry.get("role").asText() : "";
+                String content = entry.has("content") ? entry.get("content").asText() : "";
+                if (content.isEmpty()) continue;
+                switch (role) {
+                    case "user", "USER" -> messages.add(SwarmLlmCaller.userMessage(content));
+                    case "assistant", "ASSISTANT" -> messages.add(SwarmLlmCaller.assistantMessage(content));
+                    default -> {} // skip system messages (already added)
+                }
+            }
+            log.debug("[Swarm] Loaded {} history entries for agent {}", historyArray.size(), agent.getId());
+        } catch (Exception e) {
+            log.warn("[Swarm] Failed to load llm_history for agent {}", agent.getId(), e);
+        }
+    }
+
+    /**
      * 落库 llm_history
      */
     private void saveLlmHistory(List<Message> messages) {
@@ -417,12 +454,19 @@ public class SwarmAgentRunner implements Runnable {
     private List<Message> buildMessages(Map<Long, List<SwarmMessage>> unreadByGroup) {
         List<Message> messages = new ArrayList<>();
 
-        // System prompt
-        messages.add(SwarmLlmCaller.systemMessage(
-                SwarmPromptTemplate.build(agent.getId(), agent.getWorkspaceId(), agent.getRole(), humanAgentId)));
+        // System prompt: Root 用协调者模板，Sub 用执行者模板
+        String systemPrompt;
+        if (isRoot) {
+            systemPrompt = SwarmPromptTemplate.buildRootPrompt(
+                    agent.getId(), agent.getWorkspaceId(), agent.getRole(), humanAgentId);
+        } else {
+            systemPrompt = SwarmPromptTemplate.buildSubPrompt(
+                    agent.getId(), agent.getWorkspaceId(), agent.getRole(),
+                    humanAgentId, agent.getParentId());
+        }
+        messages.add(SwarmLlmCaller.systemMessage(systemPrompt));
 
-        // 加载已有 llm_history
-        // TODO: 从 agent.getLlmHistory() 解析并加入
+        loadLlmHistory(messages);
 
         // 未读消息作为 user messages
         for (Map.Entry<Long, List<SwarmMessage>> entry : unreadByGroup.entrySet()) {
@@ -458,20 +502,25 @@ public class SwarmAgentRunner implements Runnable {
      */
     private String executeToolCall(String toolName, String toolArgs) {
         try {
+            if (!isRoot && SUB_AGENT_FORBIDDEN_TOOLS.contains(toolName)) {
+                log.warn("[Swarm] Sub agent {} attempted forbidden tool: {}", agent.getId(), toolName);
+                return "{\"error\": \"你是执行者 Agent，不允许使用 " + toolName + " 工具。你只能使用 send 和 self。\"}";
+            }
+
             com.fasterxml.jackson.databind.JsonNode args = objectMapper.readTree(toolArgs != null ? toolArgs : "{}");
             return switch (toolName) {
-                case "create" -> swarmTools.create(
+                case "createAgent" -> swarmTools.createAgent(
                         args.has("role") ? args.get("role").asText() : "assistant",
-                        args.has("description") ? args.get("description").asText() : "");
+                        args.has("description") ? args.get("description").asText() : "",
+                        args.has("graphJson") ? args.get("graphJson").asText() : null);
+                case "executeWorkflow" -> swarmTools.executeWorkflow(
+                        args.get("agentId").asLong(),
+                        args.has("input") ? args.get("input").asText() : null);
                 case "send" -> swarmTools.send(
                         args.get("agentId").asLong(),
                         args.get("message").asText());
                 case "self" -> swarmTools.self();
                 case "listAgents" -> swarmTools.listAgents();
-                case "sendGroupMessage" -> swarmTools.sendGroupMessage(
-                        args.get("groupId").asLong(),
-                        args.get("message").asText());
-                case "listGroups" -> swarmTools.listGroups();
                 default -> "{\"error\": \"Unknown tool: " + toolName + "\"}";
             };
         } catch (Exception e) {

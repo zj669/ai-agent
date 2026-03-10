@@ -11,6 +11,7 @@
 
 # 设置默认值
 STARTUP_WAIT=${STARTUP_WAIT:-10}
+HEALTH_PATH=${HEALTH_PATH:-/actuator/health}
 
 # 登录阿里云镜像仓库
 echo ${DOCKERPASSWORD} | docker login --username ${DOCKERNAME} --password-stdin crpi-gj68k07wqq52fpxi.cn-chengdu.personal.cr.aliyuncs.com
@@ -43,7 +44,7 @@ echo "等待容器启动..."
 sleep ${STARTUP_WAIT}
 for i in {1..30}; do
   # 使用docker exec在容器内部执行健康检查
-  if docker exec ${CONTAINER_NAME} curl -s -f http://localhost:8080/public/health > /dev/null 2>&1; then
+  if docker exec ${CONTAINER_NAME} curl -s -f http://localhost:8080${HEALTH_PATH} > /dev/null 2>&1; then
     echo "✅ 部署成功"
     exit 0
   fi

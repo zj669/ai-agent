@@ -194,7 +194,7 @@ interface HumanReviewModalProps {
   loading: boolean
   detail: ReviewDetailData | null
   onClose: () => void
-  onResume: (edits: Record<string, unknown>, comment: string) => void
+  onResume: (edits: Record<string, unknown>, comment: string, nodeEdits?: Record<string, Record<string, unknown>>) => void
 }
 
 const STATUS_TAG: Record<string, { color: string; icon: React.ReactNode; label: string }> = {
@@ -211,6 +211,7 @@ function formatValue(v: unknown): string {
 
 function HumanReviewModal({ open, loading, detail, onClose, onResume }: HumanReviewModalProps) {
   const [editValues, setEditValues] = useState<Record<string, string>>({})
+  const [upstreamEdits, setUpstreamEdits] = useState<Record<string, Record<string, string>>>({})
   const [comment, setComment] = useState('')
 
   const isBefore = detail?.triggerPhase === 'BEFORE_EXECUTION'
@@ -218,7 +219,6 @@ function HumanReviewModal({ open, loading, detail, onClose, onResume }: HumanRev
   const currentNode = nodes.find(n => n.nodeId === detail?.nodeId)
   const completedNodes = nodes.filter(n => n.nodeId !== detail?.nodeId)
   
-  // 当前节点的可编辑数据：BEFORE 使用 inputs，AFTER 使用 outputs
   const currentNodeData = isBefore ? (currentNode?.inputs ?? {}) : (currentNode?.outputs ?? {})
 
   useEffect(() => {
@@ -228,15 +228,47 @@ function HumanReviewModal({ open, loading, detail, onClose, onResume }: HumanRev
         initial[k] = formatValue(v)
       })
       setEditValues(initial)
+    } else {
+      setEditValues({})
     }
-  }, [detail, isBefore])
+    const upInit: Record<string, Record<string, string>> = {}
+    completedNodes.forEach(n => {
+      upInit[n.nodeId] = {}
+      if (n.inputs && Object.keys(n.inputs).length > 0) {
+        Object.entries(n.inputs).forEach(([k, v]) => {
+          upInit[n.nodeId][k] = formatValue(v)
+        })
+      }
+      if (n.outputs && Object.keys(n.outputs).length > 0) {
+        Object.entries(n.outputs).forEach(([k, v]) => {
+          upInit[n.nodeId][k] = formatValue(v)
+        })
+      }
+    })
+    setUpstreamEdits(upInit)
+  }, [detail, isBefore, currentNode])
+
+  const updateUpstreamField = (nodeId: string, field: string, value: string) => {
+    setUpstreamEdits(prev => ({
+      ...prev,
+      [nodeId]: { ...(prev[nodeId] ?? {}), [field]: value }
+    }))
+  }
 
   const handleOk = () => {
     const edits: Record<string, unknown> = {}
     Object.entries(editValues).forEach(([k, raw]) => {
       try { edits[k] = JSON.parse(raw) } catch { edits[k] = raw }
     })
-    onResume(edits, comment)
+    const nodeEdits: Record<string, Record<string, unknown>> = {}
+    Object.entries(upstreamEdits).forEach(([nodeId, fields]) => {
+      const parsed: Record<string, unknown> = {}
+      Object.entries(fields).forEach(([k, raw]) => {
+        try { parsed[k] = JSON.parse(raw) } catch { parsed[k] = raw }
+      })
+      nodeEdits[nodeId] = parsed
+    })
+    onResume(edits, comment, Object.keys(nodeEdits).length > 0 ? nodeEdits : undefined)
   }
 
   return (
@@ -338,17 +370,16 @@ function HumanReviewModal({ open, loading, detail, onClose, onResume }: HumanRev
                       <div>
                         {n.inputs && Object.keys(n.inputs).length > 0 && (
                           <>
-                            <Text type="secondary" style={{ fontSize: 11, display: 'block', marginBottom: 4 }}>📥 输入</Text>
+                            <Text type="secondary" style={{ fontSize: 11, display: 'block', marginBottom: 4 }}>📥 输入（可编辑）</Text>
                             {Object.entries(n.inputs).map(([k, v]) => (
                               <div key={k} style={{ marginBottom: 8 }}>
                                 <Text style={{ fontSize: 11, color: '#8c8c8c' }}>{k}:</Text>
-                                <pre style={{
-                                  margin: '2px 0 0', padding: '6px 8px', background: '#f5f5f5',
-                                  borderRadius: 4, fontSize: 11, fontFamily: 'monospace',
-                                  whiteSpace: 'pre-wrap', wordBreak: 'break-all', maxHeight: 120, overflow: 'auto'
-                                }}>
-                                  {formatValue(v)}
-                                </pre>
+                                <Input.TextArea
+                                  value={upstreamEdits[n.nodeId]?.[k] ?? formatValue(v)}
+                                  onChange={(e) => updateUpstreamField(n.nodeId, k, e.target.value)}
+                                  autoSize={{ minRows: 2, maxRows: 8 }}
+                                  style={{ fontFamily: 'monospace', fontSize: 11, marginTop: 2, background: '#f5f5f5' }}
+                                />
                               </div>
                             ))}
                           </>
@@ -356,17 +387,16 @@ function HumanReviewModal({ open, loading, detail, onClose, onResume }: HumanRev
                         {n.outputs && Object.keys(n.outputs).length > 0 && (
                           <>
                             <Divider style={{ margin: '8px 0' }} />
-                            <Text type="secondary" style={{ fontSize: 11, display: 'block', marginBottom: 4 }}>📤 输出</Text>
+                            <Text type="secondary" style={{ fontSize: 11, display: 'block', marginBottom: 4 }}>📤 输出（可编辑）</Text>
                             {Object.entries(n.outputs).map(([k, v]) => (
                               <div key={k} style={{ marginBottom: 8 }}>
                                 <Text style={{ fontSize: 11, color: '#8c8c8c' }}>{k}:</Text>
-                                <pre style={{
-                                  margin: '2px 0 0', padding: '6px 8px', background: '#f0f5ff',
-                                  borderRadius: 4, fontSize: 11, fontFamily: 'monospace',
-                                  whiteSpace: 'pre-wrap', wordBreak: 'break-all', maxHeight: 120, overflow: 'auto'
-                                }}>
-                                  {formatValue(v)}
-                                </pre>
+                                <Input.TextArea
+                                  value={upstreamEdits[n.nodeId]?.[k] ?? formatValue(v)}
+                                  onChange={(e) => updateUpstreamField(n.nodeId, k, e.target.value)}
+                                  autoSize={{ minRows: 2, maxRows: 8 }}
+                                  style={{ fontFamily: 'monospace', fontSize: 11, marginTop: 2 }}
+                                />
                               </div>
                             ))}
                           </>
@@ -649,7 +679,7 @@ function ChatPage() {
     }
   }, [])
 
-  const handleResumeExecution = useCallback(async (edits: Record<string, unknown>, comment: string) => {
+  const handleResumeExecution = useCallback(async (edits: Record<string, unknown>, comment: string, nodeEdits?: Record<string, Record<string, unknown>>) => {
     const paused = pausedExecutionRef.current
     if (!paused) return
 
@@ -659,7 +689,8 @@ function ChatPage() {
         executionId: paused.executionId,
         nodeId: paused.nodeId,
         edits,
-        comment
+        comment,
+        nodeEdits
       })
       setReviewModalOpen(false)
       setReviewDetail(null)

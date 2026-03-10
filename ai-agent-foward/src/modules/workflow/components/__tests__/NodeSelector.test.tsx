@@ -10,16 +10,17 @@ describe('NodeSelector', () => {
     vi.clearAllMocks()
   })
 
-  it('renders all 4 node types', () => {
+  it('renders all 5 node types', () => {
     const { getAllByRole, getByText } = render(
       <NodeSelector onSelect={onSelect} onClose={onClose} />,
     )
 
-    expect(getAllByRole('menuitem')).toHaveLength(4)
+    expect(getAllByRole('menuitem')).toHaveLength(5)
     expect(getByText('LLM')).toBeInTheDocument()
     expect(getByText('条件')).toBeInTheDocument()
     expect(getByText('工具')).toBeInTheDocument()
     expect(getByText('HTTP')).toBeInTheDocument()
+    expect(getByText('知识库')).toBeInTheDocument()
   })
 
   it('has role="menu" on the container', () => {
@@ -55,5 +56,6 @@ describe('NodeSelector', () => {
     expect(getByText('🔀')).toBeInTheDocument()
     expect(getByText('🔧')).toBeInTheDocument()
     expect(getByText('🌐')).toBeInTheDocument()
+    expect(getByText('📚')).toBeInTheDocument()
   })
 })

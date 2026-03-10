@@ -68,6 +68,7 @@ spring:
         endpoint: ${EMBEDDING_ENDPOINT}
         model: ${EMBEDDING_MODEL}
         api-key: ${EMBEDDING_API_KEY}
+        dimensions: 1024
         options:
           num_ctx: ${EMBEDDING_NUM_CTX}
 

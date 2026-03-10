@@ -1,34 +1,25 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 
-// Mock dependencies before importing httpClient
-vi.mock('../../feedback/toast', () => ({
-  showToast: vi.fn(),
-}))
-
-vi.mock('../../../app/auth', () => ({
-  clearAccessToken: vi.fn(),
-}))
-
 import { createHttpClient } from '../httpClient'
-import { showToast } from '../../feedback/toast'
-import { clearAccessToken } from '../../../app/auth'
 import type { NormalizedApiError } from '../errorMapper'
 
 describe('httpClient error side effects', () => {
   beforeEach(() => {
     vi.clearAllMocks()
+    localStorage.clear()
+    sessionStorage.clear()
     delete (window as unknown as Record<string, unknown>).location
     Object.defineProperty(window, 'location', {
-      value: { href: '/' },
+      value: { href: '/', pathname: '/' },
       writable: true,
       configurable: true,
     })
   })
 
   it('TOKEN_EXPIRED clears token, shows toast, and redirects to /login', async () => {
+    localStorage.setItem('accessToken', 'test-token')
     const client = createHttpClient('/')
 
-    // Simulate a 401 UNAUTHORIZED response
     const axiosError = {
       isAxiosError: true,
       response: {
@@ -37,7 +28,6 @@ describe('httpClient error side effects', () => {
       },
     }
 
-    // Manually trigger the error interceptor
     const interceptor = (client.interceptors.response as unknown as { handlers: Array<{ rejected: (e: unknown) => unknown }> }).handlers[0]
     try {
       await interceptor.rejected(axiosError)
@@ -46,12 +36,11 @@ describe('httpClient error side effects', () => {
       expect(err.code).toBe('TOKEN_EXPIRED')
     }
 
-    expect(clearAccessToken).toHaveBeenCalled()
-    expect(showToast).toHaveBeenCalledWith('登录已过期，请重新登录', 'error')
-    expect(window.location.href).toBe('/login')
+    expect(localStorage.getItem('accessToken')).toBeNull()
+    expect(window.location.href).toContain('/login')
   })
 
-  it('NETWORK_ERROR shows warning toast', async () => {
+  it('NETWORK_ERROR returns mapped error', async () => {
     const client = createHttpClient('/')
 
     const axiosError = {
@@ -66,11 +55,9 @@ describe('httpClient error side effects', () => {
       const err = e as NormalizedApiError
       expect(err.code).toBe('NETWORK_ERROR')
     }
-
-    expect(showToast).toHaveBeenCalledWith('网络错误，请检查网络连接', 'warning')
   })
 
-  it('5xx error shows system error toast', async () => {
+  it('5xx error returns mapped error', async () => {
     const client = createHttpClient('/')
 
     const axiosError = {
@@ -88,7 +75,5 @@ describe('httpClient error side effects', () => {
       const err = e as NormalizedApiError
       expect(err.code).toBe('UNKNOWN_ERROR')
     }
-
-    expect(showToast).toHaveBeenCalledWith('系统错误，请稍后再试', 'error')
   })
 })

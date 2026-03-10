@@ -1,5 +1,6 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useMemo } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { getSavedUserInfo } from '../../../shared/api/adapters/authAdapter'
 import { Card, Col, Row, Button, List, Avatar, Space, Typography } from 'antd'
 import {
   RobotOutlined,
@@ -90,6 +91,7 @@ function DashboardPage() {
   const navigate = useNavigate()
   const [stats, setStats] = useState<DashboardStats | null>(null)
   const [loading, setLoading] = useState(true)
+  const displayName = useMemo(() => getSavedUserInfo()?.username ?? '用户', [])
 
   useEffect(() => {
     void getDashboardStats()
@@ -110,7 +112,7 @@ function DashboardPage() {
         }}
       >
         <Title level={4} style={{ color: '#101828', margin: 0 }}>
-          欢迎回来，管理员
+          欢迎回来，{displayName}
         </Title>
         <Text style={{ color: '#667085', fontSize: 14 }}>
           这是您的 AI Agent 工作台概览

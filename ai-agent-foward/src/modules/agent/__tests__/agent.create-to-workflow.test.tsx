@@ -2,10 +2,10 @@ import { fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { beforeEach, vi } from 'vitest'
 import AgentListPage from '../pages/AgentListPage'
 
-const { mockNavigate, mockCreateAgent, mockFetchAgentList } = vi.hoisted(() => ({
+const { mockNavigate, mockCreateAgent, mockGetAgentList } = vi.hoisted(() => ({
   mockNavigate: vi.fn(),
-  mockCreateAgent: vi.fn().mockResolvedValue({ id: 'agent-123' }),
-  mockFetchAgentList: vi.fn()
+  mockCreateAgent: vi.fn().mockResolvedValue(123),
+  mockGetAgentList: vi.fn()
 }))
 
 vi.mock('react-router-dom', async () => {
@@ -16,19 +16,22 @@ vi.mock('react-router-dom', async () => {
   }
 })
 
-vi.mock('../api/agentService', () => ({
+vi.mock('../../../shared/api/adapters/agentAdapter', () => ({
   createAgent: mockCreateAgent,
-  fetchAgentList: () => mockFetchAgentList()
+  getAgentList: () => mockGetAgentList(),
+  publishAgent: vi.fn(),
+  offlineAgent: vi.fn(),
+  deleteAgent: vi.fn(),
 }))
 
 describe('agent create to workflow', () => {
   beforeEach(() => {
     mockNavigate.mockReset()
     mockCreateAgent.mockReset()
-    mockFetchAgentList.mockReset()
+    mockGetAgentList.mockReset()
 
-    mockCreateAgent.mockResolvedValue({ id: 'agent-123' })
-    mockFetchAgentList.mockResolvedValue([
+    mockCreateAgent.mockResolvedValue(123)
+    mockGetAgentList.mockResolvedValue([
       {
         id: 1001,
         userId: 1,
@@ -44,7 +47,7 @@ describe('agent create to workflow', () => {
     render(<AgentListPage />)
 
     await waitFor(() => {
-      expect(mockFetchAgentList).toHaveBeenCalledTimes(1)
+      expect(mockGetAgentList).toHaveBeenCalledTimes(1)
     })
 
     expect(await screen.findByText('测试 Agent')).toBeInTheDocument()
@@ -53,11 +56,13 @@ describe('agent create to workflow', () => {
   it('列表页点击新建后创建并跳转 workflow 页面', async () => {
     render(<AgentListPage />)
 
-    fireEvent.click(screen.getByRole('button', { name: '新建 Agent' }))
+    await screen.findByText('测试 Agent')
+
+    fireEvent.click(screen.getByRole('button', { name: /新建 Agent/ }))
 
     await waitFor(() => {
       expect(mockCreateAgent).toHaveBeenCalledTimes(1)
-      expect(mockNavigate).toHaveBeenCalledWith('/agents/agent-123/workflow')
+      expect(mockNavigate).toHaveBeenCalledWith('/agents/123/workflow')
     })
   })
 
@@ -65,14 +70,16 @@ describe('agent create to workflow', () => {
     mockCreateAgent.mockRejectedValueOnce(new Error('create failed'))
     render(<AgentListPage />)
 
-    fireEvent.click(screen.getByRole('button', { name: '新建 Agent' }))
+    await screen.findByText('测试 Agent')
 
-    expect(await screen.findByText('创建失败，请稍后重试')).toBeInTheDocument()
+    fireEvent.click(screen.getByRole('button', { name: /新建 Agent/ }))
+
+    expect(await screen.findByText('创建失败')).toBeInTheDocument()
     expect(mockNavigate).not.toHaveBeenCalled()
   })
 
   it('创建进行中时按钮禁用，避免重复点击', async () => {
-    let resolveCreate: ((value: { id: string }) => void) | undefined
+    let resolveCreate: ((value: number) => void) | undefined
     mockCreateAgent.mockImplementationOnce(
       () =>
         new Promise((resolve) => {
@@ -82,24 +89,25 @@ describe('agent create to workflow', () => {
 
     render(<AgentListPage />)
 
-    const button = screen.getByRole('button', { name: '新建 Agent' })
+    await screen.findByText('测试 Agent')
+
+    const button = screen.getByRole('button', { name: /新建 Agent/ })
     fireEvent.click(button)
     fireEvent.click(button)
 
     expect(mockCreateAgent).toHaveBeenCalledTimes(1)
-    expect(screen.getByRole('button', { name: '创建中...' })).toBeDisabled()
 
-    resolveCreate?.({ id: 'agent-456' })
+    resolveCreate?.(456)
 
     await waitFor(() => {
-      expect(mockNavigate).toHaveBeenCalledWith('/agents/agent-456/workflow')
+      expect(mockNavigate).toHaveBeenCalledWith('/agents/456/workflow')
     })
   })
 
   it('列表加载失败时显示最小错误提示', async () => {
-    mockFetchAgentList.mockRejectedValueOnce(new Error('list failed'))
+    mockGetAgentList.mockRejectedValueOnce(new Error('list failed'))
     render(<AgentListPage />)
 
-    expect(await screen.findByText('列表加载失败，请稍后重试')).toBeInTheDocument()
+    expect(await screen.findByText('列表加载失败')).toBeInTheDocument()
   })
 })

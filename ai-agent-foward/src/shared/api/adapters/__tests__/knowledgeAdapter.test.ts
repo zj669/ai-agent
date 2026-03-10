@@ -136,7 +136,7 @@ describe('knowledgeAdapter', () => {
       params: {
         datasetId: 'dataset-1',
         page: 0,
-        size: 20
+        size: 100
       }
     })
     expect(result).toEqual([

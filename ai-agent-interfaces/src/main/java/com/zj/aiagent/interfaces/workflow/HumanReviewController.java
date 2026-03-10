@@ -155,7 +155,8 @@ public class HumanReviewController {
                 request.getNodeId(),
                 request.getEdits(),
                 userId,
-                request.getComment());
+                request.getComment(),
+                request.getNodeEdits());
         return ResponseEntity.ok().build();
     }
 

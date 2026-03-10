@@ -141,6 +141,7 @@ export interface ResumeExecutionInput {
   nodeId: string
   edits?: Record<string, unknown>
   comment?: string
+  nodeEdits?: Record<string, Record<string, unknown>>
 }
 
 export async function getReviewDetail(

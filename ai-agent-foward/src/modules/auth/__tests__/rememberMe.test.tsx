@@ -1,5 +1,5 @@
 import { fireEvent, render, screen, waitFor } from '@testing-library/react'
-import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { TestRouter } from '../../../app/router'
 import { login } from '../../../shared/api/adapters/authAdapter'
 
@@ -9,6 +9,9 @@ vi.mock('../../../shared/api/adapters/authAdapter', () => ({
 
 describe('remember me', () => {
   beforeEach(() => {
+    vi.useFakeTimers({ shouldAdvanceTime: true })
+    localStorage.clear()
+    sessionStorage.clear()
     vi.mocked(login).mockResolvedValue({
       token: 'api-token',
       refreshToken: 'refresh-token',
@@ -25,16 +28,21 @@ describe('remember me', () => {
       }
     })
   })
+
+  afterEach(() => {
+    vi.useRealTimers()
+  })
+
   it('勾选记住我后登录会持久化登录并保存邮箱', async () => {
     localStorage.clear()
     sessionStorage.clear()
 
     render(<TestRouter initialEntries={['/login']} />)
 
-    fireEvent.change(screen.getByLabelText('邮箱'), { target: { value: 'user@example.com' } })
-    fireEvent.change(screen.getByLabelText('密码'), { target: { value: '12345678' } })
+    fireEvent.change(screen.getByPlaceholderText('请输入邮箱'), { target: { value: 'user@example.com' } })
+    fireEvent.change(screen.getByPlaceholderText('请输入密码'), { target: { value: '12345678' } })
     fireEvent.click(screen.getByLabelText('记住我'))
-    fireEvent.click(screen.getByRole('button', { name: '登录' }))
+    fireEvent.click(screen.getByRole('button', { name: /登\s*录/ }))
 
     await waitFor(() => {
       expect(login).toHaveBeenCalledWith({
@@ -46,19 +54,19 @@ describe('remember me', () => {
       expect(localStorage.getItem('rememberedEmail')).toBe('user@example.com')
     })
 
-    expect(await screen.findByRole('heading', { name: '工作台' })).toBeInTheDocument()
+    expect(await screen.findByRole('heading', { name: '欢迎回来，管理员' })).toBeInTheDocument()
   })
 
   it('未勾选记住我时使用会话级登录并清除已保存邮箱', async () => {
-    localStorage.setItem('rememberedEmail', 'old@example.com')
-    localStorage.setItem('accessToken', 'old-token')
+    localStorage.clear()
     sessionStorage.clear()
+    localStorage.setItem('rememberedEmail', 'old@example.com')
 
     render(<TestRouter initialEntries={['/login']} />)
 
-    fireEvent.change(screen.getByLabelText('邮箱'), { target: { value: 'new@example.com' } })
-    fireEvent.change(screen.getByLabelText('密码'), { target: { value: '12345678' } })
-    fireEvent.click(screen.getByRole('button', { name: '登录' }))
+    fireEvent.change(screen.getByPlaceholderText('请输入邮箱'), { target: { value: 'new@example.com' } })
+    fireEvent.change(screen.getByPlaceholderText('请输入密码'), { target: { value: '12345678' } })
+    fireEvent.click(screen.getByRole('button', { name: /登\s*录/ }))
 
     await waitFor(() => {
       expect(login).toHaveBeenCalledWith({
@@ -76,7 +84,7 @@ describe('remember me', () => {
 
     render(<TestRouter initialEntries={['/login']} />)
 
-    const emailInput = screen.getByLabelText('邮箱') as HTMLInputElement
+    const emailInput = screen.getByPlaceholderText('请输入邮箱') as HTMLInputElement
     expect(emailInput.value).toBe('preset@example.com')
   })
 
@@ -86,11 +94,11 @@ describe('remember me', () => {
 
     render(<TestRouter initialEntries={['/login?redirect=%2Fagents']} />)
 
-    fireEvent.change(screen.getByLabelText('邮箱'), { target: { value: 'user@example.com' } })
-    fireEvent.change(screen.getByLabelText('密码'), { target: { value: '12345678' } })
-    fireEvent.click(screen.getByRole('button', { name: '登录' }))
+    fireEvent.change(screen.getByPlaceholderText('请输入邮箱'), { target: { value: 'user@example.com' } })
+    fireEvent.change(screen.getByPlaceholderText('请输入密码'), { target: { value: '12345678' } })
+    fireEvent.click(screen.getByRole('button', { name: /登\s*录/ }))
 
-    expect(await screen.findByRole('heading', { name: 'Agent 列表' })).toBeInTheDocument()
+    expect(await screen.findByRole('heading', { name: 'Agent 管理' })).toBeInTheDocument()
   })
 
   it('redirect 非法时登录后回退到 /dashboard', async () => {
@@ -99,10 +107,10 @@ describe('remember me', () => {
 
     render(<TestRouter initialEntries={['/login?redirect=https%3A%2F%2Fevil.com']} />)
 
-    fireEvent.change(screen.getByLabelText('邮箱'), { target: { value: 'user@example.com' } })
-    fireEvent.change(screen.getByLabelText('密码'), { target: { value: '12345678' } })
-    fireEvent.click(screen.getByRole('button', { name: '登录' }))
+    fireEvent.change(screen.getByPlaceholderText('请输入邮箱'), { target: { value: 'user@example.com' } })
+    fireEvent.change(screen.getByPlaceholderText('请输入密码'), { target: { value: '12345678' } })
+    fireEvent.click(screen.getByRole('button', { name: /登\s*录/ }))
 
-    expect(await screen.findByRole('heading', { name: '工作台' })).toBeInTheDocument()
+    expect(await screen.findByRole('heading', { name: '欢迎回来，管理员' })).toBeInTheDocument()
   })
 })

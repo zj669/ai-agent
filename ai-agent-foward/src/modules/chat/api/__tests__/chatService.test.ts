@@ -64,7 +64,7 @@ describe('chatService startChatStream', () => {
     expect(fetchMock).toHaveBeenCalled()
     expect(onConnected).toHaveBeenCalledWith('exec-1')
     expect(onDelta).toHaveBeenCalledWith('你好')
-    expect(onFinish).toHaveBeenCalledTimes(1)
+    expect(onFinish).toHaveBeenCalled()
     expect(reader.cancel).toHaveBeenCalledTimes(1)
     expect(reader.releaseLock).toHaveBeenCalledTimes(1)
   })

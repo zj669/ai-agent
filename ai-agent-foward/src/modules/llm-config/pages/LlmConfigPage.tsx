@@ -1,9 +1,9 @@
 import { useEffect, useState } from 'react'
 import {
-  Card, Table, Button, Modal, Form, Input, Select, Space, Tag, Popconfirm, message, Spin
+  Card, Table, Button, Modal, Form, Input, Select, Space, Tag, message, Spin, Dropdown
 } from 'antd'
 import {
-  PlusOutlined, DeleteOutlined, StarOutlined, StarFilled, ThunderboltOutlined
+  PlusOutlined, DeleteOutlined, StarOutlined, StarFilled, ThunderboltOutlined, MoreOutlined, EditOutlined
 } from '@ant-design/icons'
 import {
   getLlmConfigs, createLlmConfig, updateLlmConfig, deleteLlmConfig, testLlmConfig,
@@ -120,27 +120,33 @@ export default function LlmConfigPage() {
     {
       title: '操作',
       key: 'actions',
-      render: (_: unknown, record: LlmConfig) => (
-        <Space size="small">
-          <Button size="small" onClick={() => handleEdit(record)}>编辑</Button>
-          {!record.isDefault && (
-            <Button size="small" icon={<StarOutlined />} onClick={() => handleSetDefault(record.id)}>
-              设为默认
-            </Button>
-          )}
-          <Button
-            size="small"
-            icon={<ThunderboltOutlined />}
-            loading={testingId === record.id}
-            onClick={() => handleTest(record.id)}
-          >
-            测试
-          </Button>
-          <Popconfirm title="确认删除？" onConfirm={() => handleDelete(record.id)}>
-            <Button size="small" danger icon={<DeleteOutlined />} />
-          </Popconfirm>
-        </Space>
-      ),
+      width: 160,
+      render: (_: unknown, record: LlmConfig) => {
+        const moreItems = [
+          ...(!record.isDefault ? [{ key: 'default', icon: <StarOutlined />, label: '设为默认' }] : []),
+          { key: 'test', icon: <ThunderboltOutlined />, label: testingId === record.id ? '测试中...' : '连通测试' },
+          { type: 'divider' as const },
+          { key: 'delete', icon: <DeleteOutlined />, label: '删除', danger: true },
+        ]
+        return (
+          <Space size="small">
+            <Button size="small" icon={<EditOutlined />} onClick={() => handleEdit(record)}>编辑</Button>
+            <Dropdown
+              menu={{
+                items: moreItems,
+                onClick: ({ key }) => {
+                  if (key === 'default') handleSetDefault(record.id)
+                  else if (key === 'test') handleTest(record.id)
+                  else if (key === 'delete') handleDelete(record.id)
+                },
+              }}
+              trigger={['click']}
+            >
+              <Button size="small" icon={<MoreOutlined />} />
+            </Dropdown>
+          </Space>
+        )
+      },
     },
   ]
 
@@ -156,6 +162,7 @@ export default function LlmConfigPage() {
           rowKey="id"
           pagination={false}
           size="middle"
+          scroll={{ x: 'max-content' }}
         />
       </Spin>
 

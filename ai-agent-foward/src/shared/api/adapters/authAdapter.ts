@@ -34,7 +34,24 @@ export interface AuthSession {
 
 export async function login(input: LoginRequest, client: ApiClientLike = apiClient): Promise<AuthSession> {
   const response = await client.post<ApiResponse<LoginDataDTO>>('/client/user/login', input)
-  return unwrapResponse(response)
+  const session = unwrapResponse(response)
+  if (session.user) {
+    localStorage.setItem('userInfo', JSON.stringify(session.user))
+  }
+  return session
+}
+
+export function getSavedUserInfo(): LoginUserDTO | null {
+  try {
+    const raw = localStorage.getItem('userInfo')
+    return raw ? JSON.parse(raw) : null
+  } catch {
+    return null
+  }
+}
+
+export function clearSavedUserInfo(): void {
+  localStorage.removeItem('userInfo')
 }
 
 export async function sendEmailCode(email: string, client: ApiClientLike = apiClient): Promise<void> {

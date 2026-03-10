@@ -20,11 +20,10 @@ REDIS_PASSWORD=your-redis-password
 # JWT (至少 32 字符)
 JWT_SECRET=your-secure-jwt-secret-at-least-32-chars
 
-# SSL 证书
-SSL_KEYSTORE_PASSWORD=your-keystore-password
+# JWT 建议通过环境变量覆盖 application.yml 默认值
 
-# CORS (多个域名用逗号分隔)
-CORS_ALLOWED_ORIGINS=https://your-domain.com,https://www.your-domain.com
+# 如需 HTTPS prod profile，再额外提供证书密码
+SSL_KEYSTORE_PASSWORD=your-keystore-password
 ```
 
 ### 可选配置
@@ -61,9 +60,9 @@ docker-compose ps  # 验证服务状态
 
 ```bash
 # 构建
-mvn clean package -DskipTests
+mvn clean package -Dmaven.test.skip=true
 
-# 启动 (生产环境)
+# 启动 (prod 需要证书；若按 IP/HTTP 快速上线，优先参考 docs/deployment/cloud)
 java -jar ai-agent-interfaces/target/ai-agent-interfaces.jar \
   --spring.profiles.active=prod
 ```
@@ -90,7 +89,7 @@ npm run build
 
 ```bash
 # 检查应用状态
-curl -k https://localhost:8443/actuator/health
+curl http://localhost:8080/actuator/health
 ```
 
 ## 故障排查

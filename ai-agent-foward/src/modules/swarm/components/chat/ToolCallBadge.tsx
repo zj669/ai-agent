@@ -6,8 +6,11 @@ const { Text } = Typography
 
 const TOOL_ICONS: Record<string, string> = {
   create: '🔧',
+  createAgent: '🤖',
+  executeWorkflow: '⚡',
   send: '📨',
   self: '🪪',
+  listAgents: '📋',
   list_agents: '📋',
   send_group_message: '📢',
   list_groups: '👥',

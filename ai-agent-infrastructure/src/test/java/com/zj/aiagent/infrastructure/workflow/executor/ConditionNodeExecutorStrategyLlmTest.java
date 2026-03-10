@@ -17,6 +17,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.ai.chat.client.ChatClient;
 import org.springframework.web.client.RestClient;
+import com.zj.aiagent.domain.llm.repository.LlmProviderConfigRepository;
 
 import java.util.HashMap;
 import java.util.List;
@@ -69,8 +70,11 @@ class ConditionNodeExecutorStrategyLlmTest {
         Executor syncExecutor = Runnable::run;
         RestClient.Builder restClientBuilder = RestClient.builder();
 
+        // 使用空的 LlmProviderConfigRepository stub（LLM 配置在测试中通过 spy 的 buildChatClient 覆盖）
+        LlmProviderConfigRepository llmRepo = mock(LlmProviderConfigRepository.class);
+
         strategy = spy(new ConditionNodeExecutorStrategy(
-                conditionEvaluator, objectMapper, syncExecutor, restClientBuilder));
+                conditionEvaluator, objectMapper, syncExecutor, restClientBuilder, llmRepo));
 
         // 构建测试分支
         testBranches = List.of(

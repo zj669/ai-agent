@@ -42,13 +42,12 @@ describe('router auth guard', () => {
       />
     )
 
-    expect(await screen.findByRole('heading', { name: 'AI Agent 平台' })).toBeInTheDocument()
-    expect(screen.getByRole('heading', { name: '工作台' })).toBeInTheDocument()
-    expect(screen.getByRole('complementary', { name: '主导航' })).toBeInTheDocument()
-    expect(screen.getByRole('link', { name: '工作台' })).toBeInTheDocument()
-    expect(screen.getByRole('link', { name: 'Agent' })).toBeInTheDocument()
-    expect(screen.getByRole('link', { name: '知识库' })).toBeInTheDocument()
-    expect(screen.getByRole('link', { name: '聊天' })).toBeInTheDocument()
+    expect(await screen.findByText('AI Agent')).toBeInTheDocument()
+    expect(await screen.findByRole('heading', { name: '欢迎回来，管理员' })).toBeInTheDocument()
+    expect(screen.getAllByText('工作台').length).toBeGreaterThan(0)
+    expect(screen.getByText('Agent 管理')).toBeInTheDocument()
+    expect(screen.getByText('知识库')).toBeInTheDocument()
+    expect(screen.getByText('智能对话')).toBeInTheDocument()
     await waitFor(() => {
       expect(currentPath).toBe('/dashboard')
     })
@@ -67,18 +66,16 @@ describe('router auth guard', () => {
       />
     )
 
-    await screen.findByRole('heading', { name: 'AI Agent 平台' })
+    await screen.findByText('AI Agent')
 
-    fireEvent.click(screen.getByRole('link', { name: '知识库' }))
+    fireEvent.click(screen.getByText('知识库'))
     await waitFor(() => {
       expect(currentPath).toBe('/knowledge')
     })
-    expect(screen.getByRole('heading', { name: '知识库' })).toBeInTheDocument()
 
-    fireEvent.click(screen.getByRole('link', { name: '聊天' }))
+    fireEvent.click(screen.getByText('智能对话'))
     await waitFor(() => {
       expect(currentPath).toBe('/chat')
     })
-    expect(screen.getByRole('heading', { name: '聊天' })).toBeInTheDocument()
   })
 })

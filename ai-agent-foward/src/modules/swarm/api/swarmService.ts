@@ -2,7 +2,7 @@ import { apiClient } from '../../../shared/api/client'
 import { unwrapResponse, type ApiResponse } from '../../../shared/api/response'
 import type {
   SwarmWorkspace, WorkspaceDefaults, SwarmAgent, SwarmGroup,
-  SwarmMessage, SwarmGraphData, SwarmSearchResult
+  SwarmMessage, SwarmSearchResult
 } from '../types/swarm'
 
 // --- Workspace ---
@@ -64,13 +64,6 @@ export async function sendMessage(groupId: number, senderId: number, content: st
   const res = await apiClient.post<ApiResponse<SwarmMessage>>(`/api/swarm/group/${groupId}/messages`, {
     senderId, content, contentType: 'text'
   })
-  return unwrapResponse(res)
-}
-
-// --- Graph ---
-
-export async function getGraph(workspaceId: number): Promise<SwarmGraphData> {
-  const res = await apiClient.get<ApiResponse<SwarmGraphData>>(`/api/swarm/workspace/${workspaceId}/graph`)
   return unwrapResponse(res)
 }
 

@@ -16,7 +16,7 @@ describe('auth routes', () => {
       />
     )
 
-    expect(await screen.findByRole('heading', { name: '登录' })).toBeInTheDocument()
+    expect(await screen.findByRole('heading', { name: 'AI Agent' })).toBeInTheDocument()
 
     await waitFor(() => {
       expect(currentPath).toBe('/login')
@@ -26,15 +26,15 @@ describe('auth routes', () => {
   it('可访问注册页', async () => {
     render(<TestRouter initialEntries={['/register']} />)
 
-    expect(await screen.findByRole('heading', { name: '注册' })).toBeInTheDocument()
-    expect(screen.getByRole('button', { name: '创建账号' })).toBeInTheDocument()
+    expect(await screen.findByRole('heading', { name: '创建账号' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: '发送验证码' })).toBeInTheDocument()
   })
 
   it('可访问忘记密码页', async () => {
     render(<TestRouter initialEntries={['/forgot-password']} />)
 
     expect(await screen.findByRole('heading', { name: '忘记密码' })).toBeInTheDocument()
-    expect(screen.getByRole('button', { name: '重置密码' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: '发送重置邮件' })).toBeInTheDocument()
   })
 
   it('已登录访问受保护路由保持在工作台', async () => {
@@ -51,7 +51,7 @@ describe('auth routes', () => {
       />
     )
 
-    expect(await screen.findByRole('heading', { name: '工作台' })).toBeInTheDocument()
+    expect(await screen.findByRole('heading', { name: '欢迎回来，管理员' })).toBeInTheDocument()
 
     await waitFor(() => {
       expect(currentPath).toBe('/dashboard')

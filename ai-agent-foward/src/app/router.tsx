@@ -15,6 +15,7 @@ import ReviewPage from '../modules/review/pages/ReviewPage'
 import LlmConfigPage from '../modules/llm-config/pages/LlmConfigPage'
 import SwarmWorkspaceListPage from '../modules/swarm/pages/SwarmWorkspaceListPage'
 import SwarmMainPage from '../modules/swarm/pages/SwarmMainPage'
+import SettingsPage from '../modules/settings/pages/SettingsPage'
 
 function AppRoutes() {
   return (
@@ -33,6 +34,7 @@ function AppRoutes() {
           <Route path="llm-config" element={<LlmConfigPage />} />
           <Route path="swarm" element={<SwarmWorkspaceListPage />} />
           <Route path="swarm/:workspaceId" element={<SwarmMainPage />} />
+          <Route path="settings" element={<SettingsPage />} />
         </Route>
         {/* 全屏独立路由，不经过 AppShell */}
         <Route path="agents/:agentId/workflow" element={<WorkflowEditorPage />} />

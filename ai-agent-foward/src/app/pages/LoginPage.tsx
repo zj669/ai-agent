@@ -86,7 +86,7 @@ export default function LoginPage() {
           <Form
             form={form}
             onFinish={handleFinish}
-            initialValues={{ email: rememberedEmail, password: '', rememberMe: false }}
+            initialValues={{ email: rememberedEmail, password: '', rememberMe: !!rememberedEmail }}
             size="large"
             layout="vertical"
             requiredMark={false}

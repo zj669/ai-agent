@@ -8,7 +8,9 @@ vi.mock('@xyflow/react', () => ({
   BaseEdge: (props: Record<string, unknown>) => (
     <path data-testid="base-edge" d={props.path as string} style={props.style as Record<string, unknown>} />
   ),
+  EdgeLabelRenderer: ({ children }: { children: React.ReactNode }) => <>{children}</>,
   Position: { Left: 'left', Right: 'right' },
+  useReactFlow: () => ({ setEdges: vi.fn() }),
 }))
 
 import { Position } from '@xyflow/react'

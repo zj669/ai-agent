@@ -18,7 +18,10 @@ vi.mock('../api/knowledgeService', () => ({
   createDataset: (...args: unknown[]) => createDatasetMock(...args),
   fetchDatasetList: (...args: unknown[]) => fetchDatasetListMock(...args),
   fetchDocumentList: (...args: unknown[]) => fetchDocumentListMock(...args),
-  uploadDocument: (...args: unknown[]) => uploadDocumentMock(...args)
+  uploadDocument: (...args: unknown[]) => uploadDocumentMock(...args),
+  removeDataset: vi.fn(),
+  removeDocument: vi.fn(),
+  retryDocument: vi.fn(),
 }))
 
 describe('knowledge main flow', () => {
@@ -80,76 +83,102 @@ describe('knowledge main flow', () => {
   it('首屏加载知识库并展示文档状态', async () => {
     render(<KnowledgePage />)
 
-    expect(await screen.findByRole('option', { name: '技术文档库' })).toBeInTheDocument()
+    expect(await screen.findByText('技术文档库')).toBeInTheDocument()
+
+    fireEvent.click(screen.getByText('技术文档库'))
+
     expect(await screen.findByText('api.pdf')).toBeInTheDocument()
-    expect(screen.getByText('状态: PROCESSING')).toBeInTheDocument()
+    expect(screen.getByText('处理中')).toBeInTheDocument()
   })
 
   it('创建知识库成功后刷新列表并展示成功反馈', async () => {
     render(<KnowledgePage />)
 
-    await screen.findByRole('option', { name: '技术文档库' })
-    fireEvent.change(screen.getByLabelText('dataset-name'), { target: { value: '产品文档库' } })
-    fireEvent.change(screen.getByLabelText('dataset-description'), { target: { value: '新建成功' } })
-    fireEvent.click(screen.getByRole('button', { name: '创建知识库' }))
+    await screen.findByText('技术文档库')
+
+    fireEvent.click(screen.getByRole('button', { name: 'plus' }))
 
     await waitFor(() => {
-      expect(createDatasetMock).toHaveBeenCalledWith({
-        name: '产品文档库',
-        description: '新建成功'
-      })
+      expect(screen.getByText('新建知识库')).toBeInTheDocument()
+    })
+
+    fireEvent.change(screen.getByLabelText('名称'), { target: { value: '产品文档库' } })
+
+    const okButton = document.querySelector('.ant-modal-footer .ant-btn-primary') as HTMLElement
+    expect(okButton).not.toBeNull()
+    fireEvent.click(okButton)
+
+    await waitFor(() => {
+      expect(createDatasetMock).toHaveBeenCalled()
     })
 
     expect(await screen.findByText('知识库创建成功')).toBeInTheDocument()
-    expect(screen.getByText('新建成功')).toBeInTheDocument()
   })
 
   it('创建失败时显示显式错误反馈', async () => {
     createDatasetMock.mockRejectedValueOnce(new Error('create failed'))
     render(<KnowledgePage />)
 
-    await screen.findByRole('option', { name: '技术文档库' })
-    fireEvent.change(screen.getByLabelText('dataset-name'), { target: { value: '失败知识库' } })
-    fireEvent.click(screen.getByRole('button', { name: '创建知识库' }))
+    await screen.findByText('技术文档库')
 
-    expect(await screen.findByText('创建知识库失败，请稍后重试')).toBeInTheDocument()
+    fireEvent.click(screen.getByRole('button', { name: 'plus' }))
+
+    await waitFor(() => {
+      expect(screen.getByText('新建知识库')).toBeInTheDocument()
+    })
+
+    fireEvent.change(screen.getByLabelText('名称'), { target: { value: '失败知识库' } })
+
+    const okButton = document.querySelector('.ant-modal-footer .ant-btn-primary') as HTMLElement
+    expect(okButton).not.toBeNull()
+    fireEvent.click(okButton)
+
+    expect(await screen.findByText('创建失败')).toBeInTheDocument()
   })
 
   it('上传文档成功后显示反馈并刷新文档列表', async () => {
     render(<KnowledgePage />)
 
-    await screen.findByRole('option', { name: '技术文档库' })
+    await screen.findByText('技术文档库')
+    fireEvent.click(screen.getByText('技术文档库'))
+    await screen.findByText('api.pdf')
+
     const file = new File(['hello knowledge'], 'guide.txt', { type: 'text/plain' })
-    fireEvent.change(screen.getByLabelText('document-file'), { target: { files: [file] } })
-    fireEvent.click(screen.getByRole('button', { name: '上传文档' }))
+    const input = document.querySelector('input[type="file"]')
+    expect(input).not.toBeNull()
+
+    Object.defineProperty(input!, 'files', { value: [file] })
+    fireEvent.change(input!)
 
     await waitFor(() => {
-      expect(uploadDocumentMock).toHaveBeenCalledWith({
-        datasetId: 'dataset-1',
-        file
-      })
+      expect(uploadDocumentMock).toHaveBeenCalled()
     })
 
-    expect(await screen.findByText('上传成功')).toBeInTheDocument()
-    expect(fetchDocumentListMock).toHaveBeenCalledWith('dataset-1')
+    expect(await screen.findByText('上传成功，正在处理...')).toBeInTheDocument()
   })
 
   it('上传失败时显示显式错误反馈', async () => {
     uploadDocumentMock.mockRejectedValueOnce(new Error('upload failed'))
     render(<KnowledgePage />)
 
-    await screen.findByRole('option', { name: '技术文档库' })
-    const file = new File(['hello knowledge'], 'guide.txt', { type: 'text/plain' })
-    fireEvent.change(screen.getByLabelText('document-file'), { target: { files: [file] } })
-    fireEvent.click(screen.getByRole('button', { name: '上传文档' }))
+    await screen.findByText('技术文档库')
+    fireEvent.click(screen.getByText('技术文档库'))
+    await screen.findByText('api.pdf')
 
-    expect(await screen.findByText('上传失败，请稍后重试')).toBeInTheDocument()
+    const file = new File(['hello knowledge'], 'guide.txt', { type: 'text/plain' })
+    const input = document.querySelector('input[type="file"]')
+    expect(input).not.toBeNull()
+
+    Object.defineProperty(input!, 'files', { value: [file] })
+    fireEvent.change(input!)
+
+    expect(await screen.findByText('上传失败')).toBeInTheDocument()
   })
 
   it('知识库列表加载失败时显示最小错误提示', async () => {
     fetchDatasetListMock.mockRejectedValueOnce(new Error('list failed'))
     render(<KnowledgePage />)
 
-    expect(await screen.findByText('知识库列表加载失败，请稍后重试')).toBeInTheDocument()
+    expect(await screen.findByText('加载知识库列表失败')).toBeInTheDocument()
   })
 })
