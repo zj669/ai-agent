@@ -1,0 +1,23 @@
+Compiled from "OpenAiApi.java"
+public class org.springframework.ai.openai.api.OpenAiApi$Builder {
+  private java.lang.String baseUrl;
+  private org.springframework.ai.model.ApiKey apiKey;
+  private org.springframework.util.MultiValueMap<java.lang.String, java.lang.String> headers;
+  private java.lang.String completionsPath;
+  private java.lang.String embeddingsPath;
+  private org.springframework.web.client.RestClient$Builder restClientBuilder;
+  private org.springframework.web.reactive.function.client.WebClient$Builder webClientBuilder;
+  private org.springframework.web.client.ResponseErrorHandler responseErrorHandler;
+  public org.springframework.ai.openai.api.OpenAiApi$Builder();
+  public org.springframework.ai.openai.api.OpenAiApi$Builder(org.springframework.ai.openai.api.OpenAiApi);
+  public org.springframework.ai.openai.api.OpenAiApi$Builder baseUrl(java.lang.String);
+  public org.springframework.ai.openai.api.OpenAiApi$Builder apiKey(org.springframework.ai.model.ApiKey);
+  public org.springframework.ai.openai.api.OpenAiApi$Builder apiKey(java.lang.String);
+  public org.springframework.ai.openai.api.OpenAiApi$Builder headers(org.springframework.util.MultiValueMap<java.lang.String, java.lang.String>);
+  public org.springframework.ai.openai.api.OpenAiApi$Builder completionsPath(java.lang.String);
+  public org.springframework.ai.openai.api.OpenAiApi$Builder embeddingsPath(java.lang.String);
+  public org.springframework.ai.openai.api.OpenAiApi$Builder restClientBuilder(org.springframework.web.client.RestClient$Builder);
+  public org.springframework.ai.openai.api.OpenAiApi$Builder webClientBuilder(org.springframework.web.reactive.function.client.WebClient$Builder);
+  public org.springframework.ai.openai.api.OpenAiApi$Builder responseErrorHandler(org.springframework.web.client.ResponseErrorHandler);
+  public org.springframework.ai.openai.api.OpenAiApi build();
+}

@@ -1,0 +1,159 @@
+Compiled from "OpenAiEmbeddingModel.java"
+public class org.springframework.ai.openai.OpenAiEmbeddingModel extends org.springframework.ai.embedding.AbstractEmbeddingModel {
+  public org.springframework.ai.openai.OpenAiEmbeddingModel(org.springframework.ai.openai.api.OpenAiApi);
+    Code:
+       0: aload_0
+       1: aload_1
+       2: getstatic     #1                  // Field org/springframework/ai/document/MetadataMode.EMBED:Lorg/springframework/ai/document/MetadataMode;
+       5: invokespecial #7                  // Method "<init>":(Lorg/springframework/ai/openai/api/OpenAiApi;Lorg/springframework/ai/document/MetadataMode;)V
+       8: return
+
+  public org.springframework.ai.openai.OpenAiEmbeddingModel(org.springframework.ai.openai.api.OpenAiApi, org.springframework.ai.document.MetadataMode);
+    Code:
+       0: aload_0
+       1: aload_1
+       2: aload_2
+       3: invokestatic  #13                 // Method org/springframework/ai/openai/OpenAiEmbeddingOptions.builder:()Lorg/springframework/ai/openai/OpenAiEmbeddingOptions$Builder;
+       6: getstatic     #19                 // Field org/springframework/ai/openai/api/OpenAiApi.DEFAULT_EMBEDDING_MODEL:Ljava/lang/String;
+       9: invokevirtual #25                 // Method org/springframework/ai/openai/OpenAiEmbeddingOptions$Builder.model:(Ljava/lang/String;)Lorg/springframework/ai/openai/OpenAiEmbeddingOptions$Builder;
+      12: invokevirtual #31                 // Method org/springframework/ai/openai/OpenAiEmbeddingOptions$Builder.build:()Lorg/springframework/ai/openai/OpenAiEmbeddingOptions;
+      15: invokespecial #35                 // Method "<init>":(Lorg/springframework/ai/openai/api/OpenAiApi;Lorg/springframework/ai/document/MetadataMode;Lorg/springframework/ai/openai/OpenAiEmbeddingOptions;)V
+      18: return
+
+  public org.springframework.ai.openai.OpenAiEmbeddingModel(org.springframework.ai.openai.api.OpenAiApi, org.springframework.ai.document.MetadataMode, org.springframework.ai.openai.OpenAiEmbeddingOptions);
+    Code:
+       0: aload_0
+       1: aload_1
+       2: aload_2
+       3: aload_3
+       4: getstatic     #38                 // Field org/springframework/ai/retry/RetryUtils.DEFAULT_RETRY_TEMPLATE:Lorg/springframework/retry/support/RetryTemplate;
+       7: invokespecial #44                 // Method "<init>":(Lorg/springframework/ai/openai/api/OpenAiApi;Lorg/springframework/ai/document/MetadataMode;Lorg/springframework/ai/openai/OpenAiEmbeddingOptions;Lorg/springframework/retry/support/RetryTemplate;)V
+      10: return
+
+  public org.springframework.ai.openai.OpenAiEmbeddingModel(org.springframework.ai.openai.api.OpenAiApi, org.springframework.ai.document.MetadataMode, org.springframework.ai.openai.OpenAiEmbeddingOptions, org.springframework.retry.support.RetryTemplate);
+    Code:
+       0: aload_0
+       1: aload_1
+       2: aload_2
+       3: aload_3
+       4: aload         4
+       6: getstatic     #47                 // Field io/micrometer/observation/ObservationRegistry.NOOP:Lio/micrometer/observation/ObservationRegistry;
+       9: invokespecial #53                 // Method "<init>":(Lorg/springframework/ai/openai/api/OpenAiApi;Lorg/springframework/ai/document/MetadataMode;Lorg/springframework/ai/openai/OpenAiEmbeddingOptions;Lorg/springframework/retry/support/RetryTemplate;Lio/micrometer/observation/ObservationRegistry;)V
+      12: return
+
+  public org.springframework.ai.openai.OpenAiEmbeddingModel(org.springframework.ai.openai.api.OpenAiApi, org.springframework.ai.document.MetadataMode, org.springframework.ai.openai.OpenAiEmbeddingOptions, org.springframework.retry.support.RetryTemplate, io.micrometer.observation.ObservationRegistry);
+    Code:
+       0: aload_0
+       1: invokespecial #56                 // Method org/springframework/ai/embedding/AbstractEmbeddingModel."<init>":()V
+       4: aload_0
+       5: getstatic     #61                 // Field DEFAULT_OBSERVATION_CONVENTION:Lorg/springframework/ai/embedding/observation/EmbeddingModelObservationConvention;
+       8: putfield      #65                 // Field observationConvention:Lorg/springframework/ai/embedding/observation/EmbeddingModelObservationConvention;
+      11: aload_1
+      12: ldc           #68                 // String openAiApi must not be null
+      14: invokestatic  #70                 // Method org/springframework/util/Assert.notNull:(Ljava/lang/Object;Ljava/lang/String;)V
+      17: aload_2
+      18: ldc           #76                 // String metadataMode must not be null
+      20: invokestatic  #70                 // Method org/springframework/util/Assert.notNull:(Ljava/lang/Object;Ljava/lang/String;)V
+      23: aload_3
+      24: ldc           #78                 // String options must not be null
+      26: invokestatic  #70                 // Method org/springframework/util/Assert.notNull:(Ljava/lang/Object;Ljava/lang/String;)V
+      29: aload         4
+      31: ldc           #80                 // String retryTemplate must not be null
+      33: invokestatic  #70                 // Method org/springframework/util/Assert.notNull:(Ljava/lang/Object;Ljava/lang/String;)V
+      36: aload         5
+      38: ldc           #82                 // String observationRegistry must not be null
+      40: invokestatic  #70                 // Method org/springframework/util/Assert.notNull:(Ljava/lang/Object;Ljava/lang/String;)V
+      43: aload_0
+      44: aload_1
+      45: putfield      #84                 // Field openAiApi:Lorg/springframework/ai/openai/api/OpenAiApi;
+      48: aload_0
+      49: aload_2
+      50: putfield      #88                 // Field metadataMode:Lorg/springframework/ai/document/MetadataMode;
+      53: aload_0
+      54: aload_3
+      55: putfield      #91                 // Field defaultOptions:Lorg/springframework/ai/openai/OpenAiEmbeddingOptions;
+      58: aload_0
+      59: aload         4
+      61: putfield      #95                 // Field retryTemplate:Lorg/springframework/retry/support/RetryTemplate;
+      64: aload_0
+      65: aload         5
+      67: putfield      #98                 // Field observationRegistry:Lio/micrometer/observation/ObservationRegistry;
+      70: return
+
+  public float[] embed(org.springframework.ai.document.Document);
+    Code:
+       0: aload_1
+       1: ldc           #101                // String Document must not be null
+       3: invokestatic  #70                 // Method org/springframework/util/Assert.notNull:(Ljava/lang/Object;Ljava/lang/String;)V
+       6: aload_0
+       7: aload_1
+       8: aload_0
+       9: getfield      #88                 // Field metadataMode:Lorg/springframework/ai/document/MetadataMode;
+      12: invokevirtual #103                // Method org/springframework/ai/document/Document.getFormattedContent:(Lorg/springframework/ai/document/MetadataMode;)Ljava/lang/String;
+      15: invokevirtual #109                // Method embed:(Ljava/lang/String;)[F
+      18: areturn
+
+  public org.springframework.ai.embedding.EmbeddingResponse call(org.springframework.ai.embedding.EmbeddingRequest);
+    Code:
+       0: aload_0
+       1: aload_1
+       2: invokevirtual #113                // Method buildEmbeddingRequest:(Lorg/springframework/ai/embedding/EmbeddingRequest;)Lorg/springframework/ai/embedding/EmbeddingRequest;
+       5: astore_2
+       6: aload_0
+       7: aload_2
+       8: invokevirtual #117                // Method createRequest:(Lorg/springframework/ai/embedding/EmbeddingRequest;)Lorg/springframework/ai/openai/api/OpenAiApi$EmbeddingRequest;
+      11: astore_3
+      12: invokestatic  #121                // Method org/springframework/ai/embedding/observation/EmbeddingModelObservationContext.builder:()Lorg/springframework/ai/embedding/observation/EmbeddingModelObservationContext$Builder;
+      15: aload_2
+      16: invokevirtual #126                // Method org/springframework/ai/embedding/observation/EmbeddingModelObservationContext$Builder.embeddingRequest:(Lorg/springframework/ai/embedding/EmbeddingRequest;)Lorg/springframework/ai/embedding/observation/EmbeddingModelObservationContext$Builder;
+      19: getstatic     #132                // Field org/springframework/ai/openai/api/common/OpenAiApiConstants.PROVIDER_NAME:Ljava/lang/String;
+      22: invokevirtual #137                // Method org/springframework/ai/embedding/observation/EmbeddingModelObservationContext$Builder.provider:(Ljava/lang/String;)Lorg/springframework/ai/embedding/observation/EmbeddingModelObservationContext$Builder;
+      25: invokevirtual #141                // Method org/springframework/ai/embedding/observation/EmbeddingModelObservationContext$Builder.build:()Lorg/springframework/ai/embedding/observation/EmbeddingModelObservationContext;
+      28: astore        4
+      30: getstatic     #144                // Field org/springframework/ai/embedding/observation/EmbeddingModelObservationDocumentation.EMBEDDING_MODEL_OPERATION:Lorg/springframework/ai/embedding/observation/EmbeddingModelObservationDocumentation;
+      33: aload_0
+      34: getfield      #65                 // Field observationConvention:Lorg/springframework/ai/embedding/observation/EmbeddingModelObservationConvention;
+      37: getstatic     #61                 // Field DEFAULT_OBSERVATION_CONVENTION:Lorg/springframework/ai/embedding/observation/EmbeddingModelObservationConvention;
+      40: aload         4
+      42: invokedynamic #150,  0            // InvokeDynamic #0:get:(Lorg/springframework/ai/embedding/observation/EmbeddingModelObservationContext;)Ljava/util/function/Supplier;
+      47: aload_0
+      48: getfield      #98                 // Field observationRegistry:Lio/micrometer/observation/ObservationRegistry;
+      51: invokevirtual #154                // Method org/springframework/ai/embedding/observation/EmbeddingModelObservationDocumentation.observation:(Lio/micrometer/observation/ObservationConvention;Lio/micrometer/observation/ObservationConvention;Ljava/util/function/Supplier;Lio/micrometer/observation/ObservationRegistry;)Lio/micrometer/observation/Observation;
+      54: aload_0
+      55: aload_3
+      56: aload_1
+      57: aload         4
+      59: invokedynamic #158,  0            // InvokeDynamic #1:get:(Lorg/springframework/ai/openai/OpenAiEmbeddingModel;Lorg/springframework/ai/openai/api/OpenAiApi$EmbeddingRequest;Lorg/springframework/ai/embedding/EmbeddingRequest;Lorg/springframework/ai/embedding/observation/EmbeddingModelObservationContext;)Ljava/util/function/Supplier;
+      64: invokeinterface #161,  2          // InterfaceMethod io/micrometer/observation/Observation.observe:(Ljava/util/function/Supplier;)Ljava/lang/Object;
+      69: checkcast     #167                // class org/springframework/ai/embedding/EmbeddingResponse
+      72: areturn
+
+  public void setObservationConvention(org.springframework.ai.embedding.observation.EmbeddingModelObservationConvention);
+    Code:
+       0: aload_1
+       1: ldc           #243                // String observationConvention cannot be null
+       3: invokestatic  #70                 // Method org/springframework/util/Assert.notNull:(Ljava/lang/Object;Ljava/lang/String;)V
+       6: aload_0
+       7: aload_1
+       8: putfield      #65                 // Field observationConvention:Lorg/springframework/ai/embedding/observation/EmbeddingModelObservationConvention;
+      11: return
+
+  public org.springframework.ai.model.ModelResponse call(org.springframework.ai.model.ModelRequest);
+    Code:
+       0: aload_0
+       1: aload_1
+       2: checkcast     #187                // class org/springframework/ai/embedding/EmbeddingRequest
+       5: invokevirtual #245                // Method call:(Lorg/springframework/ai/embedding/EmbeddingRequest;)Lorg/springframework/ai/embedding/EmbeddingResponse;
+       8: areturn
+
+  static {};
+    Code:
+       0: ldc           #8                  // class org/springframework/ai/openai/OpenAiEmbeddingModel
+       2: invokestatic  #350                // Method org/slf4j/LoggerFactory.getLogger:(Ljava/lang/Class;)Lorg/slf4j/Logger;
+       5: putstatic     #261                // Field logger:Lorg/slf4j/Logger;
+       8: new           #356                // class org/springframework/ai/embedding/observation/DefaultEmbeddingModelObservationConvention
+      11: dup
+      12: invokespecial #358                // Method org/springframework/ai/embedding/observation/DefaultEmbeddingModelObservationConvention."<init>":()V
+      15: putstatic     #61                 // Field DEFAULT_OBSERVATION_CONVENTION:Lorg/springframework/ai/embedding/observation/EmbeddingModelObservationConvention;
+      18: return
+}

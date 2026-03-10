@@ -1,0 +1,1 @@
+{"error":{"type":"provider_error","message":"服务暂时不可用，请稍后重试","details":{"upstream_response":"Client error '400 Bad Request' for url 'https://chatgpt.com/backend-api/codex/responses'\nFor more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/400"}}}
