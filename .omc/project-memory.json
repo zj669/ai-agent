@@ -1,0 +1,203 @@
+{
+  "version": "1.0.0",
+  "lastScanned": 1773199601898,
+  "projectRoot": "/home/zj669/repo/ai-agent",
+  "techStack": {
+    "languages": [
+      {
+        "name": "Java",
+        "version": null,
+        "confidence": "high",
+        "markers": [
+          "pom.xml"
+        ]
+      }
+    ],
+    "frameworks": [],
+    "packageManager": "maven",
+    "runtime": null
+  },
+  "build": {
+    "buildCommand": null,
+    "testCommand": null,
+    "lintCommand": null,
+    "devCommand": null,
+    "scripts": {}
+  },
+  "conventions": {
+    "namingStyle": null,
+    "importStyle": null,
+    "testPattern": null,
+    "fileOrganization": null
+  },
+  "structure": {
+    "isMonorepo": false,
+    "workspaces": [],
+    "mainDirectories": [
+      "docs",
+      "scripts"
+    ],
+    "gitBranches": {
+      "defaultBranch": "main",
+      "branchingStrategy": null
+    }
+  },
+  "customNotes": [],
+  "directoryMap": {
+    "ai-agent-application": {
+      "path": "ai-agent-application",
+      "purpose": null,
+      "fileCount": 1,
+      "lastAccessed": 1773199601894,
+      "keyFiles": [
+        "pom.xml"
+      ]
+    },
+    "ai-agent-domain": {
+      "path": "ai-agent-domain",
+      "purpose": null,
+      "fileCount": 1,
+      "lastAccessed": 1773199601896,
+      "keyFiles": [
+        "pom.xml"
+      ]
+    },
+    "ai-agent-foward": {
+      "path": "ai-agent-foward",
+      "purpose": null,
+      "fileCount": 17,
+      "lastAccessed": 1773199601896,
+      "keyFiles": [
+        "Dockerfile.prod",
+        "components.json",
+        "eslint.config.js",
+        "index.html",
+        "nginx.conf"
+      ]
+    },
+    "ai-agent-infrastructure": {
+      "path": "ai-agent-infrastructure",
+      "purpose": null,
+      "fileCount": 2,
+      "lastAccessed": 1773199601896,
+      "keyFiles": [
+        "pom.xml"
+      ]
+    },
+    "ai-agent-interfaces": {
+      "path": "ai-agent-interfaces",
+      "purpose": null,
+      "fileCount": 1,
+      "lastAccessed": 1773199601896,
+      "keyFiles": [
+        "pom.xml"
+      ]
+    },
+    "ai-agent-shared": {
+      "path": "ai-agent-shared",
+      "purpose": null,
+      "fileCount": 2,
+      "lastAccessed": 1773199601896,
+      "keyFiles": [
+        "img.png",
+        "pom.xml"
+      ]
+    },
+    "docs": {
+      "path": "docs",
+      "purpose": "Documentation",
+      "fileCount": 7,
+      "lastAccessed": 1773199601897,
+      "keyFiles": [
+        "E2E-TEST-PLAN.md",
+        "PROJECT_QUICK_CONTEXT.md",
+        "frontend-design-style.md",
+        "swarm-communication-analysis.md",
+        "swarm-exploration.md"
+      ]
+    },
+    "midscene_run": {
+      "path": "midscene_run",
+      "purpose": null,
+      "fileCount": 0,
+      "lastAccessed": 1773199601897,
+      "keyFiles": []
+    },
+    "scripts": {
+      "path": "scripts",
+      "purpose": "Build/utility scripts",
+      "fileCount": 1,
+      "lastAccessed": 1773199601897,
+      "keyFiles": [
+        "knowledge_upload_retrieval_smoke.py"
+      ]
+    },
+    "ai-agent-application/src": {
+      "path": "ai-agent-application/src",
+      "purpose": "Source code",
+      "fileCount": 0,
+      "lastAccessed": 1773199601898,
+      "keyFiles": []
+    },
+    "ai-agent-domain/src": {
+      "path": "ai-agent-domain/src",
+      "purpose": "Source code",
+      "fileCount": 0,
+      "lastAccessed": 1773199601898,
+      "keyFiles": []
+    },
+    "ai-agent-infrastructure/src": {
+      "path": "ai-agent-infrastructure/src",
+      "purpose": "Source code",
+      "fileCount": 0,
+      "lastAccessed": 1773199601898,
+      "keyFiles": []
+    },
+    "ai-agent-interfaces/src": {
+      "path": "ai-agent-interfaces/src",
+      "purpose": "Source code",
+      "fileCount": 0,
+      "lastAccessed": 1773199601898,
+      "keyFiles": []
+    },
+    "ai-agent-shared/src": {
+      "path": "ai-agent-shared/src",
+      "purpose": "Source code",
+      "fileCount": 0,
+      "lastAccessed": 1773199601898,
+      "keyFiles": []
+    },
+    "docs/api": {
+      "path": "docs/api",
+      "purpose": "API routes",
+      "fileCount": 9,
+      "lastAccessed": 1773199601898,
+      "keyFiles": [
+        "agent.md",
+        "backend-api-overview.md",
+        "chat.md"
+      ]
+    }
+  },
+  "hotPaths": [
+    {
+      "path": "ai-agent-infrastructure/src/main/resources/docker/docker-compose.yml",
+      "accessCount": 1,
+      "lastAccessed": 1773199709173,
+      "type": "file"
+    },
+    {
+      "path": "ai-agent-interfaces/src/main/resources/application.yml",
+      "accessCount": 1,
+      "lastAccessed": 1773200048421,
+      "type": "file"
+    },
+    {
+      "path": "ai-agent-interfaces/src/main/resources/application-local.yml",
+      "accessCount": 1,
+      "lastAccessed": 1773200053365,
+      "type": "file"
+    }
+  ],
+  "userDirectives": []
+}

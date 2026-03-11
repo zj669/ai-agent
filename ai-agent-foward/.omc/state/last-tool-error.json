@@ -1,0 +1,7 @@
+{
+  "tool_name": "Bash",
+  "tool_input_preview": "{\"command\":\"sleep 20 && curl -s http://localhost:8080/actuator/health\",\"description\":\"再等待20秒后检查后端健康状态\"}",
+  "error": "Exit code 7",
+  "timestamp": "2026-03-11T03:39:00.046Z",
+  "retry_count": 1
+}

@@ -1,0 +1,37 @@
+[
+  {
+    "label": "Run Spring Boot (local)",
+    "command": "./mvnw spring-boot:run -pl ai-agent-interfaces -Dspring-boot.run.profiles=local -Dmaven.test.skip=true",
+    "use_new_terminal": true,
+    "allow_concurrent_runs": false,
+    "reveal": "always"
+  },
+  {
+    "label": "Build Project",
+    "command": "./mvnw clean install -DskipTests",
+    "use_new_terminal": false,
+    "allow_concurrent_runs": false,
+    "reveal": "always"
+  },
+  {
+    "label": "Build Interfaces Module",
+    "command": "./mvnw clean install -pl ai-agent-interfaces -am -Dmaven.test.skip=true",
+    "use_new_terminal": false,
+    "allow_concurrent_runs": false,
+    "reveal": "always"
+  },
+  {
+    "label": "Run Frontend Dev Server",
+    "command": "cd ai-agent-foward && npm run dev",
+    "use_new_terminal": true,
+    "allow_concurrent_runs": false,
+    "reveal": "always"
+  },
+  {
+    "label": "Stop Spring Boot",
+    "command": "pkill -f 'spring-boot:run'",
+    "use_new_terminal": false,
+    "allow_concurrent_runs": true,
+    "reveal": "always"
+  }
+]
