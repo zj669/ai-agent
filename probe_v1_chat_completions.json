@@ -1,1 +1,0 @@
-{"id":"resp_0e65a46fc7b049220169a7dd9e96708191891937db5335fd92","object":"chat.completion","created":1772608931,"model":"gpt-5.3-codex","system_fingerprint":null,"choices":[{"index":0,"message":{"role":"assistant","content":"pong"},"finish_reason":"stop"}],"usage":{"prompt_tokens":7,"completion_tokens":5,"total_tokens":12}}
