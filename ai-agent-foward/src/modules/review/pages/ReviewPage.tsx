@@ -42,7 +42,7 @@ export default function ReviewPage() {
       await resumeReview({
         executionId: review.executionId,
         nodeId: review.nodeId,
-        approved: true,
+        // edits 和 nodeEdits 可选，如果需要修改节点数据可以在这里传入
       })
       message.success('已批准')
       void loadReviews()
@@ -58,13 +58,14 @@ export default function ReviewPage() {
     const comment = rejectComments[key]
     setSubmitting(true)
     try {
+      // TODO: 后端需要实现拒绝逻辑
+      // 当前只能通过 comment 标记为拒绝，但工作流仍会继续
       await resumeReview({
         executionId: review.executionId,
         nodeId: review.nodeId,
-        approved: false,
-        comment: comment || undefined,
+        comment: `[拒绝] ${comment || '无原因'}`,
       })
-      message.success('已拒绝')
+      message.warning('已标记拒绝（工作流将继续执行）')
       setRejectComments((prev) => {
         const next = { ...prev }
         delete next[key]

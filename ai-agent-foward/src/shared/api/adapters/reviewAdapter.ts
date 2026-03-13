@@ -19,8 +19,9 @@ export async function getPendingReviews(client: ApiClientLike = apiClient): Prom
 export interface ResumeReviewInput {
   executionId: string
   nodeId: string
-  approved: boolean
+  edits?: Record<string, unknown>
   comment?: string
+  nodeEdits?: Record<string, Record<string, unknown>>
 }
 
 export async function resumeReview(input: ResumeReviewInput, client: ApiClientLike = apiClient): Promise<void> {
