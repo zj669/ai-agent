@@ -48,7 +48,7 @@ public class KnowledgeRetrievalServiceImpl implements KnowledgeRetrievalService 
             SearchRequest request = SearchRequest.builder()
                     .query(query)
                     .topK(topK)
-                    .filterExpression("agentId == " + agentId) // 注意：Milvus 过滤表达式语法
+                    .filterExpression("agent_id == " + agentId) // 注意：Milvus 过滤表达式语法
                     .build();
 
             // 执行检索
@@ -68,41 +68,34 @@ public class KnowledgeRetrievalServiceImpl implements KnowledgeRetrievalService 
         }
     }
 
-    /**
-     * 根据 Dataset ID 检索知识（测试用）
-     * 
-     * @param datasetId 知识库 ID
-     * @param query     查询文本
-     * @param topK      返回结果数量
-     * @return 相关知识片段列表
-     */
     @Override
-    public List<String> retrieveByDataset(String datasetId, String query, int topK) {
-        log.debug("按知识库检索: datasetId={}, query='{}', topK={}",
+    public List<String> retrieveByDataset(String datasetId, String query, int topK, String strategy) {
+        log.debug("按知识库检索: datasetId={}, query='{}', topK={}, strategy={}",
                 datasetId,
                 query.length() > 50 ? query.substring(0, 50) + "..." : query,
-                topK);
+                topK, strategy);
 
         try {
-            // 构建 SearchRequest，使用 datasetId 过滤
-            SearchRequest request = SearchRequest.builder()
-                    .query(query)
-                    .topK(topK)
-                    .filterExpression("datasetId == '" + datasetId + "'") // 字符串需要加引号
-                    .build();
-
-            // 执行检索
-            List<Document> results = vectorStore.similaritySearch(request);
-
+            List<String> results;
+            switch (strategy.toUpperCase()) {
+                case "KEYWORD":
+                    results = vectorStore.keywordSearchByDataset(datasetId, query, topK);
+                    break;
+                case "HYBRID":
+                    results = vectorStore.hybridSearchByDataset(datasetId, query, topK);
+                    break;
+                case "SEMANTIC":
+                default:
+                    results = vectorStore.searchKnowledgeByDataset(datasetId, query, topK);
+                    break;
+            }
             log.debug("检索到 {} 条知识片段", results.size());
-
-            // 提取文本内容
-            return results.stream()
-                    .map(Document::getText)
-                    .collect(Collectors.toList());
-
+            return results;
+        } catch (UnsupportedOperationException e) {
+            log.warn("策略 {} 未实现，回退到语义检索: {}", strategy, e.getMessage());
+            return vectorStore.searchKnowledgeByDataset(datasetId, query, topK);
         } catch (Exception e) {
-            log.error("知识库检索失败: datasetId={}, query={}", datasetId, query, e);
+            log.error("知识库检索失败: datasetId={}, strategy={}, query={}", datasetId, strategy, query, e);
             return List.of();
         }
     }

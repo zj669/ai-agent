@@ -11,8 +11,30 @@ export interface PendingReview {
   content?: string
 }
 
+export interface NodeContext {
+  nodeId: string
+  nodeName: string
+  nodeType: string
+  status: string
+  inputs?: Record<string, unknown>
+  outputs?: Record<string, unknown>
+}
+
+export interface ReviewDetail {
+  executionId: string
+  nodeId: string
+  nodeName: string
+  triggerPhase: 'BEFORE_EXECUTION' | 'AFTER_EXECUTION'
+  nodes: NodeContext[]
+}
+
 export async function getPendingReviews(client: ApiClientLike = apiClient): Promise<PendingReview[]> {
   const response = await client.get<PendingReview[]>('/api/workflow/reviews/pending')
+  return response.data
+}
+
+export async function getReviewDetail(executionId: string, client: ApiClientLike = apiClient): Promise<ReviewDetail> {
+  const response = await client.get<ReviewDetail>(`/api/workflow/reviews/${executionId}`)
   return response.data
 }
 

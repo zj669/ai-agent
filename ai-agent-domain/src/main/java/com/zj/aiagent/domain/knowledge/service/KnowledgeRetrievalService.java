@@ -23,12 +23,25 @@ public interface KnowledgeRetrievalService {
     List<String> retrieve(Long agentId, String query, int topK);
 
     /**
-     * 根据 Dataset ID 检索知识（测试用）
-     * 
+     * 根据 Dataset ID 检索知识（默认语义检索）
+     *
      * @param datasetId 知识库 ID
      * @param query     查询文本
      * @param topK      返回结果数量
      * @return 相关知识片段列表
      */
-    List<String> retrieveByDataset(String datasetId, String query, int topK);
+    default List<String> retrieveByDataset(String datasetId, String query, int topK) {
+        return retrieveByDataset(datasetId, query, topK, "SEMANTIC");
+    }
+
+    /**
+     * 根据 Dataset ID 和搜索策略检索知识
+     *
+     * @param datasetId 知识库 ID
+     * @param query     查询文本
+     * @param topK      返回结果数量
+     * @param strategy  搜索策略（SEMANTIC / KEYWORD / HYBRID）
+     * @return 相关知识片段列表
+     */
+    List<String> retrieveByDataset(String datasetId, String query, int topK, String strategy);
 }

@@ -1,11 +1,12 @@
 import { useEffect, useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import {
   Table, Button, Space, Tag, Badge, Popconfirm, Empty, Spin,
-  Card, Typography, Input, message,
+  Typography, Input, message,
 } from 'antd'
 import {
   AuditOutlined, CheckOutlined, CloseOutlined,
-  ReloadOutlined, RobotOutlined, FileTextOutlined,
+  ReloadOutlined, RobotOutlined, EyeOutlined,
 } from '@ant-design/icons'
 import {
   getPendingReviews, resumeReview, type PendingReview,
@@ -15,6 +16,7 @@ const { Text, Title } = Typography
 const { TextArea } = Input
 
 export default function ReviewPage() {
+  const navigate = useNavigate()
   const [reviews, setReviews] = useState<PendingReview[]>([])
   const [loading, setLoading] = useState(true)
   const [submitting, setSubmitting] = useState(false)
@@ -130,11 +132,18 @@ export default function ReviewPage() {
     {
       title: '操作',
       key: 'action',
-      width: 200,
+      width: 280,
       render: (_: unknown, record: PendingReview) => {
         const key = rowKey(record)
         return (
           <Space>
+            <Button
+              size="small"
+              icon={<EyeOutlined />}
+              onClick={() => navigate(`/reviews/${record.executionId}`)}
+            >
+              查看详情
+            </Button>
             <Popconfirm
               title="确认通过此审核？"
               onConfirm={() => void handleApprove(record)}
@@ -219,24 +228,6 @@ export default function ReviewPage() {
           dataSource={reviews}
           rowKey={rowKey}
           pagination={{ pageSize: 10, showTotal: (total) => `共 ${total} 条` }}
-          expandable={{
-            expandedRowRender: (record: PendingReview) => (
-              <Card
-                size="small"
-                style={{ margin: 0, backgroundColor: '#fafafa' }}
-                title={
-                  <Space>
-                    <FileTextOutlined />
-                    <span>审核内容详情</span>
-                  </Space>
-                }
-              >
-                <div style={{ whiteSpace: 'pre-wrap', wordBreak: 'break-all' }}>
-                  {record.content || '暂无内容'}
-                </div>
-              </Card>
-            ),
-          }}
           locale={{
             emptyText: (
               <Empty

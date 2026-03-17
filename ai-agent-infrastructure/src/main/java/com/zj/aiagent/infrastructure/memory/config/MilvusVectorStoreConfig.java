@@ -14,7 +14,7 @@ import org.springframework.context.annotation.Primary;
 
 /**
  * Milvus VectorStore 配置类
- * 
+ *
  * 双集合配置：
  * 1. knowledgeVectorStore - agent_knowledge_base (知识库)
  * 2. memoryVectorStore - agent_chat_memory (长期记忆)
@@ -23,7 +23,12 @@ import org.springframework.context.annotation.Primary;
 @Data
 @Configuration
 @ConfigurationProperties(prefix = "milvus")
-@ConditionalOnProperty(prefix = "milvus", name = "enabled", havingValue = "true", matchIfMissing = false)
+@ConditionalOnProperty(
+    prefix = "milvus",
+    name = "enabled",
+    havingValue = "true",
+    matchIfMissing = false
+)
 public class MilvusVectorStoreConfig {
 
     /**
@@ -69,8 +74,8 @@ public class MilvusVectorStoreConfig {
         log.info("[Milvus] Connecting to {}:{}", host, port);
 
         ConnectParam.Builder builder = ConnectParam.newBuilder()
-                .withHost(host)
-                .withPort(port);
+            .withHost(host)
+            .withPort(port);
 
         // if (username != null && !username.isEmpty()) {
         // builder.withAuthorization(username, password);
@@ -86,17 +91,24 @@ public class MilvusVectorStoreConfig {
     @Bean(name = "knowledgeVectorStore")
     @Primary
     public MilvusVectorStore knowledgeVectorStore(
-            MilvusServiceClient milvusClient,
-            EmbeddingModel embeddingModel) {
-        log.info("[Milvus] Initializing knowledge VectorStore: collection={}", knowledgeCollectionName);
-        log.warn("[Milvus] knowledgeVectorStore embeddingModelBean={}, dimensions={}",
-                embeddingModel.getClass().getName(), embeddingModel.dimensions());
+        MilvusServiceClient milvusClient,
+        EmbeddingModel embeddingModel
+    ) {
+        log.info(
+            "[Milvus] Initializing knowledge VectorStore: collection={}",
+            knowledgeCollectionName
+        );
+        log.warn(
+            "[Milvus] knowledgeVectorStore embeddingModelBean={}, dimensions={}",
+            embeddingModel.getClass().getName(),
+            embeddingModel.dimensions()
+        );
 
         return MilvusVectorStore.builder(milvusClient, embeddingModel)
-                .collectionName(knowledgeCollectionName)
-                .embeddingDimension(embeddingDimension)
-                .initializeSchema(true)
-                .build();
+            .collectionName(knowledgeCollectionName)
+            .embeddingDimension(embeddingDimension)
+            .initializeSchema(true)
+            .build();
     }
 
     /**
@@ -105,13 +117,18 @@ public class MilvusVectorStoreConfig {
      */
     @Bean(name = "memoryVectorStore")
     public MilvusVectorStore memoryVectorStore(
-            MilvusServiceClient milvusClient,
-            EmbeddingModel embeddingModel) {
-        log.info("[Milvus] Initializing memory VectorStore: collection={}", memoryCollectionName);
+        MilvusServiceClient milvusClient,
+        EmbeddingModel embeddingModel
+    ) {
+        log.info(
+            "[Milvus] Initializing memory VectorStore: collection={}",
+            memoryCollectionName
+        );
 
         return MilvusVectorStore.builder(milvusClient, embeddingModel)
-                .collectionName(memoryCollectionName)
-                .embeddingDimension(embeddingDimension)
-                .build();
+            .collectionName(memoryCollectionName)
+            .embeddingDimension(embeddingDimension)
+            .initializeSchema(true)
+            .build();
     }
 }

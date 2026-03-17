@@ -219,6 +219,86 @@ public class MilvusVectorStoreAdapter implements VectorStore {
     }
 
     @Override
+    public List<String> keywordSearchByDataset(String datasetId, String query, int topK) {
+        log.debug("[VectorStore] Keyword search by dataset: datasetId={}, query='{}', topK={}",
+                datasetId, query.substring(0, Math.min(50, query.length())), topK);
+
+        try {
+            // 先用语义检索获取较大候选集
+            int candidateSize = topK * 3;
+            org.springframework.ai.vectorstore.SearchRequest request = org.springframework.ai.vectorstore.SearchRequest.builder()
+                    .query(query)
+                    .topK(candidateSize)
+                    .filterExpression("dataset_id == '" + datasetId + "'")
+                    .build();
+
+            List<org.springframework.ai.document.Document> candidates = knowledgeStore.similaritySearch(request);
+
+            // 使用 KeywordScorer 对候选集做关键词评分，按关键词相关性重排序
+            return candidates.stream()
+                    .sorted((a, b) -> Double.compare(
+                            KeywordScorer.score(query, b.getText()),
+                            KeywordScorer.score(query, a.getText())))
+                    .limit(topK)
+                    .map(org.springframework.ai.document.Document::getText)
+                    .collect(Collectors.toList());
+
+        } catch (Exception e) {
+            log.warn("[VectorStore] Keyword search by dataset failed, falling back to semantic: {}", e.getMessage());
+            return searchKnowledgeByDataset(datasetId, query, topK);
+        }
+    }
+
+    @Override
+    public List<String> hybridSearchByDataset(String datasetId, String query, int topK) {
+        log.debug("[VectorStore] Hybrid search by dataset: datasetId={}, query='{}', topK={}",
+                datasetId, query.substring(0, Math.min(50, query.length())), topK);
+
+        try {
+            // 语义检索获取候选集
+            int candidateSize = topK * 3;
+            org.springframework.ai.vectorstore.SearchRequest request = org.springframework.ai.vectorstore.SearchRequest.builder()
+                    .query(query)
+                    .topK(candidateSize)
+                    .filterExpression("dataset_id == '" + datasetId + "'")
+                    .build();
+
+            List<org.springframework.ai.document.Document> candidates = knowledgeStore.similaritySearch(request);
+
+            if (candidates.isEmpty()) {
+                return List.of();
+            }
+
+            // 计算语义分数（基于排序位置归一化：第1名=1.0，最后一名接近0）
+            int total = candidates.size();
+
+            // 加权融合：语义 0.7 + 关键词 0.3
+            final double semanticWeight = 0.7;
+            final double keywordWeight = 0.3;
+
+            List<Map.Entry<org.springframework.ai.document.Document, Double>> scored = new java.util.ArrayList<>();
+            for (int i = 0; i < candidates.size(); i++) {
+                org.springframework.ai.document.Document doc = candidates.get(i);
+                double semanticScore = 1.0 - ((double) i / total);
+                double keywordScore = KeywordScorer.score(query, doc.getText());
+                double hybridScore = semanticWeight * semanticScore + keywordWeight * keywordScore;
+                scored.add(Map.entry(doc, hybridScore));
+            }
+
+            // 按融合分数重排序
+            return scored.stream()
+                    .sorted((a, b) -> Double.compare(b.getValue(), a.getValue()))
+                    .limit(topK)
+                    .map(entry -> entry.getKey().getText())
+                    .collect(Collectors.toList());
+
+        } catch (Exception e) {
+            log.warn("[VectorStore] Hybrid search by dataset failed, falling back to semantic: {}", e.getMessage());
+            return searchKnowledgeByDataset(datasetId, query, topK);
+        }
+    }
+
+    @Override
     public void addDocuments(List<Document> documents) {
         log.debug("[VectorStore] Adding {} documents to knowledge store", documents.size());
 

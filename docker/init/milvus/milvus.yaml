@@ -1,0 +1,7 @@
+# Milvus 2.3 配置文件
+# 参考: https://milvus.io/docs/configure-docker.md
+
+# 禁用认证
+common:
+  security:
+    authorizationEnabled: false

@@ -73,6 +73,20 @@ public interface VectorStore {
     }
 
     /**
+     * 根据 datasetId 进行关键词检索
+     */
+    default List<String> keywordSearchByDataset(String datasetId, String query, int topK) {
+        throw new UnsupportedOperationException("keywordSearchByDataset not implemented");
+    }
+
+    /**
+     * 根据 datasetId 进行混合检索（语义 + 关键词）
+     */
+    default List<String> hybridSearchByDataset(String datasetId, String query, int topK) {
+        throw new UnsupportedOperationException("hybridSearchByDataset not implemented");
+    }
+
+    /**
      * 批量存储文档到知识库
      *
      * @param documents 领域层的 Document 列表（包含 content 和 metadata）

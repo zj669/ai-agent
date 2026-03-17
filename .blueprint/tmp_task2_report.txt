@@ -1,9 +1,0 @@
-candidates=309
-created=6
-skipped_existing=303
-ai-agent-application/src/main/resources/templates/agent-initial-graph.json -> .blueprint/files/ai-agent-application/src/main/resources/templates/agent-initial-graph.json.md :: OK
-ai-agent-interfaces/src/main/resources/static/web/APIDocumentation.md -> .blueprint/files/ai-agent-interfaces/src/main/resources/static/web/APIDocumentation.md.md :: OK
-cd-deploy-rolling.sh -> .blueprint/files/cd-deploy-rolling.sh.md :: OK
-cd-deploy.sh -> .blueprint/files/cd-deploy.sh.md :: OK
-Dockerfile -> .blueprint/files/Dockerfile.md :: OK
-pom.xml -> .blueprint/files/pom.xml.md :: OK
