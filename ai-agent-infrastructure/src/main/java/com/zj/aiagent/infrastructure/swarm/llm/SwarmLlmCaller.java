@@ -148,80 +148,7 @@ public class SwarmLlmCaller {
 
         Prompt prompt = new Prompt(messages);
 
-        // 流式调用
-        Flux<ChatResponse> flux = chatModel.stream(prompt);
-
-        StringBuilder contentBuilder = new StringBuilder();
-        // tool_calls 合并：index -> (id, name, argumentsBuilder)
-        java.util.Map<Integer, String[]> toolCallIdMap =
-            new java.util.concurrent.ConcurrentHashMap<>();
-        java.util.Map<Integer, String[]> toolCallNameMap =
-            new java.util.concurrent.ConcurrentHashMap<>();
-        java.util.Map<Integer, StringBuilder> toolCallArgsMap =
-            new java.util.concurrent.ConcurrentHashMap<>();
-
-        flux
-            .doOnNext(chatResponse -> {
-                if (
-                    chatResponse.getResult() == null ||
-                    chatResponse.getResult().getOutput() == null
-                ) return;
-
-                AssistantMessage output = chatResponse.getResult().getOutput();
-
-                // 收集文本 chunk
-                String text = output.getText();
-                if (text != null && !text.isEmpty()) {
-                    contentBuilder.append(text);
-                    if (onChunk != null) {
-                        onChunk.accept(text);
-                    }
-                }
-
-                // 收集 tool_calls（流式时分散在多个 chunk 里）
-                if (output.getToolCalls() != null) {
-                    for (int i = 0; i < output.getToolCalls().size(); i++) {
-                        AssistantMessage.ToolCall tc = output
-                            .getToolCalls()
-                            .get(i);
-                        if (tc.id() != null && !tc.id().isEmpty()) {
-                            toolCallIdMap.put(i, new String[] { tc.id() });
-                        }
-                        if (tc.name() != null && !tc.name().isEmpty()) {
-                            toolCallNameMap.put(i, new String[] { tc.name() });
-                        }
-                        if (
-                            tc.arguments() != null && !tc.arguments().isEmpty()
-                        ) {
-                            toolCallArgsMap
-                                .computeIfAbsent(i, k -> new StringBuilder())
-                                .append(tc.arguments());
-                        }
-                    }
-                }
-            })
-            .blockLast(Duration.ofMinutes(5));
-
-        // 合并 tool_calls
-        List<AssistantMessage.ToolCall> mergedToolCalls =
-            new java.util.ArrayList<>();
-        for (Integer idx : toolCallIdMap.keySet().stream().sorted().toList()) {
-            String id = toolCallIdMap.getOrDefault(idx, new String[] { "" })[0];
-            String name = toolCallNameMap.containsKey(idx)
-                ? toolCallNameMap.get(idx)[0]
-                : "";
-            String args = toolCallArgsMap.containsKey(idx)
-                ? toolCallArgsMap.get(idx).toString()
-                : "";
-            mergedToolCalls.add(
-                new AssistantMessage.ToolCall(id, "function", name, args)
-            );
-        }
-
-        return SwarmLlmResponse.builder()
-            .content(contentBuilder.toString())
-            .toolCalls(mergedToolCalls.isEmpty() ? null : mergedToolCalls)
-            .build();
+        return collectStreamingResponse(chatModel.stream(prompt), onChunk);
     }
 
     /**
@@ -256,27 +183,83 @@ public class SwarmLlmCaller {
 
         Prompt prompt = new Prompt(messages);
 
-        // 带工具调用时改用非流式模式，避免 tool_call arguments 在流式 chunk 中被拆碎
-        // 导致多次错误调用或半截 JSON。
-        ChatResponse response = chatModel.call(prompt);
+        return collectStreamingResponse(chatModel.stream(prompt), onChunk);
+    }
 
-        if (
-            response.getResult() == null ||
-            response.getResult().getOutput() == null
-        ) {
-            return SwarmLlmResponse.builder().content("").build();
-        }
+    private SwarmLlmResponse collectStreamingResponse(
+        Flux<ChatResponse> flux,
+        Consumer<String> onChunk
+    ) {
+        StringBuilder contentBuilder = new StringBuilder();
+        java.util.Map<Integer, String> toolCallIdMap =
+            new java.util.concurrent.ConcurrentHashMap<>();
+        java.util.Map<Integer, String> toolCallNameMap =
+            new java.util.concurrent.ConcurrentHashMap<>();
+        java.util.Map<Integer, StringBuilder> toolCallArgsMap =
+            new java.util.concurrent.ConcurrentHashMap<>();
 
-        AssistantMessage output = response.getResult().getOutput();
-        String content = output.getText() != null ? output.getText() : "";
+        flux
+            .doOnNext(chatResponse -> {
+                if (
+                    chatResponse.getResult() == null ||
+                    chatResponse.getResult().getOutput() == null
+                ) {
+                    return;
+                }
 
-        if (onChunk != null && !content.isEmpty()) {
-            onChunk.accept(content);
+                AssistantMessage output = chatResponse.getResult().getOutput();
+                String text = output.getText();
+                if (text != null && !text.isEmpty()) {
+                    contentBuilder.append(text);
+                    if (onChunk != null) {
+                        onChunk.accept(text);
+                    }
+                }
+
+                if (output.getToolCalls() == null) {
+                    return;
+                }
+
+                for (int i = 0; i < output.getToolCalls().size(); i++) {
+                    AssistantMessage.ToolCall tc = output.getToolCalls().get(i);
+                    if (tc.id() != null && !tc.id().isEmpty()) {
+                        toolCallIdMap.put(i, tc.id());
+                    }
+                    if (tc.name() != null && !tc.name().isEmpty()) {
+                        toolCallNameMap.put(i, tc.name());
+                    }
+                    if (tc.arguments() != null && !tc.arguments().isEmpty()) {
+                        toolCallArgsMap
+                            .computeIfAbsent(i, k -> new StringBuilder())
+                            .append(tc.arguments());
+                    }
+                }
+            })
+            .blockLast(Duration.ofMinutes(5));
+
+        java.util.Set<Integer> toolIndexes = new java.util.TreeSet<>();
+        toolIndexes.addAll(toolCallIdMap.keySet());
+        toolIndexes.addAll(toolCallNameMap.keySet());
+        toolIndexes.addAll(toolCallArgsMap.keySet());
+
+        List<AssistantMessage.ToolCall> mergedToolCalls =
+            new java.util.ArrayList<>();
+        for (Integer idx : toolIndexes) {
+            mergedToolCalls.add(
+                new AssistantMessage.ToolCall(
+                    toolCallIdMap.getOrDefault(idx, ""),
+                    "function",
+                    toolCallNameMap.getOrDefault(idx, ""),
+                    toolCallArgsMap.containsKey(idx)
+                        ? toolCallArgsMap.get(idx).toString()
+                        : ""
+                )
+            );
         }
 
         return SwarmLlmResponse.builder()
-            .content(content)
-            .toolCalls(output.getToolCalls())
+            .content(contentBuilder.toString())
+            .toolCalls(mergedToolCalls.isEmpty() ? null : mergedToolCalls)
             .build();
     }
 

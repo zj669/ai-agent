@@ -328,21 +328,7 @@ public class SwarmAgentRunner implements Runnable {
                 messages,
                 toolCallbacks,
                 chunk -> {
-                    try {
-                        String chunkData = objectMapper.writeValueAsString(
-                            Map.of(
-                                "agentId",
-                                agent.getId(),
-                                "groupId",
-                                primaryGroupId,
-                                "chunk",
-                                chunk
-                            )
-                        );
-                        emitUIEvent("ui.agent.stream.chunk", chunkData);
-                    } catch (Exception e) {
-                        log.warn("[Swarm] Failed to emit stream chunk", e);
-                    }
+                    emitContentChunk(primaryGroupId, chunk, true);
                 },
                 llmConfig
             );
@@ -364,8 +350,6 @@ public class SwarmAgentRunner implements Runnable {
                     primaryGroupId +
                     "}"
             );
-
-            emitEvent("agent.stream", "content", response.getContent());
 
             // 把完整 content 存为消息到 human-agent P2P 群
             if (
@@ -547,6 +531,9 @@ public class SwarmAgentRunner implements Runnable {
             markWritingAssignmentRunningIfNeeded();
         }
         boolean waitingForChildAgents = false;
+        Long streamGroupId = isCoordinator
+            ? findHumanGroupId()
+            : primaryGroupId;
 
         log.info(
             "[Swarm] Processing agent messages: agent={}, workspace={}, coordinator={}, groups={}, totalMessages={}, primaryGroup={}",
@@ -558,12 +545,14 @@ public class SwarmAgentRunner implements Runnable {
             primaryGroupId
         );
 
+        emitStreamStart(streamGroupId);
         SwarmLlmResponse response = llmCaller.callStreamWithTools(
             messages,
             toolCallbacks,
-            null,
+            chunk -> emitContentChunk(streamGroupId, chunk, true),
             llmConfig
         );
+        emitStreamDone(streamGroupId);
 
         log.info(
             "[Swarm] LLM response ready (agent): agent={}, coordinator={}, contentPreview={}, toolCallCount={}",
@@ -572,8 +561,6 @@ public class SwarmAgentRunner implements Runnable {
             preview(response.getContent()),
             response.hasToolCalls() ? response.getToolCalls().size() : 0
         );
-
-        emitEvent("agent.stream", "content", response.getContent());
 
         if (response.hasToolCalls()) {
             for (AssistantMessage.ToolCall toolCall : response.getToolCalls()) {
@@ -1369,6 +1356,60 @@ public class SwarmAgentRunner implements Runnable {
                 agent.getId(),
                 groupId,
                 toolName,
+                e
+            );
+        }
+    }
+
+    private void emitStreamStart(Long groupId) {
+        if (groupId == null) {
+            return;
+        }
+        emitUIEvent(
+            "ui.agent.stream.start",
+            "{\"agentId\":" + agent.getId() + ",\"groupId\":" + groupId + "}"
+        );
+    }
+
+    private void emitStreamDone(Long groupId) {
+        if (groupId == null) {
+            return;
+        }
+        emitUIEvent(
+            "ui.agent.stream.done",
+            "{\"agentId\":" + agent.getId() + ",\"groupId\":" + groupId + "}"
+        );
+    }
+
+    private void emitContentChunk(
+        Long groupId,
+        String chunk,
+        boolean emitUiChunk
+    ) {
+        if (chunk == null || chunk.isEmpty()) {
+            return;
+        }
+        emitEvent("agent.stream", "content", chunk);
+        if (!emitUiChunk || groupId == null) {
+            return;
+        }
+        try {
+            String chunkData = objectMapper.writeValueAsString(
+                Map.of(
+                    "agentId",
+                    agent.getId(),
+                    "groupId",
+                    groupId,
+                    "chunk",
+                    chunk
+                )
+            );
+            emitUIEvent("ui.agent.stream.chunk", chunkData);
+        } catch (Exception e) {
+            log.warn(
+                "[Swarm] Failed to emit stream chunk: agent={}, groupId={}",
+                agent.getId(),
+                groupId,
                 e
             );
         }
