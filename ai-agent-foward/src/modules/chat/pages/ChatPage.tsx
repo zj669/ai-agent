@@ -13,7 +13,6 @@ import {
   Collapse,
   Tag,
   Tabs,
-  Space,
 } from "antd";
 import {
   RobotOutlined,
@@ -987,19 +986,6 @@ function ChatPage() {
   const activeConversationIdRef = useRef(activeConversationId);
   activeConversationIdRef.current = activeConversationId;
 
-  const refreshConversationMessages = useCallback(async () => {
-    const cid = activeConversationIdRef.current;
-    if (!cid) return;
-
-    try {
-      const data = await fetchConversationMessages(USER_ID, cid);
-      setMessages(data);
-      setStreamError("");
-    } catch {
-      // noop
-    }
-  }, []);
-
   const refreshPendingReviews = useCallback(async () => {
     const agentId = selectedAgentIdRef.current;
     if (!agentId) {
@@ -1246,7 +1232,7 @@ function ChatPage() {
           const next = cur.map((m) => {
             if (m.id === assistantMessageId && m.role === "ASSISTANT") {
               reusedExistingMessage = true;
-              return { ...m, status: "STREAMING" };
+              return { ...m, status: "STREAMING" as const };
             }
             return m;
           });
