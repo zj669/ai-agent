@@ -3,6 +3,7 @@ package com.zj.aiagent.infrastructure.swarm.llm;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.zj.aiagent.domain.llm.entity.LlmProviderConfig;
 import java.time.Duration;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.function.Consumer;
 import lombok.RequiredArgsConstructor;
@@ -191,12 +192,8 @@ public class SwarmLlmCaller {
         Consumer<String> onChunk
     ) {
         StringBuilder contentBuilder = new StringBuilder();
-        java.util.Map<Integer, String> toolCallIdMap =
-            new java.util.concurrent.ConcurrentHashMap<>();
-        java.util.Map<Integer, String> toolCallNameMap =
-            new java.util.concurrent.ConcurrentHashMap<>();
-        java.util.Map<Integer, StringBuilder> toolCallArgsMap =
-            new java.util.concurrent.ConcurrentHashMap<>();
+        List<AssistantMessage.ToolCall> latestToolCallSnapshot =
+            new ArrayList<>();
 
         flux
             .doOnNext(chatResponse -> {
@@ -220,47 +217,228 @@ public class SwarmLlmCaller {
                     return;
                 }
 
-                for (int i = 0; i < output.getToolCalls().size(); i++) {
-                    AssistantMessage.ToolCall tc = output.getToolCalls().get(i);
-                    if (tc.id() != null && !tc.id().isEmpty()) {
-                        toolCallIdMap.put(i, tc.id());
-                    }
-                    if (tc.name() != null && !tc.name().isEmpty()) {
-                        toolCallNameMap.put(i, tc.name());
-                    }
-                    if (tc.arguments() != null && !tc.arguments().isEmpty()) {
-                        toolCallArgsMap
-                            .computeIfAbsent(i, k -> new StringBuilder())
-                            .append(tc.arguments());
-                    }
+                if (
+                    output.getToolCalls().size() >=
+                    latestToolCallSnapshot.size()
+                ) {
+                    latestToolCallSnapshot.clear();
+                    latestToolCallSnapshot.addAll(output.getToolCalls());
                 }
             })
             .blockLast(Duration.ofMinutes(5));
 
-        java.util.Set<Integer> toolIndexes = new java.util.TreeSet<>();
-        toolIndexes.addAll(toolCallIdMap.keySet());
-        toolIndexes.addAll(toolCallNameMap.keySet());
-        toolIndexes.addAll(toolCallArgsMap.keySet());
-
         List<AssistantMessage.ToolCall> mergedToolCalls =
-            new java.util.ArrayList<>();
-        for (Integer idx : toolIndexes) {
-            mergedToolCalls.add(
-                new AssistantMessage.ToolCall(
-                    toolCallIdMap.getOrDefault(idx, ""),
-                    "function",
-                    toolCallNameMap.getOrDefault(idx, ""),
-                    toolCallArgsMap.containsKey(idx)
-                        ? toolCallArgsMap.get(idx).toString()
-                        : ""
-                )
+            mergeToolCallFragments(latestToolCallSnapshot);
+        List<AssistantMessage.ToolCall> executableToolCalls =
+            filterExecutableToolCalls(mergedToolCalls);
+        if (
+            !latestToolCallSnapshot.isEmpty() &&
+            mergedToolCalls.size() != latestToolCallSnapshot.size()
+        ) {
+            log.info(
+                "[SwarmLlmCaller] Collapsed streamed tool call fragments: rawCount={}, mergedCount={}",
+                latestToolCallSnapshot.size(),
+                mergedToolCalls.size()
+            );
+        }
+        if (mergedToolCalls.size() != executableToolCalls.size()) {
+            log.warn(
+                "[SwarmLlmCaller] Dropped invalid streamed tool calls after merge: mergedCount={}, executableCount={}",
+                mergedToolCalls.size(),
+                executableToolCalls.size()
             );
         }
 
         return SwarmLlmResponse.builder()
             .content(contentBuilder.toString())
-            .toolCalls(mergedToolCalls.isEmpty() ? null : mergedToolCalls)
+            .toolCalls(
+                executableToolCalls.isEmpty() ? null : executableToolCalls
+            )
             .build();
+    }
+
+    private List<AssistantMessage.ToolCall> mergeToolCallFragments(
+        List<AssistantMessage.ToolCall> fragments
+    ) {
+        if (fragments == null || fragments.isEmpty()) {
+            return List.of();
+        }
+        List<AssistantMessage.ToolCall> merged = new ArrayList<>();
+        MutableToolCall current = null;
+        for (AssistantMessage.ToolCall fragment : fragments) {
+            if (fragment == null) {
+                continue;
+            }
+            if (current == null) {
+                current = MutableToolCall.from(fragment);
+                continue;
+            }
+            if (shouldStartNewToolCall(current, fragment)) {
+                if (current.isMeaningful()) {
+                    merged.add(current.toToolCall());
+                }
+                current = MutableToolCall.from(fragment);
+                continue;
+            }
+            current.absorb(fragment);
+        }
+        if (current != null && current.isMeaningful()) {
+            merged.add(current.toToolCall());
+        }
+        return merged;
+    }
+
+    private boolean shouldStartNewToolCall(
+        MutableToolCall current,
+        AssistantMessage.ToolCall fragment
+    ) {
+        String fragmentId = normalize(fragment.id());
+        String fragmentName = normalize(fragment.name());
+        String fragmentArgs =
+            fragment.arguments() != null ? fragment.arguments() : "";
+
+        if (
+            fragmentId != null &&
+            current.id != null &&
+            !fragmentId.equals(current.id)
+        ) {
+            return true;
+        }
+        if (
+            fragmentName != null &&
+            current.name != null &&
+            !fragmentName.equals(current.name)
+        ) {
+            return true;
+        }
+
+        if (!current.isJsonComplete(objectMapper)) {
+            return false;
+        }
+
+        if (fragmentId != null || fragmentName != null) {
+            return true;
+        }
+
+        String trimmedArgs = fragmentArgs.trim();
+        return trimmedArgs.startsWith("{") || trimmedArgs.startsWith("[");
+    }
+
+    private String normalize(String value) {
+        return value == null || value.isBlank() ? null : value;
+    }
+
+    private List<AssistantMessage.ToolCall> filterExecutableToolCalls(
+        List<AssistantMessage.ToolCall> toolCalls
+    ) {
+        if (toolCalls == null || toolCalls.isEmpty()) {
+            return List.of();
+        }
+        List<AssistantMessage.ToolCall> executable = new ArrayList<>();
+        for (AssistantMessage.ToolCall toolCall : toolCalls) {
+            if (!isExecutableToolCall(toolCall)) {
+                continue;
+            }
+            executable.add(toolCall);
+        }
+        return executable;
+    }
+
+    private boolean isExecutableToolCall(AssistantMessage.ToolCall toolCall) {
+        if (toolCall == null) {
+            return false;
+        }
+        if (normalize(toolCall.name()) == null) {
+            log.warn(
+                "[SwarmLlmCaller] Ignoring streamed tool call without name: id={}, argsPreview={}",
+                toolCall.id(),
+                preview(toolCall.arguments())
+            );
+            return false;
+        }
+
+        String arguments = toolCall.arguments();
+        if (arguments == null || arguments.isBlank()) {
+            return true;
+        }
+
+        try {
+            return objectMapper.readTree(arguments).isObject();
+        } catch (Exception e) {
+            log.warn(
+                "[SwarmLlmCaller] Ignoring streamed tool call with incomplete arguments: tool={}, argsPreview={}",
+                toolCall.name(),
+                preview(arguments)
+            );
+            return false;
+        }
+    }
+
+    private String preview(String value) {
+        if (value == null) {
+            return "";
+        }
+        String normalized = value.replaceAll("\\s+", " ").trim();
+        return normalized.length() <= 120
+            ? normalized
+            : normalized.substring(0, 120) + "...";
+    }
+
+    private static final class MutableToolCall {
+
+        private String id;
+        private String name;
+        private final StringBuilder arguments = new StringBuilder();
+
+        private static MutableToolCall from(
+            AssistantMessage.ToolCall fragment
+        ) {
+            MutableToolCall call = new MutableToolCall();
+            call.absorb(fragment);
+            return call;
+        }
+
+        private void absorb(AssistantMessage.ToolCall fragment) {
+            if (fragment.id() != null && !fragment.id().isBlank()) {
+                this.id = fragment.id();
+            }
+            if (fragment.name() != null && !fragment.name().isBlank()) {
+                this.name = fragment.name();
+            }
+            if (
+                fragment.arguments() != null && !fragment.arguments().isEmpty()
+            ) {
+                this.arguments.append(fragment.arguments());
+            }
+        }
+
+        private boolean isMeaningful() {
+            return (
+                (name != null && !name.isBlank()) || arguments.length() > 0
+            );
+        }
+
+        private boolean isJsonComplete(ObjectMapper objectMapper) {
+            String raw = arguments.toString().trim();
+            if (raw.isEmpty()) {
+                return false;
+            }
+            try {
+                objectMapper.readTree(raw);
+                return true;
+            } catch (Exception ignored) {
+                return false;
+            }
+        }
+
+        private AssistantMessage.ToolCall toToolCall() {
+            return new AssistantMessage.ToolCall(
+                id != null ? id : "",
+                "function",
+                name != null ? name : "",
+                arguments.toString()
+            );
+        }
     }
 
     /**

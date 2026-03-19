@@ -173,13 +173,16 @@ public class WritingProjectionService {
         if ("PENDING".equals(status)) {
             return 1;
         }
-        if ("FAILED".equals(status)) {
+        if ("PLANNED".equals(status)) {
             return 2;
         }
-        if ("DONE".equals(status)) {
+        if ("FAILED".equals(status)) {
             return 3;
         }
-        return 4;
+        if ("DONE".equals(status)) {
+            return 4;
+        }
+        return 5;
     }
 
     private WritingMessageViewDTO toMessageView(

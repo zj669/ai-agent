@@ -23,6 +23,8 @@ import com.zj.aiagent.domain.writing.entity.WritingTask;
 import java.time.LocalDateTime;
 import java.util.Comparator;
 import java.util.List;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.ai.tool.annotation.Tool;
 import org.springframework.ai.tool.annotation.ToolParam;
@@ -33,6 +35,10 @@ import org.springframework.ai.tool.annotation.ToolParam;
  */
 @Slf4j
 public class SwarmTools {
+
+    private static final Pattern TASK_UUID_PATTERN = Pattern.compile(
+        "(wtask_[A-Za-z0-9]+)"
+    );
 
     private final SwarmWorkspaceService workspaceService;
     private final SwarmMessageService messageService;
@@ -264,6 +270,7 @@ public class SwarmTools {
             req.setContentType("text");
             req.setContent(message);
             SwarmMessageDTO sent = messageService.sendMessage(groupId, req);
+            markWritingTaskDispatchedIfPresent(agentId, message);
             log.info(
                 "[SwarmTools] send completed: callerAgentId={}, targetAgentId={}, groupId={}, messageId={}",
                 callerAgentId,
@@ -276,6 +283,50 @@ public class SwarmTools {
             log.error("[SwarmTools] send failed", e);
             return "{\"error\": \"" + e.getMessage() + "\"}";
         }
+    }
+
+    private void markWritingTaskDispatchedIfPresent(
+        long targetAgentId,
+        String message
+    ) {
+        String taskUuid = extractTaskUuid(message);
+        if (taskUuid == null) {
+            return;
+        }
+        try {
+            WritingTask task = writingTaskService.getTaskByUuid(taskUuid);
+            if (
+                task.getSwarmAgentId() == null ||
+                !task.getSwarmAgentId().equals(targetAgentId)
+            ) {
+                log.info(
+                    "[SwarmTools] Skip dispatch mark because task/swarm mismatch: taskUuid={}, expectedSwarmAgentId={}, targetAgentId={}",
+                    taskUuid,
+                    task.getSwarmAgentId(),
+                    targetAgentId
+                );
+                return;
+            }
+            if (!"PLANNED".equals(task.getStatus())) {
+                return;
+            }
+            writingTaskService.markDispatchedByUuid(taskUuid);
+        } catch (Exception e) {
+            log.warn(
+                "[SwarmTools] Failed to mark writing task dispatched: taskUuid={}, targetAgentId={}",
+                taskUuid,
+                targetAgentId,
+                e
+            );
+        }
+    }
+
+    private String extractTaskUuid(String message) {
+        if (message == null || message.isBlank()) {
+            return null;
+        }
+        Matcher matcher = TASK_UUID_PATTERN.matcher(message);
+        return matcher.find() ? matcher.group(1) : null;
     }
 
     @Tool(

@@ -56,14 +56,14 @@ public class WritingTaskService {
             .instruction(instruction)
             .inputPayloadJson(inputPayloadJson)
             .expectedOutputSchemaJson(expectedOutputSchemaJson)
-            .status("PENDING")
+            .status("PLANNED")
             .priority(priority != null ? priority : 0)
             .createdBySwarmAgentId(createdBySwarmAgentId)
             .createdAt(LocalDateTime.now())
             .updatedAt(LocalDateTime.now())
             .build();
         writingTaskRepository.save(task);
-        writingAgentCoordinatorService.updateStatus(writingAgentId, "ASSIGNED");
+        writingAgentCoordinatorService.updateStatus(writingAgentId, "PLANNED");
         writingSessionService.updateStatus(sessionId, "RUNNING");
         log.info(
             "[Writing] Task created: taskId={}, taskUuid={}, sessionId={}, writingAgentId={}, swarmAgentId={}, status={}",
@@ -103,6 +103,29 @@ public class WritingTaskService {
 
     public List<WritingTask> listByWritingAgent(Long writingAgentId) {
         return writingTaskRepository.findByWritingAgentId(writingAgentId);
+    }
+
+    @Transactional(rollbackFor = Exception.class)
+    public WritingTask markDispatchedByUuid(String taskUuid) {
+        WritingTask task = getTaskByUuid(taskUuid);
+        String previousStatus = task.getStatus();
+        task.setStatus("PENDING");
+        task.setUpdatedAt(LocalDateTime.now());
+        writingTaskRepository.update(task);
+        writingAgentCoordinatorService.updateStatus(
+            task.getWritingAgentId(),
+            "ASSIGNED"
+        );
+        log.info(
+            "[Writing] Task dispatched: taskId={}, taskUuid={}, from={}, to={}, writingAgentId={}, swarmAgentId={}",
+            task.getId(),
+            task.getTaskUuid(),
+            previousStatus,
+            task.getStatus(),
+            task.getWritingAgentId(),
+            task.getSwarmAgentId()
+        );
+        return task;
     }
 
     @Transactional(rollbackFor = Exception.class)

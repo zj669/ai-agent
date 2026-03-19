@@ -25,12 +25,14 @@ interface Props {
   message: SwarmMessage;
   agents: SwarmAgent[];
   humanAgentId?: number;
+  thinkingTitle?: string;
 }
 
 export default function SwarmMessageBubble({
   message,
   agents,
   humanAgentId,
+  thinkingTitle,
 }: Props) {
   const [toolExpanded, setToolExpanded] = useState(false);
   const isHuman = message.senderId === humanAgentId;
@@ -179,16 +181,30 @@ export default function SwarmMessageBubble({
         ) : isThinking ? (
           <div
             style={{
-              padding: "8px 12px",
-              borderRadius: 8,
-              background: "#f0f0f0",
-              color: "#8c8c8c",
+              padding: "10px 12px",
+              borderRadius: 12,
+              background:
+                "linear-gradient(180deg, rgba(248,250,252,0.96) 0%, rgba(241,245,249,0.92) 100%)",
+              color: "#475569",
               display: "flex",
-              alignItems: "center",
-              gap: 8,
+              flexDirection: "column",
+              alignItems: "flex-start",
+              gap: 6,
+              border: "1px solid #dbeafe",
             }}
           >
-            <LoadingOutlined style={{ fontSize: 14 }} />
+            <span
+              style={{
+                display: "inline-flex",
+                alignItems: "center",
+                gap: 8,
+                color: "#1d4ed8",
+                fontWeight: 600,
+              }}
+            >
+              <LoadingOutlined style={{ fontSize: 14 }} />
+              {thinkingTitle || "正在思考..."}
+            </span>
             <span>{message.content}</span>
           </div>
         ) : (

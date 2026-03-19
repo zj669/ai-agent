@@ -9,6 +9,7 @@ const { Paragraph, Text, Title } = Typography;
 
 const STATUS_META: Record<string, { color: string; label: string }> = {
   IDLE: { color: "default", label: "空闲" },
+  PLANNED: { color: "default", label: "待派发" },
   ASSIGNED: { color: "processing", label: "已分配" },
   RUNNING: { color: "blue", label: "执行中" },
   DONE: { color: "success", label: "已完成" },

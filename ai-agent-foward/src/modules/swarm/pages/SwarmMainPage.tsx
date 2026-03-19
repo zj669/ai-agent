@@ -207,6 +207,7 @@ export default function SwarmMainPage() {
     if (!shouldPoll) return;
 
     const timer = window.setInterval(() => {
+      reloadAgents();
       reloadWritingOverview();
     }, 3000);
 
@@ -216,6 +217,7 @@ export default function SwarmMainPage() {
     streamingContent,
     waitingForAgents.length,
     sessionOverview?.session.status,
+    reloadAgents,
     reloadWritingOverview,
   ]);
 
@@ -236,6 +238,7 @@ export default function SwarmMainPage() {
         // ignore malformed payloads
       }
       loadMessages();
+      reloadAgents();
       scheduleOverviewRefresh();
     },
     onStreamStart: (data) => {
@@ -320,6 +323,7 @@ export default function SwarmMainPage() {
             return next;
           });
           scheduleLiveToolCleanup();
+          reloadAgents();
           scheduleOverviewRefresh();
         }
       } catch {
@@ -498,6 +502,37 @@ export default function SwarmMainPage() {
   const displayedMessages = sessionOverview
     ? [...rootConversationMessages, ...optimisticMessages]
     : messages;
+  const latestLiveToolCall = liveToolCalls.length
+    ? liveToolCalls[liveToolCalls.length - 1]
+    : null;
+  const processingState =
+    streamingContent !== null
+      ? null
+      : liveToolCalls.some((step) => step.status === "running")
+        ? null
+        : waitingForAgents.length > 0 && assistantAgentId
+          ? {
+              agentId: assistantAgentId,
+              title: "正在等待协作结果",
+              detail: `已派发 ${waitingForAgents.length} 个协作 Agent，主 Agent 正在等待并继续调度。`,
+            }
+          : selectedAgent?.status === "BUSY"
+            ? {
+                agentId: selectedAgent.id,
+                title: "正在继续思考",
+                detail: latestLiveToolCall
+                  ? `已完成「${latestLiveToolCall.tool}」，正在继续整理上下文与生成回复。`
+                  : "主 Agent 仍在运行，正在生成下一段内容。",
+              }
+            : selectedAgent?.status === "WAITING"
+              ? {
+                  agentId: selectedAgent.id,
+                  title: "正在处理中",
+                  detail: latestLiveToolCall
+                    ? `刚完成「${latestLiveToolCall.tool}」，正在等待下一步结果并继续推进。`
+                    : "主 Agent 仍在处理中，界面会在收到下一段输出后继续刷新。",
+                }
+              : null;
   const isMobile = !screens.lg;
 
   if (!wid) return <Spin />;
@@ -564,6 +599,7 @@ export default function SwarmMainPage() {
               agentBusy={selectedAgent?.status === "BUSY"}
               isStreaming={isStreaming}
               waitingForAgents={waitingForAgents}
+              processingState={processingState}
               onStopWaitingAgent={(agentId) => {
                 setWaitingForAgents((current) =>
                   current.filter((item) => item !== agentId),

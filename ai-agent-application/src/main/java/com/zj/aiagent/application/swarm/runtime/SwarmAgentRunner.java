@@ -279,6 +279,9 @@ public class SwarmAgentRunner implements Runnable {
                 }
             }
         } finally {
+            if (isRoot && finalStatus != SwarmAgentStatus.WAITING) {
+                emitWaitingDone(null);
+            }
             agentRepository.updateStatus(agent.getId(), finalStatus.getCode());
             emitEvent("agent.done", null, "");
         }
@@ -341,6 +344,20 @@ public class SwarmAgentRunner implements Runnable {
                 response.hasToolCalls() ? response.getToolCalls().size() : 0
             );
 
+            List<AssistantMessage.ToolCall> executableToolCalls =
+                filterExecutableToolCalls(response.getToolCalls());
+            if (
+                response.hasToolCalls() &&
+                executableToolCalls.size() != response.getToolCalls().size()
+            ) {
+                log.warn(
+                    "[Swarm] Dropped invalid streamed tool calls before execution (human): agent={}, rawCount={}, executableCount={}",
+                    agent.getId(),
+                    response.getToolCalls().size(),
+                    executableToolCalls.size()
+                );
+            }
+
             // emit stream.done
             emitUIEvent(
                 "ui.agent.stream.done",
@@ -385,8 +402,8 @@ public class SwarmAgentRunner implements Runnable {
                 );
             }
 
-            if (response.hasToolCalls()) {
-                for (AssistantMessage.ToolCall toolCall : response.getToolCalls()) {
+            if (!executableToolCalls.isEmpty()) {
+                for (AssistantMessage.ToolCall toolCall : executableToolCalls) {
                     if (!running) break;
                     String toolName = toolCall.name();
                     String toolArgs = toolCall.arguments();
@@ -562,18 +579,40 @@ public class SwarmAgentRunner implements Runnable {
             response.hasToolCalls() ? response.getToolCalls().size() : 0
         );
 
-        if (response.hasToolCalls()) {
-            for (AssistantMessage.ToolCall toolCall : response.getToolCalls()) {
+        List<AssistantMessage.ToolCall> executableToolCalls =
+            filterExecutableToolCalls(response.getToolCalls());
+        if (
+            response.hasToolCalls() &&
+            executableToolCalls.size() != response.getToolCalls().size()
+        ) {
+            log.warn(
+                "[Swarm] Dropped invalid streamed tool calls before execution (agent): agent={}, rawCount={}, executableCount={}",
+                agent.getId(),
+                response.getToolCalls().size(),
+                executableToolCalls.size()
+            );
+        }
+
+        if (!executableToolCalls.isEmpty()) {
+            for (AssistantMessage.ToolCall toolCall : executableToolCalls) {
                 String toolName = toolCall.name();
                 String toolArgs = toolCall.arguments();
                 String toolCallEventId =
                     agent.getId() + "-" + System.nanoTime() + "-" + toolName;
 
-                if (isCoordinator && "send".equals(toolName)) {
-                    // 协调者收到子 agent 回复后，跳过 send 防止 ping-pong
-                    // 把 send 的 message 内容提取出来作为投递给人类的文字
+                Long sendTargetAgentId = "send".equals(toolName)
+                    ? extractSendTargetAgentId(toolArgs)
+                    : null;
+
+                if (
+                    isCoordinator &&
+                    "send".equals(toolName) &&
+                    sendTargetAgentId != null &&
+                    sendTargetAgentId.equals(humanAgentId)
+                ) {
+                    // 协调者只拦截显式发给人类的 send，发给子 Agent 的 send 仍应正常执行
                     log.info(
-                        "[Swarm] Agent {} (coordinator) skipping {} to prevent ping-pong",
+                        "[Swarm] Agent {} (coordinator) redirecting send-to-human",
                         agent.getId(),
                         toolName
                     );
@@ -669,9 +708,6 @@ public class SwarmAgentRunner implements Runnable {
                     null
                 );
 
-                Long sendTargetAgentId = "send".equals(toolName)
-                    ? extractSendTargetAgentId(toolArgs)
-                    : null;
                 if (shouldEnterWaitingAfterSend(sendTargetAgentId)) {
                     waitingForChildAgents = true;
                     emitUIEvent(
@@ -794,6 +830,25 @@ public class SwarmAgentRunner implements Runnable {
         );
     }
 
+    private void emitWaitingDone(Long targetAgentId) {
+        Long humanGroupId = findHumanGroupId();
+        if (humanGroupId == null) {
+            return;
+        }
+        String targetAgentJson =
+            targetAgentId == null ? "null" : String.valueOf(targetAgentId);
+        emitUIEvent(
+            "ui.agent.waiting.done",
+            "{\"agentId\":" +
+                agent.getId() +
+                ",\"groupId\":" +
+                humanGroupId +
+                ",\"targetAgentId\":" +
+                targetAgentJson +
+                "}"
+        );
+    }
+
     private boolean isWritingResultTool(String toolName) {
         return (
             "writing_result".equals(toolName) ||
@@ -882,8 +937,8 @@ public class SwarmAgentRunner implements Runnable {
                         .stream()
                         .anyMatch(
                             task ->
-                                !"DONE".equals(task.getStatus()) &&
-                                !"FAILED".equals(task.getStatus())
+                                "PENDING".equals(task.getStatus()) ||
+                                "RUNNING".equals(task.getStatus())
                         )
                 );
         } catch (Exception e) {
@@ -1118,13 +1173,16 @@ public class SwarmAgentRunner implements Runnable {
         if ("PENDING".equals(status)) {
             return 1;
         }
-        if ("FAILED".equals(status)) {
+        if ("PLANNED".equals(status)) {
             return 2;
         }
-        if ("DONE".equals(status)) {
+        if ("FAILED".equals(status)) {
             return 3;
         }
-        return 4;
+        if ("DONE".equals(status)) {
+            return 4;
+        }
+        return 5;
     }
 
     private record ResolvedWritingAssignment(
@@ -1413,6 +1471,46 @@ public class SwarmAgentRunner implements Runnable {
                 e
             );
         }
+    }
+
+    private List<AssistantMessage.ToolCall> filterExecutableToolCalls(
+        List<AssistantMessage.ToolCall> toolCalls
+    ) {
+        if (toolCalls == null || toolCalls.isEmpty()) {
+            return List.of();
+        }
+        List<AssistantMessage.ToolCall> executable = new ArrayList<>();
+        for (AssistantMessage.ToolCall toolCall : toolCalls) {
+            if (toolCall == null) {
+                continue;
+            }
+            if (toolCall.name() == null || toolCall.name().isBlank()) {
+                log.warn(
+                    "[Swarm] Ignoring tool call without name: agent={}, toolCallId={}, argsPreview={}",
+                    agent.getId(),
+                    toolCall.id(),
+                    preview(toolCall.arguments())
+                );
+                continue;
+            }
+            if (
+                SwarmToolArgumentUtils.tryParseArgumentsObject(
+                    toolCall.arguments(),
+                    objectMapper
+                ) ==
+                null
+            ) {
+                log.warn(
+                    "[Swarm] Ignoring tool call with incomplete arguments: agent={}, tool={}, argsPreview={}",
+                    agent.getId(),
+                    toolCall.name(),
+                    preview(toolCall.arguments())
+                );
+                continue;
+            }
+            executable.add(toolCall);
+        }
+        return executable;
     }
 
     /**

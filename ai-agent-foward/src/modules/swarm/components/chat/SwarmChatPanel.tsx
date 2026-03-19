@@ -35,6 +35,11 @@ interface Props {
   isStreaming?: boolean;
   waitingForAgents?: number[];
   onStopWaitingAgent?: (agentId: number) => void;
+  processingState?: {
+    agentId: number | null;
+    title: string;
+    detail?: string;
+  } | null;
 }
 
 export default function SwarmChatPanel({
@@ -52,8 +57,10 @@ export default function SwarmChatPanel({
   isStreaming,
   waitingForAgents,
   onStopWaitingAgent,
+  processingState,
 }: Props) {
   const statusInfo = selectedAgent ? STATUS_TAG[selectedAgent.status] : null;
+  const hasProcessingPlaceholder = processingState?.agentId != null;
 
   return (
     <div style={{ display: "flex", flexDirection: "column", height: "100%" }}>
@@ -91,7 +98,9 @@ export default function SwarmChatPanel({
           flexDirection: "column",
         }}
       >
-        {messages.length === 0 && streamingContent === null ? (
+        {messages.length === 0 &&
+        streamingContent === null &&
+        !hasProcessingPlaceholder ? (
           <div
             style={{
               display: "flex",
@@ -111,6 +120,7 @@ export default function SwarmChatPanel({
             streamingContent={streamingContent}
             streamingAgentId={streamingAgentId}
             liveToolCalls={liveToolCalls}
+            processingState={processingState}
           />
         )}
       </div>

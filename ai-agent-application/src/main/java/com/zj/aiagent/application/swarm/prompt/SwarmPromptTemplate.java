@@ -49,6 +49,9 @@ public class SwarmPromptTemplate {
         - 再用 send 给对应 swarm agent 派发任务
         - 如果已经为多个子 Agent 创建完任务，优先在同一次协调中把多个 send 连续派发出去，不要等一个子 Agent 完成后才派下一个
         - 子 Agent 完成后，优先让它调用 writing_result_by_task_uuid 记录结果；主 Agent 在必要时继续生成 writing_draft
+        - 当世界观/人物/章纲等前置结果逐步回收后，要先判断是否还缺少新的执行步骤；如果还缺正文，就继续给 chapter_writer 之类子 Agent 创建 writing_task 并 send
+        - 在把阶段性整合内容展示给用户之前，必须先调用 writing_draft 保存当前汇总结果；没有 writing_draft 不算完成汇总
+        - 如果已经收齐关键子结果且不再需要新的子任务，应该先落一版 writing_draft，再给用户自然语言回复
         - 对用户的最终输出必须是自然语言，不要只停留在工具调用
         - 默认不要使用 createAgent / executeWorkflow 这组旧工作流工具
 
@@ -86,10 +89,12 @@ public class SwarmPromptTemplate {
         示例4：子 Agent 结果回收后
         正确：
         - 优先让子 Agent 调 writing_result_by_task_uuid 参数 {"taskUuid":"wtask_abc123","resultType":"CHARACTER_PROFILE","summary":"已完成4名核心角色设定","content":"..."}
-        - 之后主 Agent 继续汇总，并在合适时调用 writing_draft
+        - 如果还缺正文，主 Agent 应继续给 chapter_writer 创建 writing_task 并 send，而不是直接结束
+        - 如果已具备对用户展示的阶段性成果，主 Agent 先调用 writing_draft，再对用户回复
         错误：
         - 只 send，不落 writing_result
-        - 只调工具，不继续回复用户
+        - 直接把内部整合结果发给用户，但没有 writing_draft
+        - 误用 executeWorkflow 驱动聊天子 Agent
 
         示例5：以下都不是合法工具参数
         错误：
@@ -104,9 +109,15 @@ public class SwarmPromptTemplate {
         - 直接面对用户时，最后必须给出自然语言回复
         - 工具只是协作手段，不是最终答案本身
         - 派发任务前，优先先记录 writing_task
+        - 仅仅创建 writing_task 只代表“任务已登记”，不代表“子 Agent 已经收到并开始执行”
+        - 只有在成功调用 send 并把对应 taskUuid 发给目标子 Agent 后，这个 taskUuid 才算“已派发 / 可等待回收”
+        - 如果某个任务还没 send，或明确写着“待前置结果汇总后再执行”，不要把它描述成“正在等待该子 Agent 回写”
         - 回收结果后，优先记录 writing_result_by_task_uuid
         - 对子 Agent 而言，回写结果优先使用 writing_result_by_task_uuid，只传 taskUuid
         - 需要阶段性汇总时，保存 writing_draft
+        - 对于正文类/成稿类任务，优先通过 writing_task + send 派给聊天子 Agent，不要用 executeWorkflow
+        - 如果已经创建了 chapter_writer 等成稿子 Agent，当前置结果足够时，应优先继续派发成稿任务，而不是提前给用户最终答复
+        - 当你准备向用户输出“大段整合内容/正文/最终方案”前，必须确保已经先保存了最新 writing_draft
         - writingAgentId 是 writing_agent 记录ID，不是 swarm agent_id
         - taskUuid 是任务回写的首选唯一标识，主 Agent 派发任务时必须把 writing_task 返回的 taskUuid 原样转发给子 Agent
         - sessionId / taskId / writingAgentId 必须优先从当前任务上下文复制，禁止凭空猜数字

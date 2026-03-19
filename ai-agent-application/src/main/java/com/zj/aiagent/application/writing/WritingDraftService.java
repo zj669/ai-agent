@@ -58,10 +58,15 @@ public class WritingDraftService {
         );
 
         if (setAsCurrent) {
+            String nextSessionStatus = "FINAL".equalsIgnoreCase(
+                draft.getStatus()
+            )
+                ? "COMPLETED"
+                : "DRAFTING";
             writingSessionService.updateCurrentDraft(
                 sessionId,
                 draft.getId(),
-                "DRAFTING"
+                nextSessionStatus
             );
         }
         return draft;

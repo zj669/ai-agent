@@ -18,6 +18,11 @@ interface Props {
   streamingContent?: string | null;
   streamingAgentId?: number | null;
   liveToolCalls?: LiveToolCallStep[];
+  processingState?: {
+    agentId: number | null;
+    title: string;
+    detail?: string;
+  } | null;
 }
 
 export default function SwarmMessageList({
@@ -27,6 +32,7 @@ export default function SwarmMessageList({
   streamingContent,
   streamingAgentId,
   liveToolCalls = [],
+  processingState = null,
 }: Props) {
   const bottomRef = useRef<HTMLDivElement>(null);
   const activeStreamAgentId =
@@ -37,6 +43,10 @@ export default function SwarmMessageList({
     (streamingContent === "" ||
       streamingContent === null ||
       streamingContent === undefined);
+  const shouldRenderProcessingState =
+    !shouldRenderLiveToolCalls &&
+    (streamingContent === null || streamingContent === undefined) &&
+    processingState?.agentId != null;
   const visibleMessages = messages.filter((message, index) => {
     const signature = getToolCallSignature(message);
     if (!signature || message.contentType === "tool_call") {
@@ -169,6 +179,20 @@ export default function SwarmMessageList({
           }}
           agents={agents}
           humanAgentId={humanAgentId}
+        />
+      ) : shouldRenderProcessingState ? (
+        <SwarmMessageBubble
+          message={{
+            id: -2,
+            groupId: 0,
+            senderId: processingState.agentId as number,
+            content: processingState.detail || processingState.title,
+            contentType: "thinking",
+            sendTime: new Date().toISOString(),
+          }}
+          agents={agents}
+          humanAgentId={humanAgentId}
+          thinkingTitle={processingState.title}
         />
       ) : null}
       <div ref={bottomRef} />
