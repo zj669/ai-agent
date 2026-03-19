@@ -200,7 +200,7 @@ Seven executor strategies implemented in infrastructure layer:
    - ✅ ALWAYS use project-encapsulated services
 
 2. **Search for Entities**: Check existing database schema and PO classes before creating new tables
-   - Location: `ai-agent-infrastructure/src/main/resources/db/ai_agent.sql`
+   - Location: `ai-agent-infrastructure/src/main/resources/docker/init/mysql/01_init_schema.sql`
    - ❌ NEVER create duplicate tables (e.g., if `WorkflowNodeExecution` exists, don't create `WorkflowExecution`)
 
 3. **Search for Business Logic**: Look for similar methods in domain services before implementing
@@ -240,8 +240,8 @@ Seven executor strategies implemented in infrastructure layer:
 
 ### Schema File
 
-- Location: `ai-agent-infrastructure/src/main/resources/db/ai_agent.sql`
-- No Flyway — database schema is managed via manual SQL file
+- Location: `ai-agent-infrastructure/src/main/resources/docker/init/mysql/01_init_schema.sql`
+- No Flyway — database schema is managed via the Docker MySQL initialization SQL
 - Always check this file before creating or modifying tables
 
 ### Table Naming
@@ -330,4 +330,4 @@ curl http://localhost:8080/actuator/info
 5. **Don't modify WorkflowGraph after creation**: It's an immutable value object
 6. **Don't forget to handle SKIPPED nodes**: Conditional branching requires proper pruning logic
 7. **Don't use `app/frontend/`**: The active frontend is `ai-agent-foward/`
-8. **Don't assume Flyway**: Database schema is in `db/ai_agent.sql`, not managed by Flyway migrations
+8. **Don't assume Flyway**: Database schema is in `docker/init/mysql/01_init_schema.sql`, not managed by Flyway migrations

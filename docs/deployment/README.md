@@ -89,8 +89,8 @@ SOURCE docker/init/mysql/01_init_schema.sql;
 
 说明：
 
-- `docker/init/mysql/01_init_schema.sql` 是当前部署唯一使用的 MySQL 初始化脚本，包含 swarm / writing / workflow / knowledge 等当前完整表结构。
-- `ai-agent-infrastructure/src/main/resources/db/ai_agent.sql` 不是 swarm 模块的完整来源，不要再作为部署初始化入口。
+- `ai-agent-infrastructure/src/main/resources/docker/init/mysql/01_init_schema.sql` 是当前部署唯一使用的 MySQL 初始化脚本，包含 swarm / writing / workflow / knowledge 等当前完整表结构。
+- 仓库中的数据库 schema 真相源统一为 `ai-agent-infrastructure/src/main/resources/docker/init/mysql/01_init_schema.sql`。
 - 如果用 Docker 首次初始化 MySQL，现在只会自动执行 `docker/init/mysql/01_init_schema.sql`。
 - 项目当前不再维护单独的 migration SQL；需要重建环境时，直接清空 MySQL 数据卷并重新执行这份初始化脚本即可。
 
