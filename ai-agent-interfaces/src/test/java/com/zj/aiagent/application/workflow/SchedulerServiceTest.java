@@ -1,5 +1,9 @@
 package com.zj.aiagent.application.workflow;
 
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.mockito.ArgumentMatchers.*;
+import static org.mockito.Mockito.*;
+
 import com.zj.aiagent.application.chat.ChatApplicationService;
 import com.zj.aiagent.domain.agent.repository.AgentRepository;
 import com.zj.aiagent.domain.chat.port.ConversationRepository;
@@ -13,6 +17,10 @@ import com.zj.aiagent.domain.workflow.service.WorkflowGraphFactory;
 import com.zj.aiagent.domain.workflow.valobj.*;
 import com.zj.aiagent.infrastructure.redis.IRedisService;
 import com.zj.aiagent.infrastructure.workflow.executor.NodeExecutorFactory;
+import java.util.Collections;
+import java.util.Map;
+import java.util.Optional;
+import java.util.concurrent.TimeUnit;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
@@ -23,15 +31,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.redisson.api.RLock;
 import org.springframework.context.ApplicationEventPublisher;
-
-import java.util.Collections;
-import java.util.Map;
-import java.util.Optional;
-import java.util.concurrent.TimeUnit;
-
-import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.mockito.ArgumentMatchers.*;
-import static org.mockito.Mockito.*;
+import org.springframework.dao.OptimisticLockingFailureException;
 
 // Package Verified: com.zj.aiagent.application.workflow (Matches Application Root)
 @ExtendWith(MockitoExtension.class)
@@ -41,34 +41,49 @@ class SchedulerServiceTest {
     // ========== Mocks for SchedulerService Dependencies ==========
     @Mock
     private NodeExecutorFactory executorFactory;
+
     @Mock
     private ExecutionRepository executionRepository;
+
     @Mock
     private CheckpointRepository checkpointRepository;
+
     @Mock
     private AgentRepository agentRepository;
+
     @Mock
     private WorkflowGraphFactory workflowGraphFactory;
+
     @Mock
     private IRedisService redisService;
+
     @Mock
     private WorkflowCancellationPort cancellationPort;
+
     @Mock
     private HumanReviewQueuePort humanReviewQueuePort;
+
     @Mock
     private StreamPublisherFactory streamPublisherFactory;
+
     @Mock
     private ApplicationEventPublisher applicationEventPublisher;
+
     @Mock
     private HumanReviewRepository humanReviewRepository;
+
     @Mock
     private VectorStore vectorStore;
+
     @Mock
     private ConversationRepository conversationRepository;
+
     @Mock
     private ChatApplicationService chatApplicationService;
+
     @Mock
     private WorkflowNodeExecutionLogRepository workflowNodeExecutionLogRepository;
+
     @Mock
     private ExpressionResolverPort expressionResolver;
 
@@ -78,14 +93,19 @@ class SchedulerServiceTest {
     // ========== Test Fixtures ==========
     @Mock
     private Execution execution;
+
     @Mock
     private WorkflowGraph workflowGraph;
+
     @Mock
     private Node node;
+
     @Mock
     private StreamPublisher streamPublisher;
+
     @Mock
     private RLock rLock;
+
     @Mock
     private ExecutionContext executionContext;
 
@@ -98,7 +118,9 @@ class SchedulerServiceTest {
         lenient().doNothing().when(rLock).unlock();
 
         // Common Lenient Stubs for Stream
-        lenient().when(streamPublisherFactory.create(any())).thenReturn(streamPublisher);
+        lenient()
+            .when(streamPublisherFactory.create(any()))
+            .thenReturn(streamPublisher);
     }
 
     // ========== Test Cases ==========
@@ -125,27 +147,55 @@ class SchedulerServiceTest {
             lenient().when(node.requiresHumanReview()).thenReturn(false);
 
             // Mock Execution behavior
-            when(executionRepository.findById(executionId)).thenReturn(Optional.of(execution));
+            when(executionRepository.findById(executionId)).thenReturn(
+                Optional.of(execution)
+            );
             when(execution.getPausedNodeId()).thenReturn(nodeId);
-            when(execution.getPausedPhase()).thenReturn(TriggerPhase.BEFORE_EXECUTION);
-            when(execution.resume(eq(nodeId), anyMap())).thenReturn(Collections.singletonList(node));
+            when(execution.getPausedPhase()).thenReturn(
+                TriggerPhase.BEFORE_EXECUTION
+            );
+            when(execution.resume(eq(nodeId), anyMap())).thenReturn(
+                Collections.singletonList(node)
+            );
             lenient().when(execution.getExecutionId()).thenReturn(executionId);
             lenient().when(execution.getContext()).thenReturn(executionContext);
             lenient().when(execution.getGraph()).thenReturn(workflowGraph);
-            lenient().when(workflowGraph.getOutgoingEdges(anyString())).thenReturn(Collections.emptyList());
+            lenient()
+                .when(workflowGraph.getOutgoingEdges(anyString()))
+                .thenReturn(Collections.emptyList());
 
             // Mock ExpressionResolver
-            lenient().when(expressionResolver.resolveInputs(anyMap(), any())).thenReturn(new java.util.HashMap<>());
+            lenient()
+                .when(expressionResolver.resolveInputs(anyMap(), any()))
+                .thenReturn(new java.util.HashMap<>());
 
             // Mock Executor Strategy
-            com.zj.aiagent.domain.workflow.port.NodeExecutorStrategy strategy = mock(
-                    com.zj.aiagent.domain.workflow.port.NodeExecutorStrategy.class);
-            lenient().when(executorFactory.getStrategy(NodeType.LLM)).thenReturn(strategy);
-            lenient().when(strategy.executeAsync(any(), any(), any())).thenReturn(java.util.concurrent.CompletableFuture
-                    .completedFuture(NodeExecutionResult.success(Map.of("res", "done"))));
+            com.zj.aiagent.domain.workflow.port.NodeExecutorStrategy strategy =
+                mock(
+                    com.zj.aiagent.domain.workflow.port
+                        .NodeExecutorStrategy.class
+                );
+            lenient()
+                .when(executorFactory.getStrategy(NodeType.LLM))
+                .thenReturn(strategy);
+            lenient()
+                .when(strategy.executeAsync(any(), any(), any()))
+                .thenReturn(
+                    java.util.concurrent.CompletableFuture.completedFuture(
+                        NodeExecutionResult.success(Map.of("res", "done"))
+                    )
+                );
 
             // When
-            schedulerService.resumeExecution(executionId, nodeId, edits, reviewerId, comment, null);
+            schedulerService.resumeExecution(
+                executionId,
+                nodeId,
+                null,
+                edits,
+                reviewerId,
+                comment,
+                null
+            );
 
             // Then
             // 1. HumanReviewRecord saved
@@ -158,7 +208,10 @@ class SchedulerServiceTest {
             verify(executionRepository).update(execution);
 
             // 4. SSE event published
-            verify(streamPublisher).publishEvent(eq("workflow_resumed"), anyMap());
+            verify(streamPublisher).publishEvent(
+                eq("workflow_resumed"),
+                anyMap()
+            );
 
             // 5. Removed from pending queue
             verify(humanReviewQueuePort).removeFromPendingQueue(executionId);
@@ -170,12 +223,23 @@ class SchedulerServiceTest {
             // Given
             String executionId = "exec-resume-mismatch";
             when(cancellationPort.isCancelled(executionId)).thenReturn(false);
-            when(executionRepository.findById(executionId)).thenReturn(Optional.of(execution));
+            when(executionRepository.findById(executionId)).thenReturn(
+                Optional.of(execution)
+            );
             when(execution.getPausedNodeId()).thenReturn("node-expected");
 
             // When & Then
-            assertThrows(IllegalArgumentException.class,
-                    () -> schedulerService.resumeExecution(executionId, "node-actual", null, 1L, "", null));
+            assertThrows(IllegalArgumentException.class, () ->
+                schedulerService.resumeExecution(
+                    executionId,
+                    "node-actual",
+                    null,
+                    null,
+                    1L,
+                    "",
+                    null
+                )
+            );
         }
 
         @Test
@@ -184,23 +248,46 @@ class SchedulerServiceTest {
             // Given
             String executionId = "exec-resume-missing";
             when(cancellationPort.isCancelled(executionId)).thenReturn(false);
-            when(executionRepository.findById(executionId)).thenReturn(Optional.of(execution));
+            when(executionRepository.findById(executionId)).thenReturn(
+                Optional.of(execution)
+            );
             when(execution.getPausedNodeId()).thenReturn(null);
 
             // When & Then
-            assertThrows(IllegalStateException.class,
-                    () -> schedulerService.resumeExecution(executionId, "node-1", null, 1L, "", null));
+            assertThrows(IllegalStateException.class, () ->
+                schedulerService.resumeExecution(
+                    executionId,
+                    "node-1",
+                    null,
+                    null,
+                    1L,
+                    "",
+                    null
+                )
+            );
         }
+
         @Test
         @DisplayName("Execution 不存在时应抛出异常")
         void should_ThrowException_When_ExecutionNotFound() {
             // Given
             String unknownId = "exec-unknown";
-            when(executionRepository.findById(unknownId)).thenReturn(Optional.empty());
+            when(executionRepository.findById(unknownId)).thenReturn(
+                Optional.empty()
+            );
 
             // When & Then
-            assertThrows(IllegalArgumentException.class,
-                    () -> schedulerService.resumeExecution(unknownId, "node-1", null, 1L, "", null));
+            assertThrows(IllegalArgumentException.class, () ->
+                schedulerService.resumeExecution(
+                    unknownId,
+                    "node-1",
+                    null,
+                    null,
+                    1L,
+                    "",
+                    null
+                )
+            );
         }
 
         @Test
@@ -211,11 +298,115 @@ class SchedulerServiceTest {
             when(cancellationPort.isCancelled(executionId)).thenReturn(true);
 
             // When
-            schedulerService.resumeExecution(executionId, "node-1", null, 1L, "", null);
+            schedulerService.resumeExecution(
+                executionId,
+                "node-1",
+                null,
+                null,
+                1L,
+                "",
+                null
+            );
 
             // Then
             verify(executionRepository, never()).findById(anyString());
             verify(humanReviewRepository, never()).save(any());
+        }
+
+        @Test
+        @DisplayName("expectedVersion 与当前执行版本不一致时应抛出冲突异常")
+        void should_ThrowConflict_When_ExpectedVersionMismatch() {
+            String executionId = "exec-resume-version-mismatch";
+            when(cancellationPort.isCancelled(executionId)).thenReturn(false);
+            when(executionRepository.findById(executionId)).thenReturn(
+                Optional.of(execution)
+            );
+            when(execution.getPausedNodeId()).thenReturn("node-1");
+            when(execution.getVersion()).thenReturn(5);
+
+            assertThrows(OptimisticLockingFailureException.class, () ->
+                schedulerService.resumeExecution(
+                    executionId,
+                    "node-1",
+                    4,
+                    null,
+                    1L,
+                    "",
+                    null
+                )
+            );
+
+            verify(humanReviewRepository, never()).save(any());
+            verify(execution, never()).resume(anyString(), any());
+        }
+    }
+
+    @Nested
+    @DisplayName("rejectExecution 测试")
+    class RejectExecutionTests {
+
+        @Test
+        @DisplayName("成功拒绝暂停中的工作流并终止执行")
+        void should_RejectAndPublishEvent_When_PausedExecutionRejected() {
+            String executionId = "exec-reject-001";
+            String nodeId = "node-review-001";
+            Long reviewerId = 456L;
+            String reason = "审核未通过";
+
+            when(cancellationPort.isCancelled(executionId)).thenReturn(false);
+            when(executionRepository.findById(executionId)).thenReturn(
+                Optional.of(execution)
+            );
+            when(execution.getPausedNodeId()).thenReturn(nodeId);
+            when(execution.getPausedPhase()).thenReturn(
+                TriggerPhase.AFTER_EXECUTION
+            );
+            lenient().when(execution.getContext()).thenReturn(executionContext);
+            lenient()
+                .when(executionContext.getNodeOutput(nodeId))
+                .thenReturn(Collections.emptyMap());
+            lenient().when(execution.getAssistantMessageId()).thenReturn(null);
+
+            schedulerService.rejectExecution(
+                executionId,
+                nodeId,
+                null,
+                reviewerId,
+                reason
+            );
+
+            verify(humanReviewRepository).save(any(HumanReviewRecord.class));
+            verify(execution).reject(nodeId);
+            verify(executionRepository).update(execution);
+            verify(streamPublisher).publishEvent(
+                eq("workflow_rejected"),
+                anyMap()
+            );
+            verify(streamPublisher).publishFinish(
+                any(NodeExecutionResult.class)
+            );
+            verify(humanReviewQueuePort).removeFromPendingQueue(executionId);
+        }
+
+        @Test
+        @DisplayName("reject 节点与 pausedNodeId 不匹配时应抛出异常")
+        void should_ThrowException_When_RejectNodeIdMismatch() {
+            String executionId = "exec-reject-mismatch";
+            when(cancellationPort.isCancelled(executionId)).thenReturn(false);
+            when(executionRepository.findById(executionId)).thenReturn(
+                Optional.of(execution)
+            );
+            when(execution.getPausedNodeId()).thenReturn("node-expected");
+
+            assertThrows(IllegalArgumentException.class, () ->
+                schedulerService.rejectExecution(
+                    executionId,
+                    "node-actual",
+                    null,
+                    1L,
+                    "reason"
+                )
+            );
         }
     }
 }

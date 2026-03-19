@@ -537,8 +537,13 @@ graphJson结构演示：
     入参： 
         file: 文件 (MultipartFile)
         datasetId: 知识库ID (Query Param)
-        chunkSize: 分块大小，默认500 (Query Param)
-        chunkOverlap: 分块重叠，默认50 (Query Param)
+        chunkStrategy: 分块策略，默认FIXED (Query Param)
+        chunkSize: 固定分块大小，默认500 (Query Param)
+        chunkOverlap: 固定分块重叠，默认50；语义分块可选 (Query Param)
+        maxChunkSize: 语义分块最大块大小 (Query Param)
+        minChunkSize: 语义分块最小块大小 (Query Param)
+        similarityThreshold: 语义分块相似度阈值 (Query Param)
+        mergeSmallChunks: 语义分块是否合并过小片段 (Query Param)
     返回值: {
         documentId: 文档ID
         datasetId: 知识库ID
@@ -547,6 +552,7 @@ graphJson结构演示：
         fileSize: 文件大小
         contentType: 文件类型
         status: 状态 (PENDING/PROCESSING/COMPLETED/FAILED)
+        chunkStrategy: 分块策略
         totalChunks: 总分块数
         processedChunks: 已处理分块数
         uploadedAt: 上传时间

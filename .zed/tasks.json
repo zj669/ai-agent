@@ -1,7 +1,7 @@
 [
   {
     "label": "Run Spring Boot (local)",
-    "command": "./mvnw spring-boot:run -pl ai-agent-interfaces -Dspring-boot.run.profiles=local -Dmaven.test.skip=true",
+    "command": "./mvnw clean install -pl ai-agent-interfaces -am -Dmaven.test.skip=true && ./mvnw spring-boot:run -pl ai-agent-interfaces -Dspring-boot.run.profiles=local -Dmaven.test.skip=true",
     "use_new_terminal": true,
     "allow_concurrent_runs": false,
     "reveal": "always"

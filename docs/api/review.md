@@ -2,411 +2,243 @@
 
 ## 概述
 
-人工审核模块提供工作流执行过程中的人工干预能力，支持在节点执行前（BEFORE_EXECUTION）或执行后（AFTER_EXECUTION）暂停工作流，等待人工审核和修改。
+人工审核模块用于在工作流执行过程中把某个节点挂起，等待人工查看和修改后再恢复，或直接拒绝终止执行。
 
-**Base URL**: `/api/workflow/reviews`
+- Base URL: `/api/workflow/reviews`
+- 当前控制器: `HumanReviewController`
+- 当前返回风格: 原始 `ResponseEntity<T>` / 空 `200`，不走统一 `Response<T>` 包装
 
 ## 认证
 
-所有接口需要用户登录（通过 UserContext 获取当前用户）。
+当前接口至少要求用户已登录，`UserContext.getUserId()` 非空。
 
-**请求头格式**:
-```
-Authorization: Bearer {token}
-```
+- 本地调试可使用 `debug-user` 请求头
+- 未登录返回 `401`
 
-**错误响应**:
-- `401 Unauthorized`: Token 无效或已过期
-- `403 Forbidden`: 无权限访问该资源
+## 核心数据结构
 
----
+### PendingReviewDTO
 
-## API 列表
-
-### 1. 获取待审核列表
-
-**接口**: `GET /api/workflow/reviews/pending`
-
-**描述**: 分页查询当前待审核的工作流执行任务
-
-**请求参数**:
-| 参数名 | 类型 | 位置 | 必填 | 说明 |
-|--------|------|------|------|------|
-| page | int | Query | 否 | 页码（从0开始），默认0 |
-| size | int | Query | 否 | 每页大小，默认20 |
-
-**响应示例**:
 ```json
 {
-  "code": 200,
-  "message": "success",
-  "data": {
-    "content": [
-      {
-        "executionId": "exec-123",
-        "nodeId": "node-456",
-        "nodeName": "数据审核节点",
-        "agentName": "Agent-789",
-        "triggerPhase": "BEFORE_EXECUTION",
-        "pausedAt": "2026-02-10T10:30:00",
-        "userId": 1
-      }
-    ],
-    "pageable": {
-      "pageNumber": 0,
-      "pageSize": 20
-    },
-    "totalElements": 5,
-    "totalPages": 1
-  }
+  "executionId": "exec-123",
+  "nodeId": "node-456",
+  "nodeName": "人工审核节点",
+  "agentName": "Agent-1",
+  "triggerPhase": "AFTER_EXECUTION",
+  "pausedAt": "2026-03-18T13:00:00",
+  "userId": null,
+  "executionVersion": 7
 }
 ```
 
-**字段说明**:
-- `executionId`: 工作流执行ID
-- `nodeId`: 触发审核的节点ID
-- `nodeName`: 节点名称
-- `agentName`: 所属 Agent 名称
-- `triggerPhase`: 触发阶段（BEFORE_EXECUTION/AFTER_EXECUTION）
-- `pausedAt`: 暂停时间
-- `userId`: 工作流所有者ID
+字段说明：
+- `executionVersion`: 当前执行版本号，审核中心列表页通过/拒绝时应透传，用于乐观锁校验
 
----
+### ReviewDetailDTO
+
+```json
+{
+  "executionId": "exec-123",
+  "nodeId": "node-456",
+  "nodeName": "知识库节点",
+  "executionVersion": 7,
+  "triggerPhase": "AFTER_EXECUTION",
+  "nodes": [
+    {
+      "nodeId": "start-1",
+      "nodeName": "开始",
+      "nodeType": "START",
+      "status": "SUCCEEDED",
+      "inputs": {
+        "query": "周杰是谁"
+      },
+      "outputs": {
+        "inputMessage": "周杰是谁"
+      }
+    },
+    {
+      "nodeId": "knowledge-1",
+      "nodeName": "知识库检索",
+      "nodeType": "KNOWLEDGE",
+      "status": "PAUSED_FOR_REVIEW",
+      "inputs": {
+        "query": "周杰是谁"
+      },
+      "outputs": {
+        "knowledge_list": [
+          "周杰是西南科技大学的学生"
+        ]
+      }
+    }
+  ]
+}
+```
+
+字段说明：
+- `nodes`: 展示“所有已成功上游节点 + 当前暂停节点”
+- `inputs`: 通过表达式解析后的节点输入
+- `outputs`:
+  - 对上游节点：始终返回当前上下文中的输出
+  - 对当前暂停节点：
+    - `AFTER_EXECUTION`: 返回当前节点输出，可编辑
+    - `BEFORE_EXECUTION`: 不返回当前节点输出
+
+## 接口列表
+
+### 1. 获取待审核列表
+
+- 方法: `GET /api/workflow/reviews/pending`
+- 返回: `200 OK` + `List<PendingReviewDTO>`
+
+响应示例：
+```json
+[
+  {
+    "executionId": "exec-123",
+    "nodeId": "node-456",
+    "nodeName": "人工审核节点",
+    "agentName": "Agent-1",
+    "triggerPhase": "BEFORE_EXECUTION",
+    "pausedAt": "2026-03-18T13:00:00",
+    "userId": null,
+    "executionVersion": 3
+  }
+]
+```
+
+实现备注：
+- 当前不是分页接口
+- 底层从 `HumanReviewQueuePort.getPendingExecutionIds()` 取 executionId，再逐个装配 DTO
 
 ### 2. 获取审核详情
 
-**接口**: `GET /api/workflow/reviews/{executionId}`
+- 方法: `GET /api/workflow/reviews/{executionId}`
+- 返回: `200 OK` + `ReviewDetailDTO`
 
-**描述**: 获取指定工作流执行的审核详细信息，包括上下文数据和可编辑字段
+错误语义：
+- `400/500` 取决于异常映射
+- 关键业务校验包括：
+  - 执行必须存在
+  - 执行状态必须为 `PAUSED_FOR_REVIEW` 或 `PAUSED`
+  - `pausedNodeId` 必须存在且不能是 `__MANUAL_PAUSE__`
+  - 暂停节点必须仍能在图中找到
 
-**路径参数**:
-| 参数名 | 类型 | 位置 | 必填 | 说明 |
-|--------|------|------|------|------|
-| executionId | String | Path | 是 | 工作流执行ID |
+### 3. 审核通过并恢复执行
 
-**响应示例**:
+- 方法: `POST /api/workflow/reviews/resume`
+- 返回: 空 `200`
+
+请求体：
 ```json
 {
-  "code": 200,
-  "message": "success",
-  "data": {
-    "executionId": "exec-123",
-    "nodeId": "node-456",
-    "nodeName": "数据审核节点",
-    "triggerPhase": "BEFORE_EXECUTION",
-    "contextData": {
-      "query": "用户输入的查询内容",
-      "temperature": 0.7,
-      "maxTokens": 2000
-    },
-    "config": {
-      "prompt": "请审核以下参数是否合理",
-      "editableFields": ["query", "temperature"]
+  "executionId": "exec-123",
+  "nodeId": "node-456",
+  "expectedVersion": 7,
+  "edits": {
+    "knowledge_list": [
+      "人工修正后的知识内容"
+    ]
+  },
+  "comment": "审核通过，已调整输出",
+  "nodeEdits": {
+    "upstream-node-id": {
+      "text": "人工修正后的上游输出"
     }
   }
 }
 ```
 
-**字段说明**:
-- `contextData`: 上下文数据
-  - BEFORE_EXECUTION: 节点输入参数
-  - AFTER_EXECUTION: 节点输出结果
-- `config.prompt`: 审核提示词
-- `config.editableFields`: 可编辑的字段列表
+字段说明：
+- `expectedVersion`: 推荐必传。当前后端支持为空，但传值后才能触发明确的并发冲突保护
+- `edits`: 当前暂停节点的修改内容
+- `nodeEdits`: 多节点编辑，key 为 `nodeId`
 
-**错误响应**:
-- `400`: 执行不存在
-- `409`: 执行不处于待审核状态
+当前处理语义：
+- `BEFORE_EXECUTION`
+  - `edits` 作为当前节点恢复执行时的附加输入
+  - 当前节点会被重新执行
+- `AFTER_EXECUTION`
+  - `edits` 直接覆盖当前节点输出
+  - 当前节点不会重跑，而是直接把结果推进到下游
 
----
+并发保护：
+- `expectedVersion != execution.version` 时抛 `OptimisticLockingFailureException`
+- 当前全局异常处理会映射为 `409`
 
-### 3. 提交审核（通过）
+### 4. 审核拒绝并终止执行
 
-**接口**: `POST /api/workflow/reviews/resume`
+- 方法: `POST /api/workflow/reviews/reject`
+- 返回: 空 `200`
 
-**描述**: 审核通过并恢复工作流执行，可选择性修改输入/输出数据
-
-**请求体**:
+请求体：
 ```json
 {
   "executionId": "exec-123",
   "nodeId": "node-456",
-  "edits": {
-    "query": "修改后的查询内容",
-    "temperature": 0.5
-  },
-  "comment": "审核通过，已调整温度参数"
+  "expectedVersion": 7,
+  "reason": "输出不符合业务规则"
 }
 ```
 
-**字段说明**:
-| 参数名 | 类型 | 位置 | 必填 | 说明 |
-|--------|------|------|------|------|
-| executionId | String | Body | 是 | 工作流执行ID |
-| nodeId | String | Body | 是 | 节点ID（用于验证） |
-| edits | Object | Body | 否 | 修改的数据 |
-| comment | String | Body | 否 | 审核意见 |
+字段说明：
+- `expectedVersion`: 后端已支持，审核中心列表页当前会透传
+- `reason`: 拒绝原因
 
-**响应示例**:
-```json
-{
-  "code": 200,
-  "message": "Execution resumed successfully",
-  "data": null
-}
-```
-
-**错误响应**:
-- `401`: 未登录
-- `403`: 无权限审核（非工作流所有者且非审核员）
-- `409`: 执行不处于待审核状态（幂等性保护）
-- `500`: 恢复执行失败
-
----
-
-### 4. 拒绝审核
-
-**接口**: `POST /api/workflow/reviews/reject`
-
-**描述**: 拒绝审核并终止工作流执行
-
-**请求体**:
-```json
-{
-  "executionId": "exec-123",
-  "nodeId": "node-456",
-  "reason": "输入参数不符合业务规则"
-}
-```
-
-**字段说明**:
-| 参数名 | 类型 | 位置 | 必填 | 说明 |
-|--------|------|------|------|------|
-| executionId | String | Body | 是 | 工作流执行ID |
-| nodeId | String | Body | 是 | 节点ID |
-| reason | String | Body | 是 | 拒绝原因 |
-
-**响应示例**:
-```json
-{
-  "code": 200,
-  "message": "Execution rejected successfully",
-  "data": null
-}
-```
-
-**错误响应**:
-- `401`: 未登录
-- `403`: 无权限审核
-- `500`: 拒绝执行失败
-
----
+当前处理语义：
+- 写审核记录 `decision=REJECT`
+- `Execution.reject(nodeId)` 将执行置为失败态并清理暂停态
+- 从待审核队列移除
+- 推送 `workflow_rejected`
 
 ### 5. 查询审核历史
 
-**接口**: `GET /api/workflow/reviews/history`
+- 方法: `GET /api/workflow/reviews/history`
+- 参数：
+  - `userId` 可选
+  - `page/size` 由 Spring Data `Pageable` 处理
+- 返回: `Page<HumanReviewRecord>`
 
-**描述**: 分页查询审核历史记录
+## 当前实现约束
 
-**请求参数**:
-| 参数名 | 类型 | 位置 | 必填 | 说明 |
-|--------|------|------|------|------|
-| userId | Long | Query | 否 | 审核人ID（不传则查询所有） |
-| page | int | Query | 否 | 页码（从0开始），默认0 |
-| size | int | Query | 否 | 每页大小，默认20 |
+### 响应包装差异
 
-**响应示例**:
-```json
-{
-  "code": 200,
-  "message": "success",
-  "data": {
-    "content": [
-      {
-        "id": "1",
-        "executionId": "exec-123",
-        "nodeId": "node-456",
-        "reviewerId": 1,
-        "decision": "APPROVE",
-        "triggerPhase": "BEFORE_EXECUTION",
-        "originalData": "{\"query\":\"原始查询\"}",
-        "modifiedData": "{\"query\":\"修改后查询\"}",
-        "comment": "审核通过",
-        "reviewedAt": "2026-02-10T10:35:00"
-      }
-    ],
-    "pageable": {
-      "pageNumber": 0,
-      "pageSize": 20
-    },
-    "totalElements": 10,
-    "totalPages": 1
-  }
-}
-```
+审核接口与大多数业务接口不同：
 
-**字段说明**:
-- `decision`: 审核决策（APPROVE/REJECT）
-- `originalData`: 原始数据快照（JSON字符串）
-- `modifiedData`: 修改后的数据（JSON字符串）
+- `review`：原始 DTO / 空 `200`
+- `knowledge`、`agent` 等：统一 `Response<T>`
 
----
+这会直接影响前端 adapter 的实现方式。
 
-## 权限控制
+### 审核详情展示边界
 
-### 审核权限规则
+- 手动暂停 `__MANUAL_PAUSE__` 不会进入审核详情页
+- 当前详情页主要用于“节点级人工审核”，不是所有暂停态的通用查看器
 
-1. **工作流所有者**: 可以审核自己创建的工作流（通过 `Execution.userId` 判断）
-2. **审核员角色**: 具有全局审核权限（TODO: 需实现角色管理）
-3. **当前实现**: 简化版本，所有登录用户都可以审核
+### 当前仍需关注的风险
 
-### 权限验证流程
+- AFTER_EXECUTION 恢复路径的 version 递增次数仍应持续关注，避免 `resume()` 与后续推进链路重复递增
+- 聊天页拒绝流程已有真实 reject 能力，但目前未像恢复流程一样透传 `expectedVersion`
 
-```
-1. 检查用户是否登录（UserContext.getUserId()）
-2. 查询 Execution 实体
-3. 判断 userId == execution.getUserId()
-4. 或查询用户角色表（未实现）
-```
+## 调试建议
 
----
+### 审核页/聊天页打开详情为空时
 
-## 审核流程说明
+优先确认：
+- 当前请求走的是 `/api/workflow/reviews/{executionId}`
+- 前端没有按 `Response<T>` 去解包 review 接口
+- 当前 execution 是否仍是 `PAUSED_FOR_REVIEW` / `PAUSED`
 
-### BEFORE_EXECUTION（审核输入）
+### 审核恢复报 409 时
 
-```
-1. 节点执行前触发暂停
-2. 创建 HumanReviewRecord（originalData = 节点输入）
-3. 执行状态变更为 PAUSED_FOR_REVIEW
-4. 审核人修改输入参数
-5. 提交审核 → 用修改后的输入执行节点
-6. 继续工作流执行
-```
+优先确认：
+- 页面拿到的 `executionVersion`
+- 提交时是否带了 `expectedVersion`
+- 是否已有其他人先完成了恢复/拒绝
 
-### AFTER_EXECUTION（审核输出）
+## 更新记录
 
-```
-1. 节点执行完成后触发暂停
-2. 创建 HumanReviewRecord（originalData = 节点输出）
-3. 执行状态变更为 PAUSED_FOR_REVIEW
-4. 审核人修改输出结果
-5. 提交审核 → 用修改后的输出推进 DAG
-6. 继续工作流执行
-```
-
----
-
-## 数据持久化
-
-| 数据类型 | 存储位置 | 说明 |
-|---------|---------|------|
-| 待审核队列 | Redis Set (`human_review:pending`) | 临时存储，审核完成后移除 |
-| 审核记录 | MySQL (`workflow_human_review_record`) | 永久存储，作为审计日志 |
-| 执行检查点 | Redis (`execution:checkpoint:*`) | 临时存储，用于暂停/恢复 |
-
----
-
-## 安全性设计
-
-### 1. 幂等性保证
-
-- 提交审核前检查执行状态是否为 `PAUSED_FOR_REVIEW`
-- 重复提交返回 409 状态码，不会重复执行
-
-### 2. 并发控制
-
-- 使用 Redisson 分布式锁（`lock:exec:{executionId}`）
-- 锁超时时间：30秒
-
-### 3. 审计日志
-
-- 所有审核操作记录到 `workflow_human_review_record` 表
-- 包含原始数据、修改数据、审核人、审核时间
-
-### 4. 权限验证
-
-- 每次审核操作前验证用户权限
-- 非授权用户返回 403 状态码
-
----
-
-## 错误码说明
-
-| HTTP 状态码 | 说明 | 可能原因 |
-|------------|------|---------|
-| 200 | OK | 成功 |
-| 400 | Bad Request | 请求参数错误 |
-| 401 | Unauthorized | Token 无效或已过期 |
-| 403 | Forbidden | 无权限访问 |
-| 409 | Conflict | 状态冲突（幂等性保护） |
-| 500 | Internal Server Error | 服务器内部错误 |
-
----
-
-## 待优化项
-
-### 1. 审核员角色管理
-- 扩展 `user_account` 表，增加 `role` 字段
-- 实现基于角色的权限控制（RBAC）
-
-### 2. 审核超时机制
-- 配置审核超时时间（如24小时）
-- 超时后自动拒绝或通知管理员
-
-### 3. 审核任务分配
-- 支持指定审核人
-- 审核任务队列管理
-
-### 4. 审核提醒
-- WebSocket 实时通知
-- 邮件/短信提醒
-
-### 5. 批量审核
-- 支持批量通过/拒绝
-- 批量修改参数
-
----
-
-## 使用示例
-
-### 前端集成示例
-
-```typescript
-// 1. 获取待审核列表
-const response = await fetch('/api/workflow/reviews/pending?page=0&size=20');
-const pendingReviews = await response.json();
-
-// 2. 获取审核详情
-const detail = await fetch(`/api/workflow/reviews/${executionId}`);
-const reviewDetail = await detail.json();
-
-// 3. 提交审核
-await fetch('/api/workflow/reviews/resume', {
-  method: 'POST',
-  headers: { 'Content-Type': 'application/json' },
-  body: JSON.stringify({
-    executionId: 'exec-123',
-    nodeId: 'node-456',
-    edits: { query: '修改后的内容' },
-    comment: '审核通过'
-  })
-});
-
-// 4. 拒绝审核
-await fetch('/api/workflow/reviews/reject', {
-  method: 'POST',
-  headers: { 'Content-Type': 'application/json' },
-  body: JSON.stringify({
-    executionId: 'exec-123',
-    nodeId: 'node-456',
-    reason: '不符合规则'
-  })
-});
-```
-
----
-
-## 变更日志
-
-- **2026-02-10**: 初始版本，包含基础审核功能和权限控制
+- 2026-03-18:
+  - 对齐当前 review API 的真实返回风格
+  - 补充 `executionVersion/expectedVersion` 并发约定
+  - 补充 reject 闭环与 AFTER_EXECUTION 输出编辑语义

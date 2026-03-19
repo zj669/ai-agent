@@ -1,6 +1,6 @@
 {
   "version": "1.0.0",
-  "lastScanned": 1773199601898,
+  "lastScanned": 1773757261732,
   "projectRoot": "/home/zj669/repo/ai-agent",
   "techStack": {
     "languages": [
@@ -48,7 +48,7 @@
       "path": "ai-agent-application",
       "purpose": null,
       "fileCount": 1,
-      "lastAccessed": 1773199601894,
+      "lastAccessed": 1773757261719,
       "keyFiles": [
         "pom.xml"
       ]
@@ -57,7 +57,7 @@
       "path": "ai-agent-domain",
       "purpose": null,
       "fileCount": 1,
-      "lastAccessed": 1773199601896,
+      "lastAccessed": 1773757261724,
       "keyFiles": [
         "pom.xml"
       ]
@@ -65,8 +65,8 @@
     "ai-agent-foward": {
       "path": "ai-agent-foward",
       "purpose": null,
-      "fileCount": 17,
-      "lastAccessed": 1773199601896,
+      "fileCount": 21,
+      "lastAccessed": 1773757261726,
       "keyFiles": [
         "Dockerfile.prod",
         "components.json",
@@ -79,7 +79,7 @@
       "path": "ai-agent-infrastructure",
       "purpose": null,
       "fileCount": 2,
-      "lastAccessed": 1773199601896,
+      "lastAccessed": 1773757261727,
       "keyFiles": [
         "pom.xml"
       ]
@@ -88,7 +88,7 @@
       "path": "ai-agent-interfaces",
       "purpose": null,
       "fileCount": 1,
-      "lastAccessed": 1773199601896,
+      "lastAccessed": 1773757261728,
       "keyFiles": [
         "pom.xml"
       ]
@@ -97,37 +97,47 @@
       "path": "ai-agent-shared",
       "purpose": null,
       "fileCount": 2,
-      "lastAccessed": 1773199601896,
+      "lastAccessed": 1773757261728,
       "keyFiles": [
         "img.png",
         "pom.xml"
       ]
     },
+    "docker": {
+      "path": "docker",
+      "purpose": null,
+      "fileCount": 4,
+      "lastAccessed": 1773757261728,
+      "keyFiles": [
+        "README.md",
+        "docker-compose.yml"
+      ]
+    },
     "docs": {
       "path": "docs",
       "purpose": "Documentation",
-      "fileCount": 7,
-      "lastAccessed": 1773199601897,
+      "fileCount": 10,
+      "lastAccessed": 1773757261730,
       "keyFiles": [
+        "2026-03-17-llm-template-path-reference-plan.md",
+        "2026-03-17-llm-template-path-reference-requirements.md",
+        "2026-03-17-llm-template-path-reference-tasks.md",
         "E2E-TEST-PLAN.md",
-        "PROJECT_QUICK_CONTEXT.md",
-        "frontend-design-style.md",
-        "swarm-communication-analysis.md",
-        "swarm-exploration.md"
+        "PROJECT_QUICK_CONTEXT.md"
       ]
     },
     "midscene_run": {
       "path": "midscene_run",
       "purpose": null,
       "fileCount": 0,
-      "lastAccessed": 1773199601897,
+      "lastAccessed": 1773757261730,
       "keyFiles": []
     },
     "scripts": {
       "path": "scripts",
       "purpose": "Build/utility scripts",
       "fileCount": 1,
-      "lastAccessed": 1773199601897,
+      "lastAccessed": 1773757261730,
       "keyFiles": [
         "knowledge_upload_retrieval_smoke.py"
       ]
@@ -136,42 +146,51 @@
       "path": "ai-agent-application/src",
       "purpose": "Source code",
       "fileCount": 0,
-      "lastAccessed": 1773199601898,
+      "lastAccessed": 1773757261730,
       "keyFiles": []
     },
     "ai-agent-domain/src": {
       "path": "ai-agent-domain/src",
       "purpose": "Source code",
       "fileCount": 0,
-      "lastAccessed": 1773199601898,
+      "lastAccessed": 1773757261731,
       "keyFiles": []
+    },
+    "ai-agent-foward/dist": {
+      "path": "ai-agent-foward/dist",
+      "purpose": "Distribution/build output",
+      "fileCount": 1,
+      "lastAccessed": 1773757261731,
+      "keyFiles": [
+        "index.html"
+      ]
     },
     "ai-agent-infrastructure/src": {
       "path": "ai-agent-infrastructure/src",
       "purpose": "Source code",
       "fileCount": 0,
-      "lastAccessed": 1773199601898,
+      "lastAccessed": 1773757261731,
       "keyFiles": []
     },
     "ai-agent-interfaces/src": {
       "path": "ai-agent-interfaces/src",
       "purpose": "Source code",
       "fileCount": 0,
-      "lastAccessed": 1773199601898,
+      "lastAccessed": 1773757261732,
       "keyFiles": []
     },
     "ai-agent-shared/src": {
       "path": "ai-agent-shared/src",
       "purpose": "Source code",
       "fileCount": 0,
-      "lastAccessed": 1773199601898,
+      "lastAccessed": 1773757261732,
       "keyFiles": []
     },
     "docs/api": {
       "path": "docs/api",
       "purpose": "API routes",
       "fileCount": 9,
-      "lastAccessed": 1773199601898,
+      "lastAccessed": 1773757261732,
       "keyFiles": [
         "agent.md",
         "backend-api-overview.md",
@@ -181,21 +200,75 @@
   },
   "hotPaths": [
     {
-      "path": "ai-agent-infrastructure/src/main/resources/docker/docker-compose.yml",
-      "accessCount": 1,
-      "lastAccessed": 1773199709173,
+      "path": "ai-agent-foward/src/modules/chat/pages/ChatPage.tsx",
+      "accessCount": 52,
+      "lastAccessed": 1773762296747,
       "type": "file"
     },
     {
-      "path": "ai-agent-interfaces/src/main/resources/application.yml",
-      "accessCount": 1,
-      "lastAccessed": 1773200048421,
+      "path": "ai-agent-foward/src/shared/api/adapters/chatAdapter.ts",
+      "accessCount": 8,
+      "lastAccessed": 1773761311761,
       "type": "file"
     },
     {
-      "path": "ai-agent-interfaces/src/main/resources/application-local.yml",
+      "path": "ai-agent-foward/src/modules/review/pages/ReviewDetailPage.tsx",
+      "accessCount": 7,
+      "lastAccessed": 1773761088745,
+      "type": "file"
+    },
+    {
+      "path": "ai-agent-foward/src/modules/chat/api/chatService.ts",
+      "accessCount": 4,
+      "lastAccessed": 1773761329232,
+      "type": "file"
+    },
+    {
+      "path": "docs/human-review/task.md",
+      "accessCount": 2,
+      "lastAccessed": 1773760783328,
+      "type": "file"
+    },
+    {
+      "path": "ai-agent-foward/src/shared/api/adapters/reviewAdapter.ts",
+      "accessCount": 2,
+      "lastAccessed": 1773761031626,
+      "type": "file"
+    },
+    {
+      "path": "docs/human-review/02-发现的Bug与设计缺陷.md",
       "accessCount": 1,
-      "lastAccessed": 1773200053365,
+      "lastAccessed": 1773760496739,
+      "type": "file"
+    },
+    {
+      "path": "docs/human-review/temp.md",
+      "accessCount": 1,
+      "lastAccessed": 1773760496764,
+      "type": "file"
+    },
+    {
+      "path": "docs/human-review/01-业务流程与实现链路.md",
+      "accessCount": 1,
+      "lastAccessed": 1773760496810,
+      "type": "file"
+    },
+    {
+      "path": "ai-agent-foward/src/modules/review/pages/ReviewPage.tsx",
+      "accessCount": 1,
+      "lastAccessed": 1773760783281,
+      "type": "file"
+    },
+    {
+      "path": "ai-agent-interfaces/src/main/java/com/zj/aiagent/interfaces/workflow/HumanReviewController.java",
+      "accessCount": 1,
+      "lastAccessed": 1773761031674,
+      "type": "file"
+    },
+    {
+      "path": "ai-agent-interfaces/src/main/java/com/zj/aiagent/interfaces/workflow/dto/HumanReviewDTO.java",
+      "accessCount": 1,
+      "lastAccessed": 1773761069933,
       "type": "file"
     }
   ],

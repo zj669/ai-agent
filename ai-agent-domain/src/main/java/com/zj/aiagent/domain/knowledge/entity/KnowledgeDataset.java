@@ -1,27 +1,27 @@
 package com.zj.aiagent.domain.knowledge.entity;
 
+import java.time.Instant;
+import java.util.HashMap;
+import java.util.Map;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
-import java.time.Instant;
-import java.util.HashMap;
-import java.util.Map;
-
 /**
  * 知识库聚合根
  * 管理知识库的生命周期、文档集合
- * 
+ *
  * 采用单 Collection + Metadata 过滤策略：
  * - 所有知识库共享 "agent_knowledge_base" Collection
- * - 通过 Metadata { "agentId": xxx, "datasetId": xxx } 进行隔离
+ * - 通过 Metadata { "agent_id": xxx, "dataset_id": xxx } 进行隔离
  */
 @Data
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
 public class KnowledgeDataset {
+
     /**
      * 知识库 ID（聚合根标识）
      */
@@ -84,7 +84,7 @@ public class KnowledgeDataset {
     /**
      * 从知识库移除文档
      * 更新统计信息
-     * 
+     *
      * @param chunkCount 要移除的分块数
      */
     public void removeDocument(int chunkCount) {
@@ -96,21 +96,21 @@ public class KnowledgeDataset {
     /**
      * 构建向量检索的 Metadata Filter
      * 用于在统一的 Collection 中过滤出属于本知识库的向量
-     * 
+     *
      * @return Metadata 过滤条件 Map
      */
     public Map<String, Object> buildMetadataFilter() {
         Map<String, Object> filter = new HashMap<>();
-        filter.put("datasetId", this.datasetId);
+        filter.put("dataset_id", this.datasetId);
         if (this.agentId != null) {
-            filter.put("agentId", this.agentId);
+            filter.put("agent_id", this.agentId);
         }
         return filter;
     }
 
     /**
      * 增加分块统计
-     * 
+     *
      * @param chunkCount 新增的分块数
      */
     public void addChunks(int chunkCount) {

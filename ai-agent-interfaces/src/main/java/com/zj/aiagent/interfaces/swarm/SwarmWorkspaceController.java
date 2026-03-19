@@ -4,11 +4,10 @@ import com.zj.aiagent.application.swarm.SwarmWorkspaceService;
 import com.zj.aiagent.application.swarm.dto.*;
 import com.zj.aiagent.shared.context.UserContext;
 import com.zj.aiagent.shared.response.Response;
+import java.util.List;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.web.bind.annotation.*;
-
-import java.util.List;
 
 @Slf4j
 @RestController
@@ -19,9 +18,19 @@ public class SwarmWorkspaceController {
     private final SwarmWorkspaceService workspaceService;
 
     @PostMapping
-    public Response<WorkspaceDefaultsDTO> createWorkspace(@RequestBody CreateWorkspaceRequest request) {
+    public Response<WorkspaceDefaultsDTO> createWorkspace(
+        @RequestBody CreateWorkspaceRequest request
+    ) {
         Long userId = UserContext.getUserId();
-        return Response.success(workspaceService.createWorkspace(userId, request));
+        log.info(
+            "[SwarmAPI] Create workspace request received: userId={}, name={}, llmConfigId={}",
+            userId,
+            request.getName(),
+            request.getLlmConfigId()
+        );
+        return Response.success(
+            workspaceService.createWorkspace(userId, request)
+        );
     }
 
     @GetMapping
@@ -36,7 +45,10 @@ public class SwarmWorkspaceController {
     }
 
     @PutMapping("/{id}")
-    public Response<Void> updateWorkspace(@PathVariable Long id, @RequestBody UpdateWorkspaceRequest request) {
+    public Response<Void> updateWorkspace(
+        @PathVariable Long id,
+        @RequestBody UpdateWorkspaceRequest request
+    ) {
         workspaceService.updateWorkspace(id, request);
         return Response.success();
     }

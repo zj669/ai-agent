@@ -1,64 +1,107 @@
-import { RobotOutlined } from '@ant-design/icons'
-import { Tag, Typography } from 'antd'
-import SwarmMessageList from './SwarmMessageList'
-import SwarmComposer from './SwarmComposer'
-import WaitingCard from './WaitingCard'
-import type { SwarmMessage, SwarmAgent, AgentStatus } from '../../types/swarm'
+import { RobotOutlined } from "@ant-design/icons";
+import { Tag, Typography } from "antd";
+import SwarmMessageList from "./SwarmMessageList";
+import SwarmComposer from "./SwarmComposer";
+import WaitingCard from "./WaitingCard";
+import type {
+  SwarmMessage,
+  SwarmAgent,
+  AgentStatus,
+  LiveToolCallStep,
+} from "../../types/swarm";
 
-const { Text } = Typography
+const { Text } = Typography;
 
 const STATUS_TAG: Record<AgentStatus, { color: string; label: string }> = {
-  IDLE: { color: 'green', label: '空闲' },
-  BUSY: { color: 'red', label: '忙碌' },
-  WAKING: { color: 'orange', label: '唤醒中' },
-  STOPPED: { color: 'default', label: '已停止' },
-}
+  IDLE: { color: "green", label: "空闲" },
+  BUSY: { color: "red", label: "忙碌" },
+  WAITING: { color: "gold", label: "等待中" },
+  WAKING: { color: "orange", label: "唤醒中" },
+  STOPPED: { color: "default", label: "已停止" },
+};
 
 interface Props {
-  messages: SwarmMessage[]
-  agents: SwarmAgent[]
-  humanAgentId?: number
-  onSend: (content: string) => Promise<void>
-  onStop?: () => Promise<void>
-  selectedGroupId: number | null
-  selectedAgent?: SwarmAgent
-  streamingContent?: string | null
-  streamingAgentId?: number | null
-  agentBusy?: boolean
-  isStreaming?: boolean
-  waitingForAgent?: number | null
+  messages: SwarmMessage[];
+  agents: SwarmAgent[];
+  humanAgentId?: number;
+  onSend: (content: string) => Promise<void>;
+  onStop?: () => Promise<void>;
+  selectedGroupId: number | null;
+  selectedAgent?: SwarmAgent;
+  streamingContent?: string | null;
+  streamingAgentId?: number | null;
+  liveToolCalls?: LiveToolCallStep[];
+  agentBusy?: boolean;
+  isStreaming?: boolean;
+  waitingForAgents?: number[];
+  onStopWaitingAgent?: (agentId: number) => void;
 }
 
 export default function SwarmChatPanel({
-  messages, agents, humanAgentId, onSend, onStop, selectedGroupId,
-  selectedAgent, streamingContent, streamingAgentId, agentBusy, isStreaming, waitingForAgent,
+  messages,
+  agents,
+  humanAgentId,
+  onSend,
+  onStop,
+  selectedGroupId,
+  selectedAgent,
+  streamingContent,
+  streamingAgentId,
+  liveToolCalls,
+  agentBusy,
+  isStreaming,
+  waitingForAgents,
+  onStopWaitingAgent,
 }: Props) {
-  const statusInfo = selectedAgent ? STATUS_TAG[selectedAgent.status] : null
+  const statusInfo = selectedAgent ? STATUS_TAG[selectedAgent.status] : null;
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
+    <div style={{ display: "flex", flexDirection: "column", height: "100%" }}>
       {selectedAgent && (
-        <div style={{
-          display: 'flex', alignItems: 'center', gap: 10,
-          padding: '10px 16px',
-          borderBottom: '1px solid #f0f0f0',
-          background: '#fafafa',
-        }}>
-          <RobotOutlined style={{ fontSize: 18, color: '#722ed1' }} />
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            gap: 10,
+            padding: "10px 16px",
+            borderBottom: "1px solid #f0f0f0",
+            background: "#fafafa",
+          }}
+        >
+          <RobotOutlined style={{ fontSize: 18, color: "#722ed1" }} />
           <div style={{ flex: 1, minWidth: 0 }}>
-            <Text strong style={{ fontSize: 14 }}>{selectedAgent.role}</Text>
+            <Text strong style={{ fontSize: 14 }}>
+              {selectedAgent.role}
+            </Text>
             {selectedAgent.description && (
-              <Text type="secondary" style={{ fontSize: 12, marginLeft: 8 }}>{selectedAgent.description}</Text>
+              <Text type="secondary" style={{ fontSize: 12, marginLeft: 8 }}>
+                {selectedAgent.description}
+              </Text>
             )}
           </div>
           {statusInfo && <Tag color={statusInfo.color}>{statusInfo.label}</Tag>}
         </div>
       )}
 
-      <div style={{ flex: 1, overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
+      <div
+        style={{
+          flex: 1,
+          overflow: "hidden",
+          display: "flex",
+          flexDirection: "column",
+        }}
+      >
         {messages.length === 0 && streamingContent === null ? (
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', color: '#bfbfbf' }}>
-            向 {selectedAgent?.role ?? 'Agent'} 发送消息开始对话
+          <div
+            style={{
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              height: "100%",
+              color: "#bfbfbf",
+            }}
+          >
+            向 {selectedAgent?.role ?? "Agent"} 发送消息开始对话
           </div>
         ) : (
           <SwarmMessageList
@@ -67,17 +110,25 @@ export default function SwarmChatPanel({
             humanAgentId={humanAgentId}
             streamingContent={streamingContent}
             streamingAgentId={streamingAgentId}
+            liveToolCalls={liveToolCalls}
           />
         )}
       </div>
 
-      {waitingForAgent && (
-        <div style={{ padding: '0 16px' }}>
-          <WaitingCard targetAgentId={waitingForAgent} agents={agents} />
+      {waitingForAgents && waitingForAgents.length > 0 && (
+        <div style={{ padding: "0 16px" }}>
+          {waitingForAgents.map((targetAgentId) => (
+            <WaitingCard
+              key={targetAgentId}
+              targetAgentId={targetAgentId}
+              agents={agents}
+              onStopped={onStopWaitingAgent}
+            />
+          ))}
         </div>
       )}
 
-      <div style={{ padding: '8px 16px', borderTop: '1px solid #f0f0f0' }}>
+      <div style={{ padding: "8px 16px", borderTop: "1px solid #f0f0f0" }}>
         <SwarmComposer
           onSend={onSend}
           onStop={onStop}
@@ -87,5 +138,5 @@ export default function SwarmChatPanel({
         />
       </div>
     </div>
-  )
+  );
 }

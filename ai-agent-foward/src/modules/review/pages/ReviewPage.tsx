@@ -1,140 +1,159 @@
-import { useEffect, useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import {
-  Table, Button, Space, Tag, Badge, Popconfirm, Empty, Spin,
-  Typography, Input, message,
-} from 'antd'
+  Table,
+  Button,
+  Space,
+  Tag,
+  Badge,
+  Popconfirm,
+  Empty,
+  Spin,
+  Typography,
+  Input,
+  message,
+} from "antd";
 import {
-  AuditOutlined, CheckOutlined, CloseOutlined,
-  ReloadOutlined, RobotOutlined, EyeOutlined,
-} from '@ant-design/icons'
+  AuditOutlined,
+  CheckOutlined,
+  CloseOutlined,
+  ReloadOutlined,
+  RobotOutlined,
+  EyeOutlined,
+} from "@ant-design/icons";
 import {
-  getPendingReviews, resumeReview, type PendingReview,
-} from '../../../shared/api/adapters/reviewAdapter'
+  getPendingReviews,
+  rejectReview,
+  resumeReview,
+  type PendingReview,
+} from "../../../shared/api/adapters/reviewAdapter";
 
-const { Text, Title } = Typography
-const { TextArea } = Input
+const { Text, Title } = Typography;
+const { TextArea } = Input;
 
 export default function ReviewPage() {
-  const navigate = useNavigate()
-  const [reviews, setReviews] = useState<PendingReview[]>([])
-  const [loading, setLoading] = useState(true)
-  const [submitting, setSubmitting] = useState(false)
-  const [rejectComments, setRejectComments] = useState<Record<string, string>>({})
+  const navigate = useNavigate();
+  const [reviews, setReviews] = useState<PendingReview[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [submitting, setSubmitting] = useState(false);
+  const [rejectComments, setRejectComments] = useState<Record<string, string>>(
+    {},
+  );
 
   const loadReviews = async () => {
-    setLoading(true)
+    setLoading(true);
     try {
-      const data = await getPendingReviews()
-      setReviews(data)
+      const data = await getPendingReviews();
+      setReviews(data);
     } catch {
-      message.error('加载审核列表失败')
+      message.error("加载审核列表失败");
     } finally {
-      setLoading(false)
+      setLoading(false);
     }
-  }
+  };
 
-  useEffect(() => { void loadReviews() }, [])
+  useEffect(() => {
+    void loadReviews();
+  }, []);
 
-  const rowKey = (r: PendingReview) => `${r.executionId}-${r.nodeId}`
+  const rowKey = (r: PendingReview) => `${r.executionId}-${r.nodeId}`;
 
   const handleApprove = async (review: PendingReview) => {
-    setSubmitting(true)
+    setSubmitting(true);
     try {
       await resumeReview({
         executionId: review.executionId,
         nodeId: review.nodeId,
-        // edits 和 nodeEdits 可选，如果需要修改节点数据可以在这里传入
-      })
-      message.success('已批准')
-      void loadReviews()
+        expectedVersion: review.executionVersion,
+      });
+      message.success("已批准");
+      void loadReviews();
     } catch {
-      message.error('操作失败')
+      message.error("操作失败");
     } finally {
-      setSubmitting(false)
+      setSubmitting(false);
     }
-  }
+  };
 
   const handleReject = async (review: PendingReview) => {
-    const key = rowKey(review)
-    const comment = rejectComments[key]
-    setSubmitting(true)
+    const key = rowKey(review);
+    const comment = rejectComments[key];
+    setSubmitting(true);
     try {
-      // TODO: 后端需要实现拒绝逻辑
-      // 当前只能通过 comment 标记为拒绝，但工作流仍会继续
-      await resumeReview({
+      await rejectReview({
         executionId: review.executionId,
         nodeId: review.nodeId,
-        comment: `[拒绝] ${comment || '无原因'}`,
-      })
-      message.warning('已标记拒绝（工作流将继续执行）')
+        expectedVersion: review.executionVersion,
+        reason: comment?.trim() || "无原因",
+      });
+      message.success("已拒绝，工作流已终止");
       setRejectComments((prev) => {
-        const next = { ...prev }
-        delete next[key]
-        return next
-      })
-      void loadReviews()
+        const next = { ...prev };
+        delete next[key];
+        return next;
+      });
+      void loadReviews();
     } catch {
-      message.error('操作失败')
+      message.error("操作失败");
     } finally {
-      setSubmitting(false)
+      setSubmitting(false);
     }
-  }
+  };
 
   const columns = [
     {
-      title: 'Agent',
-      dataIndex: 'agentName',
-      key: 'agentName',
+      title: "Agent",
+      dataIndex: "agentName",
+      key: "agentName",
       render: (v: string) => (
         <Space>
-          <RobotOutlined style={{ color: '#1677ff' }} />
-          <span>{v || '-'}</span>
+          <RobotOutlined style={{ color: "#1677ff" }} />
+          <span>{v || "-"}</span>
         </Space>
       ),
     },
     {
-      title: '节点',
-      dataIndex: 'nodeName',
-      key: 'nodeName',
-      render: (v: string) => <Tag color="blue">{v || '-'}</Tag>,
+      title: "节点",
+      dataIndex: "nodeName",
+      key: "nodeName",
+      render: (v: string) => <Tag color="blue">{v || "-"}</Tag>,
     },
     {
-      title: '审核阶段',
-      dataIndex: 'triggerPhase',
-      key: 'triggerPhase',
+      title: "审核阶段",
+      dataIndex: "triggerPhase",
+      key: "triggerPhase",
       width: 120,
       render: (v: string) => (
-        <Tag color={v === 'BEFORE_EXECUTION' ? 'orange' : 'green'}>
-          {v === 'BEFORE_EXECUTION' ? '执行前' : '执行后'}
+        <Tag color={v === "BEFORE_EXECUTION" ? "orange" : "green"}>
+          {v === "BEFORE_EXECUTION" ? "执行前" : "执行后"}
         </Tag>
       ),
     },
     {
-      title: '暂停时间',
-      dataIndex: 'pausedAt',
-      key: 'pausedAt',
+      title: "暂停时间",
+      dataIndex: "pausedAt",
+      key: "pausedAt",
       width: 180,
       render: (v: string) => {
         try {
-          return new Date(v).toLocaleString('zh-CN', { hour12: false })
+          return new Date(v).toLocaleString("zh-CN", { hour12: false });
         } catch {
-          return v
+          return v;
         }
       },
     },
     {
-      title: '状态',
-      key: 'status',
+      title: "状态",
+      key: "status",
       width: 120,
       render: () => <Badge status="processing" text="待审核" />,
     },
     {
-      title: '操作',
-      key: 'action',
+      title: "操作",
+      key: "action",
       width: 280,
       render: (_: unknown, record: PendingReview) => {
-        const key = rowKey(record)
+        const key = rowKey(record);
         return (
           <Space>
             <Button
@@ -155,7 +174,7 @@ export default function ReviewPage() {
                 size="small"
                 icon={<CheckOutlined />}
                 loading={submitting}
-                style={{ backgroundColor: '#52c41a', borderColor: '#52c41a' }}
+                style={{ backgroundColor: "#52c41a", borderColor: "#52c41a" }}
               >
                 通过
               </Button>
@@ -166,9 +185,12 @@ export default function ReviewPage() {
                 <TextArea
                   rows={2}
                   placeholder="拒绝原因（可选）"
-                  value={rejectComments[key] ?? ''}
+                  value={rejectComments[key] ?? ""}
                   onChange={(e) =>
-                    setRejectComments((prev) => ({ ...prev, [key]: e.target.value }))
+                    setRejectComments((prev) => ({
+                      ...prev,
+                      [key]: e.target.value,
+                    }))
                   }
                   style={{ marginTop: 8, width: 240 }}
                   onClick={(e) => e.stopPropagation()}
@@ -189,18 +211,18 @@ export default function ReviewPage() {
               </Button>
             </Popconfirm>
           </Space>
-        )
+        );
       },
     },
-  ]
+  ];
 
   return (
     <div style={{ padding: 24 }}>
       <div
         style={{
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'center',
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "center",
           marginBottom: 24,
         }}
       >
@@ -209,7 +231,7 @@ export default function ReviewPage() {
             <AuditOutlined style={{ marginRight: 8 }} />
             审核中心
           </Title>
-          <Text type="secondary" style={{ marginTop: 4, display: 'block' }}>
+          <Text type="secondary" style={{ marginTop: 4, display: "block" }}>
             共 {reviews.length} 条待审核
           </Text>
         </div>
@@ -239,5 +261,5 @@ export default function ReviewPage() {
         />
       </Spin>
     </div>
-  )
+  );
 }

@@ -44,21 +44,21 @@ spring:
             max-lifetime: ${PRIMARY_DB_MAX_LIFETIME}
             connection-timeout: ${PRIMARY_DB_CONNECTION_TIMEOUT}
             connection-test-query: SELECT 1
-#        # readonly数据源 - JDBC (PostgreSQL with pgvector)
-#        pgvector:
-#          url: jdbc:postgresql://${PGVECTOR_DB_HOST}:${PGVECTOR_DB_PORT}/${PGVECTOR_DB_NAME}
-#          driver-class-name: ${PGVECTOR_DB_DRIVER}
-#          username: ${PGVECTOR_DB_USER}
-#          password: ${PGVECTOR_DB_PASSWORD}
-#          type: com.zaxxer.hikari.HikariDataSource
-#          hikari:
-#            minimum-idle: ${PGVECTOR_DB_MIN_IDLE}
-#            maximum-pool-size: ${PGVECTOR_DB_MAX_POOL_SIZE}
-#            idle-timeout: ${PGVECTOR_DB_IDLE_TIMEOUT}
-#            pool-name: PgvectorHikariCP
-#            max-lifetime: ${PGVECTOR_DB_MAX_LIFETIME}
-#            connection-timeout: ${PGVECTOR_DB_CONNECTION_TIMEOUT}
-#            connection-test-query: SELECT 1
+  #        # readonly数据源 - JDBC (PostgreSQL with pgvector)
+  #        pgvector:
+  #          url: jdbc:postgresql://${PGVECTOR_DB_HOST}:${PGVECTOR_DB_PORT}/${PGVECTOR_DB_NAME}
+  #          driver-class-name: ${PGVECTOR_DB_DRIVER}
+  #          username: ${PGVECTOR_DB_USER}
+  #          password: ${PGVECTOR_DB_PASSWORD}
+  #          type: com.zaxxer.hikari.HikariDataSource
+  #          hikari:
+  #            minimum-idle: ${PGVECTOR_DB_MIN_IDLE}
+  #            maximum-pool-size: ${PGVECTOR_DB_MAX_POOL_SIZE}
+  #            idle-timeout: ${PGVECTOR_DB_IDLE_TIMEOUT}
+  #            pool-name: PgvectorHikariCP
+  #            max-lifetime: ${PGVECTOR_DB_MAX_LIFETIME}
+  #            connection-timeout: ${PGVECTOR_DB_CONNECTION_TIMEOUT}
+  #            connection-test-query: SELECT 1
 
   # AI 配置 (仅供参考，实际模型由用户动态配置)
   ai:
@@ -150,9 +150,9 @@ auth:
 jwt:
   secret: aiagent-your-secret-key-change-in-production-please-make-it-long-enough
   access-token:
-    expiration: 7200000  # 2 hours (2 * 60 * 60 * 1000)
+    expiration: 7200000 # 2 hours (2 * 60 * 60 * 1000)
   refresh-token:
-    expiration: 604800000  # 7 days (7 * 24 * 60 * 60 * 1000)
+    expiration: 604800000 # 7 days (7 * 24 * 60 * 60 * 1000)
 
 # 日志
 logging:
@@ -209,9 +209,14 @@ info:
     java:
       version: ${java.version}
 
+restclient:
+  connection-request-timeout: ${RESTCLIENT_CONNECTION_REQUEST_TIMEOUT:60s}
+  connect-timeout: ${RESTCLIENT_CONNECT_TIMEOUT:3m}
+  response-timeout: ${RESTCLIENT_RESPONSE_TIMEOUT:30m}
+
 # 内存存储配置
 memory:
-  storage: database  # 可选值: memory, database
+  storage: database # 可选值: memory, database
 
 # Milvus 向量数据库配置
 milvus:

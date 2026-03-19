@@ -5,9 +5,14 @@ import com.zj.aiagent.domain.knowledge.entity.KnowledgeDataset;
 import com.zj.aiagent.domain.knowledge.entity.KnowledgeDocument;
 import com.zj.aiagent.domain.knowledge.service.KnowledgeRetrievalService;
 import com.zj.aiagent.domain.knowledge.valobj.ChunkingConfig;
+import com.zj.aiagent.domain.knowledge.valobj.ChunkingStrategy;
 import com.zj.aiagent.interfaces.knowledge.dto.KnowledgeDTO;
 import com.zj.aiagent.shared.context.UserContext;
 import com.zj.aiagent.shared.response.Response;
+import java.time.ZoneId;
+import java.time.format.DateTimeFormatter;
+import java.util.List;
+import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
@@ -15,11 +20,6 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
-
-import java.time.ZoneId;
-import java.time.format.DateTimeFormatter;
-import java.util.List;
-import java.util.stream.Collectors;
 
 /**
  * 知识库管理 Controller
@@ -34,9 +34,10 @@ public class KnowledgeController {
     private final KnowledgeApplicationService knowledgeApplicationService;
     private final KnowledgeRetrievalService knowledgeRetrievalService;
 
-    private static final DateTimeFormatter FORMATTER = DateTimeFormatter
-            .ofPattern("yyyy-MM-dd HH:mm:ss")
-            .withZone(ZoneId.systemDefault());
+    private static final DateTimeFormatter FORMATTER =
+        DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss").withZone(
+            ZoneId.systemDefault()
+        );
 
     // ========== 知识库管理 ==========
 
@@ -45,18 +46,19 @@ public class KnowledgeController {
      */
     @PostMapping("/dataset")
     public Response<KnowledgeDTO.DatasetResp> createDataset(
-            @Validated @RequestBody KnowledgeDTO.DatasetCreateReq req) {
-
+        @Validated @RequestBody KnowledgeDTO.DatasetCreateReq req
+    ) {
         Long userId = UserContext.getUserId();
         if (userId == null) {
             return Response.error(401, "Unauthorized");
         }
 
         KnowledgeDataset dataset = knowledgeApplicationService.createDataset(
-                req.getName(),
-                req.getDescription(),
-                userId,
-                req.getAgentId());
+            req.getName(),
+            req.getDescription(),
+            userId,
+            req.getAgentId()
+        );
 
         return Response.success(toDatasetResp(dataset));
     }
@@ -71,11 +73,13 @@ public class KnowledgeController {
             return Response.error(401, "Unauthorized");
         }
 
-        List<KnowledgeDataset> datasets = knowledgeApplicationService.listDatasetsByUser(userId);
+        List<KnowledgeDataset> datasets =
+            knowledgeApplicationService.listDatasetsByUser(userId);
 
-        List<KnowledgeDTO.DatasetResp> respList = datasets.stream()
-                .map(this::toDatasetResp)
-                .collect(Collectors.toList());
+        List<KnowledgeDTO.DatasetResp> respList = datasets
+            .stream()
+            .map(this::toDatasetResp)
+            .collect(Collectors.toList());
 
         return Response.success(respList);
     }
@@ -84,13 +88,18 @@ public class KnowledgeController {
      * 查询知识库详情
      */
     @GetMapping("/dataset/{id}")
-    public Response<KnowledgeDTO.DatasetResp> getDataset(@PathVariable("id") String datasetId) {
+    public Response<KnowledgeDTO.DatasetResp> getDataset(
+        @PathVariable("id") String datasetId
+    ) {
         Long userId = UserContext.getUserId();
         if (userId == null) {
             return Response.error(401, "Unauthorized");
         }
 
-        KnowledgeDataset dataset = knowledgeApplicationService.getDataset(datasetId, userId);
+        KnowledgeDataset dataset = knowledgeApplicationService.getDataset(
+            datasetId,
+            userId
+        );
         return Response.success(toDatasetResp(dataset));
     }
 
@@ -115,25 +124,67 @@ public class KnowledgeController {
      */
     @PostMapping("/document/upload")
     public Response<KnowledgeDTO.DocumentResp> uploadDocument(
-            @RequestParam("file") MultipartFile file,
-            @RequestParam("datasetId") String datasetId,
-            @RequestParam(value = "chunkSize", defaultValue = "500") Integer chunkSize,
-            @RequestParam(value = "chunkOverlap", defaultValue = "50") Integer chunkOverlap) {
+        @RequestParam("file") MultipartFile file,
+        @RequestParam("datasetId") String datasetId,
+        @RequestParam(
+            value = "chunkStrategy",
+            required = false
+        ) String chunkStrategy,
+        @RequestParam(
+            value = "chunkSize",
+            defaultValue = "500"
+        ) Integer chunkSize,
+        @RequestParam(
+            value = "chunkOverlap",
+            defaultValue = "50"
+        ) Integer chunkOverlap,
+        @RequestParam(
+            value = "maxChunkSize",
+            required = false
+        ) Integer maxChunkSize,
+        @RequestParam(
+            value = "minChunkSize",
+            required = false
+        ) Integer minChunkSize,
+        @RequestParam(
+            value = "similarityThreshold",
+            required = false
+        ) Double similarityThreshold,
+        @RequestParam(
+            value = "mergeSmallChunks",
+            required = false
+        ) Boolean mergeSmallChunks
+    ) {
         Long userId = UserContext.getUserId();
         if (userId == null) {
             return Response.error(401, "Unauthorized");
         }
 
-        log.info("接收文档上传请求: datasetId={}, filename={}, size={}",
-                datasetId, file.getOriginalFilename(), file.getSize());
+        log.info(
+            "接收文档上传请求: datasetId={}, filename={}, size={}",
+            datasetId,
+            file.getOriginalFilename(),
+            file.getSize()
+        );
 
         ChunkingConfig config = ChunkingConfig.builder()
-                .chunkSize(chunkSize)
-                .chunkOverlap(chunkOverlap)
-                .build();
+            .strategy(ChunkingStrategy.fromValue(chunkStrategy))
+            .chunkSize(chunkSize)
+            .chunkOverlap(chunkOverlap)
+            .maxChunkSize(maxChunkSize)
+            .minChunkSize(minChunkSize)
+            .similarityThreshold(similarityThreshold)
+            .mergeSmallChunks(mergeSmallChunks)
+            .build()
+            .normalized();
+        config.validate();
 
         KnowledgeDocument document = knowledgeApplicationService.uploadDocument(
-                datasetId, file, config, userId);
+            datasetId,
+            file,
+            config,
+            userId
+        );
 
         return Response.success(toDocumentResp(document));
     }
@@ -143,18 +194,25 @@ public class KnowledgeController {
      */
     @GetMapping("/document/list")
     public Response<Page<KnowledgeDTO.DocumentResp>> listDocuments(
-            @RequestParam("datasetId") String datasetId,
-            @RequestParam(value = "page", defaultValue = "0") Integer page,
-            @RequestParam(value = "size", defaultValue = "20") Integer size) {
+        @RequestParam("datasetId") String datasetId,
+        @RequestParam(value = "page", defaultValue = "0") Integer page,
+        @RequestParam(value = "size", defaultValue = "20") Integer size
+    ) {
         Long userId = UserContext.getUserId();
         if (userId == null) {
             return Response.error(401, "Unauthorized");
         }
 
-        Page<KnowledgeDocument> documentPage = knowledgeApplicationService.listDocuments(
-                datasetId, PageRequest.of(page, size), userId);
+        Page<KnowledgeDocument> documentPage =
+            knowledgeApplicationService.listDocuments(
+                datasetId,
+                PageRequest.of(page, size),
+                userId
+            );
 
-        Page<KnowledgeDTO.DocumentResp> respPage = documentPage.map(this::toDocumentResp);
+        Page<KnowledgeDTO.DocumentResp> respPage = documentPage.map(
+            this::toDocumentResp
+        );
 
         return Response.success(respPage);
     }
@@ -163,13 +221,18 @@ public class KnowledgeController {
      * 查询文档详情
      */
     @GetMapping("/document/{id}")
-    public Response<KnowledgeDTO.DocumentResp> getDocument(@PathVariable("id") String documentId) {
+    public Response<KnowledgeDTO.DocumentResp> getDocument(
+        @PathVariable("id") String documentId
+    ) {
         Long userId = UserContext.getUserId();
         if (userId == null) {
             return Response.error(401, "Unauthorized");
         }
 
-        KnowledgeDocument document = knowledgeApplicationService.getDocument(documentId, userId);
+        KnowledgeDocument document = knowledgeApplicationService.getDocument(
+            documentId,
+            userId
+        );
         return Response.success(toDocumentResp(document));
     }
 
@@ -177,7 +240,9 @@ public class KnowledgeController {
      * 删除文档
      */
     @DeleteMapping("/document/{id}")
-    public Response<Void> deleteDocument(@PathVariable("id") String documentId) {
+    public Response<Void> deleteDocument(
+        @PathVariable("id") String documentId
+    ) {
         Long userId = UserContext.getUserId();
         if (userId == null) {
             return Response.error(401, "Unauthorized");
@@ -191,13 +256,18 @@ public class KnowledgeController {
      * 重试处理失败文档
      */
     @PostMapping("/document/{id}/retry")
-    public Response<KnowledgeDTO.DocumentResp> retryDocument(@PathVariable("id") String documentId) {
+    public Response<KnowledgeDTO.DocumentResp> retryDocument(
+        @PathVariable("id") String documentId
+    ) {
         Long userId = UserContext.getUserId();
         if (userId == null) {
             return Response.error(401, "Unauthorized");
         }
 
-        KnowledgeDocument document = knowledgeApplicationService.retryDocument(documentId, userId);
+        KnowledgeDocument document = knowledgeApplicationService.retryDocument(
+            documentId,
+            userId
+        );
         return Response.success(toDocumentResp(document));
     }
 
@@ -207,7 +277,9 @@ public class KnowledgeController {
      * 测试检索
      */
     @PostMapping("/search")
-    public Response<List<String>> search(@Validated @RequestBody KnowledgeDTO.SearchReq req) {
+    public Response<List<String>> search(
+        @Validated @RequestBody KnowledgeDTO.SearchReq req
+    ) {
         Long userId = UserContext.getUserId();
         if (userId == null) {
             return Response.error(401, "Unauthorized");
@@ -216,15 +288,20 @@ public class KnowledgeController {
         // 先校验知识库归属，避免跨用户检索
         knowledgeApplicationService.getDataset(req.getDatasetId(), userId);
 
-        log.info("知识检索: datasetId={}, query={}, topK={}",
-                req.getDatasetId(),
-                req.getQuery().length() > 50 ? req.getQuery().substring(0, 50) + "..." : req.getQuery(),
-                req.getTopK());
+        log.info(
+            "知识检索: datasetId={}, query={}, topK={}",
+            req.getDatasetId(),
+            req.getQuery().length() > 50
+                ? req.getQuery().substring(0, 50) + "..."
+                : req.getQuery(),
+            req.getTopK()
+        );
 
         List<String> results = knowledgeRetrievalService.retrieveByDataset(
-                req.getDatasetId(),
-                req.getQuery(),
-                req.getTopK());
+            req.getDatasetId(),
+            req.getQuery(),
+            req.getTopK()
+        );
 
         return Response.success(results);
     }
@@ -240,12 +317,22 @@ public class KnowledgeController {
         resp.setAgentId(dataset.getAgentId());
         resp.setDocumentCount(dataset.getDocumentCount());
         resp.setTotalChunks(dataset.getTotalChunks());
-        resp.setCreatedAt(dataset.getCreatedAt() != null ? FORMATTER.format(dataset.getCreatedAt()) : null);
-        resp.setUpdatedAt(dataset.getUpdatedAt() != null ? FORMATTER.format(dataset.getUpdatedAt()) : null);
+        resp.setCreatedAt(
+            dataset.getCreatedAt() != null
+                ? FORMATTER.format(dataset.getCreatedAt())
+                : null
+        );
+        resp.setUpdatedAt(
+            dataset.getUpdatedAt() != null
+                ? FORMATTER.format(dataset.getUpdatedAt())
+                : null
+        );
         return resp;
     }
 
-    private KnowledgeDTO.DocumentResp toDocumentResp(KnowledgeDocument document) {
+    private KnowledgeDTO.DocumentResp toDocumentResp(
+        KnowledgeDocument document
+    ) {
         KnowledgeDTO.DocumentResp resp = new KnowledgeDTO.DocumentResp();
         resp.setDocumentId(document.getDocumentId());
         resp.setDatasetId(document.getDatasetId());
@@ -253,12 +340,28 @@ public class KnowledgeController {
         resp.setFileUrl(document.getFileUrl());
         resp.setFileSize(document.getFileSize());
         resp.setContentType(document.getContentType());
-        resp.setStatus(document.getStatus() != null ? document.getStatus().name() : null);
+        resp.setStatus(
+            document.getStatus() != null ? document.getStatus().name() : null
+        );
         resp.setTotalChunks(document.getTotalChunks());
         resp.setProcessedChunks(document.getProcessedChunks());
         resp.setErrorMessage(document.getErrorMessage());
-        resp.setUploadedAt(document.getUploadedAt() != null ? FORMATTER.format(document.getUploadedAt()) : null);
-        resp.setCompletedAt(document.getCompletedAt() != null ? FORMATTER.format(document.getCompletedAt()) : null);
+        resp.setChunkStrategy(
+            document.getChunkingConfig() != null &&
+                document.getChunkingConfig().getStrategy() != null
+                ? document.getChunkingConfig().getStrategy().name()
+                : ChunkingStrategy.FIXED.name()
+        );
+        resp.setUploadedAt(
+            document.getUploadedAt() != null
+                ? FORMATTER.format(document.getUploadedAt())
+                : null
+        );
+        resp.setCompletedAt(
+            document.getCompletedAt() != null
+                ? FORMATTER.format(document.getCompletedAt())
+                : null
+        );
         return resp;
     }
 }

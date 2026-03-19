@@ -1,138 +1,242 @@
-import { useEffect, useState } from 'react'
-import { useParams, useNavigate } from 'react-router-dom'
+import { useEffect, useState } from "react";
+import { useParams, useNavigate } from "react-router-dom";
 import {
-  Card, Button, Space, Tag, Descriptions, Spin, message,
-  Typography, Divider, Alert, Form, Input, Modal,
-} from 'antd'
+  Card,
+  Button,
+  Space,
+  Tag,
+  Descriptions,
+  Spin,
+  message,
+  Typography,
+  Divider,
+  Alert,
+  Form,
+  Input,
+  Modal,
+} from "antd";
 import {
-  ArrowLeftOutlined, CheckOutlined, CloseOutlined,
+  ArrowLeftOutlined,
+  CheckOutlined,
+  CloseOutlined,
   EditOutlined,
-} from '@ant-design/icons'
+} from "@ant-design/icons";
 import {
-  getReviewDetail, resumeReview,
-  type ReviewDetail, type NodeContext,
-} from '../../../shared/api/adapters/reviewAdapter'
+  getReviewDetail,
+  rejectReview,
+  resumeReview,
+  type ReviewDetail,
+  type NodeContext,
+} from "../../../shared/api/adapters/reviewAdapter";
 
-const { Title, Text } = Typography
-const { TextArea } = Input
+const { Title, Text } = Typography;
+const { TextArea } = Input;
+const LLM_OUTPUT_KEYS = ["llm_output", "response", "text"] as const;
 
-export default function ReviewDetailPage() {
-  const { executionId } = useParams<{ executionId: string }>()
-  const navigate = useNavigate()
-  
-  const [detail, setDetail] = useState<ReviewDetail | null>(null)
-  const [loading, setLoading] = useState(true)
-  const [submitting, setSubmitting] = useState(false)
-  const [editModalVisible, setEditModalVisible] = useState(false)
-  const [editingNode, setEditingNode] = useState<NodeContext | null>(null)
-  const [editForm] = Form.useForm()
-  const [rejectModalVisible, setRejectModalVisible] = useState(false)
-  const [rejectComment, setRejectComment] = useState('')
+function hasRenderableObject(
+  value?: Record<string, unknown>,
+): value is Record<string, unknown> {
+  return !!value && Object.keys(value).length > 0;
+}
 
-  // 存储所有节点的编辑内容
-  const [nodeEdits, setNodeEdits] = useState<Record<string, Record<string, unknown>>>({})
+function getErrorMessage(error: unknown, fallback: string) {
+  if (
+    typeof error === "object" &&
+    error !== null &&
+    "message" in error &&
+    typeof error.message === "string" &&
+    error.message.trim()
+  ) {
+    return error.message;
+  }
 
-  const loadDetail = async () => {
-    if (!executionId) return
-    
-    setLoading(true)
-    try {
-      const data = await getReviewDetail(executionId)
-      setDetail(data)
-    } catch {
-      message.error('加载审核详情失败')
-    } finally {
-      setLoading(false)
+  return fallback;
+}
+
+function normalizeNodeOutputs(
+  nodeType: string,
+  outputs?: Record<string, unknown>,
+) {
+  if (!outputs || nodeType !== "LLM") {
+    return outputs;
+  }
+
+  const next = { ...outputs };
+  const primaryKey =
+    next.llm_output !== undefined
+      ? "llm_output"
+      : next.response !== undefined
+        ? "response"
+        : next.text !== undefined
+          ? "text"
+          : null;
+
+  if (!primaryKey) {
+    return next;
+  }
+
+  const primaryValue = next[primaryKey];
+  for (const key of LLM_OUTPUT_KEYS) {
+    if (key !== primaryKey && next[key] === primaryValue) {
+      delete next[key];
     }
   }
 
+  return next;
+}
+
+function hydrateLlmOutputAliases(
+  nodeType: string,
+  outputs: Record<string, unknown>,
+) {
+  if (nodeType !== "LLM") {
+    return outputs;
+  }
+
+  const primaryValue = outputs.llm_output ?? outputs.response ?? outputs.text;
+
+  if (primaryValue === undefined) {
+    return outputs;
+  }
+
+  return {
+    ...outputs,
+    llm_output: primaryValue,
+    response: primaryValue,
+    text: primaryValue,
+  };
+}
+
+export default function ReviewDetailPage() {
+  const { executionId } = useParams<{ executionId: string }>();
+  const navigate = useNavigate();
+
+  const [detail, setDetail] = useState<ReviewDetail | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [submitting, setSubmitting] = useState(false);
+  const [editModalVisible, setEditModalVisible] = useState(false);
+  const [editingNode, setEditingNode] = useState<NodeContext | null>(null);
+  const [editForm] = Form.useForm();
+  const [rejectModalVisible, setRejectModalVisible] = useState(false);
+  const [rejectComment, setRejectComment] = useState("");
+
+  // 存储所有节点的编辑内容
+  const [nodeEdits, setNodeEdits] = useState<
+    Record<string, Record<string, unknown>>
+  >({});
+
+  const loadDetail = async () => {
+    if (!executionId) return;
+
+    setLoading(true);
+    try {
+      const data = await getReviewDetail(executionId);
+      setDetail(data);
+    } catch {
+      message.error("加载审核详情失败");
+    } finally {
+      setLoading(false);
+    }
+  };
+
   useEffect(() => {
-    void loadDetail()
-  }, [executionId])
+    void loadDetail();
+  }, [executionId]);
 
   const handleEditNode = (node: NodeContext) => {
-    setEditingNode(node)
+    setEditingNode(node);
     // 如果已有编辑内容，使用编辑内容；否则使用原始输出
-    const currentEdits = nodeEdits[node.nodeId] || node.outputs || {}
+    const currentEdits =
+      normalizeNodeOutputs(
+        node.nodeType,
+        nodeEdits[node.nodeId] || node.outputs || {},
+      ) || {};
     editForm.setFieldsValue({
       outputs: JSON.stringify(currentEdits, null, 2),
-    })
-    setEditModalVisible(true)
-  }
+    });
+    setEditModalVisible(true);
+  };
 
   const handleSaveEdit = async () => {
     try {
-      const values = await editForm.validateFields()
-      const outputs = JSON.parse(values.outputs)
-      
+      const values = await editForm.validateFields();
+      const outputs = JSON.parse(values.outputs);
+
       if (editingNode) {
         setNodeEdits((prev) => ({
           ...prev,
-          [editingNode.nodeId]: outputs,
-        }))
-        message.success('编辑已保存（提交审核时生效）')
+          [editingNode.nodeId]: hydrateLlmOutputAliases(
+            editingNode.nodeType,
+            outputs,
+          ),
+        }));
+        message.success("编辑已保存（提交审核时生效）");
       }
-      
-      setEditModalVisible(false)
-      setEditingNode(null)
+
+      setEditModalVisible(false);
+      setEditingNode(null);
     } catch (error) {
       if (error instanceof SyntaxError) {
-        message.error('JSON 格式错误，请检查')
+        message.error("JSON 格式错误，请检查");
       }
     }
-  }
+  };
 
   const handleApprove = async () => {
-    if (!detail) return
-    
-    setSubmitting(true)
+    if (!detail) return;
+
+    setSubmitting(true);
     try {
       await resumeReview({
         executionId: detail.executionId,
         nodeId: detail.nodeId,
+        expectedVersion: detail.executionVersion,
         nodeEdits: Object.keys(nodeEdits).length > 0 ? nodeEdits : undefined,
-      })
-      message.success('审核已通过')
-      navigate('/reviews')
-    } catch {
-      message.error('操作失败')
+      });
+      message.success("审核已通过");
+      navigate("/reviews");
+    } catch (error) {
+      message.error(getErrorMessage(error, "操作失败"));
     } finally {
-      setSubmitting(false)
+      setSubmitting(false);
     }
-  }
+  };
 
   const handleReject = async () => {
-    if (!detail) return
-    
-    setSubmitting(true)
+    if (!detail) return;
+
+    setSubmitting(true);
     try {
-      await resumeReview({
+      await rejectReview({
         executionId: detail.executionId,
         nodeId: detail.nodeId,
-        comment: `[拒绝] ${rejectComment || '无原因'}`,
-        nodeEdits: Object.keys(nodeEdits).length > 0 ? nodeEdits : undefined,
-      })
-      message.warning('已标记拒绝（工作流将继续执行）')
-      navigate('/reviews')
+        reason: rejectComment.trim() || "无原因",
+      });
+      message.success("已拒绝，工作流已终止");
+      navigate("/reviews");
     } catch {
-      message.error('操作失败')
+      message.error("操作失败");
     } finally {
-      setSubmitting(false)
-      setRejectModalVisible(false)
+      setSubmitting(false);
+      setRejectModalVisible(false);
     }
-  }
+  };
 
   const getCurrentNode = () => {
-    return detail?.nodes.find((n) => n.nodeId === detail.nodeId)
-  }
+    return detail?.nodes.find((n) => n.nodeId === detail.nodeId);
+  };
 
   const getUpstreamNodes = () => {
-    return detail?.nodes.filter((n) => n.nodeId !== detail.nodeId) || []
-  }
+    return detail?.nodes.filter((n) => n.nodeId !== detail.nodeId) || [];
+  };
 
   const renderNodeCard = (node: NodeContext, isCurrent: boolean) => {
-    const hasEdits = !!nodeEdits[node.nodeId]
-    const displayOutputs = hasEdits ? nodeEdits[node.nodeId] : node.outputs
+    const hasEdits = !!nodeEdits[node.nodeId];
+    const displayOutputs = normalizeNodeOutputs(
+      node.nodeType,
+      hasEdits ? nodeEdits[node.nodeId] : node.outputs,
+    );
+    const hasDisplayOutputs = hasRenderableObject(displayOutputs);
 
     return (
       <Card
@@ -141,7 +245,7 @@ export default function ReviewDetailPage() {
         style={{ marginBottom: 16 }}
         title={
           <Space>
-            <Tag color={isCurrent ? 'orange' : 'blue'}>{node.nodeType}</Tag>
+            <Tag color={isCurrent ? "orange" : "blue"}>{node.nodeType}</Tag>
             <Text strong>{node.nodeName}</Text>
             {isCurrent && <Tag color="red">当前节点</Tag>}
             {hasEdits && <Tag color="green">已编辑</Tag>}
@@ -149,7 +253,7 @@ export default function ReviewDetailPage() {
         }
         extra={
           <Space>
-            {node.outputs && (
+            {hasDisplayOutputs && (
               <Button
                 size="small"
                 icon={<EditOutlined />}
@@ -166,50 +270,54 @@ export default function ReviewDetailPage() {
             <Text code>{node.nodeId}</Text>
           </Descriptions.Item>
           <Descriptions.Item label="状态">
-            <Tag color={node.status === 'SUCCEEDED' ? 'green' : 'orange'}>
+            <Tag color={node.status === "SUCCEEDED" ? "green" : "orange"}>
               {node.status}
             </Tag>
           </Descriptions.Item>
           {node.inputs && (
             <Descriptions.Item label="输入">
-              <pre style={{ 
-                margin: 0, 
-                maxHeight: 200, 
-                overflow: 'auto',
-                backgroundColor: '#f5f5f5',
-                padding: 8,
-                borderRadius: 4,
-              }}>
+              <pre
+                style={{
+                  margin: 0,
+                  maxHeight: 200,
+                  overflow: "auto",
+                  backgroundColor: "#f5f5f5",
+                  padding: 8,
+                  borderRadius: 4,
+                }}
+              >
                 {JSON.stringify(node.inputs, null, 2)}
               </pre>
             </Descriptions.Item>
           )}
-          {displayOutputs && (
+          {hasDisplayOutputs && (
             <Descriptions.Item label="输出">
-              <pre style={{ 
-                margin: 0, 
-                maxHeight: 200, 
-                overflow: 'auto',
-                backgroundColor: hasEdits ? '#f6ffed' : '#f5f5f5',
-                padding: 8,
-                borderRadius: 4,
-                border: hasEdits ? '1px solid #b7eb8f' : 'none',
-              }}>
+              <pre
+                style={{
+                  margin: 0,
+                  maxHeight: 200,
+                  overflow: "auto",
+                  backgroundColor: hasEdits ? "#f6ffed" : "#f5f5f5",
+                  padding: 8,
+                  borderRadius: 4,
+                  border: hasEdits ? "1px solid #b7eb8f" : "none",
+                }}
+              >
                 {JSON.stringify(displayOutputs, null, 2)}
               </pre>
             </Descriptions.Item>
           )}
         </Descriptions>
       </Card>
-    )
-  }
+    );
+  };
 
   if (loading) {
     return (
-      <div style={{ padding: 24, textAlign: 'center' }}>
+      <div style={{ padding: 24, textAlign: "center" }}>
         <Spin size="large" />
       </div>
-    )
+    );
   }
 
   if (!detail) {
@@ -217,21 +325,27 @@ export default function ReviewDetailPage() {
       <div style={{ padding: 24 }}>
         <Alert message="审核详情不存在" type="error" />
       </div>
-    )
+    );
   }
 
-  const currentNode = getCurrentNode()
-  const upstreamNodes = getUpstreamNodes()
+  const currentNode = getCurrentNode();
+  const upstreamNodes = getUpstreamNodes();
 
   return (
     <div style={{ padding: 24 }}>
-      <Space direction="vertical" size="large" style={{ width: '100%' }}>
+      <Space direction="vertical" size="large" style={{ width: "100%" }}>
         {/* 头部 */}
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <div
+          style={{
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "center",
+          }}
+        >
           <Space>
             <Button
               icon={<ArrowLeftOutlined />}
-              onClick={() => navigate('/reviews')}
+              onClick={() => navigate("/reviews")}
             >
               返回列表
             </Button>
@@ -253,7 +367,7 @@ export default function ReviewDetailPage() {
               icon={<CheckOutlined />}
               onClick={handleApprove}
               loading={submitting}
-              style={{ backgroundColor: '#52c41a', borderColor: '#52c41a' }}
+              style={{ backgroundColor: "#52c41a", borderColor: "#52c41a" }}
             >
               通过
             </Button>
@@ -267,8 +381,16 @@ export default function ReviewDetailPage() {
               <Text code>{detail.executionId}</Text>
             </Descriptions.Item>
             <Descriptions.Item label="审核阶段">
-              <Tag color={detail.triggerPhase === 'BEFORE_EXECUTION' ? 'orange' : 'green'}>
-                {detail.triggerPhase === 'BEFORE_EXECUTION' ? '执行前' : '执行后'}
+              <Tag
+                color={
+                  detail.triggerPhase === "BEFORE_EXECUTION"
+                    ? "orange"
+                    : "green"
+                }
+              >
+                {detail.triggerPhase === "BEFORE_EXECUTION"
+                  ? "执行前"
+                  : "执行后"}
               </Tag>
             </Descriptions.Item>
             <Descriptions.Item label="当前节点" span={2}>
@@ -281,7 +403,7 @@ export default function ReviewDetailPage() {
         </Card>
 
         {/* 提示信息 */}
-        {detail.triggerPhase === 'BEFORE_EXECUTION' ? (
+        {detail.triggerPhase === "BEFORE_EXECUTION" ? (
           <Alert
             message="执行前审核"
             description="该节点尚未执行，您可以查看上游节点的输出，并在通过审核后节点将开始执行。"
@@ -330,8 +452,8 @@ export default function ReviewDetailPage() {
         open={editModalVisible}
         onOk={handleSaveEdit}
         onCancel={() => {
-          setEditModalVisible(false)
-          setEditingNode(null)
+          setEditModalVisible(false);
+          setEditingNode(null);
         }}
         width={800}
         okText="保存"
@@ -342,13 +464,13 @@ export default function ReviewDetailPage() {
             label="输出数据（JSON格式）"
             name="outputs"
             rules={[
-              { required: true, message: '请输入输出数据' },
+              { required: true, message: "请输入输出数据" },
               {
                 validator: async (_, value) => {
                   try {
-                    JSON.parse(value)
+                    JSON.parse(value);
                   } catch {
-                    throw new Error('请输入有效的 JSON 格式')
+                    throw new Error("请输入有效的 JSON 格式");
                   }
                 },
               },
@@ -356,7 +478,7 @@ export default function ReviewDetailPage() {
           >
             <TextArea
               rows={15}
-              style={{ fontFamily: 'monospace' }}
+              style={{ fontFamily: "monospace" }}
               placeholder='{"key": "value"}'
             />
           </Form.Item>
@@ -379,13 +501,7 @@ export default function ReviewDetailPage() {
         cancelText="取消"
         okButtonProps={{ danger: true }}
       >
-        <Space direction="vertical" style={{ width: '100%' }}>
-          <Alert
-            message="注意"
-            description="当前后端未实现真正的拒绝逻辑，拒绝操作只会在 comment 中标记，工作流仍会继续执行。"
-            type="warning"
-            showIcon
-          />
+        <Space direction="vertical" style={{ width: "100%" }}>
           <TextArea
             rows={4}
             placeholder="请输入拒绝原因（可选）"
@@ -395,5 +511,5 @@ export default function ReviewDetailPage() {
         </Space>
       </Modal>
     </div>
-  )
+  );
 }

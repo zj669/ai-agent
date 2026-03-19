@@ -3,21 +3,21 @@ package com.zj.aiagent.interfaces.common.advice;
 import com.zj.aiagent.domain.user.exception.AuthenticationException;
 import com.zj.aiagent.shared.response.Response;
 import jakarta.validation.ConstraintViolationException;
+import java.util.stream.Collectors;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.dao.OptimisticLockingFailureException;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
-
 import org.springframework.web.context.request.async.AsyncRequestTimeoutException;
-
-import java.util.stream.Collectors;
 
 /**
  * 全局异常处理器
- * 
+ *
  * 统一处理控制器层抛出的异常，返回标准响应格式
  */
 @Slf4j
@@ -30,7 +30,9 @@ public class GlobalExceptionHandler {
      */
     @ExceptionHandler(AsyncRequestTimeoutException.class)
     @ResponseStatus(HttpStatus.SERVICE_UNAVAILABLE)
-    public void handleAsyncRequestTimeoutException(AsyncRequestTimeoutException e) {
+    public void handleAsyncRequestTimeoutException(
+        AsyncRequestTimeoutException e
+    ) {
         // SSE 超时通常由 SseEmitter.onTimeout 处理，这里只需静默吞掉异常，避免全局异常拦截器尝试写入 JSON
         log.debug("Async request timed out: {}", e.getMessage());
     }
@@ -39,15 +41,17 @@ public class GlobalExceptionHandler {
      * 处理认证相关异常
      */
     @ExceptionHandler(AuthenticationException.class)
-    @ResponseStatus(HttpStatus.BAD_REQUEST)
-    public Response<Void> handleAuthenticationException(AuthenticationException e) {
+    public ResponseEntity<Response<Void>> handleAuthenticationException(
+        AuthenticationException e
+    ) {
         log.warn("Authentication error: {}", e.getMessage());
-        int code = switch (e.getErrorCode()) {
-            case INVALID_CREDENTIALS, USER_DISABLED -> 401;
-            case RATE_LIMITED -> 429;
-            default -> 400;
+        HttpStatus httpStatus = switch (e.getErrorCode()) {
+            case INVALID_CREDENTIALS, USER_DISABLED -> HttpStatus.UNAUTHORIZED;
+            case RATE_LIMITED -> HttpStatus.TOO_MANY_REQUESTS;
+            default -> HttpStatus.BAD_REQUEST;
         };
-        return Response.error(code, e.getMessage());
+        return ResponseEntity.status(httpStatus)
+            .body(Response.error(httpStatus.value(), e.getMessage()));
     }
 
     /**
@@ -55,10 +59,15 @@ public class GlobalExceptionHandler {
      */
     @ExceptionHandler(MethodArgumentNotValidException.class)
     @ResponseStatus(HttpStatus.BAD_REQUEST)
-    public Response<Void> handleValidationException(MethodArgumentNotValidException e) {
-        String message = e.getBindingResult().getFieldErrors().stream()
-                .map(FieldError::getDefaultMessage)
-                .collect(Collectors.joining("; "));
+    public Response<Void> handleValidationException(
+        MethodArgumentNotValidException e
+    ) {
+        String message = e
+            .getBindingResult()
+            .getFieldErrors()
+            .stream()
+            .map(FieldError::getDefaultMessage)
+            .collect(Collectors.joining("; "));
         log.warn("Validation error: {}", message);
         return Response.error(400, message);
     }
@@ -68,7 +77,9 @@ public class GlobalExceptionHandler {
      */
     @ExceptionHandler(ConstraintViolationException.class)
     @ResponseStatus(HttpStatus.BAD_REQUEST)
-    public Response<Void> handleConstraintViolation(ConstraintViolationException e) {
+    public Response<Void> handleConstraintViolation(
+        ConstraintViolationException e
+    ) {
         log.warn("Constraint violation: {}", e.getMessage());
         return Response.error(400, e.getMessage());
     }
@@ -91,6 +102,18 @@ public class GlobalExceptionHandler {
     public Response<Void> handleIllegalState(IllegalStateException e) {
         log.warn("Illegal state: {}", e.getMessage());
         return Response.error(400, e.getMessage());
+    }
+
+    /**
+     * 处理乐观锁冲突
+     */
+    @ExceptionHandler(OptimisticLockingFailureException.class)
+    @ResponseStatus(HttpStatus.CONFLICT)
+    public Response<Void> handleOptimisticLockingFailure(
+        OptimisticLockingFailureException e
+    ) {
+        log.warn("Optimistic locking conflict: {}", e.getMessage());
+        return Response.error(409, "审核状态已变化，请刷新后重试");
     }
 
     /**

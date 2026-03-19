@@ -1,0 +1,188 @@
+{
+  "version": "1.0.0",
+  "lastScanned": 1773792473031,
+  "projectRoot": "/home/zj669/repo/ai-agent/ai-agent-foward",
+  "techStack": {
+    "languages": [
+      {
+        "name": "JavaScript/TypeScript",
+        "version": null,
+        "confidence": "high",
+        "markers": [
+          "package.json"
+        ]
+      },
+      {
+        "name": "TypeScript",
+        "version": null,
+        "confidence": "high",
+        "markers": [
+          "tsconfig.json"
+        ]
+      }
+    ],
+    "frameworks": [
+      {
+        "name": "react",
+        "version": "19.2.0",
+        "category": "frontend"
+      },
+      {
+        "name": "react-dom",
+        "version": "19.2.0",
+        "category": "frontend"
+      },
+      {
+        "name": "@playwright/test",
+        "version": "1.55.0",
+        "category": "testing"
+      },
+      {
+        "name": "vite",
+        "version": "7.1.3",
+        "category": "build"
+      },
+      {
+        "name": "vitest",
+        "version": "3.2.4",
+        "category": "testing"
+      }
+    ],
+    "packageManager": "npm",
+    "runtime": null
+  },
+  "build": {
+    "buildCommand": "npm run build",
+    "testCommand": "npm test",
+    "lintCommand": "npm run lint",
+    "devCommand": "npm run dev",
+    "scripts": {
+      "dev": "vite",
+      "build": "tsc -b && vite build",
+      "preview": "vite preview",
+      "test": "vitest run",
+      "test:watch": "vitest",
+      "test:e2e": "playwright test",
+      "lint": "eslint .",
+      "typecheck": "tsc --noEmit"
+    }
+  },
+  "conventions": {
+    "namingStyle": null,
+    "importStyle": null,
+    "testPattern": null,
+    "fileOrganization": null
+  },
+  "structure": {
+    "isMonorepo": false,
+    "workspaces": [],
+    "mainDirectories": [
+      "src"
+    ],
+    "gitBranches": {
+      "defaultBranch": "main",
+      "branchingStrategy": null
+    }
+  },
+  "customNotes": [],
+  "directoryMap": {
+    "dist": {
+      "path": "dist",
+      "purpose": "Distribution/build output",
+      "fileCount": 1,
+      "lastAccessed": 1773792473015,
+      "keyFiles": [
+        "index.html"
+      ]
+    },
+    "e2e": {
+      "path": "e2e",
+      "purpose": null,
+      "fileCount": 1,
+      "lastAccessed": 1773792473016,
+      "keyFiles": [
+        "phase5-gates.spec.ts"
+      ]
+    },
+    "screenshots": {
+      "path": "screenshots",
+      "purpose": null,
+      "fileCount": 10,
+      "lastAccessed": 1773792473022,
+      "keyFiles": [
+        "01-login.png",
+        "02-register.png",
+        "03-forgot-password.png",
+        "04-dashboard.png",
+        "05-agents.png"
+      ]
+    },
+    "src": {
+      "path": "src",
+      "purpose": "Source code",
+      "fileCount": 5,
+      "lastAccessed": 1773792473025,
+      "keyFiles": [
+        "App.test.tsx",
+        "App.tsx",
+        "index.css",
+        "main.tsx",
+        "vite-env.d.ts"
+      ]
+    },
+    "dist/assets": {
+      "path": "dist/assets",
+      "purpose": "Static assets",
+      "fileCount": 2,
+      "lastAccessed": 1773792473026,
+      "keyFiles": [
+        "index-DmoBbj6K.js",
+        "index-RIaNfy-S.css"
+      ]
+    },
+    "src/app": {
+      "path": "src/app",
+      "purpose": "Application code",
+      "fileCount": 6,
+      "lastAccessed": 1773792473027,
+      "keyFiles": [
+        "App.tsx",
+        "AppShell.tsx",
+        "AuthGuard.tsx"
+      ]
+    },
+    "src/lib": {
+      "path": "src/lib",
+      "purpose": "Library code",
+      "fileCount": 1,
+      "lastAccessed": 1773792473028,
+      "keyFiles": [
+        "utils.ts"
+      ]
+    },
+    "src/test": {
+      "path": "src/test",
+      "purpose": "Test files",
+      "fileCount": 1,
+      "lastAccessed": 1773792473028,
+      "keyFiles": [
+        "setup.ts"
+      ]
+    }
+  },
+  "hotPaths": [
+    {
+      "path": "src/shared/api/adapters/reviewAdapter.ts",
+      "accessCount": 4,
+      "lastAccessed": 1773793636059,
+      "type": "file"
+    },
+    {
+      "path": "src/modules/review/pages/ReviewPage.tsx",
+      "accessCount": 4,
+      "lastAccessed": 1773793724576,
+      "type": "file"
+    }
+  ],
+  "userDirectives": []
+}

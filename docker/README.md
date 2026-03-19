@@ -45,7 +45,8 @@ docker/
 ├── .env.example            # 环境变量模板
 ├── init/
 │   ├── mysql/
-│   │   └── 01_init_schema.sql   # MySQL 建表 + 种子数据
+│   │   ├── 01_init_schema.sql   # MySQL 完整初始化脚本
+│   │   └── 202603*.sql          # 增量补丁脚本（按文件名顺序执行）
 │   └── milvus/
 │       └── milvus.yaml          # Milvus 配置（关闭认证）
 └── README.md
@@ -53,7 +54,9 @@ docker/
 
 ## 说明
 
-- MySQL 初始化脚本在容器首次启动时自动执行，会创建 `ai_agent` 库及全部表结构
+- MySQL 会在容器首次启动时自动执行 `docker/init/mysql/` 目录下的所有 `.sql` 文件，并按文件名字典序依次执行
+- `01_init_schema.sql` 是完整初始化入口；后续 `202603*.sql` 用于给已有数据库补结构，避免部署升级时漏列或漏表
+- 如果 MySQL 使用的是已有 volume，新增的 `.sql` 不会自动补执行；升级后需要手工进入 MySQL 依次执行对应增量脚本
 - MinIO 被 Milvus 和知识库模块共用，Milvus 用它存储索引段文件
 - Redis 绑定 127.0.0.1，仅本机可访问
 - 数据通过 Docker named volumes 持久化，`docker-compose down` 不会丢数据，`down -v` 会清除

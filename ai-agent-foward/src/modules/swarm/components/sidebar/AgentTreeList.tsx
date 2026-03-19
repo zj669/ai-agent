@@ -1,69 +1,93 @@
-import { Tree, Badge, Typography } from 'antd'
-import { UserOutlined, RobotOutlined } from '@ant-design/icons'
-import type { SwarmAgent, AgentStatus } from '../../types/swarm'
-import type { DataNode } from 'antd/es/tree'
+import { Tree, Badge, Typography } from "antd";
+import { UserOutlined, RobotOutlined } from "@ant-design/icons";
+import type { SwarmAgent, AgentStatus } from "../../types/swarm";
+import type { DataNode } from "antd/es/tree";
 
-const { Text } = Typography
+const { Text } = Typography;
 
 interface Props {
-  agents: SwarmAgent[]
-  selectedAgentId: number | null
-  onSelect: (agentId: number) => void
-  unreadMap?: Record<number, number>
+  agents: SwarmAgent[];
+  selectedAgentId: number | null;
+  onSelect: (agentId: number) => void;
+  unreadMap?: Record<number, number>;
 }
 
 const STATUS_COLORS: Record<AgentStatus, string> = {
-  IDLE: '#52c41a',
-  BUSY: '#ff4d4f',
-  WAKING: '#faad14',
-  STOPPED: '#bfbfbf',
-}
+  IDLE: "#52c41a",
+  BUSY: "#ff4d4f",
+  WAITING: "#faad14",
+  WAKING: "#faad14",
+  STOPPED: "#bfbfbf",
+};
 
 function StatusDot({ status }: { status: AgentStatus }) {
-  const color = STATUS_COLORS[status] ?? '#bfbfbf'
+  const color = STATUS_COLORS[status] ?? "#bfbfbf";
   return (
     <span
       style={{
-        display: 'inline-block',
+        display: "inline-block",
         width: 8,
         height: 8,
-        borderRadius: '50%',
+        borderRadius: "50%",
         backgroundColor: color,
         flexShrink: 0,
-        animation: status === 'BUSY' ? 'swarm-pulse 1.2s infinite' : undefined,
+        animation: status === "BUSY" ? "swarm-pulse 1.2s infinite" : undefined,
       }}
     />
-  )
+  );
 }
 
-function buildTree(agents: SwarmAgent[], unreadMap: Record<number, number>, selectedId: number | null): DataNode[] {
+function buildTree(
+  agents: SwarmAgent[],
+  unreadMap: Record<number, number>,
+  selectedId: number | null,
+): DataNode[] {
   const childrenOf = (parentId: number | null): DataNode[] => {
     return agents
-      .filter(a => (a.parentId ?? null) === parentId)
-      .map(a => {
-        const isHuman = a.role === 'human'
-        const unread = unreadMap[a.id] ?? 0
-        const isSelected = a.id === selectedId
+      .filter((a) => (a.parentId ?? null) === parentId)
+      .map((a) => {
+        const isHuman = a.role === "human";
+        const unread = unreadMap[a.id] ?? 0;
+        const isSelected = a.id === selectedId;
         return {
           key: a.id,
           title: (
             <div
               style={{
-                display: 'flex',
-                alignItems: 'center',
+                display: "flex",
+                alignItems: "center",
                 gap: 8,
-                padding: '4px 8px',
+                padding: "4px 8px",
                 borderRadius: 6,
-                background: isSelected ? '#e6f4ff' : 'transparent',
-                cursor: isHuman ? 'default' : 'pointer',
+                background: isSelected ? "#e6f4ff" : "transparent",
+                cursor: isHuman ? "default" : "pointer",
                 opacity: isHuman ? 0.7 : 1,
               }}
             >
-              {isHuman ? <UserOutlined style={{ color: '#1677ff' }} /> : <RobotOutlined style={{ color: '#722ed1' }} />}
+              {isHuman ? (
+                <UserOutlined style={{ color: "#1677ff" }} />
+              ) : (
+                <RobotOutlined style={{ color: "#722ed1" }} />
+              )}
               <div style={{ flex: 1, minWidth: 0 }}>
-                <Text strong ellipsis style={{ maxWidth: 140, display: 'block', fontSize: 13 }}>{a.role}</Text>
+                <Text
+                  strong
+                  ellipsis
+                  style={{ maxWidth: 140, display: "block", fontSize: 13 }}
+                >
+                  {a.role}
+                </Text>
                 {a.description && (
-                  <Text type="secondary" ellipsis style={{ maxWidth: 140, display: 'block', fontSize: 11, lineHeight: 1.3 }}>
+                  <Text
+                    type="secondary"
+                    ellipsis
+                    style={{
+                      maxWidth: 140,
+                      display: "block",
+                      fontSize: 11,
+                      lineHeight: 1.3,
+                    }}
+                  >
                     {a.description}
                   </Text>
                 )}
@@ -74,31 +98,50 @@ function buildTree(agents: SwarmAgent[], unreadMap: Record<number, number>, sele
           ),
           children: childrenOf(a.id),
           selectable: !isHuman,
-        }
-      })
-  }
+        };
+      });
+  };
 
-  const roots = agents.filter(a => !a.parentId)
-  if (roots.length === 0) return []
+  const roots = agents.filter((a) => !a.parentId);
+  if (roots.length === 0) return [];
 
-  return roots.map(root => {
-    const isHuman = root.role === 'human'
+  return roots.map((root) => {
+    const isHuman = root.role === "human";
     return {
       key: root.id,
       title: (
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '4px 8px', opacity: isHuman ? 0.7 : 1 }}>
-          {isHuman ? <UserOutlined style={{ color: '#1677ff' }} /> : <RobotOutlined style={{ color: '#722ed1' }} />}
-          <Text strong ellipsis style={{ maxWidth: 140, fontSize: 13 }}>{root.role}</Text>
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            gap: 8,
+            padding: "4px 8px",
+            opacity: isHuman ? 0.7 : 1,
+          }}
+        >
+          {isHuman ? (
+            <UserOutlined style={{ color: "#1677ff" }} />
+          ) : (
+            <RobotOutlined style={{ color: "#722ed1" }} />
+          )}
+          <Text strong ellipsis style={{ maxWidth: 140, fontSize: 13 }}>
+            {root.role}
+          </Text>
         </div>
       ),
       children: childrenOf(root.id),
       selectable: !isHuman,
-    }
-  })
+    };
+  });
 }
 
-export default function AgentTreeList({ agents, selectedAgentId, onSelect, unreadMap = {} }: Props) {
-  const treeData = buildTree(agents, unreadMap, selectedAgentId)
+export default function AgentTreeList({
+  agents,
+  selectedAgentId,
+  onSelect,
+  unreadMap = {},
+}: Props) {
+  const treeData = buildTree(agents, unreadMap, selectedAgentId);
 
   return (
     <>
@@ -115,12 +158,12 @@ export default function AgentTreeList({ agents, selectedAgentId, onSelect, unrea
         treeData={treeData}
         selectedKeys={selectedAgentId ? [selectedAgentId] : []}
         onSelect={(keys) => {
-          if (keys.length > 0) onSelect(Number(keys[0]))
+          if (keys.length > 0) onSelect(Number(keys[0]));
         }}
         defaultExpandAll
         blockNode
-        style={{ background: 'transparent' }}
+        style={{ background: "transparent" }}
       />
     </>
-  )
+  );
 }

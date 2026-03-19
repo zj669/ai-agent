@@ -1,7 +1,0 @@
-{
-  "tool_name": "Bash",
-  "tool_input_preview": "{\"command\":\"cat > .vscode/launch.json << 'EOF'\\n{\\n  \\\"version\\\": \\\"0.2.0\\\",\\n  \\\"configurations\\\": [\\n    {\\n      \\\"type\\\": \\\"java\\\",\\n      \\\"name\\\": \\\"Run AiAgentApplication\\\",\\n      \\\"request\\\":...",
-  "error": "Exit code 1\n/bin/bash: 行 18: .vscode/launch.json: 没有那个文件或目录\ncat: .vscode/launch.json: 没有那个文件或目录",
-  "timestamp": "2026-03-11T04:04:02.734Z",
-  "retry_count": 1
-}

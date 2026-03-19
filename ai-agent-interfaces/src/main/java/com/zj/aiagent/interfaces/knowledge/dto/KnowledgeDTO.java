@@ -1,7 +1,6 @@
 package com.zj.aiagent.interfaces.knowledge.dto;
 
 import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Positive;
 import lombok.Data;
 
@@ -17,6 +16,7 @@ public class KnowledgeDTO {
      */
     @Data
     public static class DatasetCreateReq {
+
         @NotBlank(message = "知识库名称不能为空")
         private String name;
 
@@ -31,6 +31,7 @@ public class KnowledgeDTO {
      */
     @Data
     public static class DatasetResp {
+
         private String datasetId;
         private String name;
         private String description;
@@ -50,16 +51,30 @@ public class KnowledgeDTO {
      */
     @Data
     public static class DocumentUploadReq {
+
         @NotBlank(message = "知识库 ID 不能为空")
         private String datasetId;
 
+        /** 分块策略，默认 FIXED */
+        private String chunkStrategy = "FIXED";
+
         /** 分块大小（默认 500 tokens） */
-        @Positive(message = "分块大小必须为正整数")
         private Integer chunkSize = 500;
 
         /** 分块重叠（默认 50 tokens） */
-        @Positive(message = "分块重叠必须为正整数")
         private Integer chunkOverlap = 50;
+
+        /** 语义分块最大大小 */
+        private Integer maxChunkSize = 800;
+
+        /** 语义分块最小大小 */
+        private Integer minChunkSize = 200;
+
+        /** 语义分块阈值 */
+        private Double similarityThreshold = 0.75d;
+
+        /** 是否合并过小分块 */
+        private Boolean mergeSmallChunks = Boolean.TRUE;
     }
 
     /**
@@ -67,6 +82,7 @@ public class KnowledgeDTO {
      */
     @Data
     public static class DocumentListReq {
+
         @NotBlank(message = "知识库 ID 不能为空")
         private String datasetId;
 
@@ -79,6 +95,7 @@ public class KnowledgeDTO {
      */
     @Data
     public static class DocumentResp {
+
         private String documentId;
         private String datasetId;
         private String filename;
@@ -89,6 +106,7 @@ public class KnowledgeDTO {
         private Integer totalChunks;
         private Integer processedChunks;
         private String errorMessage;
+        private String chunkStrategy;
         private String uploadedAt;
         private String completedAt;
     }
@@ -100,6 +118,7 @@ public class KnowledgeDTO {
      */
     @Data
     public static class SearchReq {
+
         @NotBlank(message = "知识库 ID 不能为空")
         private String datasetId;
 
@@ -115,6 +134,7 @@ public class KnowledgeDTO {
      */
     @Data
     public static class SearchResp {
+
         private String content;
         private Double score;
         private String documentId;

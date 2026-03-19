@@ -1,16 +1,15 @@
 package com.zj.aiagent.domain.workflow.valobj;
 
-import lombok.Data;
-import lombok.NoArgsConstructor;
-import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.extern.slf4j.Slf4j;
-
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 
 /**
  * 执行上下文值对象（智能黑板）
@@ -42,7 +41,8 @@ public class ExecutionContext {
      * 节点输出结果 (nodeId -> outputs)
      */
     @Builder.Default
-    private Map<String, Map<String, Object>> nodeOutputs = new ConcurrentHashMap<>();
+    private Map<String, Map<String, Object>> nodeOutputs =
+        new ConcurrentHashMap<>();
 
     /**
      * 共享状态数据
@@ -78,7 +78,7 @@ public class ExecutionContext {
      * 让 LLM 节点知道当前执行进度
      */
     @Builder.Default
-    private StringBuilder executionLog = new StringBuilder();
+    private String executionLog = "";
 
     // --- 核心方法 ---
 
@@ -100,7 +100,7 @@ public class ExecutionContext {
      * 获取节点输出
      */
     public Map<String, Object> getNodeOutput(String nodeId) {
-        return nodeOutputs.getOrDefault(nodeId, new HashMap<>());
+        return nodeOutputs.get(nodeId);
     }
 
     /**
@@ -108,13 +108,13 @@ public class ExecutionContext {
      */
     public ExecutionContext snapshot() {
         return ExecutionContext.builder()
-                .inputs(new HashMap<>(this.inputs))
-                .nodeOutputs(new HashMap<>(this.nodeOutputs))
-                .sharedState(new HashMap<>(this.sharedState))
-                .longTermMemories(new ArrayList<>(this.longTermMemories))
-                .chatHistory(new ArrayList<>(this.chatHistory))
-                .executionLog(new StringBuilder(this.executionLog.toString()))
-                .build();
+            .inputs(new HashMap<>(this.inputs))
+            .nodeOutputs(new HashMap<>(this.nodeOutputs))
+            .sharedState(new HashMap<>(this.sharedState))
+            .longTermMemories(new ArrayList<>(this.longTermMemories))
+            .chatHistory(new ArrayList<>(this.chatHistory))
+            .executionLog(this.executionLog)
+            .build();
     }
 
     // ========== 环境感知方法 ==========
@@ -128,20 +128,20 @@ public class ExecutionContext {
      * @param summary  执行摘要（如："完成意图识别，结果为 '查询天气'"）
      */
     public void appendLog(String nodeId, String nodeName, String summary) {
-        this.executionLog.append(String.format("[%s-%s]: %s%n", nodeId, nodeName, summary));
+        this.executionLog += String.format("[%s-%s]: %s%n", nodeId, nodeName, summary);
     }
 
     /**
      * 获取执行日志内容
      */
     public String getExecutionLogContent() {
-        return this.executionLog.toString();
+        return this.executionLog;
     }
 
     /**
      * 清空执行日志
      */
     public void clearExecutionLog() {
-        this.executionLog.setLength(0);
+        this.executionLog = "";
     }
 }

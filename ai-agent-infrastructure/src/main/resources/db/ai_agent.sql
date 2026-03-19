@@ -106,6 +106,8 @@ CREATE TABLE `knowledge_document`  (
   `total_chunks` int NULL DEFAULT NULL COMMENT '总分块数',
   `processed_chunks` int NULL DEFAULT 0 COMMENT '已处理分块数',
   `error_message` text CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NULL COMMENT '错误信息',
+  `chunk_strategy` varchar(32) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NULL DEFAULT 'FIXED' COMMENT '分块策略: FIXED, SEMANTIC',
+  `chunk_config_json` text CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NULL COMMENT '分块配置 JSON',
   `chunk_size` int NULL DEFAULT 500 COMMENT '分块大小(tokens)',
   `chunk_overlap` int NULL DEFAULT 50 COMMENT '分块重叠(tokens)',
   `uploaded_at` datetime NULL DEFAULT CURRENT_TIMESTAMP COMMENT '上传时间',
@@ -271,25 +273,10 @@ CREATE TABLE `workflow_human_review_record`  (
 ) ENGINE = InnoDB AUTO_INCREMENT = 2 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci COMMENT = '人工审核记录表' ROW_FORMAT = Dynamic;
 
 -- ----------------------------
--- Table structure for workflow_human_review_task
+-- [已废弃] workflow_human_review_task
+-- 该表已废弃，人工审核队列改用 Redis（HumanReviewQueuePort）实现。
+-- 如生产环境已存在此表，可执行: DROP TABLE IF EXISTS `workflow_human_review_task`;
 -- ----------------------------
-DROP TABLE IF EXISTS `workflow_human_review_task`;
-CREATE TABLE `workflow_human_review_task`  (
-  `task_id` varchar(36) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NOT NULL COMMENT '任务ID (UUID)',
-  `execution_id` varchar(36) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NOT NULL COMMENT '工作流执行ID',
-  `node_id` varchar(50) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NOT NULL COMMENT '节点ID',
-  `status` varchar(20) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NOT NULL DEFAULT 'PENDING' COMMENT '任务状态: PENDING, APPROVED, REJECTED',
-  `input_data` json NULL COMMENT '待审核的输入数据',
-  `output_data` json NULL COMMENT '待审核的输出数据',
-  `reviewer_id` bigint NULL DEFAULT NULL COMMENT '审核人ID',
-  `review_comment` text CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NULL COMMENT '审核意见',
-  `created_at` datetime NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
-  `reviewed_at` datetime NULL DEFAULT NULL COMMENT '审核时间',
-  PRIMARY KEY (`task_id`) USING BTREE,
-  INDEX `idx_execution_id`(`execution_id` ASC) USING BTREE,
-  INDEX `idx_status`(`status` ASC) USING BTREE,
-  INDEX `idx_reviewer_id`(`reviewer_id` ASC) USING BTREE
-) ENGINE = InnoDB CHARACTER SET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci COMMENT = '人工审核任务表' ROW_FORMAT = Dynamic;
 
 -- ----------------------------
 -- Table structure for workflow_execution

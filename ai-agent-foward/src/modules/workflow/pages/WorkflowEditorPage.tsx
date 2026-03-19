@@ -151,11 +151,7 @@ function mergeRequiredFields(
 }
 
 function normalizeKnowledgeSourceRef(sourceRef: unknown): string {
-  if (
-    typeof sourceRef !== "string" ||
-    !sourceRef.trim() ||
-    sourceRef === "start.output.inputMessage"
-  ) {
+  if (typeof sourceRef !== "string" || !sourceRef.trim()) {
     return "start.output.query";
   }
   return sourceRef;
@@ -166,6 +162,18 @@ function normalizeKnowledgeInputSchema(
 ): FieldSchema[] {
   const fields = (existing ?? []).map(cloneFieldSchema);
   const queryIndex = fields.findIndex((field) => field.key === "query");
+  const explicitSourceField =
+    fields.find(
+      (field) =>
+        field.system !== true &&
+        typeof field.sourceRef === "string" &&
+        field.sourceRef.trim().length > 0,
+    ) ??
+    fields.find(
+      (field) =>
+        typeof field.sourceRef === "string" &&
+        field.sourceRef.trim().length > 0,
+    );
   const fallbackIndex =
     queryIndex >= 0
       ? -1
@@ -175,11 +183,12 @@ function normalizeKnowledgeInputSchema(
         );
 
   const templateField =
-    queryIndex >= 0
+    explicitSourceField ??
+    (queryIndex >= 0
       ? fields[queryIndex]
       : fallbackIndex >= 0
         ? fields[fallbackIndex]
-        : undefined;
+        : undefined);
 
   const normalizedQuery: FieldSchema = {
     ...templateField,

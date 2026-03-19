@@ -3,9 +3,8 @@ package com.zj.aiagent.infrastructure.knowledge.po;
 import com.baomidou.mybatisplus.annotation.IdType;
 import com.baomidou.mybatisplus.annotation.TableId;
 import com.baomidou.mybatisplus.annotation.TableName;
-import lombok.Data;
-
 import java.time.LocalDateTime;
+import lombok.Data;
 
 /**
  * 知识文档 PO (Persistent Object)
@@ -27,6 +26,8 @@ public class KnowledgeDocumentPO {
     private Integer totalChunks;
     private Integer processedChunks;
     private String errorMessage;
+    private String chunkStrategy;
+    private String chunkConfigJson;
     private Integer chunkSize;
     private Integer chunkOverlap;
     private LocalDateTime uploadedAt;

@@ -357,7 +357,7 @@ describe("workflow editor interaction", () => {
     expect(endNode).toBeInTheDocument();
   });
 
-  it("保存时会归一化知识库 query 字段并为下游 LLM 自动补充 contextRefNodes", async () => {
+  it("保存时保留知识库 query 字段上用户显式选择的 sourceRef，并为下游 LLM 自动补充 contextRefNodes", async () => {
     fetchWorkflowDetailMock.mockResolvedValueOnce({
       agentId: 1001,
       version: 3,
@@ -585,7 +585,7 @@ describe("workflow editor interaction", () => {
         key: "query",
         label: "查询词",
         type: "string",
-        sourceRef: "start.output.query",
+        sourceRef: "start.output.inputMessage",
         required: true,
         system: true,
       }),

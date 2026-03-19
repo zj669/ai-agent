@@ -1,5 +1,14 @@
 package com.zj.aiagent.config;
 
+import java.io.IOException;
+import java.time.Duration;
+import java.util.Arrays;
+import java.util.UUID;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
+import javax.net.ssl.HostnameVerifier;
+import javax.net.ssl.SSLContext;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.hc.client5.http.classic.ExecChain;
 import org.apache.hc.client5.http.classic.ExecChainHandler;
@@ -16,6 +25,7 @@ import org.apache.hc.core5.http.protocol.HttpContext;
 import org.apache.hc.core5.ssl.SSLContextBuilder;
 import org.apache.hc.core5.util.TimeValue;
 import org.apache.hc.core5.util.Timeout;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -26,206 +36,303 @@ import org.springframework.http.client.ClientHttpResponse;
 import org.springframework.http.client.HttpComponentsClientHttpRequestFactory;
 import org.springframework.web.client.RestClient;
 
-import javax.net.ssl.HostnameVerifier;
-import javax.net.ssl.SSLContext;
-import java.io.IOException;
-import java.util.Arrays;
-import java.util.UUID;
-import java.util.concurrent.Executors;
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.TimeUnit;
-
 @Configuration
 @Slf4j
 public class RestClientConfig {
 
-        /**
-         * 使用最新的 Apache HttpClient 5.x 创建 RestClient.Builder
-         */
-        @Bean("restClientBuilder1")
-        @Primary
-        public RestClient.Builder restClientBuilder() {
-                // 1. 创建连接管理器
-                PoolingHttpClientConnectionManager connectionManager = PoolingHttpClientConnectionManagerBuilder
-                                .create()
-                                .setMaxConnTotal(100) // 最大连接数
-                                .setMaxConnPerRoute(20) // 每个路由的最大连接数
-                                .build();
+    @Value("${restclient.connection-request-timeout:60s}")
+    private Duration connectionRequestTimeout;
 
-                // 2. 创建请求配置
-                RequestConfig requestConfig = RequestConfig.custom()
-                                .setConnectionRequestTimeout(Timeout.ofSeconds(60)) // 从连接池获取连接的超时时间
-                                .setConnectTimeout(Timeout.ofMinutes(3)) // 连接超时时间 3分钟
-                                .setResponseTimeout(Timeout.ofMinutes(15)) // 响应超时时间 15分钟
-                                .build();
+    @Value("${restclient.connect-timeout:3m}")
+    private Duration connectTimeout;
 
-                // 3. 创建 HttpClient
-                CloseableHttpClient httpClient = HttpClients.custom()
-                                .setConnectionManager(connectionManager)
-                                .setDefaultRequestConfig(requestConfig)
-                                .setRetryStrategy(new DefaultHttpRequestRetryStrategy(
-                                                3, // 最大重试次数
-                                                TimeValue.ofSeconds(2) // 重试间隔
-                                ))
-                                .addRequestInterceptorFirst(new HttpRequestInterceptor() {
-                                        @Override
-                                        public void process(HttpRequest request, EntityDetails entity,
-                                                        HttpContext context) throws HttpException, IOException {
-                                                log.info("==> Apache HttpClient Request: {} {}",
-                                                                request.getMethod(), request.getRequestUri());
+    @Value("${restclient.response-timeout:30m}")
+    private Duration responseTimeout;
 
-                                                // 记录请求头（排除敏感信息）
-                                                Arrays.stream(request.getHeaders())
-                                                                .filter(header -> !header.getName().toLowerCase()
-                                                                                .contains("authorization"))
-                                                                .forEach(header -> log.debug("Request Header: {}: {}",
-                                                                                header.getName(), header.getValue()));
-                                        }
-                                })
-                                .addResponseInterceptorFirst(new HttpResponseInterceptor() {
-                                        @Override
-                                        public void process(HttpResponse response, EntityDetails entity,
-                                                        HttpContext context) throws HttpException, IOException {
-                                                long startTime = (Long) context.getAttribute("request.start.time");
-                                                long duration = System.currentTimeMillis() - startTime;
+    /**
+     * 使用最新的 Apache HttpClient 5.x 创建 RestClient.Builder
+     */
+    @Bean("restClientBuilder1")
+    @Primary
+    public RestClient.Builder restClientBuilder() {
+        log.info(
+            "[RestClientConfig] Initializing RestClient: connectionRequestTimeout={}, connectTimeout={}, responseTimeout={}",
+            connectionRequestTimeout,
+            connectTimeout,
+            responseTimeout
+        );
+        // 1. 创建连接管理器
+        PoolingHttpClientConnectionManager connectionManager =
+            PoolingHttpClientConnectionManagerBuilder.create()
+                .setMaxConnTotal(100) // 最大连接数
+                .setMaxConnPerRoute(20) // 每个路由的最大连接数
+                .build();
 
-                                                log.info("<== Apache HttpClient Response: {} in {} ms",
-                                                                response.getCode(), duration);
-                                        }
-                                })
-                                .addExecInterceptorFirst("timing", new ExecChainHandler() {
-                                        @Override
-                                        public ClassicHttpResponse execute(ClassicHttpRequest request,
-                                                        ExecChain.Scope scope,
-                                                        ExecChain chain) throws IOException, HttpException {
-                                                scope.clientContext.setAttribute("request.start.time",
-                                                                System.currentTimeMillis());
-                                                return chain.proceed(request, scope);
-                                        }
-                                })
-                                .build();
+        // 2. 创建请求配置
+        RequestConfig requestConfig = RequestConfig.custom()
+            .setConnectionRequestTimeout(
+                Timeout.ofMilliseconds(connectionRequestTimeout.toMillis())
+            ) // 从连接池获取连接的超时时间
+            .setConnectTimeout(
+                Timeout.ofMilliseconds(connectTimeout.toMillis())
+            ) // 连接超时时间
+            .setResponseTimeout(
+                Timeout.ofMilliseconds(responseTimeout.toMillis())
+            ) // 响应超时时间
+            .build();
 
-                // 4. 创建 HttpComponentsClientHttpRequestFactory
-                HttpComponentsClientHttpRequestFactory requestFactory = new HttpComponentsClientHttpRequestFactory(
-                                httpClient);
+        // 3. 创建 HttpClient
+        CloseableHttpClient httpClient = HttpClients.custom()
+            .setConnectionManager(connectionManager)
+            .setDefaultRequestConfig(requestConfig)
+            .setRetryStrategy(
+                new DefaultHttpRequestRetryStrategy(
+                    3, // 最大重试次数
+                    TimeValue.ofSeconds(2) // 重试间隔
+                )
+            )
+            .addRequestInterceptorFirst(
+                new HttpRequestInterceptor() {
+                    @Override
+                    public void process(
+                        HttpRequest request,
+                        EntityDetails entity,
+                        HttpContext context
+                    ) throws HttpException, IOException {
+                        log.info(
+                            "==> Apache HttpClient Request: {} {}",
+                            request.getMethod(),
+                            request.getRequestUri()
+                        );
 
-                // 5. 创建 RestClient.Builder
-                return RestClient.builder()
-                                .requestFactory(requestFactory)
-                                .defaultHeaders(headers -> {
-                                        headers.add(HttpHeaders.USER_AGENT, "SpringAI-RestClient-Apache5/1.0");
-                                        headers.add(HttpHeaders.ACCEPT, MediaType.APPLICATION_JSON_VALUE);
-                                        headers.add(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE);
-                                })
-                                .requestInterceptors(interceptors -> {
-                                        interceptors.add(customRequestInterceptor());
-                                });
-        }
+                        // 记录请求头（排除敏感信息）
+                        Arrays.stream(request.getHeaders())
+                            .filter(header ->
+                                !header
+                                    .getName()
+                                    .toLowerCase()
+                                    .contains("authorization")
+                            )
+                            .forEach(header ->
+                                log.debug(
+                                    "Request Header: {}: {}",
+                                    header.getName(),
+                                    header.getValue()
+                                )
+                            );
+                    }
+                }
+            )
+            .addResponseInterceptorFirst(
+                new HttpResponseInterceptor() {
+                    @Override
+                    public void process(
+                        HttpResponse response,
+                        EntityDetails entity,
+                        HttpContext context
+                    ) throws HttpException, IOException {
+                        long startTime = (Long) context.getAttribute(
+                            "request.start.time"
+                        );
+                        long duration = System.currentTimeMillis() - startTime;
 
-        /**
-         * 简化版本的 RestClient.Builder（如果不需要复杂配置）
-         */
-        @Bean("simpleRestClientBuilder")
-        public RestClient.Builder simpleRestClientBuilder() {
-                // 使用默认配置但设置超时时间
-                RequestConfig requestConfig = RequestConfig.custom()
-                                .setResponseTimeout(Timeout.ofMinutes(15))
-                                .setConnectionRequestTimeout(Timeout.ofSeconds(60))
-                                .build();
+                        log.info(
+                            "<== Apache HttpClient Response: {} in {} ms",
+                            response.getCode(),
+                            duration
+                        );
+                    }
+                }
+            )
+            .addExecInterceptorFirst(
+                "timing",
+                new ExecChainHandler() {
+                    @Override
+                    public ClassicHttpResponse execute(
+                        ClassicHttpRequest request,
+                        ExecChain.Scope scope,
+                        ExecChain chain
+                    ) throws IOException, HttpException {
+                        scope.clientContext.setAttribute(
+                            "request.start.time",
+                            System.currentTimeMillis()
+                        );
+                        return chain.proceed(request, scope);
+                    }
+                }
+            )
+            .build();
 
-                CloseableHttpClient httpClient = HttpClients.custom()
-                                .setDefaultRequestConfig(requestConfig)
-                                .build();
+        // 4. 创建 HttpComponentsClientHttpRequestFactory
+        HttpComponentsClientHttpRequestFactory requestFactory =
+            new HttpComponentsClientHttpRequestFactory(httpClient);
 
-                HttpComponentsClientHttpRequestFactory requestFactory = new HttpComponentsClientHttpRequestFactory(
-                                httpClient);
+        // 5. 创建 RestClient.Builder
+        return RestClient.builder()
+            .requestFactory(requestFactory)
+            .defaultHeaders(headers -> {
+                headers.add(
+                    HttpHeaders.USER_AGENT,
+                    "SpringAI-RestClient-Apache5/1.0"
+                );
+                headers.add(
+                    HttpHeaders.ACCEPT,
+                    MediaType.APPLICATION_JSON_VALUE
+                );
+                headers.add(
+                    HttpHeaders.CONTENT_TYPE,
+                    MediaType.APPLICATION_JSON_VALUE
+                );
+            })
+            .requestInterceptors(interceptors -> {
+                interceptors.add(customRequestInterceptor());
+            });
+    }
 
-                return RestClient.builder()
-                                .requestFactory(requestFactory);
-        }
+    /**
+     * 简化版本的 RestClient.Builder（如果不需要复杂配置）
+     */
+    @Bean("simpleRestClientBuilder")
+    public RestClient.Builder simpleRestClientBuilder() {
+        // 使用默认配置但设置超时时间
+        RequestConfig requestConfig = RequestConfig.custom()
+            .setResponseTimeout(
+                Timeout.ofMilliseconds(responseTimeout.toMillis())
+            )
+            .setConnectionRequestTimeout(
+                Timeout.ofMilliseconds(connectionRequestTimeout.toMillis())
+            )
+            .setConnectTimeout(
+                Timeout.ofMilliseconds(connectTimeout.toMillis())
+            )
+            .build();
 
-        @Bean("sslRestClientBuilder")
-        public RestClient.Builder sslRestClientBuilder() throws Exception {
+        CloseableHttpClient httpClient = HttpClients.custom()
+            .setDefaultRequestConfig(requestConfig)
+            .build();
 
-                // 创建自定义的 Hostname Verifier（如果需要）
-                HostnameVerifier hostnameVerifier = NoopHostnameVerifier.INSTANCE;
+        HttpComponentsClientHttpRequestFactory requestFactory =
+            new HttpComponentsClientHttpRequestFactory(httpClient);
 
-                // 创建连接管理器
-                PoolingHttpClientConnectionManager connectionManager = PoolingHttpClientConnectionManagerBuilder
-                                .create()
-                                .setMaxConnTotal(100)
-                                .setMaxConnPerRoute(20)
-                                .build();
+        return RestClient.builder().requestFactory(requestFactory);
+    }
 
-                RequestConfig requestConfig = RequestConfig.custom()
-                                .setConnectTimeout(Timeout.ofMinutes(3))
-                                .setResponseTimeout(Timeout.ofMinutes(15))
-                                .setConnectionRequestTimeout(Timeout.ofSeconds(60))
-                                .build();
+    @Bean("sslRestClientBuilder")
+    public RestClient.Builder sslRestClientBuilder() throws Exception {
+        // 创建自定义的 Hostname Verifier（如果需要）
+        HostnameVerifier hostnameVerifier = NoopHostnameVerifier.INSTANCE;
 
-                CloseableHttpClient httpClient = HttpClients.custom()
-                                .setConnectionManager(connectionManager)
-                                .setDefaultRequestConfig(requestConfig)
-                                .build();
+        // 创建连接管理器
+        PoolingHttpClientConnectionManager connectionManager =
+            PoolingHttpClientConnectionManagerBuilder.create()
+                .setMaxConnTotal(100)
+                .setMaxConnPerRoute(20)
+                .build();
 
-                HttpComponentsClientHttpRequestFactory requestFactory = new HttpComponentsClientHttpRequestFactory(
-                                httpClient);
+        RequestConfig requestConfig = RequestConfig.custom()
+            .setConnectTimeout(
+                Timeout.ofMilliseconds(connectTimeout.toMillis())
+            )
+            .setResponseTimeout(
+                Timeout.ofMilliseconds(responseTimeout.toMillis())
+            )
+            .setConnectionRequestTimeout(
+                Timeout.ofMilliseconds(connectionRequestTimeout.toMillis())
+            )
+            .build();
 
-                return RestClient.builder()
-                                .requestFactory(requestFactory);
-        }
+        CloseableHttpClient httpClient = HttpClients.custom()
+            .setConnectionManager(connectionManager)
+            .setDefaultRequestConfig(requestConfig)
+            .build();
 
-        /**
-         * 自定义请求拦截器
-         */
-        private ClientHttpRequestInterceptor customRequestInterceptor() {
-                return (request, body, execution) -> {
-                        // 添加通用请求头
-                        if (!request.getHeaders().containsKey("X-Request-ID")) {
-                                request.getHeaders().add("X-Request-ID", UUID.randomUUID().toString());
-                        }
+        HttpComponentsClientHttpRequestFactory requestFactory =
+            new HttpComponentsClientHttpRequestFactory(httpClient);
 
-                        // 记录请求信息
-                        long startTime = System.currentTimeMillis();
-                        log.info("==> RestClient Request: {} {}", request.getMethod(), request.getURI());
+        return RestClient.builder().requestFactory(requestFactory);
+    }
 
-                        try {
-                                ClientHttpResponse response = execution.execute(request, body);
-                                long duration = System.currentTimeMillis() - startTime;
-                                log.info("<== RestClient Response: {} in {} ms",
-                                                response.getStatusCode().value(), duration);
-                                return response;
-                        } catch (Exception e) {
-                                long duration = System.currentTimeMillis() - startTime;
-                                log.error("RestClient Request failed after {} ms: {}", duration, e.getMessage());
-                                throw e;
-                        }
-                };
-        }
+    /**
+     * 自定义请求拦截器
+     */
+    private ClientHttpRequestInterceptor customRequestInterceptor() {
+        return (request, body, execution) -> {
+            // 添加通用请求头
+            if (!request.getHeaders().containsKey("X-Request-ID")) {
+                request
+                    .getHeaders()
+                    .add("X-Request-ID", UUID.randomUUID().toString());
+            }
 
-        /**
-         * 创建具体的 RestClient 实例（可选）
-         */
-        @Bean
-        @ConditionalOnProperty(name = "restclient.apache.auto-config", havingValue = "true", matchIfMissing = false)
-        public RestClient restClient(RestClient.Builder restClientBuilder) {
-                return restClientBuilder.build();
-        }
+            // 记录请求信息
+            long startTime = System.currentTimeMillis();
+            log.info(
+                "==> RestClient Request: {} {}",
+                request.getMethod(),
+                request.getURI()
+            );
 
-        /**
-         * 自定义的连接池监控 Bean（可选）
-         */
-        @Bean
-        @ConditionalOnProperty(name = "restclient.apache.monitoring", havingValue = "true", matchIfMissing = false)
-        public ScheduledExecutorService connectionPoolMonitor(RestClient.Builder restClientBuilder) {
-                ScheduledExecutorService scheduler = Executors.newScheduledThreadPool(1);
+            try {
+                ClientHttpResponse response = execution.execute(request, body);
+                long duration = System.currentTimeMillis() - startTime;
+                log.info(
+                    "<== RestClient Response: {} in {} ms",
+                    response.getStatusCode().value(),
+                    duration
+                );
+                return response;
+            } catch (Exception e) {
+                long duration = System.currentTimeMillis() - startTime;
+                log.error(
+                    "RestClient Request failed after {} ms: {}",
+                    duration,
+                    e.getMessage()
+                );
+                throw e;
+            }
+        };
+    }
 
-                // 每30秒打印连接池状态
-                scheduler.scheduleAtFixedRate(() -> {
-                        // 这里可以添加连接池监控逻辑
-                        log.debug("Connection pool monitoring...");
-                }, 0, 30, TimeUnit.SECONDS);
+    /**
+     * 创建具体的 RestClient 实例（可选）
+     */
+    @Bean
+    @ConditionalOnProperty(
+        name = "restclient.apache.auto-config",
+        havingValue = "true",
+        matchIfMissing = false
+    )
+    public RestClient restClient(RestClient.Builder restClientBuilder) {
+        return restClientBuilder.build();
+    }
 
-                return scheduler;
-        }
+    /**
+     * 自定义的连接池监控 Bean（可选）
+     */
+    @Bean
+    @ConditionalOnProperty(
+        name = "restclient.apache.monitoring",
+        havingValue = "true",
+        matchIfMissing = false
+    )
+    public ScheduledExecutorService connectionPoolMonitor(
+        RestClient.Builder restClientBuilder
+    ) {
+        ScheduledExecutorService scheduler = Executors.newScheduledThreadPool(
+            1
+        );
+
+        // 每30秒打印连接池状态
+        scheduler.scheduleAtFixedRate(
+            () -> {
+                // 这里可以添加连接池监控逻辑
+                log.debug("Connection pool monitoring...");
+            },
+            0,
+            30,
+            TimeUnit.SECONDS
+        );
+
+        return scheduler;
+    }
 }

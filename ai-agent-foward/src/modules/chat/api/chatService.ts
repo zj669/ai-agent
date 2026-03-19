@@ -5,12 +5,14 @@ import {
   stopWorkflowExecution,
   getReviewDetail,
   resumeExecution,
+  rejectExecution,
   type ConversationSummary,
   type MessageDTO,
   type MessageStatus,
   type ThoughtStepDTO,
   type ReviewDetailData,
   type ResumeExecutionInput,
+  type RejectExecutionInput,
 } from "../../../shared/api/adapters/chatAdapter";
 
 export type ChatConversation = ConversationSummary;
@@ -239,6 +241,12 @@ export async function submitResumeExecution(
   input: ResumeExecutionInput,
 ): Promise<void> {
   return resumeExecution(input);
+}
+
+export async function submitRejectExecution(
+  input: RejectExecutionInput,
+): Promise<void> {
+  return rejectExecution(input);
 }
 
 export type { ReviewDetailData };

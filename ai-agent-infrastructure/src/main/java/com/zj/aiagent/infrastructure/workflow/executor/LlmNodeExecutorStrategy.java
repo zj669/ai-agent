@@ -158,12 +158,13 @@ public class LlmNodeExecutorStrategy implements NodeExecutorStrategy {
                         userInput
                     );
 
-                    // Step 2: 构建 Message Chain（包含 STM）
+                    // Step 2: 构建 Message Chain（包含 STM），复用已构建的 userInput
                     List<Message> messageChain = buildMessageChain(
                         config,
                         context,
                         resolvedInputs,
-                        systemPrompt
+                        systemPrompt,
+                        userInput
                     );
 
                     log.info(
@@ -251,7 +252,10 @@ public class LlmNodeExecutorStrategy implements NodeExecutorStrategy {
         StringBuilder sb = new StringBuilder();
 
         // 1. 基础系统提示词
-        String systemPromptConfig = config.getString("systemPrompt");
+        String systemPromptConfig = resolvePromptTemplate(
+            config.getString("systemPrompt"),
+            resolvedInputs
+        );
         if (StringUtils.hasText(systemPromptConfig)) {
             sb.append(systemPromptConfig).append("\n\n");
         }
@@ -356,7 +360,8 @@ public class LlmNodeExecutorStrategy implements NodeExecutorStrategy {
         NodeConfig config,
         ExecutionContext context,
         Map<String, Object> resolvedInputs,
-        String systemPrompt
+        String systemPrompt,
+        String userPrompt
     ) {
         List<Message> messages = new ArrayList<>();
 
@@ -386,8 +391,7 @@ public class LlmNodeExecutorStrategy implements NodeExecutorStrategy {
             }
         }
 
-        // 3. 添加当前用户输入
-        String userPrompt = buildUserPrompt(config, resolvedInputs);
+        // 3. 添加当前用户输入（复用调用方已构建的 userPrompt）
         if (StringUtils.hasText(userPrompt)) {
             messages.add(new UserMessage(userPrompt));
         }
@@ -410,6 +414,13 @@ public class LlmNodeExecutorStrategy implements NodeExecutorStrategy {
             return userInput != null ? userInput.toString() : "";
         }
 
+        return resolvePromptTemplate(template, resolvedInputs);
+    }
+
+    String resolvePromptTemplate(
+        String template,
+        Map<String, Object> resolvedInputs
+    ) {
         ExecutionContext context = (ExecutionContext) resolvedInputs.get(
             "__context__"
         );

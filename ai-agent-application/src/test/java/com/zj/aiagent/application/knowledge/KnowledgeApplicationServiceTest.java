@@ -1,12 +1,28 @@
 package com.zj.aiagent.application.knowledge;
 
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.BDDMockito.given;
+import static org.mockito.Mockito.*;
+
 import com.zj.aiagent.domain.knowledge.entity.KnowledgeDataset;
 import com.zj.aiagent.domain.knowledge.entity.KnowledgeDocument;
 import com.zj.aiagent.domain.knowledge.port.FileStorageService;
 import com.zj.aiagent.domain.knowledge.repository.KnowledgeDatasetRepository;
 import com.zj.aiagent.domain.knowledge.repository.KnowledgeDocumentRepository;
 import com.zj.aiagent.domain.knowledge.valobj.ChunkingConfig;
+import com.zj.aiagent.domain.knowledge.valobj.ChunkingStrategy;
 import com.zj.aiagent.domain.knowledge.valobj.DocumentStatus;
+import java.io.ByteArrayInputStream;
+import java.io.InputStream;
+import java.time.Instant;
+import java.util.Collections;
+import java.util.List;
+import java.util.Optional;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
@@ -22,25 +38,9 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.test.util.ReflectionTestUtils;
 import org.springframework.web.multipart.MultipartFile;
 
-import java.io.ByteArrayInputStream;
-import java.io.InputStream;
-import java.time.Instant;
-import java.util.Collections;
-import java.util.List;
-import java.util.Optional;
-
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyLong;
-import static org.mockito.ArgumentMatchers.anyString;
-import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.BDDMockito.given;
-import static org.mockito.Mockito.*;
-
 /**
  * KnowledgeApplicationService 单元测试
- * 
+ *
  * 测试策略：使用 Mockito 模拟所有依赖，验证业务编排逻辑
  */
 @ExtendWith(MockitoExtension.class)
@@ -69,7 +69,11 @@ class KnowledgeApplicationServiceTest {
     @BeforeEach
     void setUp() {
         // 注入 @Value 字段
-        ReflectionTestUtils.setField(knowledgeApplicationService, "bucketName", BUCKET_NAME);
+        ReflectionTestUtils.setField(
+            knowledgeApplicationService,
+            "bucketName",
+            BUCKET_NAME
+        );
     }
 
     // ========== 知识库管理测试 ==========
@@ -85,12 +89,17 @@ class KnowledgeApplicationServiceTest {
             String name = "产品文档库";
             String description = "存放产品手册";
 
-            given(datasetRepository.save(any(KnowledgeDataset.class)))
-                    .willAnswer(invocation -> invocation.getArgument(0));
+            given(
+                datasetRepository.save(any(KnowledgeDataset.class))
+            ).willAnswer(invocation -> invocation.getArgument(0));
 
             // When
             KnowledgeDataset result = knowledgeApplicationService.createDataset(
-                    name, description, USER_ID, AGENT_ID);
+                name,
+                description,
+                USER_ID,
+                AGENT_ID
+            );
 
             // Then
             assertThat(result).isNotNull();
@@ -109,12 +118,17 @@ class KnowledgeApplicationServiceTest {
         @DisplayName("创建知识库时 agentId 可为空")
         void shouldCreateDatasetWithNullAgentId() {
             // Given
-            given(datasetRepository.save(any(KnowledgeDataset.class)))
-                    .willAnswer(invocation -> invocation.getArgument(0));
+            given(
+                datasetRepository.save(any(KnowledgeDataset.class))
+            ).willAnswer(invocation -> invocation.getArgument(0));
 
             // When
             KnowledgeDataset result = knowledgeApplicationService.createDataset(
-                    "测试库", null, USER_ID, null);
+                "测试库",
+                null,
+                USER_ID,
+                null
+            );
 
             // Then
             assertThat(result.getAgentId()).isNull();
@@ -130,11 +144,13 @@ class KnowledgeApplicationServiceTest {
         void shouldListDatasetsByUser() {
             // Given
             KnowledgeDataset dataset = createMockDataset("ds-1");
-            given(datasetRepository.findByUserId(USER_ID))
-                    .willReturn(List.of(dataset));
+            given(datasetRepository.findByUserId(USER_ID)).willReturn(
+                List.of(dataset)
+            );
 
             // When
-            List<KnowledgeDataset> result = knowledgeApplicationService.listDatasetsByUser(USER_ID);
+            List<KnowledgeDataset> result =
+                knowledgeApplicationService.listDatasetsByUser(USER_ID);
 
             // Then
             assertThat(result).hasSize(1);
@@ -147,11 +163,14 @@ class KnowledgeApplicationServiceTest {
             // Given
             String datasetId = "ds-123";
             KnowledgeDataset dataset = createMockDataset(datasetId);
-            given(datasetRepository.findById(datasetId))
-                    .willReturn(Optional.of(dataset));
+            given(datasetRepository.findById(datasetId)).willReturn(
+                Optional.of(dataset)
+            );
 
             // When
-            KnowledgeDataset result = knowledgeApplicationService.getDataset(datasetId);
+            KnowledgeDataset result = knowledgeApplicationService.getDataset(
+                datasetId
+            );
 
             // Then
             assertThat(result).isNotNull();
@@ -163,13 +182,16 @@ class KnowledgeApplicationServiceTest {
         void shouldThrowExceptionWhenDatasetNotFound() {
             // Given
             String datasetId = "not-exist";
-            given(datasetRepository.findById(datasetId))
-                    .willReturn(Optional.empty());
+            given(datasetRepository.findById(datasetId)).willReturn(
+                Optional.empty()
+            );
 
             // When & Then
-            assertThatThrownBy(() -> knowledgeApplicationService.getDataset(datasetId))
-                    .isInstanceOf(IllegalArgumentException.class)
-                    .hasMessageContaining("知识库不存在");
+            assertThatThrownBy(() ->
+                knowledgeApplicationService.getDataset(datasetId)
+            )
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("知识库不存在");
         }
     }
 
@@ -185,10 +207,15 @@ class KnowledgeApplicationServiceTest {
             KnowledgeDataset dataset = createMockDataset(datasetId);
             KnowledgeDocument document = createMockDocument("doc-1", datasetId);
 
-            given(datasetRepository.findById(datasetId))
-                    .willReturn(Optional.of(dataset));
-            given(documentRepository.findByDatasetId(eq(datasetId), any(PageRequest.class)))
-                    .willReturn(new PageImpl<>(List.of(document)));
+            given(datasetRepository.findById(datasetId)).willReturn(
+                Optional.of(dataset)
+            );
+            given(
+                documentRepository.findByDatasetId(
+                    eq(datasetId),
+                    any(PageRequest.class)
+                )
+            ).willReturn(new PageImpl<>(List.of(document)));
 
             // When
             knowledgeApplicationService.deleteDataset(datasetId);
@@ -218,36 +245,60 @@ class KnowledgeApplicationServiceTest {
             given(mockFile.getOriginalFilename()).willReturn("test.pdf");
             given(mockFile.getSize()).willReturn(1024L);
             given(mockFile.getContentType()).willReturn("application/pdf");
-            given(mockFile.getInputStream()).willReturn(new ByteArrayInputStream(new byte[0]));
+            given(mockFile.getInputStream()).willReturn(
+                new ByteArrayInputStream(new byte[0])
+            );
 
-            given(datasetRepository.findById(datasetId))
-                    .willReturn(Optional.of(dataset));
-            given(fileStorageService.upload(anyString(), anyString(), any(InputStream.class), anyLong()))
-                    .willReturn("http://localhost:9000/knowledge-files/ds-1/doc-1/test.pdf");
-            given(documentRepository.save(any(KnowledgeDocument.class)))
-                    .willAnswer(invocation -> invocation.getArgument(0));
-            given(datasetRepository.save(any(KnowledgeDataset.class)))
-                    .willAnswer(invocation -> invocation.getArgument(0));
+            given(datasetRepository.findById(datasetId)).willReturn(
+                Optional.of(dataset)
+            );
+            given(
+                fileStorageService.upload(
+                    anyString(),
+                    anyString(),
+                    any(InputStream.class),
+                    anyLong()
+                )
+            ).willReturn(
+                "http://localhost:9000/knowledge-files/ds-1/doc-1/test.pdf"
+            );
+            given(
+                documentRepository.save(any(KnowledgeDocument.class))
+            ).willAnswer(invocation -> invocation.getArgument(0));
+            given(
+                datasetRepository.save(any(KnowledgeDataset.class))
+            ).willAnswer(invocation -> invocation.getArgument(0));
 
             ChunkingConfig config = ChunkingConfig.builder()
-                    .chunkSize(500)
-                    .chunkOverlap(50)
-                    .build();
+                .chunkSize(500)
+                .chunkOverlap(50)
+                .build();
 
             // When
-            KnowledgeDocument result = knowledgeApplicationService.uploadDocument(
-                    datasetId, mockFile, config);
+            KnowledgeDocument result =
+                knowledgeApplicationService.uploadDocument(
+                    datasetId,
+                    mockFile,
+                    config
+                );
 
             // Then
             assertThat(result).isNotNull();
             assertThat(result.getDocumentId()).isNotNull();
             assertThat(result.getDatasetId()).isEqualTo(datasetId);
             assertThat(result.getFilename()).isEqualTo("test.pdf");
+            assertThat(result.getChunkingConfig().getStrategy()).isEqualTo(
+                ChunkingStrategy.FIXED
+            );
 
             // 验证异步处理被触发
-            verify(asyncDocumentProcessor).processDocumentAsync(any(KnowledgeDocument.class));
+            verify(asyncDocumentProcessor).processDocumentAsync(
+                any(KnowledgeDocument.class)
+            );
             // 验证知识库统计更新
-            verify(datasetRepository, times(1)).save(any(KnowledgeDataset.class));
+            verify(datasetRepository, times(1)).save(
+                any(KnowledgeDataset.class)
+            );
         }
 
         @Test
@@ -261,22 +312,104 @@ class KnowledgeApplicationServiceTest {
             given(mockFile.getOriginalFilename()).willReturn("test.md");
             given(mockFile.getSize()).willReturn(512L);
             given(mockFile.getContentType()).willReturn("text/markdown");
-            given(mockFile.getInputStream()).willReturn(new ByteArrayInputStream(new byte[0]));
+            given(mockFile.getInputStream()).willReturn(
+                new ByteArrayInputStream(new byte[0])
+            );
 
-            given(datasetRepository.findById(datasetId)).willReturn(Optional.of(dataset));
-            given(fileStorageService.upload(anyString(), anyString(), any(InputStream.class), anyLong()))
-                    .willReturn("http://localhost:9000/knowledge-files/ds-1/doc-1/test.md");
-            given(documentRepository.save(any(KnowledgeDocument.class)))
-                    .willAnswer(invocation -> invocation.getArgument(0));
-            given(datasetRepository.save(any(KnowledgeDataset.class)))
-                    .willAnswer(invocation -> invocation.getArgument(0));
+            given(datasetRepository.findById(datasetId)).willReturn(
+                Optional.of(dataset)
+            );
+            given(
+                fileStorageService.upload(
+                    anyString(),
+                    anyString(),
+                    any(InputStream.class),
+                    anyLong()
+                )
+            ).willReturn(
+                "http://localhost:9000/knowledge-files/ds-1/doc-1/test.md"
+            );
+            given(
+                documentRepository.save(any(KnowledgeDocument.class))
+            ).willAnswer(invocation -> invocation.getArgument(0));
+            given(
+                datasetRepository.save(any(KnowledgeDataset.class))
+            ).willAnswer(invocation -> invocation.getArgument(0));
 
             // When
-            KnowledgeDocument result = knowledgeApplicationService.uploadDocument(
-                    datasetId, mockFile, null); // null config
+            KnowledgeDocument result =
+                knowledgeApplicationService.uploadDocument(
+                    datasetId,
+                    mockFile,
+                    null
+                ); // null config
 
             // Then
             assertThat(result.getChunkingConfig()).isNotNull();
+            assertThat(result.getChunkingConfig().getStrategy()).isEqualTo(
+                ChunkingStrategy.FIXED
+            );
+        }
+
+        @Test
+        @DisplayName("上传文档时保留语义分块配置")
+        void shouldPreserveSemanticChunkingConfig() throws Exception {
+            String datasetId = "ds-1";
+            KnowledgeDataset dataset = createMockDataset(datasetId);
+            MultipartFile mockFile = mock(MultipartFile.class);
+
+            given(mockFile.getOriginalFilename()).willReturn("semantic.md");
+            given(mockFile.getSize()).willReturn(2048L);
+            given(mockFile.getContentType()).willReturn("text/markdown");
+            given(mockFile.getInputStream()).willReturn(
+                new ByteArrayInputStream(new byte[0])
+            );
+
+            given(datasetRepository.findById(datasetId)).willReturn(
+                Optional.of(dataset)
+            );
+            given(
+                fileStorageService.upload(
+                    anyString(),
+                    anyString(),
+                    any(InputStream.class),
+                    anyLong()
+                )
+            ).willReturn(
+                "http://localhost:9000/knowledge-files/ds-1/doc-1/semantic.md"
+            );
+            given(
+                documentRepository.save(any(KnowledgeDocument.class))
+            ).willAnswer(invocation -> invocation.getArgument(0));
+            given(
+                datasetRepository.save(any(KnowledgeDataset.class))
+            ).willAnswer(invocation -> invocation.getArgument(0));
+
+            ChunkingConfig config = ChunkingConfig.builder()
+                .strategy(ChunkingStrategy.SEMANTIC)
+                .minChunkSize(120)
+                .maxChunkSize(360)
+                .similarityThreshold(0.7d)
+                .mergeSmallChunks(Boolean.TRUE)
+                .chunkOverlap(10)
+                .build();
+
+            KnowledgeDocument result =
+                knowledgeApplicationService.uploadDocument(
+                    datasetId,
+                    mockFile,
+                    config
+                );
+
+            assertThat(result.getChunkingConfig().getStrategy()).isEqualTo(
+                ChunkingStrategy.SEMANTIC
+            );
+            assertThat(result.getChunkingConfig().getMinChunkSize()).isEqualTo(
+                120
+            );
+            assertThat(result.getChunkingConfig().getMaxChunkSize()).isEqualTo(
+                360
+            );
         }
     }
 
@@ -293,12 +426,19 @@ class KnowledgeApplicationServiceTest {
             KnowledgeDocument doc2 = createMockDocument("doc-2", datasetId);
             Page<KnowledgeDocument> page = new PageImpl<>(List.of(doc1, doc2));
 
-            given(documentRepository.findByDatasetId(eq(datasetId), any(PageRequest.class)))
-                    .willReturn(page);
+            given(
+                documentRepository.findByDatasetId(
+                    eq(datasetId),
+                    any(PageRequest.class)
+                )
+            ).willReturn(page);
 
             // When
-            Page<KnowledgeDocument> result = knowledgeApplicationService.listDocuments(
-                    datasetId, PageRequest.of(0, 10));
+            Page<KnowledgeDocument> result =
+                knowledgeApplicationService.listDocuments(
+                    datasetId,
+                    PageRequest.of(0, 10)
+                );
 
             // Then
             assertThat(result.getContent()).hasSize(2);
@@ -310,11 +450,14 @@ class KnowledgeApplicationServiceTest {
             // Given
             String documentId = "doc-123";
             KnowledgeDocument document = createMockDocument(documentId, "ds-1");
-            given(documentRepository.findById(documentId))
-                    .willReturn(Optional.of(document));
+            given(documentRepository.findById(documentId)).willReturn(
+                Optional.of(document)
+            );
 
             // When
-            KnowledgeDocument result = knowledgeApplicationService.getDocument(documentId);
+            KnowledgeDocument result = knowledgeApplicationService.getDocument(
+                documentId
+            );
 
             // Then
             assertThat(result.getDocumentId()).isEqualTo(documentId);
@@ -324,13 +467,16 @@ class KnowledgeApplicationServiceTest {
         @DisplayName("文档不存在时抛异常")
         void shouldThrowExceptionWhenDocumentNotFound() {
             // Given
-            given(documentRepository.findById("not-exist"))
-                    .willReturn(Optional.empty());
+            given(documentRepository.findById("not-exist")).willReturn(
+                Optional.empty()
+            );
 
             // When & Then
-            assertThatThrownBy(() -> knowledgeApplicationService.getDocument("not-exist"))
-                    .isInstanceOf(IllegalArgumentException.class)
-                    .hasMessageContaining("文档不存在");
+            assertThatThrownBy(() ->
+                knowledgeApplicationService.getDocument("not-exist")
+            )
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("文档不存在");
         }
     }
 
@@ -344,15 +490,20 @@ class KnowledgeApplicationServiceTest {
             // Given
             String documentId = "doc-to-delete";
             String datasetId = "ds-1";
-            KnowledgeDocument document = createMockDocument(documentId, datasetId);
+            KnowledgeDocument document = createMockDocument(
+                documentId,
+                datasetId
+            );
             document.setTotalChunks(10);
             KnowledgeDataset dataset = createMockDataset(datasetId);
             dataset.setTotalChunks(20);
 
-            given(documentRepository.findById(documentId))
-                    .willReturn(Optional.of(document));
-            given(datasetRepository.findById(datasetId))
-                    .willReturn(Optional.of(dataset));
+            given(documentRepository.findById(documentId)).willReturn(
+                Optional.of(document)
+            );
+            given(datasetRepository.findById(datasetId)).willReturn(
+                Optional.of(dataset)
+            );
 
             // When
             knowledgeApplicationService.deleteDocument(documentId);
@@ -363,7 +514,9 @@ class KnowledgeApplicationServiceTest {
             verify(documentRepository).deleteById(documentId);
 
             // 验证知识库统计更新
-            ArgumentCaptor<KnowledgeDataset> captor = ArgumentCaptor.forClass(KnowledgeDataset.class);
+            ArgumentCaptor<KnowledgeDataset> captor = ArgumentCaptor.forClass(
+                KnowledgeDataset.class
+            );
             verify(datasetRepository).save(captor.capture());
             // 20 - 10 = 10
             assertThat(captor.getValue().getTotalChunks()).isEqualTo(10);
@@ -374,32 +527,49 @@ class KnowledgeApplicationServiceTest {
 
     private KnowledgeDataset createMockDataset(String datasetId) {
         return KnowledgeDataset.builder()
-                .datasetId(datasetId)
-                .name("Test Dataset")
-                .description("Test Description")
-                .userId(USER_ID)
-                .agentId(AGENT_ID)
-                .documentCount(1)
-                .totalChunks(10)
-                .createdAt(Instant.now())
-                .updatedAt(Instant.now())
-                .build();
+            .datasetId(datasetId)
+            .name("Test Dataset")
+            .description("Test Description")
+            .userId(USER_ID)
+            .agentId(AGENT_ID)
+            .documentCount(1)
+            .totalChunks(10)
+            .createdAt(Instant.now())
+            .updatedAt(Instant.now())
+            .build();
     }
 
-    private KnowledgeDocument createMockDocument(String documentId, String datasetId) {
+    private KnowledgeDocument createMockDocument(
+        String documentId,
+        String datasetId
+    ) {
         return KnowledgeDocument.builder()
-                .documentId(documentId)
-                .datasetId(datasetId)
-                .filename("test.pdf")
-                .fileUrl("http://localhost:9000/" + BUCKET_NAME + "/" + datasetId + "/" + documentId + "/test.pdf")
-                .fileSize(1024L)
-                .contentType("application/pdf")
-                .status(DocumentStatus.COMPLETED)
-                .totalChunks(5)
-                .processedChunks(5)
-                .chunkingConfig(ChunkingConfig.builder().chunkSize(500).chunkOverlap(50).build())
-                .uploadedAt(Instant.now())
-                .completedAt(Instant.now())
-                .build();
+            .documentId(documentId)
+            .datasetId(datasetId)
+            .filename("test.pdf")
+            .fileUrl(
+                "http://localhost:9000/" +
+                    BUCKET_NAME +
+                    "/" +
+                    datasetId +
+                    "/" +
+                    documentId +
+                    "/test.pdf"
+            )
+            .fileSize(1024L)
+            .contentType("application/pdf")
+            .status(DocumentStatus.COMPLETED)
+            .totalChunks(5)
+            .processedChunks(5)
+            .chunkingConfig(
+                ChunkingConfig.builder()
+                    .strategy(ChunkingStrategy.FIXED)
+                    .chunkSize(500)
+                    .chunkOverlap(50)
+                    .build()
+            )
+            .uploadedAt(Instant.now())
+            .completedAt(Instant.now())
+            .build();
     }
 }

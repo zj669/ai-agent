@@ -1,30 +1,85 @@
-import { useEffect, useRef } from 'react'
-import { Empty } from 'antd'
-import SwarmMessageBubble from './SwarmMessageBubble'
-import type { SwarmMessage, SwarmAgent } from '../../types/swarm'
+import { useEffect, useRef } from "react";
+import { Empty, Space, Typography } from "antd";
+import SwarmMessageBubble from "./SwarmMessageBubble";
+import ToolCallBadge from "./ToolCallBadge";
+import type {
+  LiveToolCallStep,
+  SwarmMessage,
+  SwarmAgent,
+} from "../../types/swarm";
+import { getToolCallSignature } from "./toolCallMessage";
+
+const { Text } = Typography;
 
 interface Props {
-  messages: SwarmMessage[]
-  agents: SwarmAgent[]
-  humanAgentId?: number
-  streamingContent?: string | null
-  streamingAgentId?: number | null
+  messages: SwarmMessage[];
+  agents: SwarmAgent[];
+  humanAgentId?: number;
+  streamingContent?: string | null;
+  streamingAgentId?: number | null;
+  liveToolCalls?: LiveToolCallStep[];
 }
 
-export default function SwarmMessageList({ messages, agents, humanAgentId, streamingContent, streamingAgentId }: Props) {
-  const bottomRef = useRef<HTMLDivElement>(null)
+export default function SwarmMessageList({
+  messages,
+  agents,
+  humanAgentId,
+  streamingContent,
+  streamingAgentId,
+  liveToolCalls = [],
+}: Props) {
+  const bottomRef = useRef<HTMLDivElement>(null);
+  const activeStreamAgentId =
+    streamingAgentId ?? liveToolCalls[0]?.agentId ?? null;
+  const shouldRenderLiveToolCalls =
+    liveToolCalls.length > 0 &&
+    activeStreamAgentId !== null &&
+    (streamingContent === "" ||
+      streamingContent === null ||
+      streamingContent === undefined);
+  const visibleMessages = messages.filter((message, index) => {
+    const signature = getToolCallSignature(message);
+    if (!signature || message.contentType === "tool_call") {
+      return true;
+    }
+
+    const hasStructuredDuplicate = messages.some(
+      (candidate, candidateIndex) => {
+        if (candidateIndex === index) {
+          return false;
+        }
+        if (
+          candidate.groupId !== message.groupId ||
+          candidate.senderId !== message.senderId
+        ) {
+          return false;
+        }
+        if (candidate.contentType !== "tool_call") {
+          return false;
+        }
+
+        return getToolCallSignature(candidate) === signature;
+      },
+    );
+
+    return !hasStructuredDuplicate;
+  });
 
   useEffect(() => {
-    bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
-  }, [messages.length, streamingContent])
+    bottomRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [visibleMessages.length, streamingContent]);
 
-  if (messages.length === 0) {
-    return <Empty description="暂无消息" style={{ marginTop: 40 }} />
+  if (
+    visibleMessages.length === 0 &&
+    streamingContent === null &&
+    liveToolCalls.length === 0
+  ) {
+    return <Empty description="暂无消息" style={{ marginTop: 40 }} />;
   }
 
   return (
-    <div style={{ flex: 1, overflow: 'auto', padding: '12px 16px' }}>
-      {messages.map(msg => (
+    <div style={{ flex: 1, overflow: "auto", padding: "12px 16px" }}>
+      {visibleMessages.map((msg) => (
         <SwarmMessageBubble
           key={msg.id}
           message={msg}
@@ -32,21 +87,91 @@ export default function SwarmMessageList({ messages, agents, humanAgentId, strea
           humanAgentId={humanAgentId}
         />
       ))}
-      {streamingContent !== null && streamingContent !== undefined && streamingAgentId && (
+      {shouldRenderLiveToolCalls ? (
+        <div
+          style={{
+            display: "flex",
+            marginBottom: 12,
+            gap: 8,
+          }}
+        >
+          <div
+            style={{
+              width: 32,
+              height: 32,
+              borderRadius: "50%",
+              background: "#722ed1",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              color: "#fff",
+              fontSize: 12,
+              fontWeight: 600,
+              flexShrink: 0,
+            }}
+          >
+            {agents
+              .find((agent) => agent.id === activeStreamAgentId)
+              ?.role?.charAt(0)
+              .toUpperCase() ?? "A"}
+          </div>
+          <div style={{ maxWidth: "78%" }}>
+            <Text
+              type="secondary"
+              style={{ fontSize: 12, marginBottom: 6, display: "block" }}
+            >
+              {agents.find((agent) => agent.id === activeStreamAgentId)?.role ??
+                `agent_${activeStreamAgentId}`}
+            </Text>
+            <div
+              style={{
+                padding: "10px 12px",
+                borderRadius: 12,
+                background:
+                  "linear-gradient(180deg, rgba(248,250,252,0.96) 0%, rgba(241,245,249,0.92) 100%)",
+                border: "1px solid #dbeafe",
+              }}
+            >
+              <Text
+                strong
+                style={{
+                  display: "block",
+                  marginBottom: 8,
+                  color: "#1d4ed8",
+                }}
+              >
+                正在规划与协作
+              </Text>
+              <Space size={[8, 8]} wrap>
+                {liveToolCalls.map((step) => (
+                  <ToolCallBadge
+                    key={step.toolCallId}
+                    toolName={step.tool}
+                    status={step.status}
+                  />
+                ))}
+              </Space>
+            </div>
+          </div>
+        </div>
+      ) : streamingContent !== null &&
+        streamingContent !== undefined &&
+        streamingAgentId ? (
         <SwarmMessageBubble
           message={{
             id: -1,
             groupId: 0,
             senderId: streamingAgentId,
-            content: streamingContent === '' ? '正在思考...' : streamingContent + '▌',
-            contentType: streamingContent === '' ? 'thinking' : 'text',
+            content:
+              streamingContent === "" ? "正在思考..." : streamingContent + "▌",
+            contentType: streamingContent === "" ? "thinking" : "text",
             sendTime: new Date().toISOString(),
           }}
           agents={agents}
           humanAgentId={humanAgentId}
         />
-      )}
+      ) : null}
       <div ref={bottomRef} />
     </div>
-  )
+  );
 }

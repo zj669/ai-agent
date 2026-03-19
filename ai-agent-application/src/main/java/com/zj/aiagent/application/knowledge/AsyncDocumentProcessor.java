@@ -6,16 +6,16 @@ import com.zj.aiagent.domain.knowledge.port.FileStorageService;
 import com.zj.aiagent.domain.knowledge.port.TextSplitterPort;
 import com.zj.aiagent.domain.knowledge.repository.KnowledgeDatasetRepository;
 import com.zj.aiagent.domain.knowledge.repository.KnowledgeDocumentRepository;
+import com.zj.aiagent.domain.knowledge.valobj.ChunkingConfig;
 import com.zj.aiagent.domain.memory.port.VectorStore;
 import com.zj.aiagent.domain.memory.valobj.Document;
+import java.io.InputStream;
+import java.util.*;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Component;
-
-import java.io.InputStream;
-import java.util.*;
 
 /**
  * 异步文档处理器
@@ -40,8 +40,11 @@ public class AsyncDocumentProcessor {
 
     @Async
     public void processDocumentAsync(KnowledgeDocument document) {
-        log.info("开始异步处理文档: documentId={}, filename={}",
-                document.getDocumentId(), document.getFilename());
+        log.info(
+            "开始异步处理文档: documentId={}, filename={}",
+            document.getDocumentId(),
+            document.getFilename()
+        );
 
         try {
             // 1. 更新状态为 PROCESSING
@@ -50,25 +53,46 @@ public class AsyncDocumentProcessor {
 
             // 2. 从 MinIO 下载文件
             String objectName = extractObjectName(document.getFileUrl());
-            InputStream fileStream = fileStorageService.download(bucketName, objectName);
+            InputStream fileStream = fileStorageService.download(
+                bucketName,
+                objectName
+            );
 
             // 3. 解析文档为文本
-            List<String> parsedTexts = documentReaderPort.readDocument(fileStream, document.getFilename());
-            log.info("文档解析完成: documentId={}, parsedCount={}", document.getDocumentId(), parsedTexts.size());
+            List<String> parsedTexts = documentReaderPort.readDocument(
+                fileStream,
+                document.getFilename()
+            );
+            log.info(
+                "文档解析完成: documentId={}, parsedCount={}",
+                document.getDocumentId(),
+                parsedTexts.size()
+            );
 
             // 4. 文本分块
-            int chunkSize = document.getChunkingConfig().getChunkSize();
-            int overlap = document.getChunkingConfig().getChunkOverlap();
-            List<String> chunks = textSplitterPort.split(parsedTexts, chunkSize, overlap);
+            ChunkingConfig chunkingConfig =
+                document.getChunkingConfig() != null
+                    ? document.getChunkingConfig().normalized()
+                    : ChunkingConfig.fixedDefault();
+            List<String> chunks = textSplitterPort.split(
+                parsedTexts,
+                chunkingConfig
+            );
 
             document.setTotalChunksCount(chunks.size());
             documentRepository.save(document);
-            log.info("文档分块完成: documentId={}, totalChunks={}", document.getDocumentId(), chunks.size());
+            log.info(
+                "文档分块完成: documentId={}, strategy={}, totalChunks={}",
+                document.getDocumentId(),
+                chunkingConfig.getStrategy(),
+                chunks.size()
+            );
 
             // 5. 预查询 dataset 获取 agentId（避免循环内查询）
-            Long agentId = datasetRepository.findById(document.getDatasetId())
-                    .map(ds -> ds.getAgentId())
-                    .orElse(null);
+            Long agentId = datasetRepository
+                .findById(document.getDatasetId())
+                .map(ds -> ds.getAgentId())
+                .orElse(null);
 
             // 6. 批量向量化存储
             List<Document> batch = new ArrayList<>();
@@ -76,19 +100,25 @@ public class AsyncDocumentProcessor {
 
             for (int i = 0; i < chunks.size(); i++) {
                 Map<String, Object> metadata = new HashMap<>();
-                metadata.put("documentId", document.getDocumentId());
-                metadata.put("datasetId", document.getDatasetId());
+                metadata.put("document_id", document.getDocumentId());
+                metadata.put("dataset_id", document.getDatasetId());
                 metadata.put("filename", document.getFilename());
-                metadata.put("chunkIndex", i);
+                metadata.put("chunk_index", i);
+                metadata.put(
+                    "chunk_strategy",
+                    chunkingConfig.getStrategy().name()
+                );
                 if (agentId != null) {
-                    metadata.put("agentId", agentId);
+                    metadata.put("agent_id", agentId);
                 }
 
-                batch.add(Document.builder()
+                batch.add(
+                    Document.builder()
                         .id(UUID.randomUUID().toString())
                         .content(chunks.get(i))
                         .metadata(metadata)
-                        .build());
+                        .build()
+                );
 
                 // 达到批次大小或最后一批时写入
                 if (batch.size() >= BATCH_SIZE || i == chunks.size() - 1) {
@@ -98,8 +128,12 @@ public class AsyncDocumentProcessor {
 
                     document.updateProgress(processedCount);
                     documentRepository.save(document);
-                    log.info("文档处理进度: documentId={}, progress={}/{}",
-                            document.getDocumentId(), processedCount, chunks.size());
+                    log.info(
+                        "文档处理进度: documentId={}, progress={}/{}",
+                        document.getDocumentId(),
+                        processedCount,
+                        chunks.size()
+                    );
                 }
             }
 
@@ -108,15 +142,24 @@ public class AsyncDocumentProcessor {
             documentRepository.save(document);
 
             // 8. 更新知识库统计
-            datasetRepository.findById(document.getDatasetId()).ifPresent(dataset -> {
-                dataset.addChunks(chunks.size());
-                datasetRepository.save(dataset);
-            });
+            datasetRepository
+                .findById(document.getDatasetId())
+                .ifPresent(dataset -> {
+                    dataset.addChunks(chunks.size());
+                    datasetRepository.save(dataset);
+                });
 
-            log.info("文档处理完成: documentId={}, totalChunks={}", document.getDocumentId(), chunks.size());
-
+            log.info(
+                "文档处理完成: documentId={}, totalChunks={}",
+                document.getDocumentId(),
+                chunks.size()
+            );
         } catch (Exception e) {
-            log.error("文档处理失败: documentId={}", document.getDocumentId(), e);
+            log.error(
+                "文档处理失败: documentId={}",
+                document.getDocumentId(),
+                e
+            );
             document.markFailed(e.getMessage());
             documentRepository.save(document);
         }
@@ -129,7 +172,7 @@ public class AsyncDocumentProcessor {
         try {
             log.info("删除文档向量: documentId={}", documentId);
             Map<String, Object> filter = new HashMap<>();
-            filter.put("documentId", documentId);
+            filter.put("document_id", documentId);
             vectorStore.deleteByMetadata(filter);
             log.info("文档向量删除完成: documentId={}", documentId);
         } catch (Exception e) {

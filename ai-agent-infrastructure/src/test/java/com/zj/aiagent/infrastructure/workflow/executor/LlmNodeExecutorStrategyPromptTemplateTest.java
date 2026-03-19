@@ -25,7 +25,9 @@ class LlmNodeExecutorStrategyPromptTemplateTest {
     @BeforeEach
     void setUp() {
         ObjectMapper objectMapper = new ObjectMapper();
-        PromptTemplateResolver resolver = new PromptTemplateResolver(new PromptValueFormatter(objectMapper));
+        PromptTemplateResolver resolver = new PromptTemplateResolver(
+            new PromptValueFormatter(objectMapper)
+        );
         Executor directExecutor = Runnable::run;
         strategy = new LlmNodeExecutorStrategy(
             directExecutor,
@@ -54,20 +56,49 @@ class LlmNodeExecutorStrategyPromptTemplateTest {
         ExecutionContext context = ExecutionContext.builder()
             .inputs(Map.of("query", "介绍这个产品"))
             .build();
-        context.setNodeOutput("knowledge-1", Map.of("knowledge_list", List.of("知识A", "知识B")));
+        context.setNodeOutput(
+            "knowledge-1",
+            Map.of("knowledge_list", List.of("知识A", "知识B"))
+        );
         context.setNodeOutput("tool-1", Map.of("result", "库存充足"));
 
         NodeConfig config = NodeConfig.builder()
-            .properties(Map.of(
-                "userPromptTemplate",
-                "知识：{{knowledge-1.output.knowledge_list}}\n工具：{{tool-1.output.result}}\n问题：{{inputs.query}}"
-            ))
+            .properties(
+                Map.of(
+                    "userPromptTemplate",
+                    "知识：{{knowledge-1.output.knowledge_list}}\n工具：{{tool-1.output.result}}\n问题：{{inputs.query}}"
+                )
+            )
             .build();
 
         Map<String, Object> resolvedInputs = Map.of("__context__", context);
 
         String prompt = strategy.buildUserPrompt(config, resolvedInputs);
 
-        assertEquals("知识：[\"知识A\",\"知识B\"]\n工具：库存充足\n问题：介绍这个产品", prompt);
+        assertEquals(
+            "知识：[\"知识A\",\"知识B\"]\n工具：库存充足\n问题：介绍这个产品",
+            prompt
+        );
+    }
+
+    @Test
+    @DisplayName("应解析 systemPrompt 中的节点路径引用")
+    void should_resolve_system_prompt_template_reference() {
+        ExecutionContext context = ExecutionContext.builder()
+            .inputs(Map.of("query", "介绍这个产品"))
+            .build();
+        context.setNodeOutput(
+            "knowledge-1",
+            Map.of("knowledge_list", List.of("知识A", "知识B"))
+        );
+
+        Map<String, Object> resolvedInputs = Map.of("__context__", context);
+
+        String prompt = strategy.resolvePromptTemplate(
+            "系统参考：{{knowledge-1.output.knowledge_list}}",
+            resolvedInputs
+        );
+
+        assertEquals("系统参考：[\"知识A\",\"知识B\"]", prompt);
     }
 }

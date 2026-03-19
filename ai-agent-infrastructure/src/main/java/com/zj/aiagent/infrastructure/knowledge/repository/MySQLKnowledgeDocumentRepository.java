@@ -3,24 +3,26 @@ package com.zj.aiagent.infrastructure.knowledge.repository;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.zj.aiagent.domain.knowledge.entity.KnowledgeDocument;
 import com.zj.aiagent.domain.knowledge.repository.KnowledgeDocumentRepository;
 import com.zj.aiagent.domain.knowledge.valobj.ChunkingConfig;
+import com.zj.aiagent.domain.knowledge.valobj.ChunkingStrategy;
 import com.zj.aiagent.domain.knowledge.valobj.DocumentStatus;
 import com.zj.aiagent.infrastructure.knowledge.mapper.KnowledgeDocumentMapper;
 import com.zj.aiagent.infrastructure.knowledge.po.KnowledgeDocumentPO;
-import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
-import org.springframework.data.domain.PageImpl;
-import org.springframework.data.domain.Pageable;
-import org.springframework.stereotype.Repository;
-
 import java.time.Instant;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.Pageable;
+import org.springframework.stereotype.Repository;
 
 /**
  * KnowledgeDocument Repository 实现 (MyBatis-Plus)
@@ -28,9 +30,12 @@ import java.util.stream.Collectors;
 @Slf4j
 @Repository
 @RequiredArgsConstructor
-public class MySQLKnowledgeDocumentRepository implements KnowledgeDocumentRepository {
+public class MySQLKnowledgeDocumentRepository
+    implements KnowledgeDocumentRepository
+{
 
     private final KnowledgeDocumentMapper mapper;
+    private final ObjectMapper objectMapper;
 
     @Override
     public KnowledgeDocument save(KnowledgeDocument document) {
@@ -44,7 +49,10 @@ public class MySQLKnowledgeDocumentRepository implements KnowledgeDocumentReposi
                 mapper.insert(po);
             } catch (org.springframework.dao.DuplicateKeyException e) {
                 // 如果在insert之前也是并发插入了，这里会捕获冲突，再次执行更新
-                log.info("Document {} already exists (concurrent insert), falling back to update", po.getDocumentId());
+                log.info(
+                    "Document {} already exists (concurrent insert), falling back to update",
+                    po.getDocumentId()
+                );
                 mapper.updateById(po);
             }
         }
@@ -59,23 +67,29 @@ public class MySQLKnowledgeDocumentRepository implements KnowledgeDocumentReposi
     }
 
     @Override
-    public org.springframework.data.domain.Page<KnowledgeDocument> findByDatasetId(String datasetId,
-            Pageable pageable) {
+    public org.springframework.data.domain.Page<
+        KnowledgeDocument
+    > findByDatasetId(String datasetId, Pageable pageable) {
         // 创建 MyBatis-Plus 分页对象
-        Page<KnowledgeDocumentPO> page = new Page<>(pageable.getPageNumber() + 1, pageable.getPageSize());
+        Page<KnowledgeDocumentPO> page = new Page<>(
+            pageable.getPageNumber() + 1,
+            pageable.getPageSize()
+        );
 
         // 构建查询条件
-        LambdaQueryWrapper<KnowledgeDocumentPO> wrapper = new LambdaQueryWrapper<>();
+        LambdaQueryWrapper<KnowledgeDocumentPO> wrapper =
+            new LambdaQueryWrapper<>();
         wrapper.eq(KnowledgeDocumentPO::getDatasetId, datasetId);
 
         // 执行分页查询
         IPage<KnowledgeDocumentPO> poPage = mapper.selectPage(page, wrapper);
 
         // 转换为 Domain 对象
-        List<KnowledgeDocument> documents = poPage.getRecords()
-                .stream()
-                .map(this::toDomain)
-                .collect(Collectors.toList());
+        List<KnowledgeDocument> documents = poPage
+            .getRecords()
+            .stream()
+            .map(this::toDomain)
+            .collect(Collectors.toList());
 
         // 返回 Spring Data Page
         return new PageImpl<>(documents, pageable, poPage.getTotal());
@@ -100,16 +114,31 @@ public class MySQLKnowledgeDocumentRepository implements KnowledgeDocumentReposi
         po.setFileUrl(domain.getFileUrl());
         po.setFileSize(domain.getFileSize());
         po.setContentType(domain.getContentType());
-        po.setStatus(domain.getStatus() != null ? domain.getStatus().name() : DocumentStatus.PENDING.name());
+        po.setStatus(
+            domain.getStatus() != null
+                ? domain.getStatus().name()
+                : DocumentStatus.PENDING.name()
+        );
         po.setTotalChunks(domain.getTotalChunks());
-        po.setProcessedChunks(domain.getProcessedChunks() != null ? domain.getProcessedChunks() : 0);
+        po.setProcessedChunks(
+            domain.getProcessedChunks() != null
+                ? domain.getProcessedChunks()
+                : 0
+        );
         po.setErrorMessage(domain.getErrorMessage());
 
         // ChunkingConfig
         if (domain.getChunkingConfig() != null) {
-            po.setChunkSize(domain.getChunkingConfig().getChunkSize());
-            po.setChunkOverlap(domain.getChunkingConfig().getChunkOverlap());
+            ChunkingConfig normalized = domain.getChunkingConfig().normalized();
+            po.setChunkStrategy(normalized.getStrategy().name());
+            po.setChunkConfigJson(writeChunkConfig(normalized));
+            po.setChunkSize(normalized.getChunkSize());
+            po.setChunkOverlap(normalized.getChunkOverlap());
         } else {
+            po.setChunkStrategy(ChunkingStrategy.FIXED.name());
+            po.setChunkConfigJson(
+                writeChunkConfig(ChunkingConfig.fixedDefault())
+            );
             po.setChunkSize(500);
             po.setChunkOverlap(50);
         }
@@ -132,16 +161,17 @@ public class MySQLKnowledgeDocumentRepository implements KnowledgeDocumentReposi
         domain.setFileUrl(po.getFileUrl());
         domain.setFileSize(po.getFileSize());
         domain.setContentType(po.getContentType());
-        domain.setStatus(po.getStatus() != null ? DocumentStatus.valueOf(po.getStatus()) : DocumentStatus.PENDING);
+        domain.setStatus(
+            po.getStatus() != null
+                ? DocumentStatus.valueOf(po.getStatus())
+                : DocumentStatus.PENDING
+        );
         domain.setTotalChunks(po.getTotalChunks());
         domain.setProcessedChunks(po.getProcessedChunks());
         domain.setErrorMessage(po.getErrorMessage());
 
         // ChunkingConfig
-        ChunkingConfig config = ChunkingConfig.builder()
-                .chunkSize(po.getChunkSize() != null ? po.getChunkSize() : 500)
-                .chunkOverlap(po.getChunkOverlap() != null ? po.getChunkOverlap() : 50)
-                .build();
+        ChunkingConfig config = readChunkConfig(po);
         domain.setChunkingConfig(config);
 
         domain.setUploadedAt(toInstant(po.getUploadedAt()));
@@ -151,10 +181,61 @@ public class MySQLKnowledgeDocumentRepository implements KnowledgeDocumentReposi
     }
 
     private LocalDateTime toLocalDateTime(Instant instant) {
-        return instant != null ? LocalDateTime.ofInstant(instant, ZoneId.systemDefault()) : null;
+        return instant != null
+            ? LocalDateTime.ofInstant(instant, ZoneId.systemDefault())
+            : null;
     }
 
     private Instant toInstant(LocalDateTime localDateTime) {
-        return localDateTime != null ? localDateTime.atZone(ZoneId.systemDefault()).toInstant() : null;
+        return localDateTime != null
+            ? localDateTime.atZone(ZoneId.systemDefault()).toInstant()
+            : null;
+    }
+
+    private String writeChunkConfig(ChunkingConfig config) {
+        try {
+            return objectMapper.writeValueAsString(config.normalized());
+        } catch (JsonProcessingException e) {
+            throw new IllegalStateException("序列化分块配置失败", e);
+        }
+    }
+
+    private ChunkingConfig readChunkConfig(KnowledgeDocumentPO po) {
+        if (
+            po.getChunkConfigJson() != null &&
+            !po.getChunkConfigJson().isBlank()
+        ) {
+            try {
+                ChunkingConfig config = objectMapper.readValue(
+                    po.getChunkConfigJson(),
+                    ChunkingConfig.class
+                );
+                return config != null
+                    ? config.normalized()
+                    : ChunkingConfig.fixedDefault();
+            } catch (Exception e) {
+                log.warn(
+                    "解析 chunk_config_json 失败，回退旧字段: documentId={}",
+                    po.getDocumentId(),
+                    e
+                );
+            }
+        }
+
+        ChunkingStrategy strategy = ChunkingStrategy.fromValue(
+            po.getChunkStrategy()
+        );
+        if (strategy == ChunkingStrategy.SEMANTIC) {
+            return ChunkingConfig.semanticDefault();
+        }
+
+        return ChunkingConfig.builder()
+            .strategy(ChunkingStrategy.FIXED)
+            .chunkSize(po.getChunkSize() != null ? po.getChunkSize() : 500)
+            .chunkOverlap(
+                po.getChunkOverlap() != null ? po.getChunkOverlap() : 50
+            )
+            .build()
+            .normalized();
     }
 }
