@@ -287,7 +287,7 @@
 **目标**：解决数据模型中的"死表"问题
 
 **改动范围**：
-- `ai_agent.sql`
+- `ai-agent-infrastructure/src/main/resources/docker/init/mysql/01_init_schema.sql`
 
 **实施项**：
 - 方案 A：明确弃用并从 SQL 中移除

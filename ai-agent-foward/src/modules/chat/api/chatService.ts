@@ -6,7 +6,9 @@ import {
   getReviewDetail,
   resumeExecution,
   rejectExecution,
+  getExecution,
   type ConversationSummary,
+  type ExecutionData,
   type MessageDTO,
   type MessageStatus,
   type ThoughtStepDTO,
@@ -249,35 +251,31 @@ export async function submitRejectExecution(
   return rejectExecution(input);
 }
 
+export interface ChatExecution {
+  executionId: string;
+  status: string;
+  conversationId: string;
+  nodeStatuses: Record<string, string>;
+}
+
+export async function fetchExecution(
+  executionId: string,
+): Promise<ChatExecution> {
+  const execution: ExecutionData = await getExecution(executionId);
+  return {
+    executionId: execution.executionId,
+    status: execution.status,
+    conversationId: execution.conversationId,
+    nodeStatuses: execution.nodeStatuses,
+  };
+}
+
 export type { ReviewDetailData };
 
-export async function startChatStream(
-  input: SendMessageInput,
+async function consumeExecutionStream(
+  response: Response,
   handlers: StartExecutionHandlers,
-  signal?: AbortSignal,
 ): Promise<void> {
-  const token = getAccessToken();
-
-  const response = await fetch("/api/workflow/execution/start", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      "debug-user": "1",
-      ...(token ? { Authorization: `Bearer ${token}` } : {}),
-    },
-    body: JSON.stringify({
-      agentId: input.agentId,
-      userId: input.userId,
-      conversationId: input.conversationId,
-      versionId: input.versionId,
-      inputs: {
-        query: input.content,
-      },
-      mode: "STANDARD",
-    }),
-    signal,
-  });
-
   if (!response.ok || !response.body) {
     throw new Error("启动流式会话失败");
   }
@@ -294,8 +292,6 @@ export async function startChatStream(
       const { done, value } = await reader.read();
 
       if (done) {
-        // 某些情况下服务端会直接关闭 SSE 连接而没有显式 finish 事件
-        // 这里兜底触发完成，避免前端一直停留在 STREAMING
         if (!runtimeState.hasFinished) {
           runtimeState.hasFinished = true;
           handlers.onFinish?.();
@@ -326,6 +322,58 @@ export async function startChatStream(
     }
     reader.releaseLock();
   }
+}
+
+export async function startChatStream(
+  input: SendMessageInput,
+  handlers: StartExecutionHandlers,
+  signal?: AbortSignal,
+): Promise<void> {
+  const token = getAccessToken();
+
+  const response = await fetch("/api/workflow/execution/start", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "debug-user": "1",
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    },
+    body: JSON.stringify({
+      agentId: input.agentId,
+      userId: input.userId,
+      conversationId: input.conversationId,
+      versionId: input.versionId,
+      inputs: {
+        query: input.content,
+      },
+      mode: "STANDARD",
+    }),
+    signal,
+  });
+
+  await consumeExecutionStream(response, handlers);
+}
+
+export async function resumeChatStream(
+  executionId: string,
+  handlers: StartExecutionHandlers,
+  signal?: AbortSignal,
+): Promise<void> {
+  const token = getAccessToken();
+
+  const response = await fetch(
+    `/api/workflow/execution/${executionId}/stream`,
+    {
+      method: "GET",
+      headers: {
+        "debug-user": "1",
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      },
+      signal,
+    },
+  );
+
+  await consumeExecutionStream(response, handlers);
 }
 
 function handleSseEvent(

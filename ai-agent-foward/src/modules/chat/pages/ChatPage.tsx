@@ -36,6 +36,7 @@ import {
   fetchConversationList,
   fetchConversationMessages,
   startChatStream,
+  resumeChatStream,
   stopChatExecution,
   fetchReviewDetail,
   submitResumeExecution,
@@ -73,6 +74,15 @@ const USER_ID = 1;
 
 function makeLocalId(prefix: string): string {
   return `${prefix}-${Date.now()}-${Math.random().toString(16).slice(2)}`;
+}
+
+function isHumanReviewPauseSummary(content?: string): boolean {
+  if (!content) return false;
+  const normalized = content.trim();
+  return (
+    normalized.startsWith("⏸️ 工作流已在节点「") &&
+    normalized.includes("暂停，等待人工审核")
+  );
 }
 
 function formatTime(iso: string): string {
@@ -113,6 +123,24 @@ function TypingDots() {
       <span />
       <span />
       <span />
+    </div>
+  );
+}
+
+function SystemEventBubble({ message }: { message: ChatMessage }) {
+  return (
+    <div style={{ textAlign: "center", marginBottom: 16 }}>
+      <Text
+        type="secondary"
+        style={{
+          fontSize: 12,
+          background: "#f5f5f5",
+          padding: "4px 12px",
+          borderRadius: 12,
+        }}
+      >
+        {message.content}
+      </Text>
     </div>
   );
 }
@@ -451,264 +479,270 @@ function HumanReviewModal({
 
   return (
     <>
-    <Modal
-      title={
-        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-          <PauseCircleOutlined style={{ color: "#faad14", fontSize: 20 }} />
-          <span>人工审核检查点</span>
-          <Tag color="orange">{detail?.nodeName}</Tag>
-        </div>
-      }
-      open={open}
-      onCancel={onClose}
-      width={720}
-      destroyOnClose
-      styles={{ body: { maxHeight: "70vh", overflowY: "auto" } }}
-      footer={
-        <div style={{ display: "flex", justifyContent: "flex-end", gap: 8 }}>
-          <Button onClick={onClose}>取消</Button>
-          {onReject && (
-            <Button
-              danger
-              loading={rejectLoading}
-              onClick={() => setRejectModalVisible(true)}
-            >
-              拒绝
+      <Modal
+        title={
+          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+            <PauseCircleOutlined style={{ color: "#faad14", fontSize: 20 }} />
+            <span>人工审核检查点</span>
+            <Tag color="orange">{detail?.nodeName}</Tag>
+          </div>
+        }
+        open={open}
+        onCancel={onClose}
+        width={720}
+        destroyOnHidden
+        styles={{ body: { maxHeight: "70vh", overflowY: "auto" } }}
+        footer={
+          <div style={{ display: "flex", justifyContent: "flex-end", gap: 8 }}>
+            <Button onClick={onClose}>取消</Button>
+            {onReject && (
+              <Button
+                danger
+                loading={rejectLoading}
+                onClick={() => setRejectModalVisible(true)}
+              >
+                拒绝
+              </Button>
+            )}
+            <Button type="primary" loading={loading} onClick={handleOk}>
+              修改并恢复执行
             </Button>
-          )}
-          <Button type="primary" loading={loading} onClick={handleOk}>
-            修改并恢复执行
-          </Button>
+          </div>
+        }
+      >
+        <div style={{ marginBottom: 12 }}>
+          <Tag color={isBefore ? "blue" : "green"}>
+            {isBefore ? "执行前暂停（审核输入）" : "执行后暂停（审核输出）"}
+          </Tag>
         </div>
-      }
-    >
-      <div style={{ marginBottom: 12 }}>
-        <Tag color={isBefore ? "blue" : "green"}>
-          {isBefore ? "执行前暂停（审核输入）" : "执行后暂停（审核输出）"}
-        </Tag>
-      </div>
 
-      <Tabs
-        defaultActiveKey="current"
-        items={[
-          {
-            key: "current",
-            label: (
-              <span>
-                <PauseCircleOutlined style={{ color: "#faad14" }} /> 当前节点 —{" "}
-                {detail?.nodeName}
-              </span>
-            ),
-            children: (
-              <div>
-                {currentNode && (
-                  <div style={{ marginBottom: 12 }}>
-                    <Text type="secondary" style={{ fontSize: 12 }}>
-                      节点类型: <Tag>{currentNode.nodeType}</Tag>
-                      状态: <Tag color="warning">待审核</Tag>
-                    </Text>
-                  </div>
-                )}
-                <Text
-                  strong
-                  style={{ fontSize: 13, display: "block", marginBottom: 8 }}
-                >
-                  {isBefore ? "📥 输入数据（可编辑）" : "📤 输出数据（可编辑）"}
-                </Text>
-                {Object.keys(currentNodeData).length === 0 ? (
+        <Tabs
+          defaultActiveKey="current"
+          items={[
+            {
+              key: "current",
+              label: (
+                <span>
+                  <PauseCircleOutlined style={{ color: "#faad14" }} /> 当前节点
+                  — {detail?.nodeName}
+                </span>
+              ),
+              children: (
+                <div>
+                  {currentNode && (
+                    <div style={{ marginBottom: 12 }}>
+                      <Text type="secondary" style={{ fontSize: 12 }}>
+                        节点类型: <Tag>{currentNode.nodeType}</Tag>
+                        状态: <Tag color="warning">待审核</Tag>
+                      </Text>
+                    </div>
+                  )}
+                  <Text
+                    strong
+                    style={{ fontSize: 13, display: "block", marginBottom: 8 }}
+                  >
+                    {isBefore
+                      ? "📥 输入数据（可编辑）"
+                      : "📤 输出数据（可编辑）"}
+                  </Text>
+                  {Object.keys(currentNodeData).length === 0 ? (
+                    <Empty
+                      description="暂无数据"
+                      image={Empty.PRESENTED_IMAGE_SIMPLE}
+                    />
+                  ) : (
+                    Object.entries(currentNodeData).map(([key, val]) => {
+                      return (
+                        <div key={key} style={{ marginBottom: 12 }}>
+                          <div
+                            style={{
+                              display: "flex",
+                              alignItems: "center",
+                              gap: 6,
+                              marginBottom: 4,
+                            }}
+                          >
+                            <Text strong style={{ fontSize: 12 }}>
+                              {key}
+                            </Text>
+                          </div>
+                          <Input.TextArea
+                            value={editValues[key] ?? formatValue(val)}
+                            onChange={(e) =>
+                              setEditValues((prev) => ({
+                                ...prev,
+                                [key]: e.target.value,
+                              }))
+                            }
+                            autoSize={{ minRows: 2, maxRows: 10 }}
+                            style={{ fontFamily: "monospace", fontSize: 12 }}
+                          />
+                        </div>
+                      );
+                    })
+                  )}
+                </div>
+              ),
+            },
+            {
+              key: "upstream",
+              label: (
+                <span>
+                  <NodeIndexOutlined /> 上游节点 ({completedNodes.length})
+                </span>
+              ),
+              children:
+                completedNodes.length === 0 ? (
                   <Empty
-                    description="暂无数据"
+                    description="暂无上游节点数据"
                     image={Empty.PRESENTED_IMAGE_SIMPLE}
                   />
                 ) : (
-                  Object.entries(currentNodeData).map(([key, val]) => {
-                    return (
-                      <div key={key} style={{ marginBottom: 12 }}>
-                        <div
-                          style={{
-                            display: "flex",
-                            alignItems: "center",
-                            gap: 6,
-                            marginBottom: 4,
-                          }}
-                        >
-                          <Text strong style={{ fontSize: 12 }}>
-                            {key}
-                          </Text>
-                        </div>
-                        <Input.TextArea
-                          value={editValues[key] ?? formatValue(val)}
-                          onChange={(e) =>
-                            setEditValues((prev) => ({
-                              ...prev,
-                              [key]: e.target.value,
-                            }))
-                          }
-                          autoSize={{ minRows: 2, maxRows: 10 }}
-                          style={{ fontFamily: "monospace", fontSize: 12 }}
-                        />
-                      </div>
-                    );
-                  })
-                )}
-              </div>
-            ),
-          },
-          {
-            key: "upstream",
-            label: (
-              <span>
-                <NodeIndexOutlined /> 上游节点 ({completedNodes.length})
-              </span>
-            ),
-            children:
-              completedNodes.length === 0 ? (
-                <Empty
-                  description="暂无上游节点数据"
-                  image={Empty.PRESENTED_IMAGE_SIMPLE}
-                />
-              ) : (
-                <Collapse
-                  size="small"
-                  items={completedNodes.map((n) => {
-                    const statusInfo =
-                      STATUS_TAG[n.status] ?? STATUS_TAG.PENDING;
-                    return {
-                      key: n.nodeId,
-                      label: (
-                        <div
-                          style={{
-                            display: "flex",
-                            alignItems: "center",
-                            gap: 8,
-                          }}
-                        >
-                          <Tag>{n.nodeType}</Tag>
-                          <Text strong style={{ fontSize: 13 }}>
-                            {n.nodeName}
-                          </Text>
-                          <Tag color={statusInfo.color} icon={statusInfo.icon}>
-                            {statusInfo.label}
-                          </Tag>
-                        </div>
-                      ),
-                      children: (
-                        <div>
-                          {n.inputs && Object.keys(n.inputs).length > 0 && (
-                            <>
-                              <Text
-                                type="secondary"
-                                style={{
-                                  fontSize: 11,
-                                  display: "block",
-                                  marginBottom: 4,
-                                }}
-                              >
-                                📥 输入（可编辑）
-                              </Text>
-                              {Object.entries(n.inputs).map(([k, v]) => (
-                                <div key={k} style={{ marginBottom: 8 }}>
-                                  <Text
-                                    style={{ fontSize: 11, color: "#8c8c8c" }}
-                                  >
-                                    {k}:
-                                  </Text>
-                                  <Input.TextArea
-                                    value={
-                                      upstreamEdits[n.nodeId]?.[k] ??
-                                      formatValue(v)
-                                    }
-                                    onChange={(e) =>
-                                      updateUpstreamField(
-                                        n.nodeId,
-                                        k,
-                                        e.target.value,
-                                      )
-                                    }
-                                    autoSize={{ minRows: 2, maxRows: 8 }}
-                                    style={{
-                                      fontFamily: "monospace",
-                                      fontSize: 11,
-                                      marginTop: 2,
-                                      background: "#f5f5f5",
-                                    }}
-                                  />
-                                </div>
-                              ))}
-                            </>
-                          )}
-                          {n.outputs && Object.keys(n.outputs).length > 0 && (
-                            <>
-                              <Divider style={{ margin: "8px 0" }} />
-                              <Text
-                                type="secondary"
-                                style={{
-                                  fontSize: 11,
-                                  display: "block",
-                                  marginBottom: 4,
-                                }}
-                              >
-                                📤 输出（可编辑）
-                              </Text>
-                              {Object.entries(n.outputs).map(([k, v]) => (
-                                <div key={k} style={{ marginBottom: 8 }}>
-                                  <Text
-                                    style={{ fontSize: 11, color: "#8c8c8c" }}
-                                  >
-                                    {k}:
-                                  </Text>
-                                  <Input.TextArea
-                                    value={
-                                      upstreamEdits[n.nodeId]?.[k] ??
-                                      formatValue(v)
-                                    }
-                                    onChange={(e) =>
-                                      updateUpstreamField(
-                                        n.nodeId,
-                                        k,
-                                        e.target.value,
-                                      )
-                                    }
-                                    autoSize={{ minRows: 2, maxRows: 8 }}
-                                    style={{
-                                      fontFamily: "monospace",
-                                      fontSize: 11,
-                                      marginTop: 2,
-                                    }}
-                                  />
-                                </div>
-                              ))}
-                            </>
-                          )}
-                          {(!n.inputs || Object.keys(n.inputs).length === 0) &&
-                            (!n.outputs ||
-                              Object.keys(n.outputs).length === 0) && (
-                              <Text type="secondary" style={{ fontSize: 12 }}>
-                                暂无数据
-                              </Text>
+                  <Collapse
+                    size="small"
+                    items={completedNodes.map((n) => {
+                      const statusInfo =
+                        STATUS_TAG[n.status] ?? STATUS_TAG.PENDING;
+                      return {
+                        key: n.nodeId,
+                        label: (
+                          <div
+                            style={{
+                              display: "flex",
+                              alignItems: "center",
+                              gap: 8,
+                            }}
+                          >
+                            <Tag>{n.nodeType}</Tag>
+                            <Text strong style={{ fontSize: 13 }}>
+                              {n.nodeName}
+                            </Text>
+                            <Tag
+                              color={statusInfo.color}
+                              icon={statusInfo.icon}
+                            >
+                              {statusInfo.label}
+                            </Tag>
+                          </div>
+                        ),
+                        children: (
+                          <div>
+                            {n.inputs && Object.keys(n.inputs).length > 0 && (
+                              <>
+                                <Text
+                                  type="secondary"
+                                  style={{
+                                    fontSize: 11,
+                                    display: "block",
+                                    marginBottom: 4,
+                                  }}
+                                >
+                                  📥 输入（可编辑）
+                                </Text>
+                                {Object.entries(n.inputs).map(([k, v]) => (
+                                  <div key={k} style={{ marginBottom: 8 }}>
+                                    <Text
+                                      style={{ fontSize: 11, color: "#8c8c8c" }}
+                                    >
+                                      {k}:
+                                    </Text>
+                                    <Input.TextArea
+                                      value={
+                                        upstreamEdits[n.nodeId]?.[k] ??
+                                        formatValue(v)
+                                      }
+                                      onChange={(e) =>
+                                        updateUpstreamField(
+                                          n.nodeId,
+                                          k,
+                                          e.target.value,
+                                        )
+                                      }
+                                      autoSize={{ minRows: 2, maxRows: 8 }}
+                                      style={{
+                                        fontFamily: "monospace",
+                                        fontSize: 11,
+                                        marginTop: 2,
+                                        background: "#f5f5f5",
+                                      }}
+                                    />
+                                  </div>
+                                ))}
+                              </>
                             )}
-                        </div>
-                      ),
-                    };
-                  })}
-                />
-              ),
-          },
-        ]}
-      />
-
-      <Divider style={{ margin: "12px 0" }} />
-      <div>
-        <Text style={{ fontSize: 12 }}>💬 审核意见（可选）</Text>
-        <Input.TextArea
-          value={comment}
-          onChange={(e) => setComment(e.target.value)}
-          placeholder="输入审核意见..."
-          autoSize={{ minRows: 1, maxRows: 3 }}
-          style={{ marginTop: 4 }}
+                            {n.outputs && Object.keys(n.outputs).length > 0 && (
+                              <>
+                                <Divider style={{ margin: "8px 0" }} />
+                                <Text
+                                  type="secondary"
+                                  style={{
+                                    fontSize: 11,
+                                    display: "block",
+                                    marginBottom: 4,
+                                  }}
+                                >
+                                  📤 输出（可编辑）
+                                </Text>
+                                {Object.entries(n.outputs).map(([k, v]) => (
+                                  <div key={k} style={{ marginBottom: 8 }}>
+                                    <Text
+                                      style={{ fontSize: 11, color: "#8c8c8c" }}
+                                    >
+                                      {k}:
+                                    </Text>
+                                    <Input.TextArea
+                                      value={
+                                        upstreamEdits[n.nodeId]?.[k] ??
+                                        formatValue(v)
+                                      }
+                                      onChange={(e) =>
+                                        updateUpstreamField(
+                                          n.nodeId,
+                                          k,
+                                          e.target.value,
+                                        )
+                                      }
+                                      autoSize={{ minRows: 2, maxRows: 8 }}
+                                      style={{
+                                        fontFamily: "monospace",
+                                        fontSize: 11,
+                                        marginTop: 2,
+                                      }}
+                                    />
+                                  </div>
+                                ))}
+                              </>
+                            )}
+                            {(!n.inputs ||
+                              Object.keys(n.inputs).length === 0) &&
+                              (!n.outputs ||
+                                Object.keys(n.outputs).length === 0) && (
+                                <Text type="secondary" style={{ fontSize: 12 }}>
+                                  暂无数据
+                                </Text>
+                              )}
+                          </div>
+                        ),
+                      };
+                    })}
+                  />
+                ),
+            },
+          ]}
         />
-      </div>
-    </Modal>
+
+        <Divider style={{ margin: "12px 0" }} />
+        <div>
+          <Text style={{ fontSize: 12 }}>💬 审核意见（可选）</Text>
+          <Input.TextArea
+            value={comment}
+            onChange={(e) => setComment(e.target.value)}
+            placeholder="输入审核意见..."
+            autoSize={{ minRows: 1, maxRows: 3 }}
+            style={{ marginTop: 4 }}
+          />
+        </div>
+      </Modal>
 
       {/* 拒绝确认弹窗 */}
       <Modal
@@ -724,14 +758,14 @@ function HumanReviewModal({
         cancelText="取消"
         okButtonProps={{ danger: true, loading: rejectLoading }}
       >
-        <Space direction="vertical" style={{ width: "100%" }}>
+        <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
           <Input.TextArea
             rows={4}
             placeholder="请输入拒绝原因（可选）"
             value={rejectReason}
             onChange={(e) => setRejectReason(e.target.value)}
           />
-        </Space>
+        </div>
       </Modal>
     </>
   );
@@ -757,6 +791,8 @@ function ChatPage() {
   const pendingStopRef = useRef(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const skipMessageLoadRef = useRef(false);
+  const selectedAgentIdRef = useRef<number | null>(selectedAgentId);
+  selectedAgentIdRef.current = selectedAgentId;
 
   // Human review state
   const [reviewModalOpen, setReviewModalOpen] = useState(false);
@@ -768,6 +804,7 @@ function ChatPage() {
   const pausedExecutionRef = useRef<{
     executionId: string;
     nodeId: string;
+    assistantMessageId?: string;
   } | null>(null);
   const [pendingReviewsForAgent, setPendingReviewsForAgent] = useState<
     PendingReview[]
@@ -869,6 +906,18 @@ function ChatPage() {
     );
   }, [agents, agentSearch]);
 
+  const visibleMessages = useMemo(
+    () =>
+      messages.filter(
+        (message) =>
+          !(
+            message.role === "ASSISTANT" &&
+            isHumanReviewPauseSummary(message.content)
+          ),
+      ),
+    [messages],
+  );
+
   const appendDelta = (id: string, delta: string) => {
     setMessages((cur) =>
       cur.map((m) =>
@@ -937,6 +986,36 @@ function ChatPage() {
 
   const activeConversationIdRef = useRef(activeConversationId);
   activeConversationIdRef.current = activeConversationId;
+
+  const refreshConversationMessages = useCallback(async () => {
+    const cid = activeConversationIdRef.current;
+    if (!cid) return;
+
+    try {
+      const data = await fetchConversationMessages(USER_ID, cid);
+      setMessages(data);
+      setStreamError("");
+    } catch {
+      // noop
+    }
+  }, []);
+
+  const refreshPendingReviews = useCallback(async () => {
+    const agentId = selectedAgentIdRef.current;
+    if (!agentId) {
+      setPendingReviewsForAgent([]);
+      return;
+    }
+
+    try {
+      const reviews = await getPendingReviews();
+      setPendingReviewsForAgent(
+        reviews.filter((r) => r.agentName === `Agent-${agentId}`),
+      );
+    } catch {
+      setPendingReviewsForAgent([]);
+    }
+  }, []);
 
   const finishMsg = (id: string, status: "COMPLETED" | "FAILED") => {
     setMessages((cur) => {
@@ -1087,7 +1166,7 @@ function ChatPage() {
             setStreamError(msg);
           },
           onPaused: (eid, nid) => {
-            void handlePaused(eid, nid);
+            void handlePaused(eid, nid, aId);
           },
         },
         ctrl.signal,
@@ -1128,23 +1207,21 @@ function ChatPage() {
   };
 
   const handlePaused = useCallback(
-    async (executionId: string, nodeId: string) => {
-      pausedExecutionRef.current = { executionId, nodeId };
-      // Add a system message to indicate pause
-      const pauseMsg: ChatMessage = {
-        id: makeLocalId("s"),
-        role: "SYSTEM",
-        content: "⏸️ 工作流已暂停，等待人工审核...",
-        status: "COMPLETED",
-        createdAt: new Date().toISOString(),
+    async (
+      executionId: string,
+      nodeId: string,
+      assistantMessageId?: string,
+    ) => {
+      pausedExecutionRef.current = {
+        executionId,
+        nodeId,
+        assistantMessageId,
       };
       setMessages((cur) =>
-        cur
-          .map(
-            (m): ChatMessage =>
-              m.status === "STREAMING" ? { ...m, status: "COMPLETED" } : m,
-          )
-          .concat(pauseMsg),
+        cur.map(
+          (m): ChatMessage =>
+            m.status === "STREAMING" ? { ...m, status: "COMPLETED" } : m,
+        ),
       );
       setIsSending(false);
 
@@ -1152,11 +1229,111 @@ function ChatPage() {
         const detail = await fetchReviewDetail(executionId);
         setReviewDetail(detail);
         setReviewModalOpen(true);
+        await refreshPendingReviews();
       } catch {
         setStreamError("获取审核详情失败");
       }
     },
-    [],
+    [refreshPendingReviews],
+  );
+
+  const startResumedStream = useCallback(
+    (executionId: string, assistantMessageId?: string) => {
+      const aId = assistantMessageId?.trim() || makeLocalId("a");
+      let reusedExistingMessage = false;
+      setMessages((cur) => {
+        if (assistantMessageId) {
+          const next = cur.map((m) => {
+            if (m.id === assistantMessageId && m.role === "ASSISTANT") {
+              reusedExistingMessage = true;
+              return { ...m, status: "STREAMING" };
+            }
+            return m;
+          });
+          if (reusedExistingMessage) {
+            return next;
+          }
+        }
+
+        const assistantMsg: ChatMessage = {
+          id: aId,
+          role: "ASSISTANT",
+          content: "",
+          status: "STREAMING",
+          createdAt: new Date().toISOString(),
+        };
+        return [...cur, assistantMsg];
+      });
+
+      const ctrl = new AbortController();
+      abortControllerRef.current = ctrl;
+      executionIdRef.current = executionId;
+      pendingStopRef.current = false;
+      isStoppedRef.current = false;
+      hasStreamErrorRef.current = false;
+      setIsSending(true);
+
+      void resumeChatStream(
+        executionId,
+        {
+          onConnected: (id) => {
+            executionIdRef.current = id;
+            if (pendingStopRef.current) void submitStop();
+          },
+          onDelta: (d) => {
+            if (!isStoppedRef.current && !hasStreamErrorRef.current)
+              appendDelta(aId, d);
+          },
+          onThought: (d, nid, name, ntype) => {
+            if (!isStoppedRef.current && !hasStreamErrorRef.current)
+              appendThought(aId, d, nid, name, ntype);
+          },
+          onNodeStart: (nid, name, ntype) => {
+            if (!isStoppedRef.current && !hasStreamErrorRef.current)
+              updateNodeStatus(aId, nid, name, ntype, "running");
+          },
+          onNodeFinish: (nid, name, ntype, st) => {
+            if (!isStoppedRef.current && !hasStreamErrorRef.current)
+              updateNodeStatus(
+                aId,
+                nid,
+                name,
+                ntype,
+                st === "FAILED" ? "failed" : "done",
+              );
+          },
+          onFinish: () => {
+            if (!isStoppedRef.current && !hasStreamErrorRef.current)
+              finishMsg(aId, "COMPLETED");
+          },
+          onError: (msg) => {
+            hasStreamErrorRef.current = true;
+            finishMsg(aId, "FAILED");
+            setStreamError(msg);
+          },
+          onPaused: (eid, nid) => {
+            void handlePaused(eid, nid, aId);
+          },
+        },
+        ctrl.signal,
+      )
+        .then(() => {
+          if (!isStoppedRef.current && !hasStreamErrorRef.current)
+            finishMsg(aId, "COMPLETED");
+        })
+        .catch(() => {
+          if (!isStoppedRef.current) {
+            finishMsg(aId, "FAILED");
+            setStreamError("恢复后的流式消息接收失败");
+          }
+        })
+        .finally(() => {
+          setIsSending(false);
+          resetRuntime(ctrl);
+          void refreshPendingReviews();
+        });
+    },
+    [handlePaused, refreshPendingReviews],
   );
 
   const handleResumeExecution = useCallback(
@@ -1186,61 +1363,41 @@ function ChatPage() {
         setPendingReviewsForAgent((prev) =>
           prev.filter((r) => r.executionId !== paused.executionId),
         );
-
-        // Add a system message to indicate resume
-        const resumeMsg: ChatMessage = {
-          id: makeLocalId("s"),
-          role: "SYSTEM",
-          content: "▶️ 已恢复执行",
-          status: "COMPLETED",
-          createdAt: new Date().toISOString(),
-        };
-        setMessages((cur) => [...cur, resumeMsg]);
+        startResumedStream(paused.executionId, paused.assistantMessageId);
       } catch (error) {
         setStreamError(getErrorMessage(error, "恢复执行失败"));
       } finally {
         setReviewLoading(false);
       }
     },
-    [reviewDetail],
+    [reviewDetail, startResumedStream],
   );
 
-  const handleRejectExecution = useCallback(
-    async (reason: string) => {
-      const paused = pausedExecutionRef.current;
-      if (!paused) return;
+  const handleRejectExecution = useCallback(async (reason: string) => {
+    const paused = pausedExecutionRef.current;
+    if (!paused) return;
 
-      setRejectLoading(true);
-      try {
-        await submitRejectExecution({
-          executionId: paused.executionId,
-          nodeId: paused.nodeId,
-          reason,
-        });
-        setReviewModalOpen(false);
-        setReviewDetail(null);
-        pausedExecutionRef.current = null;
+    setRejectLoading(true);
+    try {
+      await submitRejectExecution({
+        executionId: paused.executionId,
+        nodeId: paused.nodeId,
+        reason,
+      });
+      setReviewModalOpen(false);
+      setReviewDetail(null);
+      pausedExecutionRef.current = null;
 
-        setPendingReviewsForAgent((prev) =>
-          prev.filter((r) => r.executionId !== paused.executionId),
-        );
-
-        const rejectMsg: ChatMessage = {
-          id: makeLocalId("s"),
-          role: "SYSTEM",
-          content: "工作流已被拒绝终止",
-          status: "COMPLETED",
-          createdAt: new Date().toISOString(),
-        };
-        setMessages((cur) => [...cur, rejectMsg]);
-      } catch (error) {
-        setStreamError(getErrorMessage(error, "拒绝执行失败"));
-      } finally {
-        setRejectLoading(false);
-      }
-    },
-    [],
-  );
+      setPendingReviewsForAgent((prev) =>
+        prev.filter((r) => r.executionId !== paused.executionId),
+      );
+      setStreamError("当前审核节点已被拒绝，后续执行不会继续。");
+    } catch (error) {
+      setStreamError(getErrorMessage(error, "拒绝执行失败"));
+    } finally {
+      setRejectLoading(false);
+    }
+  }, []);
 
   /* ---- RENDER ---- */
   return (
@@ -1350,7 +1507,7 @@ function ChatPage() {
           {listError && (
             <Alert
               type="error"
-              message={listError}
+              title={listError}
               showIcon
               style={{ margin: "0 8px 8px" }}
             />
@@ -1484,7 +1641,7 @@ function ChatPage() {
                   type="warning"
                   showIcon
                   icon={<PauseCircleOutlined />}
-                  message={
+                  title={
                     <span>
                       有 {pendingReviewsForAgent.length} 个待审核项
                       {pendingReviewsForAgent.map((r) => (
@@ -1516,35 +1673,17 @@ function ChatPage() {
                   style={{ marginBottom: 12 }}
                 />
               )}
-              {messages.length === 0 && (
+              {visibleMessages.length === 0 && (
                 <div style={{ textAlign: "center", paddingTop: 80 }}>
                   <Empty description="发送消息开始对话" />
                 </div>
               )}
-              {messages.map((m) => {
+              {visibleMessages.map((m) => {
                 const isUser = m.role === "USER";
                 const isSystem = m.role === "SYSTEM";
 
                 if (isSystem) {
-                  return (
-                    <div
-                      key={m.id}
-                      style={{ textAlign: "center", marginBottom: 16 }}
-                    >
-                      <Text
-                        type="secondary"
-                        style={{
-                          fontSize: 12,
-                          background: "#fff7e6",
-                          padding: "4px 12px",
-                          borderRadius: 12,
-                          border: "1px solid #ffe58f",
-                        }}
-                      >
-                        {m.content}
-                      </Text>
-                    </div>
-                  );
+                  return <SystemEventBubble key={m.id} message={m} />;
                 }
                 return (
                   <div
@@ -1661,7 +1800,7 @@ function ChatPage() {
               {streamError && (
                 <Alert
                   type="error"
-                  message={streamError}
+                  title={streamError}
                   showIcon
                   closable
                   onClose={() => setStreamError("")}

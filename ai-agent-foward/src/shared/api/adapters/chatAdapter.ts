@@ -63,6 +63,17 @@ export interface StopExecutionInput {
   executionId: string;
 }
 
+export interface ExecutionData {
+  executionId: string;
+  agentId: number;
+  userId: number;
+  conversationId: string;
+  status: string;
+  startTime: string;
+  endTime: string | null;
+  nodeStatuses: Record<string, string>;
+}
+
 export async function createConversation(
   input: CreateConversationInput,
   client: ApiClientLike = apiClient,
@@ -128,6 +139,16 @@ export async function stopWorkflowExecution(
     input,
   );
   unwrapResponse(response);
+}
+
+export async function getExecution(
+  executionId: string,
+  client: ApiClientLike = apiClient,
+): Promise<ExecutionData> {
+  const response = await client.get<ExecutionData>(
+    `/api/workflow/execution/${executionId}`,
+  );
+  return response.data;
 }
 
 /* ========== Human Review APIs ========== */

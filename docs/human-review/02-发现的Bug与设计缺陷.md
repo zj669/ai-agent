@@ -78,7 +78,7 @@ if (execution.getStatus() != ExecutionStatus.PAUSED_FOR_REVIEW
 **现象**：数据库中有 `workflow_human_review_task` 表（含 task_id, execution_id, node_id, status, input_data, output_data 等字段），但整个代码库中没有对应的 PO、Mapper 或任何引用。
 
 **涉及文件**：
-- `ai_agent.sql` L276-292：表定义存在
+- `ai-agent-infrastructure/src/main/resources/docker/init/mysql/01_init_schema.sql`：历史遗留表定义曾存在于废弃 schema 文件中，现应仅以此文件为准
 - 代码中无对应实现
 
 **问题**：疑似早期设计遗留，当前审核功能完全依赖 Redis Set（待审核队列）+ `workflow_human_review_record`（审计日志），这张表成了死表。
