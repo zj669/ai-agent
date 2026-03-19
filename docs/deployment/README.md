@@ -85,20 +85,14 @@ CREATE DATABASE IF NOT EXISTS ai_agent DEFAULT CHARACTER SET utf8mb4 COLLATE utf
 # 导入完整初始化脚本（与 Docker 首次启动时保持一致）
 USE ai_agent;
 SOURCE docker/init/mysql/01_init_schema.sql;
-
-# 如果是已有库升级，再按日期顺序补跑增量脚本
-SOURCE docker/init/mysql/20260316_add_workflow_execution.sql;
-SOURCE docker/init/mysql/20260318_add_knowledge_chunk_strategy.sql;
-SOURCE docker/init/mysql/20260318_add_swarm_workspace_agent_description.sql;
-SOURCE docker/init/mysql/20260318_add_dynamic_writing_swarm_tables.sql;
 ```
 
 说明：
 
-- `docker/init/mysql/01_init_schema.sql` 是当前部署的主初始化脚本，包含 swarm 相关表结构。
+- `docker/init/mysql/01_init_schema.sql` 是当前部署唯一使用的 MySQL 初始化脚本，包含 swarm / writing / workflow / knowledge 等当前完整表结构。
 - `ai-agent-infrastructure/src/main/resources/db/ai_agent.sql` 不是 swarm 模块的完整来源，不要再作为部署初始化入口。
-- 如果用 Docker 首次初始化 MySQL，`docker/init/mysql/` 目录下的 SQL 会由 MySQL 容器自动按文件名顺序执行，无需手工逐条 `SOURCE`。
-- 如果是已有 MySQL 数据卷升级，新增 SQL 不会自动回放，必须手工按顺序补跑增量脚本；动态写作相关表由 `20260318_add_dynamic_writing_swarm_tables.sql` 负责补齐。
+- 如果用 Docker 首次初始化 MySQL，现在只会自动执行 `docker/init/mysql/01_init_schema.sql`。
+- 项目当前不再维护单独的 migration SQL；需要重建环境时，直接清空 MySQL 数据卷并重新执行这份初始化脚本即可。
 
 ### 4. 配置后端
 

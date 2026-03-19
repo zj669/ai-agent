@@ -629,7 +629,7 @@ schema 落地采用方案 A：
 
 产出：
 
-1. `20260318_rebuild_swarm_writing_schema.sql`
+1. 动态写作相关 schema，现已合并进入 `docker/init/mysql/01_init_schema.sql`
 2. 更新后的 PRD / plan 文档
 
 ### Task 1：Writing 领域模型与基础仓储
