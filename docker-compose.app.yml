@@ -35,7 +35,7 @@ services:
       REDIS_RETRY_INTERVAL: ${REDIS_RETRY_INTERVAL:-1000}
       REDIS_PING_INTERVAL: ${REDIS_PING_INTERVAL:-60000}
       REDIS_KEEP_ALIVE: ${REDIS_KEEP_ALIVE:-true}
-      AUTH_DEBUG_ENABLED: "false"
+      AUTH_DEBUG_ENABLED: ${AUTH_DEBUG_ENABLED:-false}
       AUTH_DEBUG_HEADER_NAME: ${AUTH_DEBUG_HEADER_NAME:-debug-user}
       MINIO_ENDPOINT: ${MINIO_ENDPOINT:-http://ai-agent-minio:9000}
       MINIO_ACCESS_KEY: ${MINIO_ACCESS_KEY:-admin}
@@ -65,7 +65,11 @@ services:
     ports:
       - "127.0.0.1:8080:8080"
     healthcheck:
-      test: ["CMD-SHELL", "wget -q -O - http://127.0.0.1:8080/actuator/health >/dev/null 2>&1 || exit 1"]
+      test:
+        [
+          "CMD-SHELL",
+          "wget -q -O - http://127.0.0.1:8080/actuator/health >/dev/null 2>&1 || exit 1",
+        ]
       interval: 30s
       timeout: 10s
       retries: 10
