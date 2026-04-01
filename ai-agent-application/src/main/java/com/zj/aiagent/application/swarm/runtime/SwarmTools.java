@@ -230,7 +230,8 @@ public class SwarmTools {
     }
 
     @Tool(
-        description = "向指定Agent发送消息。用于委派任务给子Agent或回复其他Agent的消息。注意：不要用此工具回复人类。"
+        description = "向指定Agent发送消息。用于委派任务给子Agent或回复其他Agent的消息。注意：不要用此工具回复人类。" +
+            " 建议使用结构化消息格式：[PHASE: X] [ROLE: X] [GOAL: X] [CONSTRAINTS: X] [EXPECTED_OUTPUT: X]\\n<详细描述>"
     )
     public String send(
         @ToolParam(description = "目标Agent的ID") long agentId,

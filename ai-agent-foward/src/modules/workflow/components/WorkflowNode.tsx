@@ -65,50 +65,15 @@ export type WorkflowNodeData = {
 
 const NODE_STYLES: Record<
   WorkflowNodeType,
-  { bg: string; border: string; icon: string; accent: string }
+  { iconBg: string; iconText: string; icon: string; borderRing: string }
 > = {
-  START: {
-    bg: "bg-green-50",
-    border: "border-green-300",
-    icon: "▶",
-    accent: "text-green-600",
-  },
-  END: {
-    bg: "bg-red-50",
-    border: "border-red-300",
-    icon: "■",
-    accent: "text-red-600",
-  },
-  LLM: {
-    bg: "bg-blue-50",
-    border: "border-blue-300",
-    icon: "🧠",
-    accent: "text-blue-600",
-  },
-  CONDITION: {
-    bg: "bg-amber-50",
-    border: "border-amber-300",
-    icon: "🔀",
-    accent: "text-amber-600",
-  },
-  TOOL: {
-    bg: "bg-emerald-50",
-    border: "border-emerald-300",
-    icon: "🔧",
-    accent: "text-emerald-600",
-  },
-  HTTP: {
-    bg: "bg-violet-50",
-    border: "border-violet-300",
-    icon: "🌐",
-    accent: "text-violet-600",
-  },
-  KNOWLEDGE: {
-    bg: "bg-teal-50",
-    border: "border-teal-300",
-    icon: "📚",
-    accent: "text-teal-600",
-  },
+  START: { iconBg: "bg-blue-500", iconText: "text-white", icon: "▶", borderRing: "ring-blue-500" },
+  END: { iconBg: "bg-red-500", iconText: "text-white", icon: "■", borderRing: "ring-red-500" },
+  LLM: { iconBg: "bg-indigo-500", iconText: "text-white", icon: "🧠", borderRing: "ring-indigo-500" },
+  CONDITION: { iconBg: "bg-amber-500", iconText: "text-white", icon: "🔀", borderRing: "ring-amber-500" },
+  TOOL: { iconBg: "bg-emerald-500", iconText: "text-white", icon: "🔧", borderRing: "ring-emerald-500" },
+  HTTP: { iconBg: "bg-violet-500", iconText: "text-white", icon: "🌐", borderRing: "ring-violet-500" },
+  KNOWLEDGE: { iconBg: "bg-teal-500", iconText: "text-white", icon: "📚", borderRing: "ring-teal-500" },
 };
 
 const NODE_TYPE_LABELS: Record<WorkflowNodeType, string> = {
@@ -450,76 +415,82 @@ function WorkflowNode({ id, data, selected }: WorkflowNodeProps) {
   return (
     <div
       className={cn(
-        "rounded-xl border-2 shadow-sm transition-all",
-        style.bg,
-        style.border,
-        selected && "ring-2 ring-blue-500 ring-offset-1",
-        isExpanded ? "min-w-[320px]" : "min-w-[160px]",
+        "rounded-2xl border shadow-sm transition-all duration-200 ease-in-out bg-white",
+        selected
+          ? `border-transparent shadow-xl ring-2 ${style.borderRing}`
+          : "border-slate-200 hover:shadow-md hover:border-slate-300",
+        isExpanded ? "w-[320px]" : "w-[260px]",
       )}
     >
       {!isStart && <NodeTargetHandle handleId="target" />}
 
-      <div className="flex items-center gap-2 px-3 py-2.5">
-        <span className="text-base">{style.icon}</span>
+      <div className={cn("flex items-center gap-2.5 px-3.5 py-3", (isExpanded || isCondition || hasSchema) && "border-b border-slate-100/60")}>
+        <div className={cn("flex h-8 w-8 shrink-0 items-center justify-center rounded-lg shadow-sm text-sm", style.iconBg, style.iconText)}>
+          {style.icon}
+        </div>
         <div className="flex-1 min-w-0">
-          <div className={cn("text-[10px] font-medium", style.accent)}>
-            {NODE_TYPE_LABELS[nodeData.nodeType]}
-          </div>
-          <div className="truncate text-sm font-medium text-slate-800">
+          <div className="truncate text-sm font-semibold text-slate-900 leading-tight">
             {nodeData.label}
           </div>
+          <div className="text-[10px] font-medium text-slate-500 mt-0.5">
+            {NODE_TYPE_LABELS[nodeData.nodeType]}
+          </div>
         </div>
-        {canExpand && (
-          <button
-            type="button"
-            aria-label="展开配置"
-            className="flex h-5 w-5 items-center justify-center rounded text-slate-400 transition hover:bg-slate-200 hover:text-slate-600"
-            onClick={(e) => {
-              e.stopPropagation();
-              toggleNodeExpand(id);
-            }}
-          >
-            <svg
-              width="12"
-              height="12"
-              viewBox="0 0 12 12"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2"
-              strokeLinecap="round"
+        <div className="flex items-center gap-1">
+          {canExpand && (
+            <button
+              type="button"
+              aria-label="展开配置"
+              className="flex h-6 w-6 items-center justify-center rounded-md text-slate-400 transition hover:bg-slate-100 hover:text-slate-600"
+              onClick={(e) => {
+                e.stopPropagation();
+                toggleNodeExpand(id);
+              }}
             >
-              {isExpanded ? (
-                <path d="M3 7.5L6 4.5L9 7.5" />
-              ) : (
-                <path d="M3 4.5L6 7.5L9 4.5" />
-              )}
-            </svg>
-          </button>
-        )}
-        {canDelete && (
-          <button
-            type="button"
-            aria-label="删除节点"
-            className="flex h-5 w-5 items-center justify-center rounded text-slate-300 transition hover:bg-red-50 hover:text-red-500"
-            onClick={handleDelete}
-          >
-            <svg
-              width="12"
-              height="12"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2"
-              strokeLinecap="round"
+              <svg
+                width="14"
+                height="14"
+                viewBox="0 0 12 12"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              >
+                {isExpanded ? (
+                  <path d="M3 7.5L6 4.5L9 7.5" />
+                ) : (
+                  <path d="M3 4.5L6 7.5L9 4.5" />
+                )}
+              </svg>
+            </button>
+          )}
+          {canDelete && (
+            <button
+              type="button"
+              aria-label="删除节点"
+              className="flex h-6 w-6 items-center justify-center rounded-md text-slate-300 transition hover:bg-red-50 hover:text-red-500"
+              onClick={handleDelete}
             >
-              <path d="M18 6L6 18M6 6l12 12" />
-            </svg>
-          </button>
-        )}
+              <svg
+                width="14"
+                height="14"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              >
+                <path d="M18 6L6 18M6 6l12 12" />
+              </svg>
+            </button>
+          )}
+        </div>
       </div>
 
       {isExpanded && canExpand && (
-        <div className="border-t border-slate-200">
+        <div className="bg-slate-50/30 rounded-b-2xl">
           {isCondition && conditionConfig ? (
             <div className="nowheel p-3 max-h-80 overflow-y-auto">
               <ConditionBranchEditor
@@ -562,20 +533,20 @@ function WorkflowNode({ id, data, selected }: WorkflowNodeProps) {
       )}
 
       {isCondition && (
-        <div className="border-t border-slate-200">
+        <div className="border-t border-slate-100/60 bg-slate-50/50 rounded-b-2xl py-1">
           {(nodeData.branches ?? []).map((branch) => (
             <div
               key={branch.id}
-              className="relative flex items-center pl-3 pr-5 py-2 border-b border-slate-100 last:border-b-0"
+              className="relative flex items-center pl-3.5 pr-5 py-2 hover:bg-slate-100/50 transition-colors"
             >
-              <div className="flex items-center gap-1.5 flex-1 min-w-0">
+              <div className="flex items-center gap-2 flex-1 min-w-0">
                 <div
                   className={cn(
-                    "h-2 w-2 rounded-full shrink-0",
+                    "h-1.5 w-1.5 rounded-full shrink-0",
                     branch.name === "否则" ? "bg-slate-400" : "bg-amber-500",
                   )}
                 />
-                <span className="text-xs text-slate-600 truncate">
+                <span className="text-xs font-medium text-slate-700 truncate">
                   {branch.name}
                 </span>
               </div>
@@ -583,7 +554,7 @@ function WorkflowNode({ id, data, selected }: WorkflowNodeProps) {
                 type="source"
                 position={Position.Right}
                 id={branch.id}
-                className="!h-3 !w-3 !rounded-full !border-2 !border-amber-400 !bg-white"
+                className="!h-3.5 !w-3.5 !rounded-full !border-[2.5px] !border-amber-400 !bg-white hover:!border-amber-500 hover:!bg-amber-50 transition-all"
               />
             </div>
           ))}
@@ -594,5 +565,4 @@ function WorkflowNode({ id, data, selected }: WorkflowNodeProps) {
     </div>
   );
 }
-
 export default WorkflowNode;

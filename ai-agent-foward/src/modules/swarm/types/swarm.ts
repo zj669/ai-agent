@@ -31,6 +31,18 @@ export interface SwarmAgent {
 
 export type AgentStatus = "IDLE" | "BUSY" | "WAITING" | "WAKING" | "STOPPED";
 
+export type WorkerStatus = "running" | "idle" | "completed" | "failed";
+
+export interface WorkerCardData {
+  agentId: number;
+  agentRole: string;
+  status: WorkerStatus;
+  startTime?: number;
+  tokenCount?: number;
+  latestMessage?: string;
+  phase?: string;
+}
+
 export interface SwarmGroup {
   id: number;
   workspaceId: number;
@@ -157,4 +169,5 @@ export type UIEventType =
   | "ui.agent.tool_call.start"
   | "ui.agent.tool_call.done"
   | "ui.agent.waiting"
-  | "ui.agent.waiting.done";
+  | "ui.agent.waiting.done"
+  | "ui.agent.task-notification";

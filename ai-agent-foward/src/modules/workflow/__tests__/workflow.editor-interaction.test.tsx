@@ -484,7 +484,6 @@ describe("workflow editor interaction", () => {
               type: "string",
               system: true,
             },
-            { key: "query", label: "查询词", type: "string", system: true },
           ],
         },
         defaultSchemaPolicy: {},
@@ -502,7 +501,7 @@ describe("workflow editor interaction", () => {
               type: "string",
               system: true,
               required: true,
-              sourceRef: "start.output.query",
+              sourceRef: "",
             },
           ],
           outputSchema: [
@@ -577,20 +576,27 @@ describe("workflow editor interaction", () => {
 
     expect(startNode.outputSchema).toEqual(
       expect.arrayContaining([
-        expect.objectContaining({ key: "query", type: "string", system: true }),
+        expect.objectContaining({ key: "inputMessage", type: "string", system: true }),
       ]),
     );
-    expect(knowledgeNode.inputSchema).toEqual([
-      expect.objectContaining({
-        key: "query",
-        label: "查询词",
-        type: "string",
-        sourceRef: "start.output.inputMessage",
-        required: true,
-        system: true,
-      }),
-    ]);
-    expect(llmNode.userConfig.userPromptTemplate).toBe("{{inputs.query}}");
+    // START 节点不再输出 query 字段
+    expect(startNode.outputSchema).not.toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ key: "query" }),
+      ]),
+    );
+    expect(knowledgeNode.inputSchema).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          key: "query",
+          label: "查询词",
+          type: "string",
+          required: true,
+          system: true,
+        }),
+      ]),
+    );
+    expect(llmNode.userConfig.userPromptTemplate).toBe("{{inputs.inputMessage}}");
     expect(llmNode.userConfig.contextRefNodes).toEqual(["knowledge-1"]);
   });
 
@@ -729,12 +735,6 @@ describe("workflow editor interaction", () => {
               type: "string",
               system: true,
             },
-            {
-              key: "query",
-              label: "查询词",
-              type: "string",
-              system: true,
-            },
           ],
         },
         defaultSchemaPolicy: {},
@@ -752,7 +752,7 @@ describe("workflow editor interaction", () => {
               type: "string",
               system: true,
               required: true,
-              sourceRef: "start.output.query",
+              sourceRef: "",
             },
           ],
           outputSchema: [

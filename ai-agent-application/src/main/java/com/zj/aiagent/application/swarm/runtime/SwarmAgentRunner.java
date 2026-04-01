@@ -17,6 +17,7 @@ import com.zj.aiagent.domain.swarm.repository.SwarmGroupRepository;
 import com.zj.aiagent.domain.swarm.repository.SwarmMessageRepository;
 import com.zj.aiagent.domain.swarm.service.SwarmDomainService;
 import com.zj.aiagent.domain.swarm.valobj.SwarmAgentStatus;
+import com.zj.aiagent.domain.swarm.valobj.TaskNotificationEvent;
 import com.zj.aiagent.domain.writing.entity.WritingAgent;
 import com.zj.aiagent.domain.writing.entity.WritingResult;
 import com.zj.aiagent.domain.writing.entity.WritingSession;
@@ -44,6 +45,27 @@ import org.springframework.ai.tool.ToolCallback;
  */
 @Slf4j
 public class SwarmAgentRunner implements Runnable {
+
+    /**
+     * Coordinator Phase — 参照 Claude-Code 的阶段性任务分解
+     */
+    public enum Phase {
+        RESEARCH("Research", "调研阶段：收集信息、分析问题"),
+        SYNTHESIS("Synthesis", "整合阶段：汇总发现、撰写规格"),
+        IMPLEMENTATION("Implementation", "实施阶段：执行变更、实现功能"),
+        VERIFICATION("Verification", "验证阶段：测试验证、确认正确性");
+
+        private final String label;
+        private final String description;
+
+        Phase(String label, String description) {
+            this.label = label;
+            this.description = description;
+        }
+
+        public String getLabel() { return label; }
+        public String getDescription() { return description; }
+    }
 
     private static final java.util.Set<String> SUB_AGENT_FORBIDDEN_TOOLS =
         java.util.Set.of(
@@ -76,6 +98,12 @@ public class SwarmAgentRunner implements Runnable {
     private final Long humanAgentId;
     private final LlmProviderConfig llmConfig;
     private final boolean isRoot;
+    /** 当前 Phase（Coordinator/Worker 模式使用） */
+    private volatile Phase currentPhase = Phase.IMPLEMENTATION;
+    /** 本次执行统计 */
+    private volatile long turnStartTime;
+    private volatile int turnToolCallCount = 0;
+    private volatile int turnTokenCount = 0;
 
     private volatile boolean running = true;
     private volatile Thread runThread;
@@ -188,6 +216,11 @@ public class SwarmAgentRunner implements Runnable {
      * 执行一轮推理
      */
     private void processTurn() {
+        // 重置本次执行统计
+        turnStartTime = System.currentTimeMillis();
+        turnToolCallCount = 0;
+        turnTokenCount = 0;
+
         SwarmAgentStatus finalStatus = SwarmAgentStatus.IDLE;
         agentRepository.updateStatus(
             agent.getId(),
@@ -284,7 +317,95 @@ public class SwarmAgentRunner implements Runnable {
             }
             agentRepository.updateStatus(agent.getId(), finalStatus.getCode());
             emitEvent("agent.done", null, "");
+            // Worker 任务完成时，向 Coordinator 发送 task-notification
+            emitTaskNotificationOnCompletion(finalStatus);
         }
+    }
+
+    /**
+     * 任务完成时发射 task-notification 事件
+     * - Worker（有 parentId）：向父 Agent（Coordinator）发送通知
+     * - Coordinator（无 parentId）：向前端 UI 发送通知
+     */
+    private void emitTaskNotificationOnCompletion(SwarmAgentStatus finalStatus) {
+        if (agent.isWorker()) {
+            // Worker 向父 Agent（Coordinator）发送 task-notification
+            Long parentId = agent.getParentId();
+            if (parentId != null) {
+                long durationMs = System.currentTimeMillis() - turnStartTime;
+                String status = switch (finalStatus) {
+                    case IDLE, WAITING -> "completed";
+                    case BUSY -> "running";
+                    case STOPPED -> "killed";
+                    default -> "failed";
+                };
+                String result = buildTurnResultSummary();
+                String summary = buildTurnSummary(result);
+
+                TaskNotificationEvent.Usage usage =
+                    TaskNotificationEvent.Usage.builder()
+                        .toolUses(turnToolCallCount)
+                        .totalTokens(turnTokenCount)
+                        .durationMs(durationMs)
+                        .build();
+
+                TaskNotificationEvent notification =
+                    TaskNotificationEvent.builder()
+                        .agentId(agent.getId())
+                        .status(status)
+                        .summary(summary)
+                        .result(result)
+                        .phase(currentPhase.getLabel())
+                        .usage(usage)
+                        .build();
+
+                agentEventBus.emitTaskNotification(parentId, notification);
+                log.info(
+                    "[Swarm] Task notification sent: worker={}, parent={}, status={}, duration={}ms",
+                    agent.getId(), parentId, status, durationMs
+                );
+            }
+        } else if (agent.isCoordinator(agentRepository.hasChildren(agent.getId()))) {
+            // Coordinator 完成一轮时，向 UI 发送通知（通过 uiEventBus）
+            long durationMs = System.currentTimeMillis() - turnStartTime;
+            try {
+                String payload = objectMapper.writeValueAsString(
+                    Map.of(
+                        "type", "task-notification",
+                        "agentId", agent.getId(),
+                        "status", "coordinator_turn_complete",
+                        "phase", currentPhase.getLabel(),
+                        "toolCallCount", turnToolCallCount,
+                        "durationMs", durationMs,
+                        "timestamp", System.currentTimeMillis()
+                    )
+                );
+                emitUIEvent("ui.agent.task-notification", payload);
+            } catch (Exception e) {
+                log.warn("[Swarm] Failed to emit coordinator task notification UI event", e);
+            }
+        }
+    }
+
+    private String buildTurnSummary(String result) {
+        if (result == null || result.isBlank()) {
+            return "任务执行完成";
+        }
+        String trimmed = result.replaceAll("\\s+", " ").trim();
+        return trimmed.length() <= 200
+            ? trimmed
+            : trimmed.substring(0, 200) + "...";
+    }
+
+    private String buildTurnResultSummary() {
+        StringBuilder sb = new StringBuilder();
+        sb.append("Agent ").append(agent.getId())
+          .append(" (").append(agent.getRole()).append(") ")
+          .append("执行完成。");
+        if (turnToolCallCount > 0) {
+            sb.append(" 工具调用次数: ").append(turnToolCallCount);
+        }
+        return sb.toString();
     }
 
     /**
@@ -465,6 +586,7 @@ public class SwarmAgentRunner implements Runnable {
                         .findById(agent.getId())
                         .orElse(agent);
                     String result = executeToolCall(toolName, toolArgs);
+                    turnToolCallCount++;
                     log.info(
                         "[Swarm] Tool call completed (human): agent={}, tool={}, resultPreview={}",
                         agent.getId(),
@@ -723,6 +845,7 @@ public class SwarmAgentRunner implements Runnable {
                 }
 
                 String result = executeToolCall(toolName, toolArgs);
+                turnToolCallCount++;
                 log.info(
                     "[Swarm] Tool call completed (agent): agent={}, tool={}, resultPreview={}",
                     agent.getId(),

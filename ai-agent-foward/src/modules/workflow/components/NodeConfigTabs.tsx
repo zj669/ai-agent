@@ -43,10 +43,10 @@ const KNOWLEDGE_QUERY_FIELD: FieldSchema = {
   type: "string",
   system: true,
   required: true,
-  sourceRef: "start.output.query",
-  description: "默认引用开始节点透传的用户查询",
+  sourceRef: "",
+  description: "请选择上游节点的输出变量作为查询词",
 };
-const DEFAULT_LLM_PROMPT_TEMPLATE = "{{inputs.query}}";
+const DEFAULT_LLM_PROMPT_TEMPLATE = "{{inputs.inputMessage}}";
 
 function ContextReferenceSection({
   options,
@@ -237,7 +237,7 @@ function PromptTemplateEditor({
 
       <textarea
         ref={textareaRef}
-        className="min-h-[140px] w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-800 outline-none transition focus:border-blue-300 focus:ring-1 focus:ring-blue-200"
+        className="mt-1 w-full rounded-md border border-slate-200 px-2.5 py-1.5 text-xs shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500 bg-white"
         placeholder="请输入 Prompt 模板，例如：&#10;用户问题：{{inputs.query}}"
         value={value}
         onChange={(e) => onChange(e.target.value)}
@@ -591,17 +591,17 @@ function NodeConfigTabs({
 
   return (
     <div className="flex flex-col">
-      <div role="tablist" className="flex border-b border-slate-200">
+      <div role="tablist" className="flex border-b border-slate-100 px-2 pt-2 gap-4">
         {availableTabs.map((tab) => (
           <button
             key={tab.key}
             role="tab"
             aria-selected={activeTab === tab.key}
             className={cn(
-              "px-3 py-1.5 text-xs font-medium transition",
+              "pb-2 text-xs font-semibold transition-all relative",
               activeTab === tab.key
-                ? "border-b-2 border-blue-500 text-blue-600"
-                : "text-slate-500 hover:text-slate-700",
+                ? "text-blue-600 after:absolute after:bottom-0 after:left-0 after:right-0 after:h-0.5 after:bg-blue-600 after:rounded-t-sm"
+                : "text-slate-500 hover:text-slate-800",
             )}
             onClick={() => setActiveTab(tab.key)}
           >

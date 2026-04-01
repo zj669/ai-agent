@@ -17,12 +17,12 @@ function CanvasToolbar() {
   }
 
   return (
-    <div className="absolute bottom-4 left-1/2 z-10 flex -translate-x-1/2 items-center gap-2 rounded-xl border border-slate-200 bg-white/90 px-3 py-2 shadow-lg backdrop-blur">
+    <div className="absolute bottom-6 left-1/2 z-10 flex -translate-x-1/2 items-center gap-1.5 rounded-2xl border border-slate-200/60 bg-white/80 px-2 py-1.5 shadow-lg shadow-slate-200/50 backdrop-blur-md">
       {TOOLBAR_ITEMS.map((item) => (
         <div
           key={item.type}
           className={cn(
-            'flex cursor-grab items-center gap-1.5 rounded-lg border px-3 py-1.5 text-xs font-medium transition hover:shadow-md active:cursor-grabbing',
+            'flex cursor-grab items-center gap-1.5 rounded-xl border border-transparent px-3 py-1.5 text-xs font-semibold transition-all hover:scale-105 active:scale-95 active:cursor-grabbing',
             item.color
           )}
           draggable

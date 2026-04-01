@@ -41,6 +41,21 @@ public class SwarmAgentRepositoryImpl implements SwarmAgentRepository {
     }
 
     @Override
+    public List<SwarmAgent> findByParentId(Long parentId) {
+        LambdaQueryWrapper<SwarmWorkspaceAgentPO> wrapper = new LambdaQueryWrapper<>();
+        wrapper.eq(SwarmWorkspaceAgentPO::getParentId, parentId)
+                .orderByAsc(SwarmWorkspaceAgentPO::getCreatedAt);
+        return mapper.selectList(wrapper).stream().map(this::toDomain).collect(Collectors.toList());
+    }
+
+    @Override
+    public boolean hasChildren(Long parentId) {
+        LambdaQueryWrapper<SwarmWorkspaceAgentPO> wrapper = new LambdaQueryWrapper<>();
+        wrapper.eq(SwarmWorkspaceAgentPO::getParentId, parentId);
+        return mapper.selectCount(wrapper) > 0;
+    }
+
+    @Override
     public void updateStatus(Long id, String status) {
         LambdaUpdateWrapper<SwarmWorkspaceAgentPO> wrapper = new LambdaUpdateWrapper<>();
         wrapper.eq(SwarmWorkspaceAgentPO::getId, id)

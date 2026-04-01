@@ -80,13 +80,6 @@ const START_OUTPUT_FIELDS: FieldSchema[] = [
     system: true,
     description: "用户发送的消息，传递给下游节点",
   },
-  {
-    key: "query",
-    type: "string",
-    label: "查询词",
-    system: true,
-    description: "用户原始查询文本，供知识库等节点直接引用",
-  },
 ];
 
 const KNOWLEDGE_QUERY_FIELD: FieldSchema = {
@@ -95,8 +88,8 @@ const KNOWLEDGE_QUERY_FIELD: FieldSchema = {
   label: "查询词",
   system: true,
   required: true,
-  sourceRef: "start.output.query",
-  description: "默认引用开始节点透传的用户查询",
+  sourceRef: "",
+  description: "请选择上游节点的输出变量作为查询词",
 };
 
 const KNOWLEDGE_OUTPUT_FIELD: FieldSchema = {
@@ -105,7 +98,7 @@ const KNOWLEDGE_OUTPUT_FIELD: FieldSchema = {
   label: "知识列表",
   system: true,
 };
-const DEFAULT_LLM_PROMPT_TEMPLATE = "{{inputs.query}}";
+const DEFAULT_LLM_PROMPT_TEMPLATE = "{{inputs.inputMessage}}";
 
 function cloneFieldSchema(field: FieldSchema): FieldSchema {
   return { ...field };
@@ -150,52 +143,28 @@ function mergeRequiredFields(
   return next;
 }
 
-function normalizeKnowledgeSourceRef(sourceRef: unknown): string {
-  if (typeof sourceRef !== "string" || !sourceRef.trim()) {
-    return "start.output.query";
-  }
-  return sourceRef;
-}
-
 function normalizeKnowledgeInputSchema(
   existing: FieldSchema[] | undefined,
 ): FieldSchema[] {
   const fields = (existing ?? []).map(cloneFieldSchema);
   const queryIndex = fields.findIndex((field) => field.key === "query");
-  const explicitSourceField =
-    fields.find(
-      (field) =>
-        field.system !== true &&
-        typeof field.sourceRef === "string" &&
-        field.sourceRef.trim().length > 0,
-    ) ??
-    fields.find(
-      (field) =>
-        typeof field.sourceRef === "string" &&
-        field.sourceRef.trim().length > 0,
-    );
-  const fallbackIndex =
-    queryIndex >= 0
-      ? -1
-      : fields.findIndex(
-          (field) =>
-            typeof field.key === "string" && field.key.trim().length > 0,
-        );
 
-  const templateField =
-    explicitSourceField ??
-    (queryIndex >= 0
-      ? fields[queryIndex]
-      : fallbackIndex >= 0
-        ? fields[fallbackIndex]
-        : undefined);
+  if (queryIndex >= 0) {
+    const existingQuery = fields[queryIndex];
+    // 废弃的 start.output.query 引用已无效（START 节点不再输出 query），自动清空让用户重新选择
+    const safeSourceRef =
+      existingQuery.sourceRef === "start.output.query"
+        ? ""
+        : (existingQuery.sourceRef ?? "");
+    fields[queryIndex] = {
+      ...KNOWLEDGE_QUERY_FIELD,
+      sourceRef: safeSourceRef,
+    };
+    return fields;
+  }
 
-  const normalizedQuery: FieldSchema = {
-    ...templateField,
-    ...KNOWLEDGE_QUERY_FIELD,
-    sourceRef: normalizeKnowledgeSourceRef(templateField?.sourceRef),
-  };
-  return [normalizedQuery];
+  // 不存在 query 字段则新增（sourceRef 为空，由用户选择）
+  return [...fields, { ...KNOWLEDGE_QUERY_FIELD }];
 }
 
 function normalizeContextRefNodes(value: unknown): string[] {
@@ -239,7 +208,28 @@ function normalizeWorkflowNodes(
 
     if (data.nodeType === "START") {
       inputSchema = mergeRequiredFields(inputSchema, [START_INPUT_FIELD]);
-      outputSchema = mergeRequiredFields(outputSchema, START_OUTPUT_FIELDS);
+      // START 节点输出层用定义强制替换，移除任何历史工作流中残留的多余字段（如旧的 query）
+      outputSchema = START_OUTPUT_FIELDS.map(cloneFieldSchema);
+    }
+
+    if (data.nodeType === "END") {
+      // END 节点允许用户自由添加输入引用和自定义输出字段
+      // 保留已保存的字段（不常规节点直接返回）
+      return {
+        ...node,
+        data: {
+          ...data,
+          inputSchema,
+          outputSchema,
+          policy: {
+            inputSchemaAdd: true,
+            outputSchemaAdd: true,
+            inputSchemaUpdate: true,
+            outputSchemaUpdate: true,
+          },
+          userConfig,
+        } satisfies WorkflowNodeData,
+      };
     }
 
     if (data.nodeType === "KNOWLEDGE") {
@@ -584,13 +574,36 @@ function WorkflowEditorPage() {
                 },
               },
             }
-          : {
-              label: `${nodeType} 节点`,
-              nodeType,
-              policy,
-              inputSchema: initialSchema?.inputSchema ?? [],
-              outputSchema: initialSchema?.outputSchema ?? [],
-            }) satisfies WorkflowNodeData,
+          : nodeType === "KNOWLEDGE"
+            ? {
+                label: `KNOWLEDGE 节点`,
+                nodeType,
+                policy,
+                // 强制清空 query 的 sourceRef，不使用数据库模板中可能存在的旧默认值
+                inputSchema: [{ ...KNOWLEDGE_QUERY_FIELD }],
+                outputSchema: initialSchema?.outputSchema ?? [],
+              }
+            : nodeType === "END"
+              ? {
+                  label: `结束节点`,
+                  nodeType,
+                  // END 节点完全开放，schema 为空，由用户自由添加
+                  policy: {
+                    inputSchemaAdd: true,
+                    outputSchemaAdd: true,
+                    inputSchemaUpdate: true,
+                    outputSchemaUpdate: true,
+                  },
+                  inputSchema: [],
+                  outputSchema: [],
+                }
+              : {
+                  label: `${nodeType} 节点`,
+                  nodeType,
+                  policy,
+                  inputSchema: initialSchema?.inputSchema ?? [],
+                  outputSchema: initialSchema?.outputSchema ?? [],
+                }) satisfies WorkflowNodeData,
       };
       setNodes((nds) => [...nds, newNode]);
       store.markDirty();
@@ -690,7 +703,7 @@ function WorkflowEditorPage() {
     saveMessage || publishMessage || connectError || loadMessage;
 
   return (
-    <section className="flex h-screen flex-col bg-white">
+    <section className="flex h-screen flex-col bg-slate-50">
       <EditorHeader
         agentName={store.agentName}
         isDirty={store.isDirty}
@@ -734,9 +747,9 @@ function WorkflowEditorPage() {
             connectionLineComponent={CustomConnectionLine}
             fitView
           >
-            <Controls position="bottom-right" />
-            <MiniMap position="top-right" />
-            <Background variant={BackgroundVariant.Dots} gap={16} size={1} />
+            <Controls position="bottom-right" className="!shadow-md !border-slate-200" />
+            <MiniMap position="top-right" className="!shadow-md !border-slate-200 !rounded-xl" maskColor="rgba(248, 250, 252, 0.7)" />
+            <Background variant={BackgroundVariant.Dots} gap={24} size={1.5} color="#cbd5e1" />
           </ReactFlow>
           <CanvasToolbar />
         </div>

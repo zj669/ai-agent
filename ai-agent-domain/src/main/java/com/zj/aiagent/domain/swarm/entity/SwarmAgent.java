@@ -29,4 +29,22 @@ public class SwarmAgent {
     @Builder.Default
     private SwarmAgentStatus status = SwarmAgentStatus.IDLE;
     private LocalDateTime createdAt;
+
+    /**
+     * 判断当前 Agent 是否为 Coordinator（协调者）
+     * 规则：parentId == null 且自身有子 Agent
+     * 注意：此方法需要配合 SwarmAgentRepository.findChildren() 使用
+     * @param hasChildren 当前 Agent 是否有子 Agent
+     */
+    public boolean isCoordinator(boolean hasChildren) {
+        return parentId == null && hasChildren;
+    }
+
+    /**
+     * 判断当前 Agent 是否为 Worker（执行者）
+     * 规则：有父 Agent
+     */
+    public boolean isWorker() {
+        return parentId != null;
+    }
 }

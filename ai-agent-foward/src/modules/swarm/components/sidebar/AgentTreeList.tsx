@@ -31,7 +31,8 @@ function StatusDot({ status }: { status: AgentStatus }) {
         borderRadius: "50%",
         backgroundColor: color,
         flexShrink: 0,
-        animation: status === "BUSY" ? "swarm-pulse 1.2s infinite" : undefined,
+        animation:
+          status === "BUSY" ? "swarm-pulse 1.2s infinite" : undefined,
       }}
     />
   );
@@ -166,4 +167,25 @@ export default function AgentTreeList({
       />
     </>
   );
+}
+
+/**
+ * 从 SwarmAgent 列表中识别 Coordinator
+ * Coordinator = 无 parentId 且有子 Agent 的 Agent
+ */
+export function findCoordinator(agents: SwarmAgent[]): SwarmAgent | undefined {
+  return agents.find((a) => {
+    if (a.parentId != null) return false;
+    return agents.some((other) => other.parentId === a.id);
+  });
+}
+
+/**
+ * 获取 Coordinator 的所有 Worker
+ */
+export function getWorkersOfCoordinator(
+  agents: SwarmAgent[],
+  coordinatorId: number,
+): SwarmAgent[] {
+  return agents.filter((a) => a.parentId === coordinatorId);
 }

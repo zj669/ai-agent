@@ -188,6 +188,7 @@ export function subscribeAgentStream(
   es.addEventListener("agent.stream", onEvent);
   es.addEventListener("agent.done", onEvent);
   es.addEventListener("agent.error", onEvent);
+  es.addEventListener("agent.task-notification", onEvent);
   return es;
 }
 
@@ -213,5 +214,6 @@ export function subscribeUIStream(
   es.addEventListener("ui.agent.tool_call.done", onEvent);
   es.addEventListener("ui.agent.waiting", onEvent);
   es.addEventListener("ui.agent.waiting.done", onEvent);
+  es.addEventListener("ui.agent.task-notification", onEvent);
   return es;
 }

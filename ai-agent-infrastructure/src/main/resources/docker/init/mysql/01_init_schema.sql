@@ -270,11 +270,11 @@ CREATE TABLE IF NOT EXISTS `workflow_human_review_record` (
 INSERT INTO `node_template` (`type_code`, `name`, `description`, `icon`, `default_schema_policy`, `initial_schema`, `category`, `sort_order`, `status`) VALUES
 ('START', '开始节点', '工作流起始节点，接收用户输入', 'play',
  '{"inputSchemaAdd": false, "outputSchemaAdd": false, "inputSchemaUpdate": false, "outputSchemaUpdate": false}',
- '{"inputSchema": [{"key": "inputMessage", "type": "string", "label": "用户输入", "system": true, "required": true, "description": "用户发送的消息内容"}], "outputSchema": [{"key": "inputMessage", "type": "string", "label": "用户输入", "system": true, "description": "用户发送的消息，传递给下游节点"}, {"key": "query", "type": "string", "label": "查询词", "system": true, "description": "用户原始查询文本，供知识库等节点直接引用"}]}',
+ '{"inputSchema": [{"key": "inputMessage", "type": "string", "label": "用户输入", "system": true, "required": true, "description": "用户发送的消息内容"}], "outputSchema": [{"key": "inputMessage", "type": "string", "label": "用户输入", "system": true, "description": "用户发送的消息，传递给下游节点"}]}',
  'BASIC', 1, 1),
 ('END', '结束节点', '工作流终止节点，返回最终结果', 'stop',
- '{"inputSchemaAdd": false, "outputSchemaAdd": false, "inputSchemaUpdate": false, "outputSchemaUpdate": false}',
- '{"inputSchema": [{"key": "output", "type": "string", "label": "输出内容", "system": true, "required": true}], "outputSchema": [{"key": "output", "type": "string", "label": "输出内容", "system": true}]}',
+ '{"inputSchemaAdd": true, "outputSchemaAdd": true, "inputSchemaUpdate": true, "outputSchemaUpdate": true}',
+ '{"inputSchema": [], "outputSchema": []}',
  'BASIC', 2, 1),
 ('LLM', '大模型节点', '调用大语言模型进行推理', 'brain',
  '{"inputSchemaAdd": true, "outputSchemaAdd": false, "inputSchemaUpdate": true, "outputSchemaUpdate": false}',
@@ -294,7 +294,7 @@ INSERT INTO `node_template` (`type_code`, `name`, `description`, `icon`, `defaul
  'ACTION', 40, 1),
 ('KNOWLEDGE', '知识库节点', '查询知识库并返回命中列表', 'book-open',
  '{"inputSchemaAdd": true, "outputSchemaAdd": false, "inputSchemaUpdate": true, "outputSchemaUpdate": false}',
- '{"inputSchema": [{"key": "query", "type": "string", "label": "查询词", "system": true, "required": true, "sourceRef": "start.output.query", "description": "默认引用开始节点透传的用户查询"}], "outputSchema": [{"key": "knowledge_list", "type": "array", "label": "知识列表", "system": true}]}',
+ '{"inputSchema": [{"key": "query", "type": "string", "label": "查询词", "system": true, "required": true, "sourceRef": "", "description": "请选择上游节点的输出变量作为查询词"}], "outputSchema": [{"key": "knowledge_list", "type": "array", "label": "知识列表", "system": true}]}',
  'AI', 50, 1)
 ON DUPLICATE KEY UPDATE `name` = VALUES(`name`), `description` = VALUES(`description`), `icon` = VALUES(`icon`),
   `default_schema_policy` = VALUES(`default_schema_policy`), `initial_schema` = VALUES(`initial_schema`),

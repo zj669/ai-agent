@@ -1,5 +1,6 @@
 package com.zj.aiagent.infrastructure.swarm.sse;
 
+import com.zj.aiagent.domain.swarm.valobj.TaskNotificationEvent;
 import lombok.Builder;
 import lombok.Data;
 import lombok.extern.slf4j.Slf4j;
@@ -56,9 +57,69 @@ public class SwarmAgentEventBus {
     @Data
     @Builder
     public static class AgentEvent {
-        private String type; // agent.stream, agent.done, agent.error, agent.wakeup
+        private String type; // agent.stream, agent.done, agent.error, agent.wakeup, agent.task-notification
         private String subType; // reasoning, content, tool_calls, tool_result
         private String data;
         private long timestamp;
+    }
+
+    /**
+     * 发布 TaskNotification 事件到 EventBus
+     * @param parentAgentId 订阅者（通常是 Coordinator）的 Agent ID
+     * @param event 任务通知事件（来自 domain 层）
+     */
+    public void emitTaskNotification(Long parentAgentId, TaskNotificationEvent event) {
+        event.setTimestamp(System.currentTimeMillis());
+        // 将事件序列化后作为 AgentEvent.data 发送
+        try {
+            String eventData = String.format(
+                "<task-notification>\n" +
+                "  <task-id>%d</task-id>\n" +
+                "  <status>%s</status>\n" +
+                "  <summary>%s</summary>\n" +
+                "  <result>%s</result>\n" +
+                "  <phase>%s</phase>\n" +
+                "  <taskUuid>%s</taskUuid>\n" +
+                "  <usage>\n" +
+                "    <total_tokens>%s</total_tokens>\n" +
+                "    <tool_uses>%s</tool_uses>\n" +
+                "    <duration_ms>%s</duration_ms>\n" +
+                "  </usage>\n" +
+                "</task-notification>",
+                event.getAgentId(),
+                event.getStatus(),
+                escapeXml(event.getSummary()),
+                escapeXml(event.getResult()),
+                event.getPhase() != null ? event.getPhase() : "",
+                event.getTaskUuid() != null ? event.getTaskUuid() : "",
+                event.getUsage() != null && event.getUsage().getTotalTokens() != null
+                    ? event.getUsage().getTotalTokens()
+                    : "0",
+                event.getUsage() != null && event.getUsage().getToolUses() != null
+                    ? event.getUsage().getToolUses()
+                    : "0",
+                event.getUsage() != null && event.getUsage().getDurationMs() != null
+                    ? event.getUsage().getDurationMs()
+                    : "0"
+            );
+            emit(parentAgentId, AgentEvent.builder()
+                .type("agent.task-notification")
+                .subType("task-notification")
+                .data(eventData)
+                .timestamp(event.getTimestamp())
+                .build());
+        } catch (Exception e) {
+            log.warn("[Swarm] Failed to emit task notification: agent={}", parentAgentId, e);
+        }
+    }
+
+    private String escapeXml(String text) {
+        if (text == null) return "";
+        return text
+            .replace("&", "&amp;")
+            .replace("<", "&lt;")
+            .replace(">", "&gt;")
+            .replace("\"", "&quot;")
+            .replace("'", "&apos;");
     }
 }

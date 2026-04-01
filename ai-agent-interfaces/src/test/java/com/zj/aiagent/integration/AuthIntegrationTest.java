@@ -1,6 +1,6 @@
 package com.zj.aiagent.integration;
 
-import com.zj.aiagent.interfaces.user.dto.UserRequests;
+import com.zj.aiagent.application.user.dto.UserRequests;
 import org.junit.jupiter.api.Test;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;

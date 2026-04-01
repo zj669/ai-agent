@@ -1,12 +1,12 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { ArrowLeftOutlined } from "@ant-design/icons";
-import { Button, Grid, Layout, Spin, Typography } from "antd";
+import { Button, Grid, Layout, Spin, Typography, Divider } from "antd";
 import SwarmChatPanel from "../components/chat/SwarmChatPanel";
 import CollaborationPanel from "../components/panel/CollaborationPanel";
 import { useSwarmAgents } from "../hooks/useSwarmAgents";
 import { useSwarmMessages } from "../hooks/useSwarmMessages";
-import { useUIStream } from "../hooks/useUIStream";
+import { useUIStream, type TaskNotificationPayload } from "../hooks/useUIStream";
 import {
   getWorkspaceDefaults,
   getWritingSessionOverview,
@@ -19,6 +19,11 @@ import type {
   WritingSessionOverview,
   WritingSessionSummary,
 } from "../types/swarm";
+import SwarmNotification, {
+  type SwarmNotificationData,
+  type NotificationType,
+} from "../components/SwarmNotification";
+import WorkerCard, { type WorkerCardData } from "../components/WorkerCard";
 
 const { Content } = Layout;
 const { Title, Text } = Typography;
@@ -58,6 +63,11 @@ export default function SwarmMainPage() {
   const streamingContentRef = useRef<string | null>(null);
   const waitingForAgentsRef = useRef<number[]>([]);
   const liveToolCallsRef = useRef<LiveToolCallStep[]>([]);
+  const [notifications, setNotifications] = useState<SwarmNotificationData[]>([]);
+  const [workerCards, setWorkerCards] = useState<WorkerCardData[]>([]);
+  const workerCardsRef = useRef<WorkerCardData[]>([]);
+  const notificationIdRef = useRef(0);
+  const coordinatorAgentIdRef = useRef<number | null>(null);
 
   useEffect(() => {
     streamingContentRef.current = streamingContent;
@@ -128,10 +138,15 @@ export default function SwarmMainPage() {
     streamingContentRef.current = null;
     waitingForAgentsRef.current = [];
     liveToolCallsRef.current = [];
+    setNotifications([]);
+    setWorkerCards([]);
+    workerCardsRef.current = [];
+    notificationIdRef.current = 0;
     getWorkspaceDefaults(wid).then((defaults) => {
       setHumanAgentId(defaults.humanAgentId);
       setAssistantAgentId(defaults.assistantAgentId);
       setDefaultGroupId(defaults.defaultGroupId);
+      coordinatorAgentIdRef.current = defaults.assistantAgentId;
     });
   }, [wid]);
 
@@ -440,6 +455,72 @@ export default function SwarmMainPage() {
         /* ignore */
       }
     },
+    onTaskNotification: (payload: TaskNotificationPayload) => {
+      console.log("[SwarmMainPage] Task notification:", payload);
+      const agentRole =
+        agents.find((a) => a.id === payload.agentId)?.role ||
+        `agent_${payload.agentId}`;
+      const notificationType: NotificationType =
+        payload.status === "completed"
+          ? "completed"
+          : payload.status === "failed"
+            ? "failed"
+            : payload.status === "killed"
+              ? "killed"
+              : payload.status === "coordinator_turn_complete"
+                ? "completed"
+                : "completed";
+
+      // Add notification toast
+      const notificationId = String(notificationIdRef.current++);
+      setNotifications((prev) => [
+        ...prev,
+        {
+          id: notificationId,
+          agentId: payload.agentId,
+          agentRole,
+          type: notificationType,
+          timestamp: payload.timestamp ?? Date.now(),
+        },
+      ]);
+
+      // Update WorkerCard
+      setWorkerCards((current) => {
+        const existingIndex = current.findIndex(
+          (c) => c.agentId === payload.agentId,
+        );
+        const update: WorkerCardData = {
+          agentId: payload.agentId,
+          agentRole,
+          status:
+            payload.status === "completed" || payload.status === "coordinator_turn_complete"
+              ? "completed"
+              : payload.status === "failed"
+                ? "failed"
+                : payload.status === "killed"
+                  ? "failed"
+                  : "idle",
+          startTime: undefined,
+          tokenCount: payload.totalTokens,
+          latestMessage: payload.summary,
+          phase: payload.phase,
+        };
+
+        if (existingIndex >= 0) {
+          const next = [...current];
+          next[existingIndex] = update;
+          workerCardsRef.current = next;
+          return next;
+        } else {
+          const next = [...current, update];
+          workerCardsRef.current = next;
+          return next;
+        }
+      });
+
+      reloadAgents();
+      scheduleOverviewRefresh();
+    },
   });
 
   const handleSend = useCallback(
@@ -667,9 +748,56 @@ export default function SwarmMainPage() {
                 latestDraft={sessionOverview?.latestDraft}
               />
             )}
+
+            {/* WorkerCards — 显示 Coordinator 派发的 Worker 状态 */}
+            {workerCards.length > 0 && (
+              <>
+                <Divider style={{ margin: "8px 0" }} />
+                <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                  <Text strong style={{ fontSize: 13, color: "#595959" }}>
+                    Worker 状态
+                  </Text>
+                  <div
+                    style={{
+                      display: "flex",
+                      flexDirection: "column",
+                      gap: 8,
+                      maxHeight: 200,
+                      overflow: "auto",
+                    }}
+                  >
+                    {workerCards.map((worker) => (
+                      <WorkerCard
+                        key={worker.agentId}
+                        worker={worker}
+                        coordinatorAgentId={coordinatorAgentIdRef.current ?? undefined}
+                        onStop={(agentId) => {
+                          stopAgent(agentId).catch(() => {});
+                          setWorkerCards((current) =>
+                            current.map((c) =>
+                              c.agentId === agentId
+                                ? { ...c, status: "failed" as const }
+                                : c,
+                            ),
+                          );
+                        }}
+                      />
+                    ))}
+                  </div>
+                </div>
+              </>
+            )}
           </div>
         </div>
       </Content>
+
+      {/* Swarm 通知 Toast — 右下角 */}
+      <SwarmNotification
+        notifications={notifications}
+        onDismiss={(id) =>
+          setNotifications((current) => current.filter((n) => n.id !== id))
+        }
+      />
     </Layout>
   );
 }

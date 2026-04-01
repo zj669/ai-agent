@@ -54,8 +54,8 @@ const OPERATORS: { value: string; label: string }[] = [
 
 const BRANCH_LABELS: Record<string, string> = { if: '如果', elseif: '否则如果', else: '否则' }
 
-const sel = 'h-7 rounded border border-slate-200 bg-white px-2 text-xs text-slate-700 focus:border-blue-400 focus:outline-none'
-const inp = 'h-7 rounded border border-slate-200 bg-white px-2 text-xs text-slate-700 focus:border-blue-400 focus:outline-none'
+const sel = 'h-7 rounded border border-slate-200 bg-white px-2 text-xs text-slate-700 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 shadow-sm focus:outline-none transition-shadow duration-200'
+const inp = 'h-7 rounded border border-slate-200 bg-white px-2 text-xs text-slate-700 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 shadow-sm focus:outline-none transition-shadow duration-200'
 
 /* ========== Helpers ========== */
 

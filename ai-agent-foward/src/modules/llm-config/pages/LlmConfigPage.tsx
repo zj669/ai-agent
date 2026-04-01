@@ -3,7 +3,8 @@ import {
   Card, Table, Button, Modal, Form, Input, Select, Space, Tag, message, Spin, Dropdown
 } from 'antd'
 import {
-  PlusOutlined, DeleteOutlined, StarOutlined, StarFilled, ThunderboltOutlined, MoreOutlined, EditOutlined
+  PlusOutlined, DeleteOutlined, StarOutlined, StarFilled, ThunderboltOutlined, MoreOutlined, EditOutlined,
+  LoadingOutlined, CheckCircleFilled, CloseCircleFilled
 } from '@ant-design/icons'
 import {
   getLlmConfigs, createLlmConfig, updateLlmConfig, deleteLlmConfig, testLlmConfig,
@@ -24,6 +25,7 @@ export default function LlmConfigPage() {
   const [modalOpen, setModalOpen] = useState(false)
   const [editingId, setEditingId] = useState<number | null>(null)
   const [testingId, setTestingId] = useState<number | null>(null)
+  const [testResults, setTestResults] = useState<Record<number, 'success' | 'failed'>>({})
   const [form] = Form.useForm()
 
   const loadConfigs = async () => {
@@ -88,11 +90,18 @@ export default function LlmConfigPage() {
 
   const handleTest = async (id: number) => {
     setTestingId(id)
+    setTestResults(prev => {
+      const next = { ...prev }
+      delete next[id]
+      return next
+    })
     try {
       const result = await testLlmConfig(id)
       if (result.ok) {
+        setTestResults(prev => ({ ...prev, [id]: 'success' }))
         message.success(`连通成功，延迟 ${result.latencyMs}ms`)
       } else {
+        setTestResults(prev => ({ ...prev, [id]: 'failed' }))
         message.error(`连通失败: ${result.error}`)
       }
     } finally {
@@ -103,7 +112,18 @@ export default function LlmConfigPage() {
   const columns = [
     { title: '名称', dataIndex: 'name', key: 'name' },
     { title: '供应商', dataIndex: 'provider', key: 'provider' },
-    { title: '模型', dataIndex: 'model', key: 'model' },
+    {
+      title: '模型',
+      key: 'model',
+      render: (_: unknown, record: LlmConfig) => (
+        <Space>
+          {record.model}
+          {testingId === record.id && <LoadingOutlined style={{ color: '#1890ff' }} />}
+          {testingId !== record.id && testResults[record.id] === 'success' && <CheckCircleFilled style={{ color: '#52c41a' }} />}
+          {testingId !== record.id && testResults[record.id] === 'failed' && <CloseCircleFilled style={{ color: '#ff4d4f' }} />}
+        </Space>
+      )
+    },
     { title: 'Base URL', dataIndex: 'baseUrl', key: 'baseUrl', ellipsis: true },
     {
       title: '默认',

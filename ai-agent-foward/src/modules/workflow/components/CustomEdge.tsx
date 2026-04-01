@@ -3,13 +3,13 @@ import { BaseEdge, EdgeLabelRenderer, getBezierPath, Position, useReactFlow, typ
 
 function CustomEdge({ id, sourceX, sourceY, targetX, targetY }: EdgeProps) {
   const [edgePath, labelX, labelY] = getBezierPath({
-    sourceX: sourceX - 8,
+    sourceX,
     sourceY,
     sourcePosition: Position.Right,
-    targetX: targetX + 8,
+    targetX,
     targetY,
     targetPosition: Position.Left,
-    curvature: 0.16,
+    curvature: 0.25,
   })
 
   const { setEdges } = useReactFlow()
@@ -31,11 +31,12 @@ function CustomEdge({ id, sourceX, sourceY, targetX, targetY }: EdgeProps) {
         path={edgePath}
         interactionWidth={20}
         style={{
-          stroke: hovered ? '#f43f5e' : '#2970FF',
-          strokeWidth: 2,
+          stroke: hovered ? '#3b82f6' : '#cbd5e1',
+          strokeWidth: hovered ? 3 : 2,
+          transition: 'stroke 0.2s, stroke-width 0.2s',
         }}
       />
-      {/* 覆盖一层透明宽路径来捕获 hover，放在 BaseEdge 之后确保在最上层 */}
+      {/* 覆盖一层透明宽路径来捕获 hover */}
       <path
         d={edgePath}
         fill="none"
@@ -45,39 +46,31 @@ function CustomEdge({ id, sourceX, sourceY, targetX, targetY }: EdgeProps) {
         onMouseEnter={() => setHovered(true)}
         onMouseLeave={() => setHovered(false)}
       />
-      {hovered && (
-        <EdgeLabelRenderer>
+      
+      {/* The EdgeLabelRenderer is outside the SVG coordinates, so we map the label via absolute positioning */}
+      <EdgeLabelRenderer>
+        <div
+          className="absolute z-10 pointer-events-none nodrag nopan flex items-center justify-center transition-opacity duration-200"
+          style={{
+            transform: `translate(-50%, -50%) translate(${labelX}px, ${labelY}px)`,
+            opacity: hovered ? 1 : 0,
+            pointerEvents: hovered ? 'all' : 'none',
+          }}
+          onMouseEnter={() => setHovered(true)}
+          onMouseLeave={() => setHovered(false)}
+        >
           <button
             type="button"
-            className="nodrag nopan"
-            style={{
-              position: 'absolute',
-              transform: `translate(-50%, -50%) translate(${labelX}px, ${labelY}px)`,
-              width: 22,
-              height: 22,
-              borderRadius: '50%',
-              background: '#f43f5e',
-              color: '#fff',
-              border: 'none',
-              cursor: 'pointer',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              fontSize: 12,
-              lineHeight: 1,
-              boxShadow: '0 2px 6px rgba(0,0,0,0.25)',
-              pointerEvents: 'all',
-              zIndex: 10,
-            }}
+            className="flex items-center justify-center h-6 w-6 rounded-full bg-white border border-slate-200 shadow-md text-slate-400 hover:text-red-500 hover:border-red-200 hover:bg-red-50 transition-colors"
             title="删除连线"
-            onMouseEnter={() => setHovered(true)}
-            onMouseLeave={() => setHovered(false)}
             onClick={onDelete}
           >
-            ✕
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M18 6L6 18M6 6l12 12" />
+            </svg>
           </button>
-        </EdgeLabelRenderer>
-      )}
+        </div>
+      </EdgeLabelRenderer>
     </>
   )
 }

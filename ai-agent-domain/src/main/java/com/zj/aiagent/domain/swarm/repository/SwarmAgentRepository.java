@@ -13,6 +13,12 @@ public interface SwarmAgentRepository {
 
     List<SwarmAgent> findByWorkspaceId(Long workspaceId);
 
+    /** 根据父Agent ID查找子Agent */
+    List<SwarmAgent> findByParentId(Long parentId);
+
+    /** 检查指定父Agent是否有子Agent */
+    boolean hasChildren(Long parentId);
+
     void updateStatus(Long id, String status);
 
     void updateLlmHistory(Long id, String llmHistory);
