@@ -10,6 +10,7 @@ import {
   BellOutlined,
   LogoutOutlined,
   ClusterOutlined,
+  ToolOutlined,
 } from '@ant-design/icons'
 import { Outlet, useLocation, useNavigate } from 'react-router-dom'
 import { useState, useMemo } from 'react'
@@ -30,6 +31,7 @@ const menuItems = [
   { key: '/swarm', icon: <ClusterOutlined />, label: '多Agent协作' },
   { key: '/reviews', icon: <AuditOutlined />, label: '审核中心' },
   { key: '/llm-config', icon: <SettingOutlined />, label: '模型配置' },
+  { key: '/mcp', icon: <ToolOutlined />, label: 'MCP 管理' },
 ]
 
 const breadcrumbMap: Record<string, string> = {
@@ -40,6 +42,7 @@ const breadcrumbMap: Record<string, string> = {
   '/swarm': '多Agent协作',
   '/reviews': '审核中心',
   '/llm-config': '模型配置',
+  '/mcp': 'MCP 管理',
 }
 
 /* Light-theme sider menu overrides */

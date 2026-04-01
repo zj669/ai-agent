@@ -17,6 +17,8 @@ import LlmConfigPage from '../modules/llm-config/pages/LlmConfigPage'
 import SwarmWorkspaceListPage from '../modules/swarm/pages/SwarmWorkspaceListPage'
 import SwarmMainPage from '../modules/swarm/pages/SwarmMainPage'
 import SettingsPage from '../modules/settings/pages/SettingsPage'
+import McpServerListPage from '../modules/mcp/pages/McpServerListPage'
+import McpServerDetailPage from '../modules/mcp/pages/McpServerDetailPage'
 
 function AppRoutes() {
   return (
@@ -34,6 +36,8 @@ function AppRoutes() {
           <Route path="reviews" element={<ReviewPage />} />
           <Route path="reviews/:executionId" element={<ReviewDetailPage />} />
           <Route path="llm-config" element={<LlmConfigPage />} />
+          <Route path="mcp" element={<McpServerListPage />} />
+          <Route path="mcp/:id" element={<McpServerDetailPage />} />
           <Route path="swarm" element={<SwarmWorkspaceListPage />} />
           <Route path="swarm/:workspaceId" element={<SwarmMainPage />} />
           <Route path="settings" element={<SettingsPage />} />
