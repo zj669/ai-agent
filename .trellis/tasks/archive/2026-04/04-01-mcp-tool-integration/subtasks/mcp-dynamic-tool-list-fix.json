@@ -1,0 +1,29 @@
+{
+  "id": "mcp-dynamic-tool-list-fix",
+  "name": "mcp-dynamic-tool-list-fix",
+  "title": "MCP 工具动态列表修复（快照 → 动态合并）",
+  "description": "Agent 启动时 MCP 服务器可能未连接，工具列表被一次性快照，导致运行期间连接的服务器工具对 LLM 不可见",
+  "status": "completed",
+  "dev_type": null,
+  "scope": null,
+  "priority": "P1",
+  "creator": "zj669",
+  "assignee": "zj669",
+  "createdAt": "2026-04-01",
+  "completedAt": null,
+  "branch": null,
+  "base_branch": "main",
+  "worktree_path": null,
+  "current_phase": 0,
+  "next_action": [],
+  "commit": null,
+  "pr_url": null,
+  "subtasks": [],
+  "children": [],
+  "parent": "mcp-tool-integration",
+  "relatedFiles": [
+    "ai-agent-application/src/main/java/com/zj/aiagent/application/swarm/runtime/SwarmAgentRunner.java",
+    "ai-agent-application/src/main/java/com/zj/aiagent/application/swarm/SwarmAgentRuntimeService.java"
+  ],
+  "notes": "## 两个根因\n\n### 根因 A：启动时 pool 为空\n- `startAgent()` 时一次性调用 `getAllMcpToolCallbacks()`\n- 此时 MCP 服务器未连接，`getAllCachedTools()` 返回空列表\n\n### 根因 B：toolCallbackMap 不含 MCP 工具\n- `toolCallbackMap` 仅在构造时填充 SwarmTools\n- `executeToolCall()` 查找时 `get(toolName)` 返回 null\n\n## 修复方案\n\n1. `SwarmAgentRunner` 接收 `SwarmTools` + `McpToolCallbackAdapter`（不再接收静态数组）\n2. `buildAllToolCallbacks()` 每次 LLM 调用前动态合并\n3. `executeToolCall()` 用动态构建的 `allCallbacks` map 查找\n\n## 改动文件\n- `SwarmAgentRunner.java`: 构造器变更 + `buildAllToolCallbacks()` + 动态查找\n- `SwarmAgentRuntimeService.java`: 传入 `swarmTools` + `mcpToolCallbackAdapter`，移除合并逻辑"
+}

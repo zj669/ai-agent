@@ -1,0 +1,54 @@
+{
+  "id": "mcp-tool-integration",
+  "name": "mcp-tool-integration",
+  "title": "MCP 工具接入模块 — 全栈实现",
+  "description": "",
+  "status": "completed",
+  "dev_type": null,
+  "scope": null,
+  "priority": "P2",
+  "creator": "zj669",
+  "assignee": "zj669",
+  "createdAt": "2026-04-01",
+  "completedAt": "2026-04-01",
+  "branch": null,
+  "base_branch": "main",
+  "worktree_path": null,
+  "current_phase": 2,
+  "next_action": [
+    {
+      "phase": 1,
+      "action": "implement"
+    },
+    {
+      "phase": 2,
+      "action": "check"
+    },
+    {
+      "phase": 3,
+      "action": "finish"
+    },
+    {
+      "phase": 4,
+      "action": "create-pr"
+    }
+  ],
+  "commit": null,
+  "pr_url": null,
+  "subtasks": [
+    "mcp-toolcallback-type-fix",
+    "mcp-dynamic-tool-list-fix"
+  ],
+  "children": [],
+  "parent": null,
+  "relatedFiles": [],
+  "notes": "## 待确认事项\n- [ ] MCP Java SDK 选型（需 research）\n- [ ] 服务器状态推送：SSE 实时推送 vs 前端轮询\n- [ ] OAuth 支持是否一期实现\n\n## 实现顺序\n1. 数据库层 (mcp_server_config 表)\n2. Domain 层 (聚合根、值对象、端口)\n3. Infrastructure 层 (McpConnectionPool、SDK)\n4. Application 层 (Service、REST Controller)\n5. Frontend 层 (MCP 管理页面)\n6. Swarm Agent 接入\n7. Workflow Engine 接入\n8. 测试 & 联调\n",
+  "meta": {
+    "prd_file": "prd.md",
+    "pending_decisions": [
+      "MCP Java SDK 选型",
+      "SSE 推送 vs 轮询",
+      "OAuth 支持"
+    ]
+  }
+}
