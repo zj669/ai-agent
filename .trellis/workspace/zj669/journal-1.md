@@ -50,3 +50,48 @@
 ### Next Steps
 
 - None - task complete
+
+
+## Session 2: 04-02 完成 - Swarm 动态提示词系统
+
+**Date**: 2026-04-02
+**Task**: 04-02 完成 - Swarm 动态提示词系统
+
+### Summary
+
+实现动态提示词系统，角色过滤 + 模块化组合，参照 Claude-Code 设计模式
+
+### Main Changes
+
+| 模块 | 变更 |
+|------|------|
+| Domain | SwarmRole 枚举扩展 ROOT/COORDINATOR/WORKER + isDispatcher/isWorker |
+| Application | 新增 SwarmToolFilter（工具白名单）、SwarmPromptSection（Section 枚举）、SwarmPromptService（动态组合） |
+| Application | SwarmAgentRunner 集成新提示词服务，移除旧 SUB_AGENT_FORBIDDEN_TOOLS |
+| 删除 | SwarmPromptTemplate.java + SwarmPromptTemplates.java（硬编码写作模板全清） |
+| 测试 | SwarmToolFilterTest(12) + SwarmPromptServiceTest(18)，34/34 通过 |
+
+**设计模式参照**（Claude-Code → ai-agent）：
+- `COORDINATOR_MODE_ALLOWED_TOOLS` → `SwarmToolFilter`
+- `buildEffectiveSystemPrompt()` → `SwarmPromptService.getPrompt()`
+- `teammatePromptAddendum.ts` → `SwarmPromptSection.BASE`
+- `assembleToolPool()` → `SwarmAgentRunner.buildAllToolCallbacks()`
+
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `721737d` | (see git log) |
+
+### Testing
+
+- [OK] (Add test results)
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete
