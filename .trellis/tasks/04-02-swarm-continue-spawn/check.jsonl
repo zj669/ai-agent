@@ -1,0 +1,4 @@
+{"file": ".claude/commands/trellis/finish-work.md", "reason": "Finish work checklist"}
+{"file": ".claude/commands/trellis/check-backend.md", "reason": "Backend check spec"}
+{"file": "ai-agent-application/src/main/java/com/zj/aiagent/application/swarm/runtime/SwarmAgentRunner.java", "reason": "核心执行器，修改后需验证 Phase 追踪逻辑"}
+{"file": "ai-agent-application/src/main/java/com/zj/aiagent/application/swarm/prompt/SwarmPromptSection.java", "reason": "提示词 Section，验证结构化上下文块是否正确注入"}

@@ -1,0 +1,10 @@
+{"file": ".trellis/workflow.md", "reason": "Project workflow and conventions"}
+{"file": ".trellis/spec/backend/index.md", "reason": "Backend development guide"}
+{"file": "ai-agent-domain/src/main/java/com/zj/aiagent/domain/swarm/valobj/SwarmRole.java", "reason": "SwarmRole enum - 需要移除 HUMAN，语义变更为 COORDINATOR=首Agent，WORKER=子Agent"}
+{"file": "ai-agent-application/src/main/java/com/zj/aiagent/application/swarm/tool/SwarmToolFilter.java", "reason": "工具白名单 - 移除 HUMAN 分支，ROOT→COORDINATOR"}
+{"file": "ai-agent-application/src/main/java/com/zj/aiagent/application/swarm/runtime/SwarmAgentRunner.java", "reason": "Agent Runner - 移除 humanAgentId，resolveSwarmRole 逻辑变更"}
+{"file": "ai-agent-application/src/main/java/com/zj/aiagent/application/swarm/prompt/SwarmPromptService.java", "reason": "Prompt Service - 移除 humanAgentId 参数"}
+{"file": "ai-agent-application/src/main/java/com/zj/aiagent/application/swarm/prompt/SwarmPromptSection.java", "reason": "Prompt Section - 移除 human 相关规则"}
+{"file": "ai-agent-application/src/main/java/com/zj/aiagent/application/swarm/SwarmWorkspaceService.java", "reason": "Workspace Service - 移除 human agent 创建"}
+{"file": "ai-agent-application/src/main/java/com/zj/aiagent/application/swarm/SwarmAgentRuntimeService.java", "reason": "Runtime Service - 移除 humanAgentId 查询"}
+{"file": "ai-agent-infrastructure/src/main/resources/docker/init/mysql/01_init_schema.sql", "reason": "DB schema - writing_session.human_agent_id 列需确认"}
