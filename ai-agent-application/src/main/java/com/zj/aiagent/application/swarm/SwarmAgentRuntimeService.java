@@ -2,8 +2,10 @@ package com.zj.aiagent.application.swarm;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.zj.aiagent.application.agent.service.AgentApplicationService;
+import com.zj.aiagent.application.swarm.prompt.SwarmPromptService;
 import com.zj.aiagent.application.swarm.runtime.SwarmAgentRunner;
 import com.zj.aiagent.application.swarm.runtime.SwarmTools;
+import com.zj.aiagent.application.swarm.tool.SwarmToolFilter;
 import com.zj.aiagent.application.workflow.SchedulerService;
 import com.zj.aiagent.application.writing.WritingAgentCoordinatorService;
 import com.zj.aiagent.application.writing.WritingDraftService;
@@ -12,6 +14,7 @@ import com.zj.aiagent.application.writing.WritingSessionService;
 import com.zj.aiagent.application.writing.WritingTaskService;
 import com.zj.aiagent.domain.llm.entity.LlmProviderConfig;
 import com.zj.aiagent.domain.llm.repository.LlmProviderConfigRepository;
+
 import com.zj.aiagent.domain.swarm.entity.SwarmAgent;
 import com.zj.aiagent.domain.swarm.entity.SwarmWorkspace;
 import com.zj.aiagent.domain.swarm.repository.SwarmAgentRepository;
@@ -19,6 +22,7 @@ import com.zj.aiagent.domain.swarm.repository.SwarmGroupRepository;
 import com.zj.aiagent.domain.swarm.repository.SwarmMessageRepository;
 import com.zj.aiagent.domain.swarm.repository.SwarmWorkspaceRepository;
 import com.zj.aiagent.domain.swarm.service.SwarmDomainService;
+import com.zj.aiagent.infrastructure.mcp.adapter.McpToolCallbackAdapter;
 import com.zj.aiagent.infrastructure.swarm.llm.SwarmLlmCaller;
 import com.zj.aiagent.infrastructure.swarm.sse.SwarmAgentEventBus;
 import com.zj.aiagent.infrastructure.swarm.sse.SwarmUIEventBus;
@@ -56,6 +60,9 @@ public class SwarmAgentRuntimeService {
     private final SwarmUIEventBus uiEventBus;
     private final ObjectMapper objectMapper;
     private final LlmProviderConfigRepository llmProviderConfigRepository;
+    private final McpToolCallbackAdapter mcpToolCallbackAdapter;
+    private final SwarmToolFilter toolFilter;
+    private final SwarmPromptService promptService;
 
     /** agentId -> runner */
     private final Map<Long, SwarmAgentRunner> runners =
@@ -111,7 +118,6 @@ public class SwarmAgentRuntimeService {
             writingAgentCoordinatorService,
             writingTaskService,
             writingResultService,
-            writingDraftService,
             objectMapper,
             agent.getId(),
             agent.getWorkspaceId(),
@@ -135,7 +141,6 @@ public class SwarmAgentRuntimeService {
             messageRepository,
             messageService,
             llmCaller,
-            swarmTools,
             objectMapper,
             agentEventBus,
             uiEventBus,
@@ -146,7 +151,11 @@ public class SwarmAgentRuntimeService {
             maxRounds,
             humanAgentId,
             llmConfig,
-            isRoot
+            isRoot,
+            swarmTools,
+            mcpToolCallbackAdapter,
+            toolFilter,
+            promptService
         );
 
         runners.put(agent.getId(), runner);

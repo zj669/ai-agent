@@ -1,10 +1,12 @@
 package com.zj.aiagent.application.swarm.runtime;
 
+
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.zj.aiagent.application.swarm.SwarmMessageService;
 import com.zj.aiagent.application.swarm.dto.SendMessageRequest;
-import com.zj.aiagent.application.swarm.prompt.SwarmPromptTemplate;
+import com.zj.aiagent.application.swarm.prompt.SwarmPromptService;
+import com.zj.aiagent.application.swarm.tool.SwarmToolFilter;
 import com.zj.aiagent.application.writing.WritingAgentCoordinatorService;
 import com.zj.aiagent.application.writing.WritingResultService;
 import com.zj.aiagent.application.writing.WritingSessionService;
@@ -17,11 +19,13 @@ import com.zj.aiagent.domain.swarm.repository.SwarmGroupRepository;
 import com.zj.aiagent.domain.swarm.repository.SwarmMessageRepository;
 import com.zj.aiagent.domain.swarm.service.SwarmDomainService;
 import com.zj.aiagent.domain.swarm.valobj.SwarmAgentStatus;
+import com.zj.aiagent.domain.swarm.valobj.SwarmRole;
 import com.zj.aiagent.domain.swarm.valobj.TaskNotificationEvent;
 import com.zj.aiagent.domain.writing.entity.WritingAgent;
 import com.zj.aiagent.domain.writing.entity.WritingResult;
 import com.zj.aiagent.domain.writing.entity.WritingSession;
 import com.zj.aiagent.domain.writing.entity.WritingTask;
+import com.zj.aiagent.infrastructure.mcp.adapter.McpToolCallbackAdapter;
 import com.zj.aiagent.infrastructure.swarm.llm.SwarmLlmCaller;
 import com.zj.aiagent.infrastructure.swarm.llm.SwarmLlmResponse;
 import com.zj.aiagent.infrastructure.swarm.sse.SwarmAgentEventBus;
@@ -35,10 +39,13 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.lang3.ArrayUtils;
 import org.springframework.ai.chat.messages.AssistantMessage;
 import org.springframework.ai.chat.messages.Message;
+
 import org.springframework.ai.support.ToolCallbacks;
 import org.springframework.ai.tool.ToolCallback;
+import java.util.HashMap;
 
 /**
  * 单个 Agent 的运行循环（虚拟线程）
@@ -67,16 +74,18 @@ public class SwarmAgentRunner implements Runnable {
         public String getDescription() { return description; }
     }
 
-    private static final java.util.Set<String> SUB_AGENT_FORBIDDEN_TOOLS =
-        java.util.Set.of(
-            "createAgent",
-            "executeWorkflow",
-            "listAgents",
-            "writing_session",
-            "writing_agent",
-            "writing_task",
-            "writing_draft"
-        );
+    /**
+     * 根据 isRoot 和 parentId 解析 SwarmRole。
+     */
+    private static SwarmRole resolveSwarmRole(boolean isRoot, Long parentId) {
+        if (isRoot) {
+            return SwarmRole.ROOT;
+        }
+        if (parentId != null) {
+            return SwarmRole.WORKER;
+        }
+        return SwarmRole.COORDINATOR;
+    }
 
     private final SwarmAgent agent;
     private final SwarmDomainService domainService;
@@ -86,10 +95,16 @@ public class SwarmAgentRunner implements Runnable {
     private final SwarmMessageService messageService;
     private final SwarmLlmCaller llmCaller;
     private final SwarmTools swarmTools;
-    private final ToolCallback[] toolCallbacks;
+    /** SwarmTools 内置工具（@Tool 方法，一次构建） */
+    private final ToolCallback[] swarmToolCallbacks;
+    /** MCP 工具适配器（动态查询连接池，实时反映已连接服务器的工具） */
+    private final McpToolCallbackAdapter mcpToolCallbackAdapter;
+    private final Map<String, ToolCallback> toolCallbackMap;
     private final ObjectMapper objectMapper;
     private final SwarmAgentEventBus agentEventBus;
     private final SwarmUIEventBus uiEventBus;
+    private final SwarmToolFilter toolFilter;
+    private final SwarmPromptService promptService;
     private final WritingSessionService writingSessionService;
     private final WritingAgentCoordinatorService writingAgentCoordinatorService;
     private final WritingTaskService writingTaskService;
@@ -98,6 +113,8 @@ public class SwarmAgentRunner implements Runnable {
     private final Long humanAgentId;
     private final LlmProviderConfig llmConfig;
     private final boolean isRoot;
+    /** 根据 isRoot 和 parentId 计算的 SwarmRole */
+    private final SwarmRole swarmRole;
     /** 当前 Phase（Coordinator/Worker 模式使用） */
     private volatile Phase currentPhase = Phase.IMPLEMENTATION;
     /** 本次执行统计 */
@@ -119,7 +136,6 @@ public class SwarmAgentRunner implements Runnable {
         SwarmMessageRepository messageRepository,
         SwarmMessageService messageService,
         SwarmLlmCaller llmCaller,
-        SwarmTools swarmTools,
         ObjectMapper objectMapper,
         SwarmAgentEventBus agentEventBus,
         SwarmUIEventBus uiEventBus,
@@ -130,7 +146,11 @@ public class SwarmAgentRunner implements Runnable {
         int maxRoundsPerTurn,
         Long humanAgentId,
         LlmProviderConfig llmConfig,
-        boolean isRoot
+        boolean isRoot,
+        SwarmTools swarmTools,
+        McpToolCallbackAdapter mcpToolCallbackAdapter,
+        SwarmToolFilter toolFilter,
+        SwarmPromptService promptService
     ) {
         this.agent = agent;
         this.domainService = domainService;
@@ -140,10 +160,12 @@ public class SwarmAgentRunner implements Runnable {
         this.messageService = messageService;
         this.llmCaller = llmCaller;
         this.swarmTools = swarmTools;
-        this.toolCallbacks = ToolCallbacks.from(swarmTools);
+        this.mcpToolCallbackAdapter = mcpToolCallbackAdapter;
         this.objectMapper = objectMapper;
         this.agentEventBus = agentEventBus;
         this.uiEventBus = uiEventBus;
+        this.toolFilter = toolFilter;
+        this.promptService = promptService;
         this.writingSessionService = writingSessionService;
         this.writingAgentCoordinatorService = writingAgentCoordinatorService;
         this.writingTaskService = writingTaskService;
@@ -152,7 +174,40 @@ public class SwarmAgentRunner implements Runnable {
         this.humanAgentId = humanAgentId;
         this.llmConfig = llmConfig;
         this.isRoot = isRoot;
+        this.swarmRole = resolveSwarmRole(isRoot, agent.getParentId());
         this.currentWakeSignal = new CompletableFuture<>();
+
+        // 构建 SwarmTools 内置工具索引（静态部分）
+        this.swarmToolCallbacks = swarmTools != null
+                ? ToolCallbacks.from(swarmTools)
+                : new ToolCallback[0];
+
+        // 构建 name -> ToolCallback 索引（首次用 SwarmTools，buildAllToolCallbacks 动态补充 MCP）
+        this.toolCallbackMap = new HashMap<>();
+        for (ToolCallback cb : swarmToolCallbacks) {
+            this.toolCallbackMap.put(cb.getToolDefinition().name(), cb);
+        }
+        log.info(
+            "[Swarm] ToolCallback pool assembled: agent={}, swarmTools={}, toolNames={}",
+            agent.getId(),
+            this.swarmToolCallbacks.length,
+            this.toolCallbackMap.keySet()
+        );
+    }
+
+    /**
+     * 动态构建完整的工具回调列表
+     * <p>
+     * SwarmTools 内置工具（静态）+ MCP 已连接服务器的工具（实时）。
+     * 每次 LLM 调用前重新合并，确保：
+     * 1. Agent 启动时 MCP 服务器未连接 → 只有 SwarmTools
+     * 2. 运行期间服务器连接 → MCP 工具立即生效
+     */
+    private ToolCallback[] buildAllToolCallbacks() {
+        List<ToolCallback> mcpCallbacks = mcpToolCallbackAdapter != null
+                ? mcpToolCallbackAdapter.getAllMcpToolCallbacks()
+                : List.of();
+        return ArrayUtils.addAll(swarmToolCallbacks, mcpCallbacks.toArray(new ToolCallback[0]));
     }
 
     @Override
@@ -450,7 +505,7 @@ public class SwarmAgentRunner implements Runnable {
 
             SwarmLlmResponse response = llmCaller.callStreamWithTools(
                 messages,
-                toolCallbacks,
+                buildAllToolCallbacks(),
                 chunk -> {
                     emitContentChunk(primaryGroupId, chunk, true);
                 },
@@ -687,7 +742,7 @@ public class SwarmAgentRunner implements Runnable {
         emitStreamStart(streamGroupId);
         SwarmLlmResponse response = llmCaller.callStreamWithTools(
             messages,
-            toolCallbacks,
+            buildAllToolCallbacks(),
             chunk -> emitContentChunk(streamGroupId, chunk, true),
             llmConfig
         );
@@ -1429,23 +1484,17 @@ public class SwarmAgentRunner implements Runnable {
     ) {
         List<Message> messages = new ArrayList<>();
 
-        // System prompt: Root 用协调者模板，Sub 用执行者模板
+        // System prompt: 通过 SwarmPromptService 按角色动态组合
         String systemPrompt;
-        if (isRoot) {
-            systemPrompt = SwarmPromptTemplate.buildRootPrompt(
-                agent.getId(),
-                agent.getWorkspaceId(),
-                agent.getRole(),
-                humanAgentId
+        if (swarmRole == SwarmRole.ROOT) {
+            systemPrompt = promptService.getRootPrompt(agent, humanAgentId);
+        } else if (swarmRole == SwarmRole.WORKER) {
+            systemPrompt = promptService.getWorkerPrompt(
+                agent, humanAgentId, currentPhase.name()
             );
         } else {
-            systemPrompt = SwarmPromptTemplate.buildSubPrompt(
-                agent.getId(),
-                agent.getWorkspaceId(),
-                agent.getRole(),
-                humanAgentId,
-                agent.getParentId()
-            );
+            // COORDINATOR
+            systemPrompt = promptService.getCoordinatorPrompt(agent, humanAgentId);
         }
         messages.add(SwarmLlmCaller.systemMessage(systemPrompt));
 
@@ -1637,7 +1686,8 @@ public class SwarmAgentRunner implements Runnable {
     }
 
     /**
-     * 通过 SwarmTools 执行工具调用
+     * 通过 ToolCallback 统一池执行工具调用（参照 Claude-Code assembleToolPool 模式）
+     * 内置 @Tool 方法 + MCP 适配工具均通过同一 Map 分派，无需手动 switch。
      */
     private String executeToolCall(String toolName, String toolArgs) {
         try {
@@ -1650,211 +1700,37 @@ public class SwarmAgentRunner implements Runnable {
                 toolName,
                 preview(toolArgs)
             );
-            if (!isRoot && SUB_AGENT_FORBIDDEN_TOOLS.contains(toolName)) {
+            if (!toolFilter.isAllowed(swarmRole, toolName)) {
                 log.warn(
-                    "[Swarm] Sub agent {} attempted forbidden tool: {}",
+                    "[Swarm] Agent {} (role={}) attempted disallowed tool: {}",
                     agent.getId(),
+                    swarmRole,
                     toolName
                 );
                 return errorJson(
-                    "你是执行者 Agent，不允许使用 " +
-                        toolName +
-                        " 工具。你只能使用 writing_result_by_task_uuid、writing_result_by_task、writing_result、send 和 self。"
+                    "你是 " + swarmRole.getDesc() + " Agent，不允许使用 " +
+                        toolName + " 工具。"
                 );
             }
 
-            JsonNode args = SwarmToolArgumentUtils.parseArgumentsObject(
-                toolName,
-                toolArgs,
-                objectMapper
-            );
-            String result = switch (toolName) {
-                case "createAgent" -> swarmTools.createAgent(
-                    SwarmToolArgumentUtils.getOptionalText(args, "role") != null
-                        ? SwarmToolArgumentUtils.getOptionalText(args, "role")
-                        : "assistant",
-                    SwarmToolArgumentUtils.getOptionalText(
-                            args,
-                            "description"
-                        ) !=
-                        null
-                        ? SwarmToolArgumentUtils.getOptionalText(
-                              args,
-                              "description"
-                          )
-                        : "",
-                    SwarmToolArgumentUtils.getOptionalText(args, "graphJson")
+            // 从动态完整列表查找（MCP 工具在运行期间可能随时加入连接池）
+            Map<String, ToolCallback> allCallbacks = new HashMap<>();
+            for (ToolCallback cb : buildAllToolCallbacks()) {
+                allCallbacks.put(cb.getToolDefinition().name(), cb);
+            }
+            ToolCallback callback = allCallbacks.get(toolName);
+            if (callback == null) {
+                log.warn(
+                    "[Swarm] Unknown tool: agent={}, tool={}, availableTools={}",
+                    agent.getId(),
+                    toolName,
+                    allCallbacks.keySet()
                 );
-                case "executeWorkflow" -> swarmTools.executeWorkflow(
-                    SwarmToolArgumentUtils.getRequiredLong(
-                        args,
-                        "agentId",
-                        "agent_id"
-                    ),
-                    SwarmToolArgumentUtils.getOptionalText(args, "input")
-                );
-                case "send" -> swarmTools.send(
-                    SwarmToolArgumentUtils.getRequiredLong(
-                        args,
-                        "agentId",
-                        "agent_id"
-                    ),
-                    SwarmToolArgumentUtils.getRequiredText(args, "message")
-                );
-                case "writing_session" -> swarmTools.writing_session(
-                    SwarmToolArgumentUtils.getRequiredText(args, "title"),
-                    SwarmToolArgumentUtils.getRequiredText(args, "goal"),
-                    SwarmToolArgumentUtils.getOptionalText(
-                        args,
-                        "constraintsJson",
-                        "constraints_json"
-                    )
-                );
-                case "writing_agent" -> swarmTools.writing_agent(
-                    SwarmToolArgumentUtils.getRequiredLong(
-                        args,
-                        "sessionId",
-                        "session_id"
-                    ),
-                    SwarmToolArgumentUtils.getRequiredText(args, "role"),
-                    SwarmToolArgumentUtils.getRequiredText(args, "description"),
-                    SwarmToolArgumentUtils.getOptionalText(
-                        args,
-                        "skillTagsJson",
-                        "skill_tags_json"
-                    ),
-                    SwarmToolArgumentUtils.getOptionalInt(
-                        args,
-                        "sortOrder",
-                        "sort_order"
-                    )
-                );
-                case "writing_task" -> swarmTools.writing_task(
-                    SwarmToolArgumentUtils.getRequiredLong(
-                        args,
-                        "sessionId",
-                        "session_id"
-                    ),
-                    SwarmToolArgumentUtils.getRequiredLong(
-                        args,
-                        "writingAgentId",
-                        "writing_agent_id"
-                    ),
-                    SwarmToolArgumentUtils.getRequiredLong(
-                        args,
-                        "swarmAgentId",
-                        "swarm_agent_id"
-                    ),
-                    SwarmToolArgumentUtils.getRequiredText(
-                        args,
-                        "taskType",
-                        "task_type"
-                    ),
-                    SwarmToolArgumentUtils.getRequiredText(args, "title"),
-                    SwarmToolArgumentUtils.getRequiredText(args, "instruction"),
-                    SwarmToolArgumentUtils.getOptionalText(
-                        args,
-                        "inputPayloadJson",
-                        "input_payload_json"
-                    ),
-                    SwarmToolArgumentUtils.getOptionalText(
-                        args,
-                        "expectedOutputSchemaJson",
-                        "expected_output_schema_json"
-                    ),
-                    SwarmToolArgumentUtils.getOptionalInt(args, "priority")
-                );
-                case "writing_result" -> swarmTools.writing_result(
-                    SwarmToolArgumentUtils.getRequiredLong(
-                        args,
-                        "sessionId",
-                        "session_id"
-                    ),
-                    SwarmToolArgumentUtils.getRequiredLong(
-                        args,
-                        "taskId",
-                        "task_id"
-                    ),
-                    SwarmToolArgumentUtils.getRequiredLong(
-                        args,
-                        "writingAgentId",
-                        "writing_agent_id"
-                    ),
-                    SwarmToolArgumentUtils.getRequiredText(
-                        args,
-                        "resultType",
-                        "result_type"
-                    ),
-                    SwarmToolArgumentUtils.getRequiredText(args, "summary"),
-                    SwarmToolArgumentUtils.getRequiredText(args, "content"),
-                    SwarmToolArgumentUtils.getOptionalText(
-                        args,
-                        "structuredPayloadJson",
-                        "structured_payload_json"
-                    )
-                );
-                case "writing_result_by_task" -> swarmTools.writing_result_by_task(
-                    SwarmToolArgumentUtils.getRequiredLong(
-                        args,
-                        "taskId",
-                        "task_id"
-                    ),
-                    SwarmToolArgumentUtils.getRequiredText(
-                        args,
-                        "resultType",
-                        "result_type"
-                    ),
-                    SwarmToolArgumentUtils.getRequiredText(args, "summary"),
-                    SwarmToolArgumentUtils.getRequiredText(args, "content"),
-                    SwarmToolArgumentUtils.getOptionalText(
-                        args,
-                        "structuredPayloadJson",
-                        "structured_payload_json"
-                    )
-                );
-                case "writing_result_by_task_uuid" -> swarmTools.writing_result_by_task_uuid(
-                    SwarmToolArgumentUtils.getRequiredText(
-                        args,
-                        "taskUuid",
-                        "task_uuid"
-                    ),
-                    SwarmToolArgumentUtils.getRequiredText(
-                        args,
-                        "resultType",
-                        "result_type"
-                    ),
-                    SwarmToolArgumentUtils.getRequiredText(args, "summary"),
-                    SwarmToolArgumentUtils.getRequiredText(args, "content"),
-                    SwarmToolArgumentUtils.getOptionalText(
-                        args,
-                        "structuredPayloadJson",
-                        "structured_payload_json"
-                    )
-                );
-                case "writing_draft" -> swarmTools.writing_draft(
-                    SwarmToolArgumentUtils.getRequiredLong(
-                        args,
-                        "sessionId",
-                        "session_id"
-                    ),
-                    SwarmToolArgumentUtils.getRequiredInt(
-                        args,
-                        "versionNo",
-                        "version_no"
-                    ),
-                    SwarmToolArgumentUtils.getRequiredText(args, "title"),
-                    SwarmToolArgumentUtils.getRequiredText(args, "content"),
-                    SwarmToolArgumentUtils.getOptionalText(
-                        args,
-                        "sourceResultIdsJson",
-                        "source_result_ids_json"
-                    ),
-                    SwarmToolArgumentUtils.getOptionalText(args, "status")
-                );
-                case "self" -> swarmTools.self();
-                case "listAgents" -> swarmTools.listAgents();
-                default -> errorJson("Unknown tool: " + toolName);
-            };
+                return errorJson("Unknown tool: " + toolName);
+            }
+
+            String result = callback.call(toolArgs);
+
             log.info(
                 "[Swarm] Tool execution succeeded: agent={}, tool={}, resultPreview={}",
                 agent.getId(),
