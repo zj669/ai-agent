@@ -5,12 +5,11 @@
 #   - 发布 GitHub Release（打精确语义化版本标签）
 #   - 手动触发 (workflow_dispatch)
 #
-# 已知坑:
-#   GitHub Actions runner 预装了 Docker Hub 凭证。
-#   Buildx 推送 ghcr.io 时仍会尝试 Docker Hub 认证（用 runner 的旧凭证），
-#   导致 401 insufficient scopes。
-#   解决: setup-buildx-action 中使用 config-from-name: '' 清除残留凭证，
-#   只使用 login-action 提供的 ghcr.io 凭证。
+# 已知坑 & 解决方案:
+#   GitHub Actions runner 预装了 Docker Hub 凭证（匿名的或旧的）。
+#   Buildx 推送 ghcr.io 时仍会尝试 Docker Hub 认证，导致 401。
+#   解决：显式登出 Docker Hub + 禁用 BuildKit 凭证辅助程序，
+#   只使用 ghcr.io login-action 凭证。
 # ============================================================
 name: Build & Push Images
 
@@ -35,33 +34,25 @@ env:
   IMAGE_NAME_FRONTEND: ghcr.io/${{ github.repository_owner }}/ai-agent/frontend
 
 jobs:
-  # ── Job 1: 确定镜像标签 ───────────────────────────────
   determine-tags:
     name: Determine Image Tags
     runs-on: ubuntu-latest
     outputs:
       tags: ${{ steps.meta.outputs.tags }}
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Determine tags
-        id: meta
+      - uses: actions/checkout@v4
+      - id: meta
         run: |
           TAGS=""
           if [[ "${{ github.event_name }}" == "release" ]]; then
-            TAG_NAME="${GITHUB_REF#refs/tags/}"
-            TAGS="${TAG_NAME},latest"
+            TAGS="${GITHUB_REF#refs/tags/},latest"
           elif [[ "${{ github.event_name }}" == "workflow_dispatch" && -n "${{ github.event.inputs.image_tag }}" ]]; then
             TAGS="${{ github.event.inputs.image_tag }},latest"
           elif [[ "${{ github.event_name }}" == "push" && "${{ github.ref }}" == "refs/heads/main" ]]; then
-            SHORT_SHA=${GITHUB_SHA:0:7}
-            TIMESTAMP=$(date +%Y%m%d%H%M)
-            TAGS="latest,${TIMESTAMP}-${SHORT_SHA}"
+            TAGS="latest,$(date +%Y%m%d%H%M)-${GITHUB_SHA:0:7}"
           fi
           echo "tags=$TAGS" >> $GITHUB_OUTPUT
 
-  # ── Job 2: 构建并推送 Backend ──────────────────────────
   build-backend:
     name: Build Backend Image
     runs-on: ubuntu-latest
@@ -70,15 +61,29 @@ jobs:
       contents: read
       packages: write
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
+
+      # 清除 runner 预装的 Docker Hub 凭证（关键修复）
+      - name: Remove stale Docker Hub credentials
+        run: |
+          docker logout || true
+          rm -f ~/.docker/config.json.bak
+          cat ~/.docker/config.json 2>/dev/null | \
+            python3 -c "
+import json,sys
+cfg=json.load(sys.stdin)
+# 删除所有 Docker Hub 相关认证
+if 'auths' in cfg:
+    for k in list(cfg['auths'].keys()):
+        if 'docker.io' in k or k == 'https://index.docker.io/v1/':
+            del cfg['auths'][k]
+print(json.dumps(cfg))
+" > ~/.docker/config.json.tmp && mv ~/.docker/config.json.tmp ~/.docker/config.json
+          echo "Docker config after cleanup:"
+          cat ~/.docker/config.json
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
-        with:
-          # 关键：清除 runner 预装的 Docker Hub 残留凭证
-          # 只使用 login-action 提供的 ghcr.io 凭证
-          config-from-name: ''
 
       - name: Log in to GHCR
         uses: docker/login-action@v3
@@ -105,7 +110,6 @@ jobs:
           cache-to: type=gha,mode=max
           build-args: MAVEN_OPTS=-Xmx2048m
 
-  # ── Job 3: 构建并推送 Frontend ───────────────────────
   build-frontend:
     name: Build Frontend Image
     runs-on: ubuntu-latest
@@ -114,21 +118,33 @@ jobs:
       contents: read
       packages: write
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
-      - name: Set up Node.js
+      - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: '20'
           cache: 'npm'
           cache-dependency-path: ai-agent-foward/package-lock.json
 
+      # 清除 runner 预装的 Docker Hub 凭证（关键修复）
+      - name: Remove stale Docker Hub credentials
+        run: |
+          docker logout || true
+          rm -f ~/.docker/config.json.bak
+          cat ~/.docker/config.json 2>/dev/null | \
+            python3 -c "
+import json,sys
+cfg=json.load(sys.stdin)
+if 'auths' in cfg:
+    for k in list(cfg['auths'].keys()):
+        if 'docker.io' in k or k == 'https://index.docker.io/v1/':
+            del cfg['auths'][k]
+print(json.dumps(cfg))
+" > ~/.docker/config.json.tmp && mv ~/.docker/config.json.tmp ~/.docker/config.json
+
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
-        with:
-          # 关键：清除 runner 预装的 Docker Hub 残留凭证
-          config-from-name: ''
 
       - name: Log in to GHCR
         uses: docker/login-action@v3
@@ -145,9 +161,7 @@ jobs:
 
       - name: Build frontend
         working-directory: ./ai-agent-foward
-        run: |
-          npm ci
-          VITE_API_BASE_URL=/api npm run build
+        run: npm ci && VITE_API_BASE_URL=/api npm run build
 
       - name: Build and push frontend
         uses: docker/build-push-action@v6
