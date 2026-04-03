@@ -66,6 +66,7 @@ jobs:
           registry: ${{ env.REGISTRY }}
           username: ${{ github.actor }}
           password: ${{ secrets.CR_PAT }}
+          logout: false
 
       - uses: docker/metadata-action@v5
         with:
@@ -110,6 +111,7 @@ jobs:
           registry: ${{ env.REGISTRY }}
           username: ${{ github.actor }}
           password: ${{ secrets.CR_PAT }}
+          logout: false
 
       - uses: docker/metadata-action@v5
         with:
