@@ -26,8 +26,6 @@ env:
   REGISTRY: ghcr.io
   IMAGE_NAME_BACKEND: ghcr.io/${{ github.repository_owner }}/ai-agent/backend
   IMAGE_NAME_FRONTEND: ghcr.io/${{ github.repository_owner }}/ai-agent/frontend
-  # Docker Hub 镜像加速（解决 GitHub Actions runner 拉取 docker.io 镜像 401/403 问题）
-  DOCKER_HUB_MIRROR: gcr.io/mirrorkit
 
 jobs:
   # ── Job 1: 确定镜像标签 ───────────────────────────────
@@ -75,17 +73,13 @@ jobs:
     permissions:
       contents: read
       packages: write
+      actions: read
     steps:
       - name: Checkout
         uses: actions/checkout@v4
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
-        with:
-          driver-opts: |
-            image=moby/buildkit:buildx-stable-1
-            network=host
-          install: true
 
       - name: Log in to GHCR
         uses: docker/login-action@v3
@@ -107,13 +101,14 @@ jobs:
           context: .
           file: ./ai-agent-interfaces/Dockerfile
           push: true
+          provenance: false
           tags: ${{ needs.determine-tags.outputs.tags }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
           build-args: |
             MAVEN_OPTS=-Xmx2048m
 
-  # ── Job 3: 构建并推送 Frontend ────────────────────────
+  # ── Job 3: 构建并推送 Frontend ───────────────────────
   build-frontend:
     name: Build Frontend Image
     runs-on: ubuntu-latest
@@ -121,6 +116,7 @@ jobs:
     permissions:
       contents: read
       packages: write
+      actions: read
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -134,11 +130,6 @@ jobs:
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
-        with:
-          driver-opts: |
-            image=moby/buildkit:buildx-stable-1
-            network=host
-          install: true
 
       - name: Log in to GHCR
         uses: docker/login-action@v3
@@ -166,6 +157,7 @@ jobs:
           context: ./ai-agent-foward
           file: ./ai-agent-foward/Dockerfile.prod
           push: true
+          provenance: false
           tags: ${{ needs.determine-tags.outputs.tags }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
