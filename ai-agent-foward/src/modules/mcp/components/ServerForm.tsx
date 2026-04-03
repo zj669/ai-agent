@@ -6,13 +6,14 @@ const { TextArea } = Input
 
 interface Props {
   initialName?: string
+  initialDescription?: string
   initialValues?: Partial<McpServerConfig>
   onSubmit: (values: { name: string; formData: McpServerConfig; description: string }) => void
   onCancel: () => void
   loading?: boolean
 }
 
-export default function ServerForm({ initialName, initialValues, onSubmit, onCancel, loading }: Props) {
+export default function ServerForm({ initialName, initialDescription, initialValues, onSubmit, onCancel, loading }: Props) {
   const [form] = Form.useForm()
 
   const handleFinish = (values: {
@@ -66,7 +67,7 @@ export default function ServerForm({ initialName, initialValues, onSubmit, onCan
       onFinish={handleFinish}
       initialValues={{
         name: initialName || '',
-        description: initialValues?.description || '',
+        description: initialDescription || '',
         serverType: (initialValues?.type || 'stdio') as ServerType,
         command: initialValues?.command || '',
         args: initialValues?.args?.join(' ') || '',

@@ -312,6 +312,7 @@ export default function McpServerListPage() {
         <div style={{ paddingTop: 16 }}>
           <ServerForm
             initialName={editingServer?.name}
+            initialDescription={editingServer?.description}
             initialValues={editingServer?.config}
             onSubmit={handleFormSubmit}
             onCancel={() => setModalVisible(false)}
