@@ -47,7 +47,6 @@ public class WritingSessionRepositoryImpl implements WritingSessionRepository {
         po.setId(domain.getId());
         po.setWorkspaceId(domain.getWorkspaceId());
         po.setRootAgentId(domain.getRootAgentId());
-        po.setHumanAgentId(domain.getHumanAgentId());
         po.setDefaultGroupId(domain.getDefaultGroupId());
         po.setTitle(domain.getTitle());
         po.setGoal(domain.getGoal());
@@ -64,7 +63,6 @@ public class WritingSessionRepositoryImpl implements WritingSessionRepository {
             .id(po.getId())
             .workspaceId(po.getWorkspaceId())
             .rootAgentId(po.getRootAgentId())
-            .humanAgentId(po.getHumanAgentId())
             .defaultGroupId(po.getDefaultGroupId())
             .title(po.getTitle())
             .goal(po.getGoal())

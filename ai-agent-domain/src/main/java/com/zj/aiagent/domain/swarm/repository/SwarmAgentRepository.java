@@ -9,6 +9,8 @@ public interface SwarmAgentRepository {
 
     void save(SwarmAgent agent);
 
+    void update(SwarmAgent agent);
+
     Optional<SwarmAgent> findById(Long id);
 
     List<SwarmAgent> findByWorkspaceId(Long workspaceId);
@@ -18,6 +20,9 @@ public interface SwarmAgentRepository {
 
     /** 检查指定父Agent是否有子Agent */
     boolean hasChildren(Long parentId);
+
+    /** 根据会话ID查找Agent */
+    List<SwarmAgent> findBySessionId(Long sessionId);
 
     void updateStatus(Long id, String status);
 

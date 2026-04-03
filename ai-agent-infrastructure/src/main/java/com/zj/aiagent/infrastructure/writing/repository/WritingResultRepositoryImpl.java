@@ -50,7 +50,6 @@ public class WritingResultRepositoryImpl implements WritingResultRepository {
         po.setId(domain.getId());
         po.setSessionId(domain.getSessionId());
         po.setTaskId(domain.getTaskId());
-        po.setWritingAgentId(domain.getWritingAgentId());
         po.setSwarmAgentId(domain.getSwarmAgentId());
         po.setResultType(domain.getResultType());
         po.setSummary(domain.getSummary());
@@ -65,7 +64,6 @@ public class WritingResultRepositoryImpl implements WritingResultRepository {
             .id(po.getId())
             .sessionId(po.getSessionId())
             .taskId(po.getTaskId())
-            .writingAgentId(po.getWritingAgentId())
             .swarmAgentId(po.getSwarmAgentId())
             .resultType(po.getResultType())
             .summary(po.getSummary())

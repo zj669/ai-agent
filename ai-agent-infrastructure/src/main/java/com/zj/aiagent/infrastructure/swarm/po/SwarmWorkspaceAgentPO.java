@@ -19,5 +19,7 @@ public class SwarmWorkspaceAgentPO {
     private Long parentId;
     private String llmHistory;
     private String status;
+    private Long sessionId;
+    private Integer sortOrder;
     private LocalDateTime createdAt;
 }

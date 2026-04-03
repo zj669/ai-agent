@@ -27,6 +27,7 @@
 /.v0/
 /.replit/
 /powers/
+# /Claude-Code/
 
 # ===== Java 项目通用规则 =====
 HELP.md
@@ -84,6 +85,9 @@ probe_*.json
 ### 测试报告 ###
 midscene_run/
 test-results/
+
+# ===== Docker 初始化脚本（权威副本在 ai-agent-infrastructure/）=====
+docker/init/
 
 # ===== 前端项目排除 =====
 /app/

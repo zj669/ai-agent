@@ -18,12 +18,10 @@ public class WritingTaskService {
 
     private final WritingTaskRepository writingTaskRepository;
     private final WritingSessionService writingSessionService;
-    private final WritingAgentCoordinatorService writingAgentCoordinatorService;
 
     @Transactional(rollbackFor = Exception.class)
     public WritingTask createTask(
         Long sessionId,
-        Long writingAgentId,
         Long swarmAgentId,
         String taskType,
         String title,
@@ -34,9 +32,8 @@ public class WritingTaskService {
         Long createdBySwarmAgentId
     ) {
         log.info(
-            "[Writing] Creating task: sessionId={}, writingAgentId={}, swarmAgentId={}, taskType={}, title={}, priority={}, createdBy={}",
+            "[Writing] Creating task: sessionId={}, swarmAgentId={}, taskType={}, title={}, priority={}, createdBy={}",
             sessionId,
-            writingAgentId,
             swarmAgentId,
             taskType,
             title,
@@ -47,7 +44,6 @@ public class WritingTaskService {
         WritingTask task = WritingTask.builder()
             .taskUuid(taskUuid)
             .sessionId(sessionId)
-            .writingAgentId(writingAgentId)
             .swarmAgentId(swarmAgentId)
             .taskType(
                 taskType != null && !taskType.isBlank() ? taskType : "WRITING"
@@ -63,14 +59,12 @@ public class WritingTaskService {
             .updatedAt(LocalDateTime.now())
             .build();
         writingTaskRepository.save(task);
-        writingAgentCoordinatorService.updateStatus(writingAgentId, "PLANNED");
         writingSessionService.updateStatus(sessionId, "RUNNING");
         log.info(
-            "[Writing] Task created: taskId={}, taskUuid={}, sessionId={}, writingAgentId={}, swarmAgentId={}, status={}",
+            "[Writing] Task created: taskId={}, taskUuid={}, sessionId={}, swarmAgentId={}, status={}",
             task.getId(),
             task.getTaskUuid(),
             task.getSessionId(),
-            task.getWritingAgentId(),
             task.getSwarmAgentId(),
             task.getStatus()
         );
@@ -101,8 +95,8 @@ public class WritingTaskService {
         return writingTaskRepository.findBySessionId(sessionId);
     }
 
-    public List<WritingTask> listByWritingAgent(Long writingAgentId) {
-        return writingTaskRepository.findByWritingAgentId(writingAgentId);
+    public List<WritingTask> listBySwarmAgentId(Long swarmAgentId) {
+        return writingTaskRepository.findBySwarmAgentId(swarmAgentId);
     }
 
     @Transactional(rollbackFor = Exception.class)
@@ -112,17 +106,12 @@ public class WritingTaskService {
         task.setStatus("PENDING");
         task.setUpdatedAt(LocalDateTime.now());
         writingTaskRepository.update(task);
-        writingAgentCoordinatorService.updateStatus(
-            task.getWritingAgentId(),
-            "ASSIGNED"
-        );
         log.info(
-            "[Writing] Task dispatched: taskId={}, taskUuid={}, from={}, to={}, writingAgentId={}, swarmAgentId={}",
+            "[Writing] Task dispatched: taskId={}, taskUuid={}, from={}, to={}, swarmAgentId={}",
             task.getId(),
             task.getTaskUuid(),
             previousStatus,
             task.getStatus(),
-            task.getWritingAgentId(),
             task.getSwarmAgentId()
         );
         return task;
@@ -161,12 +150,11 @@ public class WritingTaskService {
         task.setUpdatedAt(LocalDateTime.now());
         writingTaskRepository.update(task);
         log.info(
-            "[Writing] Task completed: taskId={}, taskUuid={}, from={}, to={}, writingAgentId={}, swarmAgentId={}, finishedAt={}",
+            "[Writing] Task completed: taskId={}, taskUuid={}, from={}, to={}, swarmAgentId={}, finishedAt={}",
             taskId,
             task.getTaskUuid(),
             previousStatus,
             task.getStatus(),
-            task.getWritingAgentId(),
             task.getSwarmAgentId(),
             task.getFinishedAt()
         );
@@ -185,12 +173,11 @@ public class WritingTaskService {
         task.setUpdatedAt(LocalDateTime.now());
         writingTaskRepository.update(task);
         log.info(
-            "[Writing] Task failed: taskId={}, taskUuid={}, from={}, to={}, writingAgentId={}, swarmAgentId={}, finishedAt={}",
+            "[Writing] Task failed: taskId={}, taskUuid={}, from={}, to={}, swarmAgentId={}, finishedAt={}",
             taskId,
             task.getTaskUuid(),
             previousStatus,
             task.getStatus(),
-            task.getWritingAgentId(),
             task.getSwarmAgentId(),
             task.getFinishedAt()
         );

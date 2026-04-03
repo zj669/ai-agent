@@ -15,5 +15,5 @@ public interface WritingTaskRepository {
 
     List<WritingTask> findBySessionId(Long sessionId);
 
-    List<WritingTask> findByWritingAgentId(Long writingAgentId);
+    List<WritingTask> findBySwarmAgentId(Long swarmAgentId);
 }

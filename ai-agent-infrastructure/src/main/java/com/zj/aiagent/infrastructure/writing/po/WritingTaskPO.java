@@ -18,7 +18,6 @@ public class WritingTaskPO {
 
     private String taskUuid;
     private Long sessionId;
-    private Long writingAgentId;
     private Long swarmAgentId;
     private String taskType;
     private String title;

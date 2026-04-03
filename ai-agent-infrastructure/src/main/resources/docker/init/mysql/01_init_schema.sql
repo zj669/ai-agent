@@ -387,6 +387,17 @@ ON DUPLICATE KEY UPDATE `group_name` = VALUES(`group_name`), `sort_order` = VALU
 -- 8. 蜂群协作模块（Swarm）
 -- ============================================================
 
+-- ============================================================
+-- 【重构 04-02】消除 WritingAgent 桥接层
+-- 数据迁移（开发/测试环境执行，生产需 DBA 操作）：
+-- 1. ALTER swarm_workspace_agent ADD COLUMN session_id/sort_order（见下方）
+-- 2. UPDATE swarm_workspace_agent wa JOIN writing_agent w ON wa.id = w.swarm_agent_id
+--    SET wa.session_id = w.session_id, wa.sort_order = w.sort_order;
+-- 3. ALTER writing_task DROP COLUMN writing_agent_id, DROP INDEX idx_writing_agent_status
+-- 4. ALTER writing_result DROP COLUMN writing_agent_id, DROP INDEX idx_writing_agent_id
+-- 5. DROP TABLE writing_agent（确认迁移成功后执行）
+-- ============================================================
+
 -- 蜂群工作空间表
 CREATE TABLE IF NOT EXISTS `swarm_workspace` (
   `id` bigint(20) NOT NULL AUTO_INCREMENT COMMENT '工作空间ID',
@@ -402,20 +413,24 @@ CREATE TABLE IF NOT EXISTS `swarm_workspace` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='蜂群工作空间表';
 
 -- 蜂群工作空间Agent关联表
+-- 【重构 04-02】增加了 session_id（所属写作会话）和 sort_order（协作面板排序）
 CREATE TABLE IF NOT EXISTS `swarm_workspace_agent` (
   `id` bigint(20) NOT NULL AUTO_INCREMENT COMMENT '关联ID',
   `workspace_id` bigint(20) NOT NULL COMMENT '工作空间ID',
   `agent_id` bigint(20) DEFAULT NULL COMMENT '关联的agent_info ID（人类节点为空）',
-  `role` varchar(50) NOT NULL COMMENT '角色: human/assistant/自定义角色',
+  `role` varchar(50) NOT NULL COMMENT '角色: coordinator/worker/assistant/自定义角色',
   `description` text COMMENT '子Agent的能力边界和职责描述',
   `parent_id` bigint(20) DEFAULT NULL COMMENT '父Agent ID（谁创建的，指向本表id）',
   `llm_history` longtext COMMENT '该Agent在此workspace的LLM对话历史',
+  `session_id` bigint(20) DEFAULT NULL COMMENT '所属写作会话 ID',
+  `sort_order` int(11) DEFAULT 0 COMMENT '协作面板排序',
   `status` varchar(20) DEFAULT 'IDLE' COMMENT 'Agent状态: IDLE/BUSY/WAITING/WAKING/STOPPED',
   `created_at` datetime DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
   PRIMARY KEY (`id`),
   KEY `idx_workspace_id` (`workspace_id`),
   KEY `idx_agent_id` (`agent_id`),
-  KEY `idx_parent_id` (`parent_id`)
+  KEY `idx_parent_id` (`parent_id`),
+  KEY `idx_session_id` (`session_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='蜂群工作空间Agent关联表';
 
 -- 蜂群IM群组表
@@ -464,7 +479,6 @@ CREATE TABLE IF NOT EXISTS `writing_session` (
   `id` bigint(20) NOT NULL AUTO_INCREMENT COMMENT '写作会话ID',
   `workspace_id` bigint(20) NOT NULL COMMENT '关联的swarm workspace ID',
   `root_agent_id` bigint(20) NOT NULL COMMENT '主Agent ID（指向swarm_workspace_agent.id）',
-  `human_agent_id` bigint(20) NOT NULL COMMENT '人类Agent ID（指向swarm_workspace_agent.id）',
   `default_group_id` bigint(20) DEFAULT NULL COMMENT '主对话群ID（指向swarm_group.id）',
   `title` varchar(200) DEFAULT NULL COMMENT '本次写作任务标题',
   `goal` text COMMENT '写作目标描述',
@@ -479,30 +493,19 @@ CREATE TABLE IF NOT EXISTS `writing_session` (
   KEY `idx_status` (`status`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='动态多智能体写作会话表';
 
--- 写作Agent表（swarm agent 的业务投影）
-CREATE TABLE IF NOT EXISTS `writing_agent` (
-  `id` bigint(20) NOT NULL AUTO_INCREMENT COMMENT '写作Agent记录ID',
-  `session_id` bigint(20) NOT NULL COMMENT '写作会话ID',
-  `swarm_agent_id` bigint(20) NOT NULL COMMENT '关联的swarm agent ID（指向swarm_workspace_agent.id）',
-  `role` varchar(100) NOT NULL COMMENT '写作角色名称',
-  `description` text COMMENT '能力边界和职责描述',
-  `skill_tags_json` json DEFAULT NULL COMMENT '技能标签列表（JSON数组）',
-  `status` varchar(20) DEFAULT 'IDLE' COMMENT '状态: IDLE/PLANNED/ASSIGNED/RUNNING/DONE/FAILED',
-  `sort_order` int(11) DEFAULT 0 COMMENT '展示排序',
-  `created_at` datetime DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
-  `updated_at` datetime DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
-  PRIMARY KEY (`id`),
-  UNIQUE KEY `uk_session_swarm_agent` (`session_id`, `swarm_agent_id`),
-  KEY `idx_session_id` (`session_id`),
-  KEY `idx_status` (`status`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='动态多智能体写作Agent表';
+-- ============================================================
+-- 【重构 04-02】writing_agent 表已删除（2026-04-02）
+-- 数据已迁移至 swarm_workspace_agent（session_id + sort_order）
+-- 如需历史数据，执行迁移后删除此表：
+--   DROP TABLE writing_agent;
+-- ============================================================
 
 -- 写作任务表
+-- 【重构 04-02】删除了 writing_agent_id 列（改由 swarm_agent_id 直接关联 SwarmAgent）
 CREATE TABLE IF NOT EXISTS `writing_task` (
   `id` bigint(20) NOT NULL AUTO_INCREMENT COMMENT '写作任务ID',
   `task_uuid` varchar(64) NOT NULL COMMENT '写作任务业务唯一标识，供AI/前端/日志使用',
   `session_id` bigint(20) NOT NULL COMMENT '写作会话ID',
-  `writing_agent_id` bigint(20) NOT NULL COMMENT '分配的写作Agent ID',
   `swarm_agent_id` bigint(20) NOT NULL COMMENT '分配的swarm agent ID（指向swarm_workspace_agent.id）',
   `task_type` varchar(50) DEFAULT 'WRITING' COMMENT '任务类型: OUTLINE/CHARACTER/WORLD/CHAPTER/REVISION/REVIEW/WRITING',
   `title` varchar(200) NOT NULL COMMENT '任务标题',
@@ -519,16 +522,15 @@ CREATE TABLE IF NOT EXISTS `writing_task` (
   PRIMARY KEY (`id`),
   UNIQUE KEY `uk_task_uuid` (`task_uuid`),
   KEY `idx_session_status` (`session_id`, `status`),
-  KEY `idx_writing_agent_status` (`writing_agent_id`, `status`),
   KEY `idx_swarm_agent_id` (`swarm_agent_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='动态多智能体写作任务表';
 
 -- 写作结果表
+-- 【重构 04-02】删除了 writing_agent_id 列（改由 swarm_agent_id 直接关联 SwarmAgent）
 CREATE TABLE IF NOT EXISTS `writing_result` (
   `id` bigint(20) NOT NULL AUTO_INCREMENT COMMENT '写作结果ID',
   `session_id` bigint(20) NOT NULL COMMENT '写作会话ID',
   `task_id` bigint(20) NOT NULL COMMENT '关联的任务ID',
-  `writing_agent_id` bigint(20) NOT NULL COMMENT '写作Agent ID',
   `swarm_agent_id` bigint(20) NOT NULL COMMENT 'swarm agent ID（指向swarm_workspace_agent.id）',
   `result_type` varchar(50) DEFAULT 'TEXT' COMMENT '结果类型: PLAN/OUTLINE/CHARACTER_PROFILE/SCENE_DRAFT/REVIEW_NOTE/TEXT',
   `summary` varchar(500) DEFAULT NULL COMMENT '结果摘要',
@@ -538,7 +540,7 @@ CREATE TABLE IF NOT EXISTS `writing_result` (
   PRIMARY KEY (`id`),
   KEY `idx_session_id` (`session_id`),
   KEY `idx_task_id` (`task_id`),
-  KEY `idx_writing_agent_id` (`writing_agent_id`)
+  KEY `idx_swarm_agent_id` (`swarm_agent_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='动态多智能体写作结果表';
 
 -- 写作草稿表
@@ -579,6 +581,26 @@ CREATE TABLE IF NOT EXISTS `llm_provider_config` (
   KEY `idx_user_id` (`user_id`),
   KEY `idx_is_default` (`is_default`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='LLM供应商配置表';
+
+-- ============================================================
+-- 11. MCP (Model Context Protocol) 模块
+-- ============================================================
+
+CREATE TABLE IF NOT EXISTS `mcp_server_config` (
+  `id` bigint(20) NOT NULL AUTO_INCREMENT COMMENT '服务器ID',
+  `user_id` bigint(20) NOT NULL COMMENT '所属用户ID',
+  `name` varchar(100) NOT NULL COMMENT '服务器名称（用户自定义）',
+  `server_type` varchar(20) NOT NULL COMMENT '类型: stdio | sse | http',
+  `config_json` json NOT NULL COMMENT 'MCP 服务器配置（JSON）',
+  `enabled` tinyint(1) DEFAULT 1 COMMENT '是否启用',
+  `status` varchar(20) DEFAULT 'DISCONNECTED' COMMENT '状态: DISCONNECTED|CONNECTING|CONNECTED|ERROR',
+  `description` text COMMENT '描述',
+  `deleted` tinyint(1) DEFAULT 0 COMMENT '是否删除: 0-否, 1-是',
+  `create_time` datetime DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+  `update_time` datetime DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
+  PRIMARY KEY (`id`),
+  KEY `idx_user_id` (`user_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='MCP 服务器配置表';
 
 -- 完成
 SELECT 'AI Agent database initialized successfully!' AS message;

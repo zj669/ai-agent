@@ -18,13 +18,11 @@ public class WritingResultService {
 
     private final WritingResultRepository writingResultRepository;
     private final WritingTaskService writingTaskService;
-    private final WritingAgentCoordinatorService writingAgentCoordinatorService;
 
     @Transactional(rollbackFor = Exception.class)
     public WritingResult createResult(
         Long sessionId,
         Long taskId,
-        Long writingAgentId,
         Long swarmAgentId,
         String resultType,
         String summary,
@@ -32,10 +30,9 @@ public class WritingResultService {
         JsonNode structuredPayloadJson
     ) {
         log.info(
-            "[Writing] Creating result: sessionId={}, taskId={}, writingAgentId={}, swarmAgentId={}, resultType={}, summary={}",
+            "[Writing] Creating result: sessionId={}, taskId={}, swarmAgentId={}, resultType={}, summary={}",
             sessionId,
             taskId,
-            writingAgentId,
             swarmAgentId,
             resultType,
             summary
@@ -43,7 +40,6 @@ public class WritingResultService {
         WritingResult result = WritingResult.builder()
             .sessionId(sessionId)
             .taskId(taskId)
-            .writingAgentId(writingAgentId)
             .swarmAgentId(swarmAgentId)
             .resultType(
                 resultType != null && !resultType.isBlank()
@@ -57,11 +53,11 @@ public class WritingResultService {
             .build();
         writingResultRepository.save(result);
         log.info(
-            "[Writing] Result created: resultId={}, sessionId={}, taskId={}, writingAgentId={}",
+            "[Writing] Result created: resultId={}, sessionId={}, taskId={}, swarmAgentId={}",
             result.getId(),
             result.getSessionId(),
             result.getTaskId(),
-            result.getWritingAgentId()
+            result.getSwarmAgentId()
         );
         return result;
     }
@@ -70,7 +66,6 @@ public class WritingResultService {
     public WritingResult recordTaskResult(
         Long taskId,
         Long inputSessionId,
-        Long inputWritingAgentId,
         String resultType,
         String summary,
         String content,
@@ -78,35 +73,24 @@ public class WritingResultService {
     ) {
         WritingTask task = writingTaskService.markCompleted(taskId);
         Long resolvedSessionId = task.getSessionId();
-        Long resolvedWritingAgentId = task.getWritingAgentId();
         Long resolvedSwarmAgentId = task.getSwarmAgentId();
 
         if (
-            (inputSessionId != null &&
-                !inputSessionId.equals(resolvedSessionId)) ||
-            (inputWritingAgentId != null &&
-                !inputWritingAgentId.equals(resolvedWritingAgentId))
+            inputSessionId != null &&
+                !inputSessionId.equals(resolvedSessionId)
         ) {
             log.warn(
-                "[Writing] Corrected writing_result identifiers by task context: taskId={}, inputSessionId={}, resolvedSessionId={}, inputWritingAgentId={}, resolvedWritingAgentId={}, resolvedSwarmAgentId={}",
+                "[Writing] Corrected writing_result identifiers by task context: taskId={}, inputSessionId={}, resolvedSessionId={}, resolvedSwarmAgentId={}",
                 taskId,
                 inputSessionId,
                 resolvedSessionId,
-                inputWritingAgentId,
-                resolvedWritingAgentId,
                 resolvedSwarmAgentId
             );
         }
 
-        writingAgentCoordinatorService.updateStatus(
-            resolvedWritingAgentId,
-            "DONE"
-        );
-
         return createResult(
             resolvedSessionId,
             taskId,
-            resolvedWritingAgentId,
             resolvedSwarmAgentId,
             resultType,
             summary,
@@ -125,16 +109,14 @@ public class WritingResultService {
     ) {
         WritingTask task = writingTaskService.getTaskByUuid(taskUuid);
         log.info(
-            "[Writing] Recording task result by uuid: taskUuid={}, taskId={}, writingAgentId={}, swarmAgentId={}",
+            "[Writing] Recording task result by uuid: taskUuid={}, taskId={}, swarmAgentId={}",
             taskUuid,
             task.getId(),
-            task.getWritingAgentId(),
             task.getSwarmAgentId()
         );
         return recordTaskResult(
             task.getId(),
             task.getSessionId(),
-            task.getWritingAgentId(),
             resultType,
             summary,
             content,

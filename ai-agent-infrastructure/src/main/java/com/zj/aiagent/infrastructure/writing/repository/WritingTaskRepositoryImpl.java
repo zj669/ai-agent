@@ -57,10 +57,10 @@ public class WritingTaskRepositoryImpl implements WritingTaskRepository {
     }
 
     @Override
-    public List<WritingTask> findByWritingAgentId(Long writingAgentId) {
+    public List<WritingTask> findBySwarmAgentId(Long swarmAgentId) {
         LambdaQueryWrapper<WritingTaskPO> wrapper = new LambdaQueryWrapper<>();
         wrapper
-            .eq(WritingTaskPO::getWritingAgentId, writingAgentId)
+            .eq(WritingTaskPO::getSwarmAgentId, swarmAgentId)
             .orderByDesc(WritingTaskPO::getCreatedAt);
         return mapper
             .selectList(wrapper)
@@ -74,7 +74,6 @@ public class WritingTaskRepositoryImpl implements WritingTaskRepository {
         po.setId(domain.getId());
         po.setTaskUuid(domain.getTaskUuid());
         po.setSessionId(domain.getSessionId());
-        po.setWritingAgentId(domain.getWritingAgentId());
         po.setSwarmAgentId(domain.getSwarmAgentId());
         po.setTaskType(domain.getTaskType());
         po.setTitle(domain.getTitle());
@@ -96,7 +95,6 @@ public class WritingTaskRepositoryImpl implements WritingTaskRepository {
             .id(po.getId())
             .taskUuid(po.getTaskUuid())
             .sessionId(po.getSessionId())
-            .writingAgentId(po.getWritingAgentId())
             .swarmAgentId(po.getSwarmAgentId())
             .taskType(po.getTaskType())
             .title(po.getTitle())

@@ -19,7 +19,6 @@ public class WritingResult {
     private Long id;
     private Long sessionId;
     private Long taskId;
-    private Long writingAgentId;
     private Long swarmAgentId;
     @Builder.Default
     private String resultType = "TEXT";

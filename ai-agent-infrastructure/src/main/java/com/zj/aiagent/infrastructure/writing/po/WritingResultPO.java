@@ -17,7 +17,6 @@ public class WritingResultPO {
     private Long id;
     private Long sessionId;
     private Long taskId;
-    private Long writingAgentId;
     private Long swarmAgentId;
     private String resultType;
     private String summary;

@@ -28,6 +28,15 @@ public class SwarmAgentRepositoryImpl implements SwarmAgentRepository {
     }
 
     @Override
+    public void update(SwarmAgent agent) {
+        SwarmWorkspaceAgentPO po = toPO(agent);
+        int rows = mapper.updateById(po);
+        if (rows == 0) {
+            throw new RuntimeException("Update failed for SwarmAgent id=" + agent.getId());
+        }
+    }
+
+    @Override
     public Optional<SwarmAgent> findById(Long id) {
         return Optional.ofNullable(mapper.selectById(id)).map(this::toDomain);
     }
@@ -53,6 +62,15 @@ public class SwarmAgentRepositoryImpl implements SwarmAgentRepository {
         LambdaQueryWrapper<SwarmWorkspaceAgentPO> wrapper = new LambdaQueryWrapper<>();
         wrapper.eq(SwarmWorkspaceAgentPO::getParentId, parentId);
         return mapper.selectCount(wrapper) > 0;
+    }
+
+    @Override
+    public List<SwarmAgent> findBySessionId(Long sessionId) {
+        LambdaQueryWrapper<SwarmWorkspaceAgentPO> wrapper = new LambdaQueryWrapper<>();
+        wrapper.eq(SwarmWorkspaceAgentPO::getSessionId, sessionId)
+                .orderByAsc(SwarmWorkspaceAgentPO::getSortOrder)
+                .orderByAsc(SwarmWorkspaceAgentPO::getCreatedAt);
+        return mapper.selectList(wrapper).stream().map(this::toDomain).collect(Collectors.toList());
     }
 
     @Override
@@ -87,6 +105,8 @@ public class SwarmAgentRepositoryImpl implements SwarmAgentRepository {
         po.setDescription(domain.getDescription());
         po.setParentId(domain.getParentId());
         po.setLlmHistory(domain.getLlmHistory());
+        po.setSessionId(domain.getSessionId());
+        po.setSortOrder(domain.getSortOrder());
         po.setStatus(domain.getStatus() != null ? domain.getStatus().getCode() : "IDLE");
         po.setCreatedAt(domain.getCreatedAt());
         return po;
@@ -101,6 +121,8 @@ public class SwarmAgentRepositoryImpl implements SwarmAgentRepository {
                 .description(po.getDescription())
                 .parentId(po.getParentId())
                 .llmHistory(po.getLlmHistory())
+                .sessionId(po.getSessionId())
+                .sortOrder(po.getSortOrder())
                 .status(SwarmAgentStatus.fromCode(po.getStatus()))
                 .createdAt(po.getCreatedAt())
                 .build();

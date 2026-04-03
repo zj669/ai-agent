@@ -17,7 +17,6 @@ public class WritingSessionPO {
     private Long id;
     private Long workspaceId;
     private Long rootAgentId;
-    private Long humanAgentId;
     private Long defaultGroupId;
     private String title;
     private String goal;

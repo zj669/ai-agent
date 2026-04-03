@@ -19,7 +19,6 @@ public class WritingTask {
     private Long id;
     private String taskUuid;
     private Long sessionId;
-    private Long writingAgentId;
     private Long swarmAgentId;
 
     @Builder.Default

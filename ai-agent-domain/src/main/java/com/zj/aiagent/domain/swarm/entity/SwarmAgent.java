@@ -26,18 +26,23 @@ public class SwarmAgent {
     /** 父Agent ID（谁创建的，指向本表 id） */
     private Long parentId;
     private String llmHistory;
+    /** 所属写作会话 ID */
+    private Long sessionId;
+    /** 协作面板排序 */
+    @Builder.Default
+    private Integer sortOrder = 0;
     @Builder.Default
     private SwarmAgentStatus status = SwarmAgentStatus.IDLE;
     private LocalDateTime createdAt;
 
     /**
-     * 判断当前 Agent 是否为 Coordinator（协调者）
-     * 规则：parentId == null 且自身有子 Agent
-     * 注意：此方法需要配合 SwarmAgentRepository.findChildren() 使用
-     * @param hasChildren 当前 Agent 是否有子 Agent
+     * 判断当前 Agent 是否为 Coordinator（协调者）。
+     * 规则：parentId == null（直接服务用户，无父 Agent）。
+     * 注意：即使没有子 Agent，刚启动时也应视为 Coordinator（会接收用户消息）。
+     * @param hasChildren 当前 Agent 是否有子 Agent（此参数已废弃，仅保留签名兼容）
      */
     public boolean isCoordinator(boolean hasChildren) {
-        return parentId == null && hasChildren;
+        return parentId == null;
     }
 
     /**

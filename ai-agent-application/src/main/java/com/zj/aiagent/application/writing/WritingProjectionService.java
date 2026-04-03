@@ -11,7 +11,6 @@ import com.zj.aiagent.domain.swarm.entity.SwarmAgent;
 import com.zj.aiagent.domain.swarm.entity.SwarmMessage;
 import com.zj.aiagent.domain.swarm.repository.SwarmAgentRepository;
 import com.zj.aiagent.domain.swarm.repository.SwarmMessageRepository;
-import com.zj.aiagent.domain.writing.entity.WritingAgent;
 import com.zj.aiagent.domain.writing.entity.WritingDraft;
 import com.zj.aiagent.domain.writing.entity.WritingResult;
 import com.zj.aiagent.domain.writing.entity.WritingSession;
@@ -30,7 +29,6 @@ import org.springframework.stereotype.Service;
 public class WritingProjectionService {
 
     private final WritingSessionService writingSessionService;
-    private final WritingAgentCoordinatorService writingAgentCoordinatorService;
     private final WritingTaskService writingTaskService;
     private final WritingResultService writingResultService;
     private final WritingDraftService writingDraftService;
@@ -47,8 +45,9 @@ public class WritingProjectionService {
 
     public WritingSessionOverviewDTO getSessionOverview(Long sessionId) {
         WritingSession session = writingSessionService.getSession(sessionId);
-        List<WritingAgent> writingAgents =
-            writingAgentCoordinatorService.listAgents(sessionId);
+        // 直接通过 SwarmAgent 的 sessionId 查找协作 Agent
+        List<SwarmAgent> swarmAgents =
+            swarmAgentRepository.findBySessionId(sessionId);
         List<WritingTask> tasks = writingTaskService.listBySession(sessionId);
         List<WritingResult> results = writingResultService.listBySession(
             sessionId
@@ -60,8 +59,7 @@ public class WritingProjectionService {
             // no draft yet
         }
 
-        Map<Long, SwarmAgent> swarmAgentMap = swarmAgentRepository
-            .findByWorkspaceId(session.getWorkspaceId())
+        Map<Long, SwarmAgent> swarmAgentMap = swarmAgents
             .stream()
             .collect(Collectors.toMap(SwarmAgent::getId, Function.identity()));
 
@@ -70,14 +68,14 @@ public class WritingProjectionService {
             swarmAgentMap
         );
 
-        List<WritingCollaborationCardDTO> collaborationCards = writingAgents
+        List<WritingCollaborationCardDTO> collaborationCards = swarmAgents
             .stream()
             .sorted(
                 Comparator.comparing(
-                    WritingAgent::getSortOrder,
+                    SwarmAgent::getSortOrder,
                     Comparator.nullsLast(Integer::compareTo)
                 ).thenComparing(
-                    WritingAgent::getCreatedAt,
+                    SwarmAgent::getCreatedAt,
                     Comparator.nullsLast(LocalDateTime::compareTo)
                 )
             )
@@ -104,7 +102,6 @@ public class WritingProjectionService {
             .stream()
             .filter(
                 message ->
-                    session.getHumanAgentId().equals(message.getSenderId()) ||
                     session.getRootAgentId().equals(message.getSenderId())
             )
             .map(message -> toMessageView(message, swarmAgentMap))
@@ -112,13 +109,13 @@ public class WritingProjectionService {
     }
 
     private WritingCollaborationCardDTO toCollaborationCard(
-        WritingAgent agent,
+        SwarmAgent agent,
         List<WritingTask> tasks,
         List<WritingResult> results
     ) {
         WritingTask currentTask = tasks
             .stream()
-            .filter(task -> agent.getId().equals(task.getWritingAgentId()))
+            .filter(task -> agent.getId().equals(task.getSwarmAgentId()))
             .sorted(
                 Comparator.comparing((WritingTask task) ->
                     taskRank(task.getStatus())
@@ -137,7 +134,7 @@ public class WritingProjectionService {
 
         WritingResult latestResult = results
             .stream()
-            .filter(result -> agent.getId().equals(result.getWritingAgentId()))
+            .filter(result -> agent.getId().equals(result.getSwarmAgentId()))
             .max(
                 Comparator.comparing(
                     WritingResult::getCreatedAt,
@@ -151,14 +148,13 @@ public class WritingProjectionService {
                 ? latestResult.getCreatedAt()
                 : currentTask != null
                     ? currentTask.getUpdatedAt()
-                    : agent.getUpdatedAt();
+                    : null;
 
         return WritingCollaborationCardDTO.builder()
-            .writingAgentId(agent.getId())
-            .swarmAgentId(agent.getSwarmAgentId())
+            .swarmAgentId(agent.getId())
             .role(agent.getRole())
             .description(agent.getDescription())
-            .status(agent.getStatus())
+            .status(agent.getStatus() != null ? agent.getStatus().getCode() : "IDLE")
             .sortOrder(agent.getSortOrder())
             .currentTask(toTaskSummary(currentTask))
             .latestResult(toResultSummary(latestResult))
@@ -208,7 +204,6 @@ public class WritingProjectionService {
             .id(session.getId())
             .workspaceId(session.getWorkspaceId())
             .rootAgentId(session.getRootAgentId())
-            .humanAgentId(session.getHumanAgentId())
             .defaultGroupId(session.getDefaultGroupId())
             .title(session.getTitle())
             .goal(session.getGoal())

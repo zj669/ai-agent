@@ -8,7 +8,6 @@ import lombok.Data;
 @Builder
 public class WritingCollaborationCardDTO {
 
-    private Long writingAgentId;
     private Long swarmAgentId;
     private String role;
     private String description;

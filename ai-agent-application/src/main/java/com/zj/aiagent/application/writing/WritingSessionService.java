@@ -21,24 +21,21 @@ public class WritingSessionService {
     public WritingSession createSession(
         Long workspaceId,
         Long rootAgentId,
-        Long humanAgentId,
         Long defaultGroupId,
         String title,
         String goal,
         JsonNode constraintsJson
     ) {
         log.info(
-            "[Writing] Creating session: workspaceId={}, rootAgentId={}, humanAgentId={}, defaultGroupId={}, title={}",
+            "[Writing] Creating session: workspaceId={}, rootAgentId={}, defaultGroupId={}, title={}",
             workspaceId,
             rootAgentId,
-            humanAgentId,
             defaultGroupId,
             title
         );
         WritingSession session = WritingSession.builder()
             .workspaceId(workspaceId)
             .rootAgentId(rootAgentId)
-            .humanAgentId(humanAgentId)
             .defaultGroupId(defaultGroupId)
             .title(title)
             .goal(goal)
