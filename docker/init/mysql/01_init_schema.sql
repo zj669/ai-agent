@@ -90,8 +90,8 @@ CREATE TABLE IF NOT EXISTS `agent_version` (
 -- 会话表
 CREATE TABLE IF NOT EXISTS `conversations` (
   `id` varchar(36) NOT NULL COMMENT '会话ID (UUID)',
-  `user_id` varchar(36) NOT NULL COMMENT '用户ID',
-  `agent_id` varchar(36) NOT NULL COMMENT '智能体ID',
+  `user_id` bigint(20) NOT NULL COMMENT '用户ID',
+  `agent_id` bigint(20) NOT NULL COMMENT '智能体ID',
   `title` varchar(200) DEFAULT NULL COMMENT '会话标题',
   `created_at` datetime DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
   `updated_at` datetime DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',

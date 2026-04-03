@@ -1,0 +1,41 @@
+# Git
+.git
+.gitignore
+
+# Build artifacts
+target/
+*.class
+*.jar.bak
+
+# IDE
+.idea/
+*.iml
+.vscode/
+*.swp
+*.swo
+
+# Docker
+**/Dockerfile*
+docker-compose*.yml
+.dockerignore
+
+# Node / Frontend
+ai-agent-foward/node_modules/
+ai-agent-foward/dist/
+ai-agent-foward/.env*
+
+# Maven wrapper (already in container)
+.mvn/wrapper/maven-wrapper.jar
+
+# Logs
+*.log
+logs/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Temporary
+*.tmp
+*.bak
+*.orig

@@ -1,0 +1,458 @@
+# AI Agent Platform - 服务器 Docker 部署指南
+
+> 适用于在远程服务器上通过 Docker Compose 部署。
+>
+> **镜像发布**: GitHub Actions 自动构建并推送 backend/frontend 镜像至 ghcr.io。
+> push main 分支 → 自动更新 `latest` 标签；发布 GitHub Release → 使用语义化版本标签。
+> 无需手动构建，只需在服务器拉取启动即可。
+
+---
+
+## 目录
+
+1. [环境准备](#1-环境准备)
+2. [方式一：Docker Compose 拉取部署（推荐）](#2-方式一docker-compose-拉取部署推荐)
+3. [方式二：手动构建部署](#3-方式二手动构建部署)
+4. [配置说明](#4-配置说明)
+5. [健康检查与日志](#5-健康检查与日志)
+6. [数据持久化](#6-数据持久化)
+7. [更新与回滚](#7-更新与回滚)
+8. [HTTPS 配置](#8-https-配置)
+9. [常见问题](#9-常见问题)
+
+---
+
+## 1. 环境准备
+
+### 服务器要求
+
+| 项目 | 最低要求 | 推荐配置 |
+|------|---------|---------|
+| CPU | 2 核 | 4+ 核 |
+| 内存 | 4 GB | 8+ GB |
+| 磁盘 | 40 GB | 100 GB SSD |
+| 系统 | Ubuntu 20.04+ / CentOS 8+ | Ubuntu 22.04 LTS |
+| Docker | 20.10+ | 24.0+ |
+| Docker Compose | v2.0+ | v2.20+ |
+
+### 安装 Docker & Docker Compose
+
+```bash
+# Ubuntu / Debian
+sudo apt update && sudo apt install -y docker.io docker-compose-v2
+sudo systemctl enable docker && sudo systemctl start docker
+
+# 验证安装
+docker --version
+docker compose version
+```
+
+### 登录 GitHub Container Registry
+
+推送镜像后，在服务器上登录 ghcr.io（需 GitHub Personal Access Token）：
+
+```bash
+echo $GITHUB_TOKEN | docker login ghcr.io -u USERNAME --password-stdin
+```
+
+> Token 需要 `packages:read` 和 `packages:write` 权限。
+> 在 GitHub → Settings → Developer settings → Personal access tokens 生成。
+
+---
+
+## 2. 方式一：从 ghcr.io 拉取部署（推荐）
+
+> **镜像由 GitHub Actions 自动构建并推送。**
+> push 到 main 分支后，等待 workflow 完成（约 5-10 分钟），即可在服务器拉取。
+
+### 2.1 服务器拉取部署
+
+```bash
+sudo mkdir -p /opt/ai-agent/docker
+cd /opt/ai-agent
+
+# 上传 docker/ 目录（包含 docker-compose.prod.yml + .env.prod）
+scp -r user@your-server:/path/to/docker /opt/ai-agent/
+
+# 或直接克隆仓库并只使用 docker/ 子目录
+git clone https://github.com/zj669/ai-agent.git .
+# 仅保留 docker 目录，其余可删除（节省空间）
+```
+
+### 2.3 创建环境变量文件
+
+```bash
+cd /opt/ai-agent/docker
+sudo cp .env.prod.example .env.prod
+sudo nano .env.prod   # 填写真实密码和配置
+sudo chmod 600 .env.prod
+```
+
+**必须修改的配置项：**
+
+```bash
+# MySQL 密码（必填）
+PRIMARY_DB_PASSWORD=your-strong-mysql-password
+
+# Redis 密码（必填）
+REDIS_PASSWORD=your-strong-redis-password
+
+# MinIO 密码
+MINIO_ROOT_PASSWORD=your-minio-password
+
+# JWT 密钥（必填，建议 64+ 字符随机字符串）
+JWT_SECRET=$(openssl rand -base64 64)
+
+# 邮件 SMTP
+MAIL_HOST=smtp.qq.com
+MAIL_USERNAME=your-email@qq.com
+MAIL_PASSWORD=your-email-auth-code
+
+# 允许的域名
+CORS_ALLOWED_ORIGINS=https://your-domain.com
+```
+
+### 2.4 拉取最新镜像
+
+```bash
+# 登录 GHCR（如尚未登录）
+echo $GITHUB_TOKEN | docker login ghcr.io -u USERNAME --password-stdin
+
+# Docker Compose V2（配置文件在 docker/ 目录，需在目录下执行）
+docker compose -f docker-compose.prod.yml pull
+
+# Docker Compose V1
+docker-compose -f docker-compose.prod.yml pull
+```
+
+### 2.5 启动服务
+
+```bash
+# 前台启动（首次验证）
+docker compose -f docker-compose.prod.yml up
+
+# 后台运行（确认无误后）
+docker compose -f docker-compose.prod.yml up -d
+
+# 查看状态
+docker compose -f docker-compose.prod.yml ps
+```
+
+### 2.6 验证服务
+
+```bash
+# 健康检查
+curl http://localhost:8080/actuator/health
+curl http://localhost/  # 前端
+
+# 查看日志
+docker compose -f docker-compose.prod.yml logs -f backend
+docker compose -f docker-compose.prod.yml logs -f frontend
+```
+
+---
+
+## 3. 方式二：在服务器上从源码构建（GitHub Actions 不可用时的备选方案）
+
+适用于 ghcr.io 无法访问，或需要自定义构建参数的场景。
+
+### 3.1 在服务器上构建
+
+```bash
+cd /opt/ai-agent
+
+# 克隆仓库（或通过 scp 上传）
+git clone https://github.com/zj669/ai-agent.git .
+
+# 构建后端镜像（context 为 repo 根目录）
+docker build \
+  -f ai-agent-interfaces/Dockerfile \
+  -t ghcr.io/zj669/ai-agent/backend:latest \
+  .
+
+# 构建前端镜像
+docker build \
+  -f ai-agent-foward/Dockerfile.prod \
+  -t ghcr.io/zj669/ai-agent/frontend:latest \
+  ./ai-agent-foward
+
+# 启动（在 docker/ 目录下执行）
+cd docker
+docker compose -f docker-compose.prod.yml up -d
+```
+
+---
+
+## 4. 配置说明
+
+### 4.1 端口映射
+
+| 服务 | 容器端口 | 默认主机端口 | 说明 |
+|------|---------|------------|------|
+| Frontend | 80 | `FRONTEND_PORT` (默认 80) | 主访问入口 |
+| Backend | 8080 | 不对外暴露 | 由 nginx 代理 |
+| MySQL | 3306 | 不暴露 | 仅容器内访问 |
+| Redis | 6379 | 不暴露 | 仅容器内访问 |
+| MinIO API | 9000 | `MINIO_API_PORT` (默认 9000) | S3 兼容 API |
+| MinIO Console | 9001 | `MINIO_CONSOLE_PORT` (默认 9001) | Web 管理界面 |
+| Milvus gRPC | 19530 | `MILVUS_GRPC_PORT` (默认 19530) | Java SDK 连接 |
+| Milvus Metrics | 9091 | `MILVUS_METRICS_PORT` (默认 9091) | Prometheus 指标 |
+
+如需修改默认端口，在 `.env.prod` 中覆盖：
+
+```bash
+FRONTEND_PORT=8080
+MILVUS_GRPC_PORT=19531
+```
+
+### 4.2 关键环境变量
+
+| 变量名 | 必须 | 默认值 | 说明 |
+|--------|------|--------|------|
+| `PRIMARY_DB_PASSWORD` | ✅ | - | MySQL root 密码 |
+| `REDIS_PASSWORD` | ✅ | - | Redis 访问密码 |
+| `JWT_SECRET` | ✅ | - | JWT 签名密钥（64+字符） |
+| `MAIL_HOST` | ✅ | smtp.example.com | SMTP 服务器 |
+| `MAIL_USERNAME` | ✅ | - | 发送邮件账号 |
+| `MAIL_PASSWORD` | ✅ | - | 邮件密码/授权码 |
+| `CORS_ALLOWED_ORIGINS` | ✅ | - | 前端域名，逗号分隔 |
+| `MINIO_ROOT_USER` | | admin | MinIO 访问密钥 |
+| `MINIO_ROOT_PASSWORD` | | admin123456 | MinIO 密文密钥 |
+| `MILVUS_ENABLED` | | true | 是否启用 Milvus |
+
+---
+
+## 5. 健康检查与日志
+
+### 5.1 健康检查
+
+```bash
+# 全部服务
+docker compose -f docker-compose.prod.yml ps
+
+# 后端健康状态
+curl -s http://localhost:8080/actuator/health | jq .
+
+# Prometheus 指标
+curl http://localhost:8080/actuator/prometheus | head -20
+```
+
+### 5.2 日志查看
+
+```bash
+# 实时查看所有日志
+docker compose -f docker-compose.prod.yml logs -f
+
+# 实时查看后端日志
+docker compose -f docker-compose.prod.yml logs -f backend
+
+# 查看最近 100 行后端日志
+docker compose -f docker-compose.prod.yml logs --tail=100 backend
+
+# 查找错误
+docker compose -f docker-compose.prod.yml logs backend | grep -i error
+```
+
+---
+
+## 6. 数据持久化
+
+所有数据通过 Docker named volumes 持久化，**`docker compose down` 不会丢失数据**。
+
+```bash
+# 查看 volumes
+docker volume ls | grep ai-agent
+
+# 备份 MySQL 数据
+docker run --rm \
+  -v ai-agent_mysql_data:/data \
+  -v $(pwd)/backup:/backup \
+  alpine tar czf /backup/mysql_backup_$(date +%Y%m%d).tar.gz -C /data .
+
+# 备份 MinIO 数据
+docker run --rm \
+  -v ai-agent_minio_data:/data \
+  -v $(pwd)/backup:/backup \
+  alpine tar czf /backup/minio_backup_$(date +%Y%m%d).tar.gz -C /data .
+
+# 恢复 MySQL（停止服务后操作）
+docker compose -f docker-compose.prod.yml down mysql
+docker run --rm \
+  -v ai-agent_mysql_data:/data \
+  -v $(pwd)/backup:/backup \
+  alpine tar xzf /backup/mysql_backup_20260403.tar.gz -C /data
+docker compose -f docker-compose.prod.yml up -d
+```
+
+> ⚠️ `docker compose down -v` 会**删除所有数据卷**，务必谨慎使用！
+
+---
+
+## 7. 更新与回滚
+
+### 7.1 更新到最新版本
+
+```bash
+cd /opt/ai-agent
+
+# 拉取最新镜像
+docker compose -f docker-compose.prod.yml pull
+
+# 滚动更新（自动重启服务）
+docker compose -f docker-compose.prod.yml up -d
+
+# 如需重新构建（代码变更后）
+docker compose -f docker-compose.prod.yml up -d --build
+```
+
+### 7.2 回滚到指定版本
+
+```bash
+# 查看历史镜像 tag
+docker images | grep ai-agent
+
+# 指定版本回滚
+docker compose -f docker-compose.prod.yml pull backend ghcr.io/zj669/ai-agent/backend:v1.0.0
+docker compose -f docker-compose.prod.yml pull frontend ghcr.io/zj669/ai-agent/frontend:v1.0.0
+
+# 使用指定版本启动
+IMAGE_TAG=backend:v1.0.0 docker compose -f docker-compose.prod.yml up -d
+```
+
+---
+
+## 8. HTTPS 配置
+
+生产环境强烈建议通过 **Nginx/Traefik 反向代理**处理 HTTPS，应用容器保持 8080 明文。
+
+### 8.1 Nginx 反向代理方案
+
+在服务器上部署 Nginx（独立于 Docker）：
+
+```nginx
+# /etc/nginx/sites-available/ai-agent
+server {
+    listen 80;
+    server_name your-domain.com;
+    return 301 https://$server_name$request_uri;
+}
+
+server {
+    listen 443 ssl http2;
+    server_name your-domain.com;
+
+    ssl_certificate /etc/letsencrypt/live/your-domain.com/fullchain.pem;
+    ssl_certificate_key /etc/letsencrypt/live/your-domain.com/privkey.pem;
+
+    # 前端静态资源
+    location / {
+        proxy_pass http://127.0.0.1:80;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+    }
+
+    # 后端 API
+    location /api/ {
+        proxy_pass http://127.0.0.1:8080/api/;
+        proxy_http_version 1.1;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+    }
+
+    # WebSocket (SSE)
+    location /ws/ {
+        proxy_pass http://127.0.0.1:8080/ws/;
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection "upgrade";
+        proxy_set_header Host $host;
+        proxy_read_timeout 3600s;
+    }
+}
+```
+
+### 8.2 使用 Let's Encrypt 免费证书
+
+```bash
+sudo apt install -y certbot python3-certbot-nginx
+sudo certbot --nginx -d your-domain.com
+sudo systemctl enable certbot.timer  # 自动续期
+```
+
+### 8.3 CORS 配置
+
+在 `.env.prod` 中配置允许的域名：
+
+```bash
+CORS_ALLOWED_ORIGINS=https://your-domain.com
+```
+
+---
+
+## 9. 常见问题
+
+### Q1: 启动后端报 `Communications link failure`
+
+**原因**：MySQL 容器尚未就绪，后端就启动了。
+
+**解决**：后端有 `depends_on` + `healthcheck`，等待约 30 秒即可。如持续出现：
+
+```bash
+# 检查 MySQL 是否健康
+docker compose -f docker-compose.prod.yml ps mysql
+docker compose -f docker-compose.prod.yml logs mysql | tail -20
+
+# 手动测试连接
+docker exec -it ai-agent-mysql mysql -uroot -p -h mysql
+```
+
+### Q2: Milvus 连接失败
+
+**原因**：etcd 或 MinIO 未就绪，或版本不兼容。
+
+**解决**：
+```bash
+# Milvus 有 90s start_period，首次启动耐心等待
+docker compose -f docker-compose.prod.yml logs milvus | tail -30
+```
+
+### Q3: 前端 502 Bad Gateway
+
+**原因**：后端未启动或 `backend` 服务名在 nginx 中不解析。
+
+**解决**：
+```bash
+# 确认 backend 健康
+curl http://backend:8080/actuator/health
+
+# 在 frontend 容器内测试连通性
+docker exec ai-agent-frontend wget -qO- http://backend:8080/actuator/health
+```
+
+### Q4: 镜像拉取失败 (manifest unknown)
+
+**原因**：GitHub Token 权限不足或未登录。
+
+**解决**：
+```bash
+docker logout ghcr.io
+echo $GITHUB_TOKEN | docker login ghcr.io -u USERNAME --password-stdin
+```
+
+### Q5: 如何查看各服务版本？
+
+```bash
+# Backend
+curl http://localhost:8080/actuator/info | jq .app.version
+
+# MySQL
+docker exec ai-agent-mysql mysql -V
+
+# Redis
+docker exec ai-agent-redis redis-server --version
+
+# Milvus
+docker exec ai-agent-milvus milvus --version
+```

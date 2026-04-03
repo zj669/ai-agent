@@ -1,0 +1,136 @@
+# ============================================================
+# AI Agent Platform - CI 测试流水线
+# 触发条件:
+#   - push 到 main / develop 分支
+#   - pull request
+#   - 手动触发 (workflow_dispatch)
+# ============================================================
+name: CI Test
+
+on:
+  push:
+    branches:
+      - main
+      - develop
+  pull_request:
+    branches:
+      - main
+      - develop
+  workflow_dispatch:
+
+env:
+  JAVA_VERSION: '21'
+  MAVEN_OPTS: -Xmx1024m
+
+jobs:
+  # ── Job 1: 后端单元测试 ───────────────────────────────────
+  backend-test:
+    name: Backend Unit Tests
+    runs-on: ubuntu-latest
+    services:
+      mysql:
+        image: mysql:8.0
+        env:
+          MYSQL_ROOT_PASSWORD: root123
+          MYSQL_DATABASE: ai_agent_test
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="mysqladmin ping"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=5
+      redis:
+        image: redis:7-alpine
+        env:
+          REDIS_PASSWORD: redis123
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd="redis-cli ping"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=5
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up JDK ${{ env.JAVA_VERSION }}
+        uses: actions/setup-java@v4
+        with:
+          distribution: eclipse-temurin
+          java-version: ${{ env.JAVA_VERSION }}
+
+      - name: Cache Maven packages
+        uses: actions/cache@v4
+        with:
+          path: ~/.m2/repository
+          key: ${{ runner.os }}-maven-${{ hashFiles('**/pom.xml') }}
+          restore-keys: ${{ runner.os }}-maven-
+
+      - name: Build (skip tests, resolve dependencies)
+        run: >
+          mvn dependency:go-offline -B
+          -pl ai-agent-shared,ai-agent-domain,ai-agent-application,ai-agent-infrastructure,ai-agent-interfaces
+          -am
+
+      - name: Run tests
+        run: >
+          mvn test -B
+          -pl ai-agent-shared,ai-agent-domain,ai-agent-application,ai-agent-infrastructure,ai-agent-interfaces
+          -am
+          -DPRIMARY_DB_HOST=127.0.0.1
+          -DPRIMARY_DB_PORT=3306
+          -DPRIMARY_DB_NAME=ai_agent_test
+          -DPRIMARY_DB_USER=root
+          -DPRIMARY_DB_PASSWORD=root123
+          -DREDIS_HOST=127.0.0.1
+          -DREDIS_PORT=6379
+          -DREDIS_PASSWORD=redis123
+
+      - name: Upload test reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: backend-test-reports
+          path: '**/target/surefire-reports/*.xml'
+          retention-days: 7
+
+  # ── Job 2: 前端测试 ────────────────────────────────────────
+  frontend-test:
+    name: Frontend Tests
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: ai-agent-foward/package-lock.json
+
+      - name: Install dependencies
+        working-directory: ./ai-agent-foward
+        run: npm ci
+
+      - name: TypeScript check
+        working-directory: ./ai-agent-foward
+        run: npm run typecheck
+
+      - name: ESLint
+        working-directory: ./ai-agent-foward
+        run: npm run lint
+
+      - name: Unit tests (Vitest)
+        working-directory: ./ai-agent-foward
+        run: npm run test
+
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: frontend-test-results
+          path: ai-agent-foward/test-results/
+          retention-days: 7

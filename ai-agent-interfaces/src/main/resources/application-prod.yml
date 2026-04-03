@@ -1,55 +1,42 @@
-# 生产环境配置
+# ============================================================
+# AI Agent Platform - 生产环境配置
 # Profile: prod
-# 用途: 生产环境部署配置,强制 HTTPS,优化性能和安全性
+# 用途: 生产环境部署配置，强制 HTTPS，优化性能和安全性
+# ============================================================
+# ⚠️ 数据源配置必须与 application.yml 保持结构一致（dynamic-datasource 依赖此结构）
+# ⚠️ 所有密码必须通过环境变量注入，禁止硬编码
+# ============================================================
 
 server:
-  port: 8443  # HTTPS 端口
-  # HTTPS 配置 (需要提供证书)
-  ssl:
-    enabled: true
-    key-store: classpath:keystore/server.p12
-    key-store-password: ${SSL_KEYSTORE_PASSWORD}
-    key-store-type: PKCS12
-    key-alias: server
-  # HSTS (HTTP Strict Transport Security)
-  # 强制浏览器使用 HTTPS 访问
+  port: 8080  # 容器内保持 8080，TLS 在 Ingress/Kubernetes 层处理
   servlet:
     session:
       cookie:
-        secure: true  # Cookie 仅通过 HTTPS 传输
-        http-only: true  # 防止 JavaScript 访问 Cookie
-        same-site: strict  # 防止 CSRF 攻击
+        secure: true
+        http-only: true
+        same-site: strict
 
 spring:
-  # 数据源配置 (生产环境)
+  # ============================================================
+  # 数据源配置（必须与 application.yml 结构一致）
+  # 使用 dynamic-datasource 的嵌套结构 PRIMARY_DB_* 环境变量
+  # ============================================================
   datasource:
-    primary:
-      driver-class-name: com.mysql.cj.jdbc.Driver
-      url: jdbc:mysql://${DB_HOST:localhost}:${DB_PORT:3306}/${DB_NAME:ai_agent}?useUnicode=true&characterEncoding=utf8&useSSL=true&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true
-      username: ${DB_USERNAME}
-      password: ${DB_PASSWORD}
-      hikari:
-        maximum-pool-size: 50  # 生产环境增加连接池大小
-        minimum-idle: 10
-        connection-timeout: 30000
-        idle-timeout: 600000
-        max-lifetime: 1800000
-        pool-name: PrimaryHikariPool
-
-  # Redis 配置 (生产环境)
-  data:
-    redis:
-      host: ${REDIS_HOST:localhost}
-      port: ${REDIS_PORT:6379}
-      password: ${REDIS_PASSWORD}
-      database: 0
-      timeout: 5000ms
-      lettuce:
-        pool:
-          max-active: 20
-          max-idle: 10
-          min-idle: 5
-          max-wait: 3000ms
+    dynamic:
+      datasource:
+        primary:
+          driver-class-name: com.mysql.cj.jdbc.Driver
+          url: jdbc:mysql://${PRIMARY_DB_HOST:localhost}:${PRIMARY_DB_PORT:3306}/${PRIMARY_DB_NAME:ai_agent}?useUnicode=true&characterEncoding=utf8&useSSL=false&serverTimezone=Asia%2FShanghai&allowPublicKeyRetrieval=true
+          username: ${PRIMARY_DB_USER}
+          password: ${PRIMARY_DB_PASSWORD}
+          hikari:
+            minimum-idle: ${PRIMARY_DB_MIN_IDLE:10}
+            maximum-pool-size: ${PRIMARY_DB_MAX_POOL_SIZE:50}
+            idle-timeout: ${PRIMARY_DB_IDLE_TIMEOUT:600000}
+            max-lifetime: ${PRIMARY_DB_MAX_LIFETIME:1800000}
+            pool-name: PrimaryHikariCP
+            connection-timeout: ${PRIMARY_DB_CONNECTION_TIMEOUT:30000}
+            connection-test-query: SELECT 1
 
   # 日志配置 (生产环境)
   logging:
@@ -58,7 +45,7 @@ spring:
       com.zj.aiagent: INFO
       org.springframework: WARN
     file:
-      name: /var/log/ai-agent/application.log
+      name: /app/logs/application.log
       max-size: 100MB
       max-history: 30
     pattern:
@@ -67,19 +54,14 @@ spring:
 
 # JWT 配置 (生产环境)
 jwt:
-  secret: ${JWT_SECRET}  # 必须从环境变量读取,不能硬编码
-  expiration: 7200000  # 2 小时 (配合 Refresh Token 使用)
+  secret: ${JWT_SECRET}  # 必须从环境变量读取，禁止硬编码
+  expiration: 7200000  # 2 hours
 
-# 安全配置
+# 安全配置（适用于 Spring Security，如有）
 security:
-  # HTTPS 强制
   require-ssl: true
-  # HSTS 配置
-  hsts:
-    enabled: true
-    max-age: 31536000  # 1 年
-    include-subdomains: true
-    preload: true
+  cors:
+    allowed-origins: ${CORS_ALLOWED_ORIGINS:}
 
 # 监控配置 (生产环境)
 management:
@@ -102,25 +84,41 @@ mail:
   port: ${MAIL_PORT:587}
   username: ${MAIL_USERNAME}
   password: ${MAIL_PASSWORD}
-  properties:
-    mail:
-      smtp:
-        auth: true
-        starttls:
-          enable: true
-          required: true
 
-# Milvus 配置 (生产环境)
+# ============================================================
+# 以下配置与 application.yml 共享变量，保持一致
+# ============================================================
+
+# Redis 配置（Redisson）
+redis:
+  sdk:
+    config:
+      host: ${REDIS_HOST:localhost}
+      port: ${REDIS_PORT:6379}
+      password: ${REDIS_PASSWORD:}
+      pool-size: ${REDIS_POOL_SIZE:20}
+      min-idle-size: ${REDIS_MIN_IDLE_SIZE:5}
+      idle-timeout: ${REDIS_IDLE_TIMEOUT:600000}
+      connect-timeout: ${REDIS_CONNECT_TIMEOUT:10000}
+      retry-attempts: ${REDIS_RETRY_ATTEMPTS:3}
+      retry-interval: ${REDIS_RETRY_INTERVAL:1500}
+      ping-interval: ${REDIS_PING_INTERVAL:30000}
+      keep-alive: ${REDIS_KEEP_ALIVE:true}
+
+# Milvus 配置
 milvus:
+  enabled: ${MILVUS_ENABLED:true}
   host: ${MILVUS_HOST:localhost}
   port: ${MILVUS_PORT:19530}
+  username: ${MILVUS_USERNAME:}
+  password: ${MILVUS_PASSWORD:}
 
-# MinIO 配置 (生产环境)
+# MinIO 配置
 minio:
-  endpoint: ${MINIO_ENDPOINT}
-  access-key: ${MINIO_ACCESS_KEY}
-  secret-key: ${MINIO_SECRET_KEY}
-  bucket-name: ${MINIO_BUCKET:ai-agent}
+  endpoint: ${MINIO_ENDPOINT:http://localhost:9000}
+  access-key: ${MINIO_ACCESS_KEY:minioadmin}
+  secret-key: ${MINIO_SECRET_KEY:minioadmin}
+  bucket-name: ${MINIO_BUCKET_NAME:knowledge-files}
 
 # 认证调试模式 (生产环境必须关闭)
 auth:
@@ -138,7 +136,3 @@ rate-limit:
   ip:
     max-requests: 100
     window-seconds: 60
-
-# CORS 配置 (生产环境必须配置具体域名)
-cors:
-  allowed-origins: ${CORS_ALLOWED_ORIGINS:}

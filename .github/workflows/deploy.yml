@@ -1,0 +1,183 @@
+# ============================================================
+# AI Agent Platform - 镜像构建与发布
+# 触发条件:
+#   - push 到 main 分支（自动打 latest + 补丁版本）
+#   - 发布 GitHub Release（打精确语义化版本标签）
+#   - 手动触发 (workflow_dispatch)
+# ============================================================
+name: Build & Push Images
+
+on:
+  push:
+    branches:
+      - main
+    tags:
+      - 'v*'
+  release:
+    types: [published]
+  workflow_dispatch:
+    inputs:
+      image_tag:
+        description: 'Custom image tag (e.g., v1.2.3)'
+        required: false
+        default: ''
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAME_BACKEND: ghcr.io/${{ github.repository_owner }}/ai-agent/backend
+  IMAGE_NAME_FRONTEND: ghcr.io/${{ github.repository_owner }}/ai-agent/frontend
+
+jobs:
+  # ── Job 1: 确定镜像标签 ───────────────────────────────
+  determine-tags:
+    name: Determine Image Tags
+    runs-on: ubuntu-latest
+    outputs:
+      tags: ${{ steps.meta.outputs.tags }}
+      is-release: ${{ steps.meta.outputs.is-release }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Determine tags
+        id: meta
+        run: |
+          # 判断是否为正式 Release
+          IS_RELEASE="false"
+          TAGS=""
+
+          if [[ "${{ github.event_name }}" == "release" ]]; then
+            # GitHub Release: 使用 Release tag (如 v1.2.3)
+            TAG_NAME="${GITHUB_REF#refs/tags/}"
+            IS_RELEASE="true"
+            TAGS="${TAG_NAME},latest"
+          elif [[ "${{ github.event_name }}" == "workflow_dispatch" && -n "${{ github.event.inputs.image_tag }}" ]]; then
+            # 手动触发 + 指定标签
+            TAGS="${{ github.event.inputs.image_tag }},latest"
+          elif [[ "${{ github.event_name }}" == "push" && "${{ github.ref }}" == "refs/heads/main" ]]; then
+            # Push 到 main: 使用时间戳 + commit hash
+            SHORT_SHA=${GITHUB_SHA:0:7}
+            TIMESTAMP=$(date +%Y%m%d%H%M)
+            TAGS="latest,${TIMESTAMP}-${SHORT_SHA}"
+          fi
+
+          echo "tags=$TAGS" >> $GITHUB_OUTPUT
+          echo "is-release=$IS_RELEASE" >> $GITHUB_OUTPUT
+          echo "::notice::Image tags: $TAGS"
+
+  # ── Job 2: 构建并推送 Backend ──────────────────────────
+  build-backend:
+    name: Build Backend Image
+    runs-on: ubuntu-latest
+    needs: determine-tags
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Extract metadata for backend
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.IMAGE_NAME_BACKEND }}
+          tags: |
+            type=raw,value=${{ needs.determine-tags.outputs.tags }}
+
+      - name: Build and push backend
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: ./ai-agent-interfaces/Dockerfile
+          push: true
+          tags: ${{ needs.determine-tags.outputs.tags }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+          build-args: |
+            MAVEN_OPTS=-Xmx2048m
+
+  # ── Job 3: 构建并推送 Frontend ────────────────────────
+  build-frontend:
+    name: Build Frontend Image
+    runs-on: ubuntu-latest
+    needs: determine-tags
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: ai-agent-foward/package-lock.json
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Extract metadata for frontend
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.IMAGE_NAME_FRONTEND }}
+          tags: |
+            type=raw,value=${{ needs.determine-tags.outputs.tags }}
+
+      - name: Build frontend assets
+        working-directory: ./ai-agent-foward
+        run: |
+          npm ci
+          VITE_API_BASE_URL=/api npm run build
+
+      - name: Build and push frontend
+        uses: docker/build-push-action@v6
+        with:
+          context: ./ai-agent-foward
+          file: ./ai-agent-foward/Dockerfile.prod
+          push: true
+          tags: ${{ needs.determine-tags.outputs.tags }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+  # ── Job 4: 部署通知（可选扩展点）────────────────────
+  notify:
+    name: Build Summary
+    runs-on: ubuntu-latest
+    needs: [determine-tags, build-backend, build-frontend]
+    if: always()
+    steps:
+      - name: Summary
+        run: |
+          echo "## ✅ 镜像构建结果" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "| 服务 | 镜像 | 标签 |" >> $GITHUB_STEP_SUMMARY
+          echo "|------|-------|------|" >> $GITHUB_STEP_SUMMARY
+          echo "| Backend | \`${{ env.IMAGE_NAME_BACKEND }}\` | \`${{ needs.determine-tags.outputs.tags }}\` |" >> $GITHUB_STEP_SUMMARY
+          echo "| Frontend | \`${{ env.IMAGE_NAME_FRONTEND }}\` | \`${{ needs.determine-tags.outputs.tags }}\` |" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**推送方式**: GitHub Container Registry (ghcr.io)" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**服务器部署命令**: " >> $GITHUB_STEP_SUMMARY
+          echo '```bash' >> $GITHUB_STEP_SUMMARY
+          echo "docker compose -f docker-compose.prod.yml pull" >> $GITHUB_STEP_SUMMARY
+          echo "docker compose -f docker-compose.prod.yml up -d" >> $GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY

@@ -46,7 +46,7 @@ services:
     image: redis:7-alpine
     container_name: ai-agent-redis
     ports:
-      - "127.0.0.1:6379:6379"
+      - "6379:6379"
     volumes:
       - redis_data:/data
     command: redis-server --appendonly yes --requirepass ${REDIS_PASSWORD:-redis123}
@@ -113,7 +113,7 @@ services:
   milvus:
     image: milvusdb/milvus:v2.3.3
     container_name: ai-agent-milvus
-    command: ["milvus", "run", "standalone"]
+    command: ["milvus", "run", "standalone", "--config-file", "/milvus/config/milvus.yaml"]
     environment:
       ETCD_ENDPOINTS: etcd:2379
       MINIO_ADDRESS: minio:9000
@@ -121,6 +121,7 @@ services:
       MINIO_SECRET_ACCESS_KEY: ${MINIO_ROOT_PASSWORD:-admin123456}
     volumes:
       - milvus_data:/var/lib/milvus
+      - ./init/milvus/milvus.yaml:/milvus/config/milvus.yaml:ro
     ports:
       - "19530:19530"  # gRPC
       - "9091:9091"    # Metrics
