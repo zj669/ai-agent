@@ -4,6 +4,10 @@
 #   - push 到 main 分支（自动打 latest + 补丁版本）
 #   - 发布 GitHub Release（打精确语义化版本标签）
 #   - 手动触发 (workflow_dispatch)
+#
+# 注意: 不使用 GHA cache (cache-from: type=gha)，因为 GitHub Actions
+# runner 的凭证向 Docker Hub 认证时会返回 401 insufficient scopes。
+# 构建产物仅推送到 ghcr.io，不依赖 Docker Hub 缓存。
 # ============================================================
 name: Build & Push Images
 
@@ -51,7 +55,7 @@ jobs:
             TAG_NAME="${GITHUB_REF#refs/tags/}"
             IS_RELEASE="true"
             TAGS="${TAG_NAME},latest"
-          elif [[ "${{ github.event_name }}" == "workflow_dispatch" && -n "${{ github.event.inputs.image_tag }}" ]]; then
+          elif [[ "${{ github.event.command }}" == "workflow_dispatch" && -n "${{ github.event.inputs.image_tag }}" ]]; then
             # 手动触发 + 指定标签
             TAGS="${{ github.event.inputs.image_tag }},latest"
           elif [[ "${{ github.event_name }}" == "push" && "${{ github.ref }}" == "refs/heads/main" ]]; then
@@ -73,7 +77,6 @@ jobs:
     permissions:
       contents: read
       packages: write
-      actions: read
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -103,8 +106,6 @@ jobs:
           push: true
           provenance: false
           tags: ${{ needs.determine-tags.outputs.tags }}
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
           build-args: |
             MAVEN_OPTS=-Xmx2048m
 
@@ -116,7 +117,6 @@ jobs:
     permissions:
       contents: read
       packages: write
-      actions: read
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -159,8 +159,6 @@ jobs:
           push: true
           provenance: false
           tags: ${{ needs.determine-tags.outputs.tags }}
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
 
   # ── Job 4: 部署通知（可选扩展点）────────────────────
   notify:
