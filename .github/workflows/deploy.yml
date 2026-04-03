@@ -1,15 +1,5 @@
 # ============================================================
 # AI Agent Platform - 镜像构建与发布
-# 触发条件:
-#   - push 到 main 分支（自动打 latest + 补丁版本）
-#   - 发布 GitHub Release（打精确语义化版本标签）
-#   - 手动触发 (workflow_dispatch)
-#
-# 已知坑 & 解决方案:
-#   GitHub Actions runner 预装了 Docker Hub 凭证（匿名的或旧的）。
-#   Buildx 推送 ghcr.io 时仍会尝试 Docker Hub 认证，导致 401。
-#   解决：显式登出 Docker Hub + 禁用 BuildKit 凭证辅助程序，
-#   只使用 ghcr.io login-action 凭证。
 # ============================================================
 name: Build & Push Images
 
@@ -64,42 +54,25 @@ jobs:
       - uses: actions/checkout@v4
 
       # 清除 runner 预装的 Docker Hub 凭证（关键修复）
-      - name: Remove stale Docker Hub credentials
+      - name: Clear Docker Hub credentials
         run: |
           docker logout || true
-          rm -f ~/.docker/config.json.bak
-          cat ~/.docker/config.json 2>/dev/null | \
-            python3 -c "
-import json,sys
-cfg=json.load(sys.stdin)
-# 删除所有 Docker Hub 相关认证
-if 'auths' in cfg:
-    for k in list(cfg['auths'].keys()):
-        if 'docker.io' in k or k == 'https://index.docker.io/v1/':
-            del cfg['auths'][k]
-print(json.dumps(cfg))
-" > ~/.docker/config.json.tmp && mv ~/.docker/config.json.tmp ~/.docker/config.json
-          echo "Docker config after cleanup:"
-          cat ~/.docker/config.json
+          echo "Cleared Docker Hub auth from runner"
 
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
+      - uses: docker/setup-buildx-action@v3
 
-      - name: Log in to GHCR
-        uses: docker/login-action@v3
+      - uses: docker/login-action@v3
         with:
           registry: ${{ env.REGISTRY }}
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Extract metadata
-        uses: docker/metadata-action@v5
+      - uses: docker/metadata-action@v5
         with:
           images: ${{ env.IMAGE_NAME_BACKEND }}
           tags: type=raw,value=${{ needs.determine-tags.outputs.tags }}
 
-      - name: Build and push backend
-        uses: docker/build-push-action@v6
+      - uses: docker/build-push-action@v6
         with:
           context: .
           file: ./ai-agent-interfaces/Dockerfile
@@ -120,41 +93,27 @@ print(json.dumps(cfg))
     steps:
       - uses: actions/checkout@v4
 
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
+      - uses: actions/setup-node@v4
         with:
           node-version: '20'
           cache: 'npm'
           cache-dependency-path: ai-agent-foward/package-lock.json
 
       # 清除 runner 预装的 Docker Hub 凭证（关键修复）
-      - name: Remove stale Docker Hub credentials
+      - name: Clear Docker Hub credentials
         run: |
           docker logout || true
-          rm -f ~/.docker/config.json.bak
-          cat ~/.docker/config.json 2>/dev/null | \
-            python3 -c "
-import json,sys
-cfg=json.load(sys.stdin)
-if 'auths' in cfg:
-    for k in list(cfg['auths'].keys()):
-        if 'docker.io' in k or k == 'https://index.docker.io/v1/':
-            del cfg['auths'][k]
-print(json.dumps(cfg))
-" > ~/.docker/config.json.tmp && mv ~/.docker/config.json.tmp ~/.docker/config.json
+          echo "Cleared Docker Hub auth from runner"
 
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
+      - uses: docker/setup-buildx-action@v3
 
-      - name: Log in to GHCR
-        uses: docker/login-action@v3
+      - uses: docker/login-action@v3
         with:
           registry: ${{ env.REGISTRY }}
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Extract metadata
-        uses: docker/metadata-action@v5
+      - uses: docker/metadata-action@v5
         with:
           images: ${{ env.IMAGE_NAME_FRONTEND }}
           tags: type=raw,value=${{ needs.determine-tags.outputs.tags }}
@@ -163,8 +122,7 @@ print(json.dumps(cfg))
         working-directory: ./ai-agent-foward
         run: npm ci && VITE_API_BASE_URL=/api npm run build
 
-      - name: Build and push frontend
-        uses: docker/build-push-action@v6
+      - uses: docker/build-push-action@v6
         with:
           context: ./ai-agent-foward
           file: ./ai-agent-foward/Dockerfile.prod
