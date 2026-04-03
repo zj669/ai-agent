@@ -171,3 +171,50 @@
 ### Next Steps
 
 - None - task complete
+
+
+## Session 4: MCP 传输层重构 + SSE 解析 + UI 修复
+
+**Date**: 2026-04-03
+**Task**: MCP 传输层重构 + SSE 解析 + UI 修复
+
+### Summary
+
+(Add summary)
+
+### Main Changes
+
+| 模块 | 变更 | 关键修复 |
+|------|------|----------|
+| 传输层 | 策略模式 + 工厂模式重构 | `IMcpTransport` 接口，三个实现类，`McpTransportFactory` |
+| SSE 解析 | `Accept` 头分两行发送；`HttpMcpTransport` 检测 SSE 响应并解析 | exa.ai 返回 `event: message\ndata: {...}` 格式，原代码直接 Jackson 解析导致 406 |
+| 连接预热 | `IMcpToolRegistry.connectAllUserServers()` + `startAgent()` 异步预热 | Agent 启动时 MCP 服务器未连接，LLM 看不到工具 |
+| 断开同步 | `disconnectServer()` 强制同步 DB 状态；前端 `await loadServer()` | pool 为空时 DB 状态永不变，前端永远看到 CONNECTED |
+| 表单回显 | `ServerForm.initialValues` 补全所有字段 | description/url/endpoint/headers 缺失，编辑时无回显 |
+
+**根因总结**：
+1. `Accept: application/json, text/event-stream` 单头被 exa.ai 解析为单值返回 406
+2. HTTP 类型收到 SSE 格式响应后直接 Jackson 解析，event: 行导致解析失败
+3. Swarm Agent 启动时从未主动连接 MCP 服务器，工具列表永远为空
+4. 断开时 pool 已清但 DB 状态仍 CONNECTED，前端读取 DB 状态看不到变化
+
+**测试**：16 个 SSE 解析边界用例全绿
+
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `10ef253` | (see git log) |
+
+### Testing
+
+- [OK] (Add test results)
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete
