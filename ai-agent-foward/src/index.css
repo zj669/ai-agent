@@ -2,6 +2,129 @@
 @tailwind components;
 @tailwind utilities;
 
+/* ================================================
+   AI Markdown Body — for Swarm and Chat modules
+   ================================================ */
+.ai-markdown-body {
+  font-size: 14px;
+  line-height: 1.7;
+  color: #1a1a2e;
+  word-break: break-word;
+}
+.ai-markdown-body p { margin: 0 0 8px; }
+.ai-markdown-body p:last-child { margin-bottom: 0; }
+.ai-markdown-body h1, .ai-markdown-body h2, .ai-markdown-body h3,
+.ai-markdown-body h4, .ai-markdown-body h5, .ai-markdown-body h6 {
+  margin: 12px 0 6px;
+  font-weight: 600;
+  line-height: 1.3;
+}
+.ai-markdown-body h1 { font-size: 18px; }
+.ai-markdown-body h2 { font-size: 16px; }
+.ai-markdown-body h3 { font-size: 14px; }
+.ai-markdown-body ul, .ai-markdown-body ol {
+  margin: 6px 0;
+  padding-left: 20px;
+}
+.ai-markdown-body li { margin: 3px 0; }
+.ai-markdown-body code {
+  background: rgba(135,131,120,0.12);
+  border-radius: 4px;
+  padding: 1px 5px;
+  font-size: 13px;
+  font-family: 'Fira Code', 'Cascadia Code', monospace;
+  color: #e53e3e;
+}
+.ai-markdown-body pre {
+  background: #0d1117;
+  border-radius: 8px;
+  padding: 12px 14px;
+  overflow-x: auto;
+  margin: 8px 0;
+  border: 1px solid #30363d;
+}
+.ai-markdown-body pre code {
+  background: transparent;
+  color: #e6edf3;
+  padding: 0;
+  font-size: 13px;
+  line-height: 1.6;
+}
+.ai-markdown-body blockquote {
+  margin: 6px 0;
+  padding: 4px 12px;
+  border-left: 3px solid #58a6ff;
+  color: #656d76;
+  background: rgba(88,166,255,0.06);
+  border-radius: 0 4px 4px 0;
+}
+.ai-markdown-body table {
+  border-collapse: collapse;
+  width: 100%;
+  margin: 8px 0;
+  font-size: 13px;
+}
+.ai-markdown-body th, .ai-markdown-body td {
+  border: 1px solid #d0d7de;
+  padding: 6px 12px;
+  text-align: left;
+}
+.ai-markdown-body th {
+  background: #f6f8fa;
+  font-weight: 600;
+}
+.ai-markdown-body a { color: #0969da; text-decoration: none; }
+.ai-markdown-body a:hover { text-decoration: underline; }
+.ai-markdown-body hr {
+  border: none;
+  border-top: 1px solid #d0d7de;
+  margin: 12px 0;
+}
+.ai-markdown-body img { max-width: 100%; border-radius: 6px; }
+.ai-markdown-body input[type="checkbox"] { margin-right: 6px; }
+
+/* highlight.js dark theme overrides for pre blocks */
+.hljs-keyword, .hljs-built_in { color: #ff7b72; }
+.hljs-string { color: #a5d6ff; }
+.hljs-number { color: #79c0ff; }
+.hljs-comment { color: #8b949e; font-style: italic; }
+.hljs-function, .hljs-title { color: #d2a8ff; }
+.hljs-variable { color: #ffa657; }
+.hljs-type { color: #79c0ff; }
+.hljs-attr { color: #79c0ff; }
+
+/* ================================================
+   Swarm Message Animations
+   ================================================ */
+@keyframes swarmSlideIn {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+.swarm-msg-enter {
+  animation: swarmSlideIn 0.25s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+/* Streaming cursor blink */
+@keyframes cursorBlink {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0; }
+}
+.swarm-cursor {
+  display: inline-block;
+  width: 2px;
+  height: 1em;
+  background: #1677ff;
+  margin-left: 1px;
+  vertical-align: text-bottom;
+  animation: cursorBlink 0.9s step-end infinite;
+}
+
 :root {
   --background: 0 0% 100%;
   --foreground: 222.2 84% 4.9%;

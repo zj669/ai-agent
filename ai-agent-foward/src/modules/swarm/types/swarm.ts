@@ -13,7 +13,7 @@ export interface SwarmWorkspace {
 
 export interface WorkspaceDefaults {
   workspaceId: number;
-  humanAgentId: number;
+  userId: number;
   assistantAgentId: number;
   defaultGroupId: number;
 }
@@ -71,7 +71,6 @@ export interface WritingSessionSummary {
   id: number;
   workspaceId: number;
   rootAgentId: number;
-  humanAgentId: number;
   defaultGroupId: number;
   title?: string;
   goal?: string;
@@ -122,7 +121,6 @@ export interface WritingDraftSummary {
 }
 
 export interface WritingCollaborationCard {
-  writingAgentId: number;
   swarmAgentId: number;
   role: string;
   description?: string;

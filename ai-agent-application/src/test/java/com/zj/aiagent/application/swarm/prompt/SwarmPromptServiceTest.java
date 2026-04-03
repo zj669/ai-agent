@@ -1,27 +1,61 @@
 package com.zj.aiagent.application.swarm.prompt;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.zj.aiagent.application.swarm.SwarmContextAnalyzer;
 import com.zj.aiagent.application.swarm.tool.SwarmToolFilter;
 import com.zj.aiagent.domain.swarm.entity.SwarmAgent;
+import com.zj.aiagent.domain.swarm.entity.SwarmWorkspace;
+import com.zj.aiagent.domain.swarm.repository.SwarmAgentRepository;
+import com.zj.aiagent.domain.swarm.repository.SwarmWorkspaceRepository;
 import com.zj.aiagent.domain.swarm.valobj.SwarmRole;
+import com.zj.aiagent.infrastructure.mcp.adapter.McpToolCallbackAdapter;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 
+import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 @DisplayName("SwarmPromptService 动态提示词服务测试")
 class SwarmPromptServiceTest {
 
     private SwarmToolFilter toolFilter;
+    private SwarmContextAnalyzer contextAnalyzer;
+    private SwarmAgentRepository agentRepository;
+    private SwarmWorkspaceRepository workspaceRepository;
+    private McpToolCallbackAdapter mcpToolCallbackAdapter;
     private SwarmPromptService promptService;
 
     @BeforeEach
     void setUp() {
         toolFilter = new SwarmToolFilter();
-        promptService = new SwarmPromptService(toolFilter);
+        contextAnalyzer = mock(SwarmContextAnalyzer.class);
+        agentRepository = mock(SwarmAgentRepository.class);
+        workspaceRepository = mock(SwarmWorkspaceRepository.class);
+        mcpToolCallbackAdapter = mock(McpToolCallbackAdapter.class);
+
+        // Mock agentRepository to return empty list for context building
+        when(agentRepository.findByWorkspaceId(anyLong())).thenReturn(List.of());
+        // Mock contextAnalyzer to return null for merge
+        when(contextAnalyzer.mergeWorkerContexts(java.util.List.of())).thenReturn(null);
+        // Mock workspaceRepository to return a workspace with userId
+        when(workspaceRepository.findById(anyLong())).thenReturn(Optional.empty());
+        // Mock mcpToolCallbackAdapter to return embed mode (no MCP tools)
+        when(mcpToolCallbackAdapter.shouldEmbedInPromptByUserId(any())).thenReturn(true);
+        when(mcpToolCallbackAdapter.buildEmbeddableToolSectionByUserId(any())).thenReturn("【MCP 可用工具】\n（当前无可用 MCP 工具）");
+
+        promptService = new SwarmPromptService(
+            toolFilter, contextAnalyzer, agentRepository,
+            workspaceRepository, mcpToolCallbackAdapter
+        );
     }
 
     private SwarmAgent makeAgent(Long id, Long workspaceId, Long parentId, String description) {
@@ -38,34 +72,24 @@ class SwarmPromptServiceTest {
     class BasicVariableReplacement {
 
         @Test
-        @DisplayName("提示词应包含 agentId / workspaceId / role / description / parentAgentId")
+        @DisplayName("提示词应包含 agentId / workspaceId / role / description")
         void shouldContainAllBaseVariables() {
             SwarmAgent agent = makeAgent(5L, 10L, 2L, "测试协调者");
-            String prompt = promptService.getPrompt(agent, SwarmRole.COORDINATOR, 1L);
+            String prompt = promptService.getPrompt(agent, SwarmRole.COORDINATOR);
 
             assertThat(prompt).contains("agent_id: 5");
             assertThat(prompt).contains("workspace_id: 10");
-            assertThat(prompt).contains("父 Agent ID: 2");
             assertThat(prompt).contains("描述: 测试协调者");
         }
 
         @Test
-        @DisplayName("parentId 为 null 时显示 null")
-        void shouldShowNullForMissingParentId() {
+        @DisplayName("BASE Section 不含 parentAgentId（已移除该字段）")
+        void shouldNotContainParentAgentId() {
             SwarmAgent agent = makeAgent(5L, 10L, null, "");
-            String prompt = promptService.getPrompt(agent, SwarmRole.ROOT, 1L);
+            String prompt = promptService.getPrompt(agent, SwarmRole.COORDINATOR);
 
-            assertThat(prompt).contains("父 Agent ID: null");
-        }
-
-        @Test
-        @DisplayName("humanAgentId 应出现在禁止规则中")
-        void shouldContainHumanAgentId() {
-            SwarmAgent agent = makeAgent(5L, 10L, null, "");
-            String prompt = promptService.getPrompt(agent, SwarmRole.WORKER, 99L);
-
-            // 提示词中应禁止对 role=human 的 agent 使用 send
-            assertThat(prompt).contains("禁止对 role=human 的 agent 使用 send");
+            // parentAgentId 字段已从 BASE Section 移除
+            assertThat(prompt).doesNotContain("父 Agent ID:");
         }
     }
 
@@ -77,7 +101,7 @@ class SwarmPromptServiceTest {
         @DisplayName("COORDINATOR 提示词包含 Phase 工作流")
         void shouldContainPhaseWorkflowForCoordinator() {
             SwarmAgent agent = makeAgent(5L, 10L, null, "");
-            String prompt = promptService.getPrompt(agent, SwarmRole.COORDINATOR, 1L);
+            String prompt = promptService.getPrompt(agent, SwarmRole.COORDINATOR);
 
             assertThat(prompt).contains("RESEARCH");
             assertThat(prompt).contains("SYNTHESIS");
@@ -90,21 +114,10 @@ class SwarmPromptServiceTest {
         @DisplayName("WORKER 提示词包含执行规则")
         void shouldContainExecutionRulesForWorker() {
             SwarmAgent agent = makeAgent(5L, 10L, 2L, "");
-            String prompt = promptService.getPrompt(agent, SwarmRole.WORKER, 1L);
+            String prompt = promptService.getPrompt(agent, SwarmRole.WORKER);
 
             assertThat(prompt).contains("你是 Worker（执行者）");
             assertThat(prompt).contains("submit_result");
-            assertThat(prompt).doesNotContain("你是 Coordinator");
-        }
-
-        @Test
-        @DisplayName("ROOT 提示词包含全部工具")
-        void shouldContainAllToolsForRoot() {
-            SwarmAgent agent = makeAgent(5L, 10L, null, "");
-            String prompt = promptService.getPrompt(agent, SwarmRole.ROOT, 1L);
-
-            assertThat(prompt).contains("create_worker");
-            assertThat(prompt).contains("executeWorkflow");
             assertThat(prompt).doesNotContain("你是 Coordinator");
         }
 
@@ -114,12 +127,10 @@ class SwarmPromptServiceTest {
             for (SwarmRole role : SwarmRole.values()) {
                 SwarmAgent agent = SwarmAgent.builder()
                     .id(1L).workspaceId(1L).build();
-                String prompt = promptService.getPrompt(agent, role, 99L);
+                String prompt = promptService.getPrompt(agent, role);
 
                 assertThat(prompt).contains("通信协议")
                     .withFailMessage("提示词应包含通信协议 (role=%s)", role);
-                assertThat(prompt).contains("send")
-                    .withFailMessage("提示词应提及 send 工具 (role=%s)", role);
             }
         }
     }
@@ -177,18 +188,18 @@ class SwarmPromptServiceTest {
         @DisplayName("getWorkerPrompt 包含指定 Phase")
         void shouldContainSpecifiedPhase() {
             SwarmAgent agent = makeAgent(5L, 10L, 2L, "");
-            String prompt = promptService.getWorkerPrompt(agent, 1L, "RESEARCH");
+            String prompt = promptService.getWorkerPrompt(agent, "RESEARCH");
 
             assertThat(prompt).contains("RESEARCH");
         }
 
         @Test
-        @DisplayName("getWorkerPrompt 默认 Phase 为 IMPLEMENTATION")
-        void shouldDefaultToImplementationPhase() {
+        @DisplayName("getWorkerPrompt 默认 Phase 为 RESEARCH（运行时动态流转）")
+        void shouldDefaultToResearchPhase() {
             SwarmAgent agent = makeAgent(5L, 10L, 2L, "");
-            String prompt = promptService.getWorkerPrompt(agent, 1L, null);
+            String prompt = promptService.getWorkerPrompt(agent, null);
 
-            assertThat(prompt).contains("IMPLEMENTATION");
+            assertThat(prompt).contains("RESEARCH");
         }
     }
 
@@ -200,7 +211,7 @@ class SwarmPromptServiceTest {
         @DisplayName("null customPrompt 不输出额外 section")
         void shouldHandleNullCustomPrompt() {
             SwarmAgent agent = makeAgent(5L, 10L, null, "");
-            String prompt = promptService.getPrompt(agent, SwarmRole.ROOT, 1L, null);
+            String prompt = promptService.getPrompt(agent, SwarmRole.COORDINATOR, null);
 
             assertThat(prompt).doesNotContain("自定义附加提示");
         }
@@ -209,7 +220,7 @@ class SwarmPromptServiceTest {
         @DisplayName("空 customPrompt 不输出额外 section")
         void shouldHandleBlankCustomPrompt() {
             SwarmAgent agent = makeAgent(5L, 10L, null, "");
-            String prompt = promptService.getPrompt(agent, SwarmRole.ROOT, 1L, "   ");
+            String prompt = promptService.getPrompt(agent, SwarmRole.COORDINATOR, "   ");
 
             assertThat(prompt).doesNotContain("自定义附加提示");
         }
@@ -219,7 +230,7 @@ class SwarmPromptServiceTest {
         void shouldAppendCustomPrompt() {
             SwarmAgent agent = makeAgent(5L, 10L, null, "");
             String custom = "额外指令：使用 Python 完成";
-            String prompt = promptService.getPrompt(agent, SwarmRole.COORDINATOR, 1L, custom);
+            String prompt = promptService.getPrompt(agent, SwarmRole.COORDINATOR, custom);
 
             assertThat(prompt).contains("额外指令：使用 Python 完成");
             assertThat(prompt).endsWith(custom);
@@ -227,25 +238,15 @@ class SwarmPromptServiceTest {
     }
 
     @Nested
-    @DisplayName("getCoordinatorPrompt / getRootPrompt — 快捷方法")
+    @DisplayName("getCoordinatorPrompt — 快捷方法")
     class ShortcutMethods {
 
         @Test
         @DisplayName("getCoordinatorPrompt 等价于 getPrompt(role=COORDINATOR)")
         void shouldMatchGetPrompt() {
             SwarmAgent agent = makeAgent(5L, 10L, null, "coordinator_desc");
-            String shortcut = promptService.getCoordinatorPrompt(agent, 1L);
-            String explicit = promptService.getPrompt(agent, SwarmRole.COORDINATOR, 1L);
-
-            assertThat(shortcut).isEqualTo(explicit);
-        }
-
-        @Test
-        @DisplayName("getRootPrompt 等价于 getPrompt(role=ROOT)")
-        void shouldMatchGetRootPrompt() {
-            SwarmAgent agent = makeAgent(5L, 10L, null, "root_desc");
-            String shortcut = promptService.getRootPrompt(agent, 1L);
-            String explicit = promptService.getPrompt(agent, SwarmRole.ROOT, 1L);
+            String shortcut = promptService.getCoordinatorPrompt(agent);
+            String explicit = promptService.getPrompt(agent, SwarmRole.COORDINATOR);
 
             assertThat(shortcut).isEqualTo(explicit);
         }

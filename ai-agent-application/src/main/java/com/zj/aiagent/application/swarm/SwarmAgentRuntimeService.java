@@ -7,7 +7,6 @@ import com.zj.aiagent.application.swarm.runtime.SwarmAgentRunner;
 import com.zj.aiagent.application.swarm.runtime.SwarmTools;
 import com.zj.aiagent.application.swarm.tool.SwarmToolFilter;
 import com.zj.aiagent.application.workflow.SchedulerService;
-import com.zj.aiagent.application.writing.WritingAgentCoordinatorService;
 import com.zj.aiagent.application.writing.WritingDraftService;
 import com.zj.aiagent.application.writing.WritingResultService;
 import com.zj.aiagent.application.writing.WritingSessionService;
@@ -52,7 +51,6 @@ public class SwarmAgentRuntimeService {
     private final AgentApplicationService agentApplicationService;
     private final SchedulerService schedulerService;
     private final WritingSessionService writingSessionService;
-    private final WritingAgentCoordinatorService writingAgentCoordinatorService;
     private final WritingTaskService writingTaskService;
     private final WritingResultService writingResultService;
     private final WritingDraftService writingDraftService;
@@ -63,13 +61,16 @@ public class SwarmAgentRuntimeService {
     private final McpToolCallbackAdapter mcpToolCallbackAdapter;
     private final SwarmToolFilter toolFilter;
     private final SwarmPromptService promptService;
+    private final SwarmContextAnalyzer contextAnalyzer;
 
     /** agentId -> runner */
     private final Map<Long, SwarmAgentRunner> runners =
         new ConcurrentHashMap<>();
 
     /**
-     * 启动 Agent Runner（虚拟线程）
+     * 启动 Agent Runner（虚拟线程）。
+     * parentId == null 的 Agent 视为 COORDINATOR（直接服务用户）。
+     * parentId != null 的 Agent 视为 WORKER（被派发者）。
      */
     public void startAgent(SwarmAgent agent) {
         if (runners.containsKey(agent.getId())) {
@@ -93,15 +94,6 @@ public class SwarmAgentRuntimeService {
             )
             .orElse(null);
 
-        // 查 workspace 下 role=human 的 agent id
-        Long humanAgentId = agentRepository
-            .findByWorkspaceId(agent.getWorkspaceId())
-            .stream()
-            .filter(a -> "human".equals(a.getRole()))
-            .map(SwarmAgent::getId)
-            .findFirst()
-            .orElse(null);
-
         // 为每个 agent 创建独立的 SwarmTools 实例
         Long userId = workspaceRepository
             .findById(agent.getWorkspaceId())
@@ -115,7 +107,6 @@ public class SwarmAgentRuntimeService {
             agentApplicationService,
             schedulerService,
             writingSessionService,
-            writingAgentCoordinatorService,
             writingTaskService,
             writingResultService,
             objectMapper,
@@ -123,15 +114,6 @@ public class SwarmAgentRuntimeService {
             agent.getWorkspaceId(),
             userId
         );
-
-        // 判断 Root/Sub：parentId 对应的 Agent role 为 human 则为 Root
-        boolean isRoot = false;
-        if (agent.getParentId() != null) {
-            isRoot = agentRepository
-                .findById(agent.getParentId())
-                .map(parent -> "human".equals(parent.getRole()))
-                .orElse(false);
-        }
 
         SwarmAgentRunner runner = new SwarmAgentRunner(
             agent,
@@ -145,17 +127,15 @@ public class SwarmAgentRuntimeService {
             agentEventBus,
             uiEventBus,
             writingSessionService,
-            writingAgentCoordinatorService,
             writingTaskService,
             writingResultService,
             maxRounds,
-            humanAgentId,
             llmConfig,
-            isRoot,
             swarmTools,
             mcpToolCallbackAdapter,
             toolFilter,
-            promptService
+            promptService,
+            contextAnalyzer
         );
 
         runners.put(agent.getId(), runner);
@@ -163,13 +143,11 @@ public class SwarmAgentRuntimeService {
         Thread.ofVirtual().name("swarm-agent-" + agent.getId()).start(runner);
 
         log.info(
-            "[Swarm] Started runner: agent={}, workspace={}, role={}, parentId={}, isRoot={}, humanAgentId={}, maxRounds={}, llmConfigId={}",
+            "[Swarm] Started runner: agent={}, workspace={}, role={}, parentId={}, maxRounds={}, llmConfigId={}",
             agent.getId(),
             agent.getWorkspaceId(),
             agent.getRole(),
             agent.getParentId(),
-            isRoot,
-            humanAgentId,
             maxRounds,
             llmConfig != null ? llmConfig.getId() : null
         );
@@ -192,24 +170,16 @@ public class SwarmAgentRuntimeService {
             agentRepository
                 .findById(agentId)
                 .ifPresent(agent -> {
-                    if (!"human".equals(agent.getRole())) {
-                        startAgent(agent);
-                        // 启动后再唤醒
-                        SwarmAgentRunner newRunner = runners.get(agentId);
-                        if (newRunner != null) {
-                            newRunner.wake();
-                            log.info(
-                                "[Swarm] Wake signal delivered after lazy start: agent={}, workspace={}, role={}",
-                                agentId,
-                                agent.getWorkspaceId(),
-                                agent.getRole()
-                            );
-                        }
-                    } else {
+                    startAgent(agent);
+                    // 启动后再唤醒
+                    SwarmAgentRunner newRunner = runners.get(agentId);
+                    if (newRunner != null) {
+                        newRunner.wake();
                         log.info(
-                            "[Swarm] Skip wake for human agent: agent={}, workspace={}",
-                            agent.getId(),
-                            agent.getWorkspaceId()
+                            "[Swarm] Wake signal delivered after lazy start: agent={}, workspace={}, role={}",
+                            agentId,
+                            agent.getWorkspaceId(),
+                            agent.getRole()
                         );
                     }
                 });
@@ -268,7 +238,6 @@ public class SwarmAgentRuntimeService {
         agentRepository
             .findByWorkspaceId(workspaceId)
             .stream()
-            .filter(a -> !"human".equals(a.getRole()))
             .forEach(this::startAgent);
     }
 }

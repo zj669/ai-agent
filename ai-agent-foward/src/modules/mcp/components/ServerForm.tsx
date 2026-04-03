@@ -20,7 +20,7 @@ export default function ServerForm({ initialName, initialValues, onSubmit, onCan
     serverType: ServerType
     description?: string
     command?: string
-    args?: string[]
+    args?: string
     env?: { key: string; value: string }[]
     url?: string
     headers?: { key: string; value: string }[]
@@ -34,7 +34,7 @@ export default function ServerForm({ initialName, initialValues, onSubmit, onCan
       config.command = values.command
       config.args = typeof values.args === 'string'
         ? values.args.split(' ').filter(Boolean)
-        : values.args?.filter(Boolean)
+        : []
       config.env = values.env?.reduce<Record<string, string>>((acc, { key, value }) => {
         if (key && value) acc[key] = value
         return acc

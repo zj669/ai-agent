@@ -31,11 +31,9 @@ public enum SwarmPromptSection {
         - workspace_id: {workspaceId}
         - 角色: {role}
         - 描述: {description}
-        - 父 Agent ID: {parentAgentId}（无则为 null）
 
         【通信协议】
         所有 Agent 间通信使用 send(tool) 发送结构化消息。
-        禁止对 role=human 的 agent 使用 send（那是人类用户）。
         """),
 
     /**
@@ -44,7 +42,7 @@ public enum SwarmPromptSection {
      */
     COORDINATOR("""
         【核心职责】
-        你是 Coordinator（协调者），负责：
+        你是 Coordinator（协调者），直接服务用户，负责：
         1. 分解复杂任务为独立子任务
         2. 创建 Worker Agent 并派发任务
         3. 整合 Worker 的执行结果
@@ -88,7 +86,6 @@ public enum SwarmPromptSection {
         - 优先并行派发多个独立任务，而不是串行等待
         - 收集到足够结果后，先落 draft，再回复用户
         - Worker 的结果通过 send 回复给你，你负责整合
-        - 禁止对 role=human 的 agent 使用 send
         - 使用 send 派发任务后等待 Worker 回复，不要在 Worker 完成前强行结束回合
 
         【Task Notification 机制】
@@ -101,6 +98,24 @@ public enum SwarmPromptSection {
           &lt;usage&gt;...&lt;/usage&gt;
         &lt;/task-notification&gt;
         请等待这些通知到来后再继续下一步。
+        """),
+
+    /**
+     * Context Block Section — Coordinator 的结构化上下文信息。
+     * 由 SwarmContextAnalyzer 动态注入，供 Continue vs Spawn 决策参考。
+     */
+    CONTEXT_BLOCK("""
+        【当前任务上下文】（动态数据）
+        - 任务类型: {taskType}
+        - 当前 Phase: {currentPhase} — {phaseDescription}
+        - Worker 探索过的文件: {exploredFiles}
+        - 上下文重叠度: {overlapScore} ({overlapLevel})
+        - 推荐策略: {recommendedStrategy}
+
+        【决策参考】
+        - HIGH 重叠（文件/模块高度重叠）→ 优先 Continue（上下文复用价值高）
+        - MEDIUM 重叠 → 根据任务相关性决定
+        - LOW 重叠（无关任务/新领域）→ 优先 Spawn（避免探索噪声）
         """),
 
     /**
@@ -132,12 +147,22 @@ public enum SwarmPromptSection {
           &lt;usage&gt;执行统计（token数/耗时等，可选）&lt;/usage&gt;
         &lt;/task-notification&gt;
 
+        【上下文收集规则】
+        每次工具调用后，系统会自动记录：
+        - explored_files: 本次访问/修改的文件路径列表
+        - explored_modules: 本次涉及的模块/包路径
+        - findings: 本次发现的关键信息摘要（用 &lt;finding&gt; 标签包裹）
+
+        例如，在输出中发现关键信息时使用：
+        &lt;finding&gt;发现：模块 X 使用了 Y 模式，这会影响实现方式&lt;/finding&gt;
+
+        这些上下文将传递给 Coordinator 用于 Continue vs Spawn 决策。
+
         【重要规则】
         - 不要创建新 Agent、不要派发任务
         - 只执行被分配的任务，不要自己扩展范围
         - 如果任务失败，也要发送 &lt;task-notification status="failed"&gt; 汇报
-        - 如果面对人类用户（parentId == null 且无父 Coordinator），直接输出自然语言回复
-        - 禁止对 role=human 的 agent 使用 send
+        - 如果面对用户（parentId == null 且无父 Coordinator），直接输出自然语言回复
         - 使用 taskUuid 时，优先用 submit_result 记录，再 send 汇报
         """),
 

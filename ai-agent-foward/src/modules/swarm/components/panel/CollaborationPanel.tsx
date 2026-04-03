@@ -1,37 +1,86 @@
 import { useMemo, useState } from "react";
-import { Card, Drawer, Empty, Space, Tag, Typography } from "antd";
-import type {
-  WritingCollaborationCard,
-  WritingDraftSummary,
-} from "../../types/swarm";
+import {
+  Card,
+  Drawer,
+  Empty,
+  Progress,
+  Space,
+  Tag,
+  Typography,
+} from "antd";
+import {
+  CheckCircleFilled,
+  ClockCircleOutlined,
+  CloseCircleFilled,
+  EditOutlined,
+  RightOutlined,
+} from "@ant-design/icons";
+import type { WritingCollaborationCard } from "../../types/swarm";
+import { AGENT_GRADIENTS } from "../../styles/swarm-colors";
 
-const { Paragraph, Text, Title } = Typography;
+const { Paragraph, Text } = Typography;
 
-const STATUS_META: Record<string, { color: string; label: string }> = {
-  IDLE: { color: "default", label: "空闲" },
-  PLANNED: { color: "default", label: "待派发" },
-  ASSIGNED: { color: "processing", label: "已分配" },
-  RUNNING: { color: "blue", label: "执行中" },
-  DONE: { color: "success", label: "已完成" },
-  FAILED: { color: "error", label: "失败" },
+const STATUS_META: Record<
+  string,
+  { color: string; bg: string; label: string; icon: React.ReactNode }
+> = {
+  IDLE: {
+    color: "#52c41a",
+    bg: "#f6ffed",
+    label: "空闲",
+    icon: <ClockCircleOutlined />,
+  },
+  PLANNED: {
+    color: "#8c8c8c",
+    bg: "#f5f5f5",
+    label: "待派发",
+    icon: <EditOutlined />,
+  },
+  ASSIGNED: {
+    color: "#1677ff",
+    bg: "#e6f4ff",
+    label: "已分配",
+    icon: <RightOutlined />,
+  },
+  RUNNING: {
+    color: "#722ed1",
+    bg: "#f9f0ff",
+    label: "执行中",
+    icon: <span className="animate-spin-slow">◌</span>,
+  },
+  DONE: {
+    color: "#52c41a",
+    bg: "#f6ffed",
+    label: "已完成",
+    icon: <CheckCircleFilled />,
+  },
+  FAILED: {
+    color: "#ff4d4f",
+    bg: "#fff2f0",
+    label: "失败",
+    icon: <CloseCircleFilled />,
+  },
 };
-
-interface Props {
-  cards: WritingCollaborationCard[];
-  latestDraft?: WritingDraftSummary | null;
-}
 
 function getStatusMeta(status?: string) {
   return (
-    STATUS_META[status ?? ""] ?? { color: "default", label: status ?? "未知" }
+    STATUS_META[status ?? ""] ?? {
+      color: "#8c8c8c",
+      bg: "#f5f5f5",
+      label: status ?? "未知",
+      icon: null,
+    }
   );
 }
 
-export default function CollaborationPanel({ cards, latestDraft }: Props) {
+interface Props {
+  cards: WritingCollaborationCard[];
+}
+
+export default function CollaborationPanel({ cards }: Props) {
   const [activeCard, setActiveCard] = useState<WritingCollaborationCard | null>(
     null,
   );
-  const [draftVisible, setDraftVisible] = useState(false);
 
   const sortedCards = useMemo(
     () =>
@@ -55,62 +104,18 @@ export default function CollaborationPanel({ cards, latestDraft }: Props) {
           overflow: "hidden",
         }}
       >
-        <Card
-          hoverable={!!latestDraft}
-          onClick={() => {
-            if (latestDraft) {
-              setDraftVisible(true);
-            }
-          }}
-          size="small"
-          style={{
-            borderRadius: 16,
-            borderColor: "#e7eaf3",
-            boxShadow: "0 8px 22px rgba(15, 23, 42, 0.05)",
-          }}
-        >
-          <Space direction="vertical" size={4} style={{ width: "100%" }}>
-            <Text type="secondary" style={{ fontSize: 12 }}>
-              当前草稿
-            </Text>
-            {latestDraft ? (
-              <>
-                <Space align="center" size={8}>
-                  <Title level={5} style={{ margin: 0 }}>
-                    {latestDraft.title || `草稿 V${latestDraft.versionNo}`}
-                  </Title>
-                  <Tag
-                    color={latestDraft.status === "FINAL" ? "success" : "gold"}
-                  >
-                    {latestDraft.status === "FINAL"
-                      ? "最终稿"
-                      : `V${latestDraft.versionNo}`}
-                  </Tag>
-                </Space>
-                <Text type="secondary" style={{ fontSize: 12 }}>
-                  点击查看完整草稿
-                </Text>
-                <Paragraph
-                  style={{ marginBottom: 0, whiteSpace: "pre-wrap" }}
-                  ellipsis={{ rows: 4, expandable: false }}
-                >
-                  {latestDraft.content || "主 Agent 还没有生成草稿。"}
-                </Paragraph>
-              </>
-            ) : (
-              <Text type="secondary">还没有生成草稿</Text>
-            )}
-          </Space>
-        </Card>
-
         <div
-          style={{ flex: 1, minHeight: 0, overflow: "auto", paddingRight: 4 }}
+          style={{ flex: 1, minHeight: 0, overflow: "auto", paddingRight: 2 }}
         >
-          <Space direction="vertical" size={12} style={{ width: "100%" }}>
+          <Space direction="vertical" size={10} style={{ width: "100%" }}>
             {sortedCards.length === 0 ? (
               <Card
                 size="small"
-                style={{ borderRadius: 16, borderColor: "#e7eaf3" }}
+                style={{
+                  borderRadius: 16,
+                  borderColor: "#e7eaf3",
+                  background: "#fafbfc",
+                }}
               >
                 <Empty
                   image={Empty.PRESENTED_IMAGE_SIMPLE}
@@ -118,67 +123,189 @@ export default function CollaborationPanel({ cards, latestDraft }: Props) {
                 />
               </Card>
             ) : (
-              sortedCards.map((card) => {
+              sortedCards.map((card, index) => {
                 const meta = getStatusMeta(card.status);
+                const gradient = AGENT_GRADIENTS[index % AGENT_GRADIENTS.length];
+                const isRunning = card.status === "RUNNING";
+                const isDone = card.status === "DONE";
+                const isFailed = card.status === "FAILED";
                 return (
                   <Card
-                    key={card.writingAgentId}
+                    key={`${card.swarmAgentId}-${card.status}-${card.currentTask?.title ?? ""}`}
                     hoverable
                     size="small"
                     onClick={() => setActiveCard(card)}
                     style={{
-                      borderRadius: 16,
-                      borderColor: "#e7eaf3",
-                      boxShadow: "0 8px 20px rgba(15, 23, 42, 0.05)",
+                      borderRadius: 12,
+                      border: "1px solid #eaecf0",
+                      boxShadow: isRunning
+                        ? "0 4px 16px rgba(114,46,209,0.12)"
+                        : "0 2px 8px rgba(15,23,42,0.04)",
+                      transition: "all 0.2s ease",
+                      overflow: "hidden",
+                      padding: 0,
                     }}
+                    styles={{ body: { padding: 0 } }}
                   >
-                    <Space
-                      direction="vertical"
-                      size={8}
-                      style={{ width: "100%" }}
-                    >
-                      <div
-                        style={{
-                          display: "flex",
-                          justifyContent: "space-between",
-                          gap: 12,
-                        }}
+                    {/* Card Header — gradient accent bar */}
+                    <div
+                      style={{
+                        height: 3,
+                        background: isRunning
+                          ? "linear-gradient(90deg, #722ed1, #9254de)"
+                          : isDone
+                            ? "linear-gradient(90deg, #52c41a, #73d13d)"
+                            : isFailed
+                              ? "linear-gradient(90deg, #ff4d4f, #ff7875)"
+                              : "linear-gradient(90deg, #d9d9d9, #e8e8e8)",
+                        borderRadius: "12px 12px 0 0",
+                      }}
+                    />
+                    <div style={{ padding: "12px 14px" }}>
+                      <Space
+                        direction="vertical"
+                        size={6}
+                        style={{ width: "100%" }}
                       >
-                        <div style={{ minWidth: 0 }}>
-                          <Title level={5} style={{ margin: 0, fontSize: 16 }}>
-                            {card.role}
-                          </Title>
-                          {card.description && (
-                            <Text type="secondary" style={{ fontSize: 12 }}>
-                              {card.description}
-                            </Text>
-                          )}
+                        {/* Role + Status row */}
+                        <div
+                          style={{
+                            display: "flex",
+                            justifyContent: "space-between",
+                            alignItems: "center",
+                            gap: 8,
+                          }}
+                        >
+                          <Space size={8} align="center">
+                            {/* Agent avatar dot */}
+                            <div
+                              style={{
+                                width: 28,
+                                height: 28,
+                                borderRadius: 8,
+                                background: gradient,
+                                display: "flex",
+                                alignItems: "center",
+                                justifyContent: "center",
+                                color: "#fff",
+                                fontSize: 12,
+                                fontWeight: 700,
+                                flexShrink: 0,
+                              }}
+                            >
+                              {card.role.charAt(0).toUpperCase()}
+                            </div>
+                            <div style={{ minWidth: 0 }}>
+                              <Text
+                                strong
+                                style={{ fontSize: 14, display: "block", lineHeight: 1.3 }}
+                              >
+                                {card.role}
+                              </Text>
+                              {card.description && (
+                                <Text
+                                  type="secondary"
+                                  style={{ fontSize: 11, display: "block" }}
+                                  ellipsis
+                                >
+                                  {card.description}
+                                </Text>
+                              )}
+                            </div>
+                          </Space>
+                          <Space size={4} align="center">
+                            <Tag
+                              color={meta.bg}
+                              style={{
+                                color: meta.color,
+                                border: `1px solid ${meta.color}30`,
+                                borderRadius: 20,
+                                fontSize: 11,
+                                padding: "0 6px",
+                                margin: 0,
+                              }}
+                            >
+                              <Space size={3} align="center">
+                                <span style={{ color: meta.color, fontSize: 10 }}>
+                                  {meta.icon}
+                                </span>
+                                {meta.label}
+                              </Space>
+                            </Tag>
+                          </Space>
                         </div>
-                        <Tag color={meta.color}>{meta.label}</Tag>
-                      </div>
-                      <div>
-                        <Text strong style={{ fontSize: 12 }}>
-                          当前任务
-                        </Text>
-                        <Paragraph
-                          style={{ margin: "4px 0 0", whiteSpace: "pre-wrap" }}
-                          ellipsis={{ rows: 2 }}
-                        >
-                          {card.currentTask?.title || "暂无任务"}
-                        </Paragraph>
-                      </div>
-                      <div>
-                        <Text strong style={{ fontSize: 12 }}>
-                          最新结果
-                        </Text>
-                        <Paragraph
-                          style={{ margin: "4px 0 0", whiteSpace: "pre-wrap" }}
-                          ellipsis={{ rows: 2 }}
-                        >
-                          {card.latestResult?.summary || "暂无结果"}
-                        </Paragraph>
-                      </div>
-                    </Space>
+
+                        {/* Divider */}
+                        <div
+                          style={{
+                            height: 1,
+                            background: "#f0f0f0",
+                            margin: "2px 0",
+                          }}
+                        />
+
+                        {/* Current Task */}
+                        <div>
+                          <Text
+                            type="secondary"
+                            style={{ fontSize: 11, fontWeight: 500 }}
+                          >
+                            当前任务
+                          </Text>
+                          <Paragraph
+                            style={{
+                              margin: "2px 0 0",
+                              fontSize: 13,
+                              lineHeight: 1.5,
+                              whiteSpace: "pre-wrap",
+                              color:
+                                card.currentTask?.title
+                                  ? "#262626"
+                                  : "#bfbfbf",
+                            }}
+                            ellipsis={{ rows: 2 }}
+                          >
+                            {card.currentTask?.title || "暂无任务"}
+                          </Paragraph>
+                        </div>
+
+                        {/* Latest Result */}
+                        <div>
+                          <Text
+                            type="secondary"
+                            style={{ fontSize: 11, fontWeight: 500 }}
+                          >
+                            最新结果
+                          </Text>
+                          <Paragraph
+                            style={{
+                              margin: "2px 0 0",
+                              fontSize: 12,
+                              lineHeight: 1.5,
+                              whiteSpace: "pre-wrap",
+                              color: card.latestResult?.summary
+                                ? "#595959"
+                                : "#bfbfbf",
+                            }}
+                            ellipsis={{ rows: 2 }}
+                          >
+                            {card.latestResult?.summary || "暂无结果"}
+                          </Paragraph>
+                        </div>
+
+                        {/* Progress indicator for RUNNING */}
+                        {isRunning && (
+                          <Progress
+                            percent={75}
+                            size="small"
+                            strokeColor="#722ed1"
+                            trailColor="#f0e6ff"
+                            showInfo={false}
+                            style={{ margin: "2px 0 0" }}
+                          />
+                        )}
+                      </Space>
+                    </div>
                   </Card>
                 );
               })
@@ -198,7 +325,7 @@ export default function CollaborationPanel({ cards, latestDraft }: Props) {
             <div>
               <Text type="secondary">角色状态</Text>
               <div style={{ marginTop: 6 }}>
-                <Tag color={getStatusMeta(activeCard.status).color}>
+                <Tag color={getStatusMeta(activeCard.status).bg} style={{ color: getStatusMeta(activeCard.status).color }}>
                   {getStatusMeta(activeCard.status).label}
                 </Tag>
               </div>
@@ -247,31 +374,6 @@ export default function CollaborationPanel({ cards, latestDraft }: Props) {
               </Paragraph>
             </div>
           </Space>
-        )}
-      </Drawer>
-
-      <Drawer
-        title={latestDraft?.title || "当前草稿"}
-        open={draftVisible}
-        width={720}
-        onClose={() => setDraftVisible(false)}
-      >
-        {latestDraft ? (
-          <Space direction="vertical" size={16} style={{ width: "100%" }}>
-            <Space align="center" size={8}>
-              <Tag color={latestDraft.status === "FINAL" ? "success" : "gold"}>
-                {latestDraft.status === "FINAL"
-                  ? "最终稿"
-                  : `V${latestDraft.versionNo}`}
-              </Tag>
-              <Text type="secondary">版本号：{latestDraft.versionNo}</Text>
-            </Space>
-            <Paragraph style={{ marginBottom: 0, whiteSpace: "pre-wrap" }}>
-              {latestDraft.content || "当前草稿暂无内容"}
-            </Paragraph>
-          </Space>
-        ) : (
-          <Text type="secondary">还没有生成草稿</Text>
         )}
       </Drawer>
     </>

@@ -7,7 +7,7 @@ import lombok.Data;
 @Builder
 public class WorkspaceDefaultsDTO {
     private Long workspaceId;
-    private Long humanAgentId;
+    private Long userId;
     private Long assistantAgentId;
     private Long defaultGroupId;
 }

@@ -16,7 +16,6 @@ import {
 } from "antd";
 import {
   RobotOutlined,
-  UserOutlined,
   SendOutlined,
   PlusOutlined,
   StopOutlined,
@@ -26,10 +25,12 @@ import {
   CheckCircleOutlined,
   ClockCircleOutlined,
   NodeIndexOutlined,
+  LoadingOutlined,
+  CheckCircleFilled,
+  CloseCircleFilled,
 } from "@ant-design/icons";
-import ReactMarkdown from "react-markdown";
-import remarkGfm from "remark-gfm";
-import rehypeHighlight from "rehype-highlight";
+import MarkdownRenderer from "../../swarm/components/chat/MarkdownRenderer";
+import { AGENT_GRADIENTS, SWARM_COLORS } from "../../swarm/styles/swarm-colors";
 import {
   createChatConversation,
   fetchConversationList,
@@ -92,40 +93,6 @@ function formatTime(iso: string): string {
   }
 }
 
-/* ---- typing dots keyframes (injected once) ---- */
-const TYPING_STYLE_ID = "chat-typing-dots-style";
-if (
-  typeof document !== "undefined" &&
-  !document.getElementById(TYPING_STYLE_ID)
-) {
-  const style = document.createElement("style");
-  style.id = TYPING_STYLE_ID;
-  style.textContent = `
-@keyframes typingBounce {
-  0%, 80%, 100% { transform: translateY(0); }
-  40% { transform: translateY(-4px); }
-}
-.typing-dots { display: inline-flex; gap: 3px; align-items: center; padding: 4px 0; }
-.typing-dots span {
-  width: 6px; height: 6px; border-radius: 50%; background: #999;
-  animation: typingBounce 1.2s infinite ease-in-out;
-}
-.typing-dots span:nth-child(2) { animation-delay: 0.15s; }
-.typing-dots span:nth-child(3) { animation-delay: 0.3s; }
-`;
-  document.head.appendChild(style);
-}
-
-function TypingDots() {
-  return (
-    <div className="typing-dots">
-      <span />
-      <span />
-      <span />
-    </div>
-  );
-}
-
 function SystemEventBubble({ message }: { message: ChatMessage }) {
   return (
     <div style={{ textAlign: "center", marginBottom: 16 }}>
@@ -144,29 +111,48 @@ function SystemEventBubble({ message }: { message: ChatMessage }) {
   );
 }
 
-/* ---- Node type icons ---- */
-const NODE_ICONS: Record<string, string> = {
-  LLM: "🧠",
-  KNOWLEDGE: "📚",
-  TOOL: "🔧",
-  HTTP: "🌐",
-  CONDITION: "🔀",
-  START: "▶",
-  END: "■",
+/* ---- Node type labels ---- */
+const NODE_TYPE_LABELS: Record<string, string> = {
+  LLM: "LLM",
+  KNOWLEDGE: "知识检索",
+  TOOL: "工具调用",
+  HTTP: "HTTP",
+  CONDITION: "条件判断",
+  START: "起始",
+  END: "结束",
+  AGENT: "Agent",
 };
 
 /* ---- Thinking Steps Block ---- */
 function ThinkingStepItem({ step }: { step: ThinkingStep }) {
   const [expanded, setExpanded] = useState(false);
-  const icon = NODE_ICONS[step.nodeType] ?? "⚙️";
-  const statusIcon =
-    step.status === "running" ? "⏳" : step.status === "done" ? "✅" : "❌";
+  const nodeLabel = NODE_TYPE_LABELS[step.nodeType] ?? step.nodeType;
+
+  /** Left border color by node type */
+  const borderColors: Record<string, string> = {
+    LLM: "#722ed1",
+    KNOWLEDGE: "#13c2c2",
+    TOOL: "#fa8c16",
+    HTTP: "#2f54eb",
+    CONDITION: "#eb2f96",
+    START: "#52c41a",
+    END: "#1677ff",
+    AGENT: "#722ed1",
+  };
+  const borderColor = borderColors[step.nodeType] ?? "#1677ff";
+
+  const statusStyle = step.status === "running"
+    ? { color: "#1677ff", fontSize: 14 }
+    : step.status === "done"
+      ? { color: "#52c41a", fontSize: 14 }
+      : { color: "#ff4d4f", fontSize: 14 };
 
   return (
     <div
       style={{
-        background: "#f8f9fa",
+        background: "#fff",
         border: "1px solid #e8e8e8",
+        borderLeft: `3px solid ${borderColor}`,
         borderRadius: 8,
         marginBottom: 6,
         overflow: "hidden",
@@ -184,8 +170,16 @@ function ThinkingStepItem({ step }: { step: ThinkingStep }) {
           userSelect: "none",
         }}
       >
-        <span style={{ fontSize: 14 }}>{statusIcon}</span>
-        <span style={{ fontSize: 13 }}>{icon}</span>
+        {step.status === "running" ? (
+          <LoadingOutlined style={statusStyle} />
+        ) : step.status === "done" ? (
+          <CheckCircleFilled style={statusStyle} />
+        ) : (
+          <CloseCircleFilled style={statusStyle} />
+        )}
+        <Text style={{ fontSize: 12, color: "#8c8c8c", minWidth: 56 }}>
+          {nodeLabel}
+        </Text>
         <span style={{ fontSize: 13, fontWeight: 500, color: "#333", flex: 1 }}>
           {step.nodeName}
         </span>
@@ -241,18 +235,22 @@ function ThinkingStepsBlock({
         style={{
           display: "flex",
           alignItems: "center",
-          gap: 6,
-          padding: "6px 0",
+          gap: 8,
+          padding: "8px 12px",
           cursor: "pointer",
           userSelect: "none",
+          background: SWARM_COLORS.thinkingBubble,
+          border: `1px solid ${SWARM_COLORS.thinkingBorder}`,
+          borderRadius: 10,
+          marginBottom: 4,
         }}
       >
         {isStreaming && !collapsed ? (
-          <Spin size="small" />
+          <LoadingOutlined style={{ color: SWARM_COLORS.primary, fontSize: 13 }} />
         ) : (
-          <span style={{ fontSize: 13 }}>💭</span>
+          <LoadingOutlined style={{ color: SWARM_COLORS.waitingDoneAccent, fontSize: 13 }} />
         )}
-        <span style={{ fontSize: 13, color: "#666", fontWeight: 500 }}>
+        <span style={{ fontSize: 13, color: SWARM_COLORS.primary, fontWeight: 600 }}>
           {isStreaming ? "思考中..." : `已完成 ${doneCount}/${totalCount} 步`}
         </span>
         <span
@@ -261,6 +259,7 @@ function ThinkingStepsBlock({
             color: "#999",
             transform: collapsed ? "rotate(0)" : "rotate(180deg)",
             transition: "transform 0.2s",
+            marginLeft: "auto",
           }}
         >
           ▼
@@ -393,17 +392,24 @@ function HumanReviewModal({
   const [rejectModalVisible, setRejectModalVisible] = useState(false);
   const [rejectReason, setRejectReason] = useState("");
 
+  const nodes = useMemo(() => detail?.nodes ?? [], [detail?.nodes]);
+  const currentNode = useMemo(
+    () => nodes.find((n) => n.nodeId === detail?.nodeId),
+    [nodes, detail?.nodeId],
+  );
+  const completedNodes = useMemo(
+    () => nodes.filter((n) => n.nodeId !== detail?.nodeId),
+    [nodes, detail?.nodeId],
+  );
   const isBefore = detail?.triggerPhase === "BEFORE_EXECUTION";
-  const nodes = detail?.nodes ?? [];
-  const currentNode = nodes.find((n) => n.nodeId === detail?.nodeId);
-  const completedNodes = nodes.filter((n) => n.nodeId !== detail?.nodeId);
 
-  const currentNodeData = isBefore
-    ? (currentNode?.inputs ?? {})
-    : (normalizeNodeOutputs(
-        currentNode?.nodeType ?? "",
-        currentNode?.outputs,
-      ) ?? {});
+  const currentNodeData = useMemo(
+    () =>
+      isBefore
+        ? currentNode?.inputs ?? {}
+        : normalizeNodeOutputs(currentNode?.nodeType ?? "", currentNode?.outputs) ?? {},
+    [currentNode, isBefore],
+  );
 
   useEffect(() => {
     if (currentNodeData && Object.keys(currentNodeData).length > 0) {
@@ -431,7 +437,7 @@ function HumanReviewModal({
       }
     });
     setUpstreamEdits(upInit);
-  }, [detail, isBefore, currentNode]);
+  }, [completedNodes, currentNodeData]);
 
   const updateUpstreamField = (
     nodeId: string,
@@ -1671,46 +1677,95 @@ function ChatPage() {
                 if (isSystem) {
                   return <SystemEventBubble key={m.id} message={m} />;
                 }
+                const isStreaming = m.status === "STREAMING";
+                const agentGradient = AGENT_GRADIENTS[0];
+                const agentLetter = selectedAgent?.name?.charAt(0)?.toUpperCase() ?? "A";
                 return (
                   <div
                     key={m.id}
+                    className="swarm-msg-enter"
                     style={{
                       display: "flex",
-                      justifyContent: isUser ? "flex-end" : "flex-start",
-                      marginBottom: 16,
+                      flexDirection: isUser ? "row-reverse" : "row",
+                      marginBottom: 10,
                       gap: 8,
+                      alignItems: "flex-start",
                     }}
                   >
-                    {!isUser && (
-                      <Avatar
-                        size={32}
-                        icon={<RobotOutlined />}
+                    {/* Avatar */}
+                    {isUser ? (
+                      <div
                         style={{
-                          background: "#1677ff",
+                          width: 32,
+                          height: 32,
+                          borderRadius: "50%",
+                          background: "#52c41a",
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "center",
+                          color: "#fff",
+                          fontSize: 12,
+                          fontWeight: 600,
                           flexShrink: 0,
-                          marginTop: 2,
                         }}
-                      />
+                      >
+                        我
+                      </div>
+                    ) : (
+                      <div
+                        style={{
+                          width: 32,
+                          height: 32,
+                          borderRadius: "50%",
+                          background: agentGradient,
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "center",
+                          color: "#fff",
+                          fontSize: 12,
+                          fontWeight: 600,
+                          flexShrink: 0,
+                        }}
+                      >
+                        {agentLetter}
+                      </div>
                     )}
-                    <div style={{ maxWidth: "70%" }}>
+                    <div style={{ maxWidth: "72%" }}>
+                      {/* Agent role name */}
+                      {!isUser && selectedAgent && (
+                        <Text
+                          type="secondary"
+                          style={{ fontSize: 12, marginBottom: 4, display: "block" }}
+                        >
+                          {selectedAgent.name}
+                        </Text>
+                      )}
                       {/* 思考步骤折叠区域 */}
                       {!isUser &&
                         m.thinkingSteps &&
                         m.thinkingSteps.length > 0 && (
                           <ThinkingStepsBlock
                             steps={m.thinkingSteps}
-                            isStreaming={m.status === "STREAMING"}
+                            isStreaming={isStreaming}
                           />
                         )}
                       <div
                         style={{
                           padding: "10px 14px",
                           borderRadius: isUser
-                            ? "12px 12px 2px 12px"
-                            : "12px 12px 12px 2px",
-                          background: isUser ? "#1677ff" : "#f5f5f5",
-                          color: isUser ? "#fff" : "#333",
+                            ? "16px 16px 4px 16px"
+                            : "16px 16px 16px 4px",
+                          background: isUser
+                            ? SWARM_COLORS.humanBubble
+                            : SWARM_COLORS.agentBubble,
+                          color: isUser
+                            ? SWARM_COLORS.humanBubbleText
+                            : SWARM_COLORS.agentBubbleText,
                           wordBreak: "break-word",
+                          boxShadow: isUser
+                            ? SWARM_COLORS.humanShadow
+                            : SWARM_COLORS.agentShadow,
+                          border: isUser ? "none" : "1px solid #f0f0f0",
                         }}
                       >
                         {isUser ? (
@@ -1724,26 +1779,12 @@ function ChatPage() {
                             {m.content || "..."}
                           </div>
                         ) : (
-                          <div
-                            className="markdown-body"
+                          <MarkdownRenderer
+                            content={m.content || ""}
+                            streaming={isStreaming}
+                            className="ai-markdown-body"
                             style={{ fontSize: 14, lineHeight: 1.6 }}
-                          >
-                            {m.content ? (
-                              <ReactMarkdown
-                                remarkPlugins={[remarkGfm]}
-                                rehypePlugins={[rehypeHighlight]}
-                              >
-                                {m.content}
-                              </ReactMarkdown>
-                            ) : m.status === "STREAMING" ? (
-                              <TypingDots />
-                            ) : (
-                              "..."
-                            )}
-                            {m.status === "STREAMING" && m.content && (
-                              <TypingDots />
-                            )}
-                          </div>
+                          />
                         )}
                       </div>
                       <div
@@ -1757,17 +1798,6 @@ function ChatPage() {
                         {formatTime(m.createdAt)}
                       </div>
                     </div>
-                    {isUser && (
-                      <Avatar
-                        size={32}
-                        icon={<UserOutlined />}
-                        style={{
-                          background: "#87d068",
-                          flexShrink: 0,
-                          marginTop: 2,
-                        }}
-                      />
-                    )}
                   </div>
                 );
               })}

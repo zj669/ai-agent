@@ -1,6 +1,7 @@
 package com.zj.aiagent.application.swarm;
 
 import com.zj.aiagent.application.swarm.dto.*;
+import com.zj.aiagent.application.writing.WritingSessionService;
 import com.zj.aiagent.domain.swarm.entity.SwarmAgent;
 import com.zj.aiagent.domain.swarm.entity.SwarmGroup;
 import com.zj.aiagent.domain.swarm.entity.SwarmWorkspace;
@@ -8,7 +9,9 @@ import com.zj.aiagent.domain.swarm.repository.SwarmAgentRepository;
 import com.zj.aiagent.domain.swarm.repository.SwarmGroupRepository;
 import com.zj.aiagent.domain.swarm.repository.SwarmMessageRepository;
 import com.zj.aiagent.domain.swarm.repository.SwarmWorkspaceRepository;
+import com.zj.aiagent.domain.writing.entity.WritingSession;
 import com.zj.aiagent.infrastructure.swarm.sse.SwarmUIEventBus;
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
@@ -26,9 +29,12 @@ public class SwarmWorkspaceService {
     private final SwarmGroupRepository groupRepository;
     private final SwarmMessageRepository messageRepository;
     private final SwarmUIEventBus uiEventBus;
+    private final WritingSessionService writingSessionService;
 
     /**
-     * 创建 workspace，自动创建 human + assistant + P2P 群
+     * 创建 workspace，自动创建 assistant + P2P 群。
+     * 用户直接作为发送方（通过 userId）参与 swarm 消息路由，不再需要 human 占位 Agent。
+     * assistant agent (parentId=null) 作为 COORDINATOR 直接服务用户，自动投递回复到 P2P 群。
      */
     @Transactional(rollbackFor = Exception.class)
     public WorkspaceDefaultsDTO createWorkspace(
@@ -50,44 +56,51 @@ public class SwarmWorkspaceService {
             .build();
         workspaceRepository.save(workspace);
 
-        // 2. 创建 human agent
-        SwarmAgent humanAgent = SwarmAgent.builder()
-            .workspaceId(workspace.getId())
-            .role("human")
-            .build();
-        agentRepository.save(humanAgent);
-
-        // 3. 创建 assistant agent（parent 指向 human）
+        // 2. 创建 assistant agent（parentId = null，作为 COORDINATOR 直接服务用户，自动投递回复到 P2P 群）
         SwarmAgent assistantAgent = SwarmAgent.builder()
             .workspaceId(workspace.getId())
             .role("assistant")
-            .parentId(humanAgent.getId())
+            .parentId(null)
             .build();
         agentRepository.save(assistantAgent);
 
-        // 4. 创建 P2P 群组
+        // 3. 创建 P2P 群组
         SwarmGroup group = SwarmGroup.builder()
             .workspaceId(workspace.getId())
             .name("P2P")
             .build();
         groupRepository.save(group);
 
-        // 5. 添加群成员
-        groupRepository.addMember(group.getId(), humanAgent.getId());
+        // 4. 添加 assistant 到 P2P 群
         groupRepository.addMember(group.getId(), assistantAgent.getId());
 
+        // 5. 创建 WritingSession（Workspace 级别的协作容器，绑定 Coordinator + P2P 群）
+        WritingSession session = writingSessionService.createSession(
+            workspace.getId(),
+            assistantAgent.getId(),
+            group.getId(),
+            request.getName(),
+            "Workspace collaboration session",
+            null
+        );
+
+        // 6. 将 Coordinator 的 sessionId 和 sortOrder 直接写入 SwarmAgent
+        assistantAgent.setSessionId(session.getId());
+        assistantAgent.setSortOrder(0);
+        // Update existing agent (already has ID from line 69)
+        agentRepository.update(assistantAgent);
+
         log.info(
-            "[Swarm] Created workspace: id={}, name={}, human={}, assistant={}, group={}",
+            "[Swarm] Created workspace: id={}, name={}, assistant={}, group={}",
             workspace.getId(),
             workspace.getName(),
-            humanAgent.getId(),
             assistantAgent.getId(),
             group.getId()
         );
 
         return WorkspaceDefaultsDTO.builder()
             .workspaceId(workspace.getId())
-            .humanAgentId(humanAgent.getId())
+            .userId(userId)
             .assistantAgentId(assistantAgent.getId())
             .defaultGroupId(group.getId())
             .build();
@@ -199,7 +212,8 @@ public class SwarmWorkspaceService {
     }
 
     /**
-     * 创建 Agent（支持 description + 三方群：human + parent + 新agent）
+     * 创建 Agent（支持 description + 二方群：parent + 新agent）
+     * 新创建的子 Agent 会自动加入父 Agent 所在群组。
      */
     @Transactional(rollbackFor = Exception.class)
     public WorkspaceDefaultsDTO createAgent(
@@ -226,7 +240,7 @@ public class SwarmWorkspaceService {
         // emit UI event
         emitAgentCreated(workspaceId, agent);
 
-        // 创建任务群：parent + 新agent + human（三方群）
+        // 创建任务群：parent + 新agent
         Long groupId = null;
         if (parentId != null) {
             SwarmGroup group = SwarmGroup.builder()
@@ -236,17 +250,6 @@ public class SwarmWorkspaceService {
             groupRepository.save(group);
             groupRepository.addMember(group.getId(), parentId);
             groupRepository.addMember(group.getId(), agent.getId());
-
-            // 把 human 也加入群（三方群），让用户能看到对话并直接插话
-            agentRepository
-                .findByWorkspaceId(workspaceId)
-                .stream()
-                .filter(a -> "human".equals(a.getRole()))
-                .findFirst()
-                .ifPresent(human ->
-                    groupRepository.addMember(group.getId(), human.getId())
-                );
-
             groupId = group.getId();
         }
 
@@ -308,17 +311,13 @@ public class SwarmWorkspaceService {
     }
 
     /**
-     * 获取/确保默认资源（human + assistant + P2P 群）
+     * 获取/确保默认资源（assistant + P2P 群）
      */
     public WorkspaceDefaultsDTO getDefaults(Long workspaceId) {
+        SwarmWorkspace ws = workspaceRepository.findById(workspaceId).orElse(null);
         List<SwarmAgent> agents = agentRepository.findByWorkspaceId(
             workspaceId
         );
-        SwarmAgent human = agents
-            .stream()
-            .filter(a -> "human".equals(a.getRole()))
-            .findFirst()
-            .orElse(null);
         SwarmAgent assistant = agents
             .stream()
             .filter(a -> "assistant".equals(a.getRole()))
@@ -331,7 +330,7 @@ public class SwarmWorkspaceService {
 
         return WorkspaceDefaultsDTO.builder()
             .workspaceId(workspaceId)
-            .humanAgentId(human != null ? human.getId() : null)
+            .userId(ws != null ? ws.getUserId() : null)
             .assistantAgentId(assistant != null ? assistant.getId() : null)
             .defaultGroupId(defaultGroup != null ? defaultGroup.getId() : null)
             .build();

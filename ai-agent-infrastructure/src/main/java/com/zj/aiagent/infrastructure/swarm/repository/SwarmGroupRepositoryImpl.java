@@ -69,6 +69,12 @@ public class SwarmGroupRepositoryImpl implements SwarmGroupRepository {
 
     @Override
     public void addMember(Long groupId, Long agentId) {
+        LambdaQueryWrapper<SwarmGroupMemberPO> checkWrapper = new LambdaQueryWrapper<>();
+        checkWrapper.eq(SwarmGroupMemberPO::getGroupId, groupId)
+                    .eq(SwarmGroupMemberPO::getAgentId, agentId);
+        if (memberMapper.selectCount(checkWrapper) > 0) {
+            return; // already a member, ignore duplicate
+        }
         SwarmGroupMemberPO po = new SwarmGroupMemberPO();
         po.setGroupId(groupId);
         po.setAgentId(agentId);

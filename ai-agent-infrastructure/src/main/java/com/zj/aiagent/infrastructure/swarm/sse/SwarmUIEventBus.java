@@ -27,8 +27,14 @@ public class SwarmUIEventBus {
             for (Consumer<UIEvent> sub : subs) {
                 try {
                     sub.accept(event);
+                } catch (IllegalStateException e) {
+                    // emitter 已被标记为 complete（通常因为前一次发送时客户端已断开），
+                    // 属于正常生命周期，忽略即可
+                    log.debug("[Swarm] UIEventBus: emitter already completed, skipping: workspace={}", workspaceId);
                 } catch (Exception e) {
-                    log.warn("[Swarm] UIEventBus subscriber error: workspace={}", workspaceId, e);
+                    // 客户端断开（SSE flush 失败）或订阅者内部异常，均不影响主流程
+                    log.warn("[Swarm] UIEventBus subscriber error: workspace={}, type={}, error={}",
+                        workspaceId, e.getClass().getSimpleName(), e.getMessage());
                 }
             }
         }

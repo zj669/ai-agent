@@ -23,7 +23,7 @@ const STATUS_TAG: Record<AgentStatus, { color: string; label: string }> = {
 interface Props {
   messages: SwarmMessage[];
   agents: SwarmAgent[];
-  humanAgentId?: number;
+  userId?: number;
   onSend: (content: string) => Promise<void>;
   onStop?: () => Promise<void>;
   selectedGroupId: number | null;
@@ -45,7 +45,7 @@ interface Props {
 export default function SwarmChatPanel({
   messages,
   agents,
-  humanAgentId,
+  userId,
   onSend,
   onStop,
   selectedGroupId,
@@ -116,7 +116,7 @@ export default function SwarmChatPanel({
           <SwarmMessageList
             messages={messages}
             agents={agents}
-            humanAgentId={humanAgentId}
+            userId={userId}
             streamingContent={streamingContent}
             streamingAgentId={streamingAgentId}
             liveToolCalls={liveToolCalls}

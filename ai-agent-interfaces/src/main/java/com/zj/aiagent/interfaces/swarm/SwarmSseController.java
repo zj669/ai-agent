@@ -2,7 +2,6 @@ package com.zj.aiagent.interfaces.swarm;
 
 import com.zj.aiagent.infrastructure.swarm.sse.SwarmAgentEventBus;
 import com.zj.aiagent.infrastructure.swarm.sse.SwarmUIEventBus;
-import java.io.IOException;
 import java.util.function.Consumer;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -33,8 +32,17 @@ public class SwarmSseController {
                         .name(event.getType())
                         .data(event.getData() != null ? event.getData() : "")
                 );
-            } catch (IOException e) {
-                agentEventBus.unsubscribe(agentId, null); // 会在 completion 里清理
+            } catch (IllegalStateException e) {
+                // emitter 已处于完成/错误状态（通常因为前一次发送时客户端已断开），
+                // 不需要再次 complete，直接忽略
+                log.debug("[Swarm] SseEmitter already completed (client disconnected)");
+            } catch (Exception e) {
+                // 其他异常：通知 Spring MVC 该 emitter 出错，触发 onError 回调进行 unsubscribe
+                try {
+                    emitter.completeWithError(e);
+                } catch (IllegalStateException ignored) {
+                    // emitter 已在 completeWithError 内部被标记为完成，忽略二次调用
+                }
             }
         };
 
@@ -63,8 +71,17 @@ public class SwarmSseController {
                         .name(event.getType())
                         .data(event.getData() != null ? event.getData() : "")
                 );
-            } catch (IOException e) {
-                // 连接断开
+            } catch (IllegalStateException e) {
+                // emitter 已处于完成/错误状态（通常因为前一次发送时客户端已断开），
+                // 不需要再次 complete，直接忽略
+                log.debug("[Swarm] SseEmitter already completed (client disconnected)");
+            } catch (Exception e) {
+                // 其他异常：通知 Spring MVC 该 emitter 出错，触发 onError 回调进行 unsubscribe
+                try {
+                    emitter.completeWithError(e);
+                } catch (IllegalStateException ignored) {
+                    // emitter 已在 completeWithError 内部被标记为完成，忽略二次调用
+                }
             }
         };
 

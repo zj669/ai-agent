@@ -1,4 +1,4 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useCallback } from "react";
 import { Empty, Space, Typography } from "antd";
 import SwarmMessageBubble from "./SwarmMessageBubble";
 import ToolCallBadge from "./ToolCallBadge";
@@ -8,13 +8,14 @@ import type {
   SwarmAgent,
 } from "../../types/swarm";
 import { getToolCallSignature } from "./toolCallMessage";
+import { AGENT_GRADIENTS } from "../../styles/swarm-colors";
 
 const { Text } = Typography;
 
 interface Props {
   messages: SwarmMessage[];
   agents: SwarmAgent[];
-  humanAgentId?: number;
+  userId?: number;
   streamingContent?: string | null;
   streamingAgentId?: number | null;
   liveToolCalls?: LiveToolCallStep[];
@@ -28,15 +29,17 @@ interface Props {
 export default function SwarmMessageList({
   messages,
   agents,
-  humanAgentId,
+  userId,
   streamingContent,
   streamingAgentId,
   liveToolCalls = [],
   processingState = null,
 }: Props) {
   const bottomRef = useRef<HTMLDivElement>(null);
+  const scrolledAwayRef = useRef(false);
   const activeStreamAgentId =
     streamingAgentId ?? liveToolCalls[0]?.agentId ?? null;
+  const runningToolCall = liveToolCalls.find((s) => s.status === "running");
   const shouldRenderLiveToolCalls =
     liveToolCalls.length > 0 &&
     activeStreamAgentId !== null &&
@@ -75,9 +78,26 @@ export default function SwarmMessageList({
     return !hasStructuredDuplicate;
   });
 
-  useEffect(() => {
+  const scrollToBottom = useCallback(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [visibleMessages.length, streamingContent]);
+  }, []);
+
+  // User manually scrolled — don't auto-scroll until they return to bottom
+  const handleScroll = useCallback(
+    (e: React.UIEvent<HTMLDivElement>) => {
+      const el = e.currentTarget;
+      const atBottom =
+        el.scrollHeight - el.scrollTop - el.clientHeight < 60;
+      scrolledAwayRef.current = !atBottom;
+    },
+    [],
+  );
+
+  useEffect(() => {
+    if (!scrolledAwayRef.current) {
+      scrollToBottom();
+    }
+  }, [visibleMessages.length, streamingContent, scrollToBottom]);
 
   if (
     visibleMessages.length === 0 &&
@@ -88,17 +108,19 @@ export default function SwarmMessageList({
   }
 
   return (
-    <div style={{ flex: 1, overflow: "auto", padding: "12px 16px" }}>
+    <div style={{ flex: 1, overflow: "auto", padding: "12px 16px" }} onScroll={handleScroll}>
       {visibleMessages.map((msg) => (
         <SwarmMessageBubble
           key={msg.id}
           message={msg}
           agents={agents}
-          humanAgentId={humanAgentId}
+          userId={userId}
+          activeToolCall={runningToolCall}
         />
       ))}
       {shouldRenderLiveToolCalls ? (
         <div
+          className="swarm-msg-enter"
           style={{
             display: "flex",
             marginBottom: 12,
@@ -110,7 +132,11 @@ export default function SwarmMessageList({
               width: 32,
               height: 32,
               borderRadius: "50%",
-              background: "#722ed1",
+              background:
+                AGENT_GRADIENTS[
+                  agents.findIndex((a) => a.id === activeStreamAgentId) %
+                    AGENT_GRADIENTS.length
+                ],
               display: "flex",
               alignItems: "center",
               justifyContent: "center",
@@ -172,13 +198,14 @@ export default function SwarmMessageList({
             id: -1,
             groupId: 0,
             senderId: streamingAgentId,
-            content:
-              streamingContent === "" ? "正在思考..." : streamingContent + "▌",
+            content: streamingContent === "" ? "正在思考..." : streamingContent,
             contentType: streamingContent === "" ? "thinking" : "text",
             sendTime: new Date().toISOString(),
           }}
           agents={agents}
-          humanAgentId={humanAgentId}
+          userId={userId}
+          isStreaming={true}
+          activeToolCall={runningToolCall}
         />
       ) : shouldRenderProcessingState ? (
         <SwarmMessageBubble
@@ -191,8 +218,9 @@ export default function SwarmMessageList({
             sendTime: new Date().toISOString(),
           }}
           agents={agents}
-          humanAgentId={humanAgentId}
+          userId={userId}
           thinkingTitle={processingState.title}
+          activeToolCall={runningToolCall}
         />
       ) : null}
       <div ref={bottomRef} />

@@ -12,10 +12,9 @@ import java.util.Set;
  * <p>按 Agent 角色返回允许使用的工具集合。
  * 规则参照 Claude-Code 的 {@code COORDINATOR_MODE_ALLOWED_TOOLS} 设计：
  * <ul>
- *   <li>ROOT - 所有 6 个核心工具 + executeWorkflow</li>
- *   <li>COORDINATOR - 调度工具：create_worker / delegate_task / send / self / listAgents</li>
+ *   <li>COORDINATOR - 调度工具：create_worker / delegate_task / send / self / listAgents / executeWorkflow</li>
  *   <li>WORKER - 执行工具：submit_result / send / self</li>
- *   <li>HUMAN / ASSISTANT - 无工具（纯通信）</li>
+ *   <li>ASSISTANT - 无工具（纯通信）</li>
  * </ul>
  *
  * <p>使用方式：
@@ -29,7 +28,7 @@ import java.util.Set;
 @Component
 public class SwarmToolFilter {
 
-    /** 全部工具名称常量 */
+    /** 工具名称常量 */
     public static final String TOOL_CREATE_WORKER = "create_worker";
     public static final String TOOL_DELEGATE_TASK = "delegate_task";
     public static final String TOOL_SUBMIT_RESULT = "submit_result";
@@ -38,24 +37,15 @@ public class SwarmToolFilter {
     public static final String TOOL_LIST_AGENTS = "listAgents";
     public static final String TOOL_EXECUTE_WORKFLOW = "executeWorkflow";
 
-    /** 所有工具集合（ROOT 专用） */
-    private static final Set<String> ALL_TOOLS = Set.of(
-        TOOL_CREATE_WORKER,
-        TOOL_DELEGATE_TASK,
-        TOOL_SUBMIT_RESULT,
-        TOOL_SEND,
-        TOOL_SELF,
-        TOOL_LIST_AGENTS,
-        TOOL_EXECUTE_WORKFLOW
-    );
-
-    /** Coordinator 可用工具（调度者，不需要执行工具） */
+    /** Coordinator 可用工具（调度者，不需要 submit_result）
+     *  = create_worker / delegate_task / send / self / listAgents / executeWorkflow */
     private static final Set<String> COORDINATOR_TOOLS = Set.of(
         TOOL_CREATE_WORKER,
         TOOL_DELEGATE_TASK,
         TOOL_SEND,
         TOOL_SELF,
-        TOOL_LIST_AGENTS
+        TOOL_LIST_AGENTS,
+        TOOL_EXECUTE_WORKFLOW
     );
 
     /** Worker 可用工具（执行者，不需要调度工具） */
@@ -64,9 +54,6 @@ public class SwarmToolFilter {
         TOOL_SEND,
         TOOL_SELF
     );
-
-    /** ROOT 可用工具（全部） */
-    private static final Set<String> ROOT_TOOLS = ALL_TOOLS;
 
     /** 无工具角色 */
     private static final Set<String> NO_TOOLS = Collections.emptySet();
@@ -82,21 +69,31 @@ public class SwarmToolFilter {
             return NO_TOOLS;
         }
         return switch (role) {
-            case ROOT -> ROOT_TOOLS;
             case COORDINATOR -> COORDINATOR_TOOLS;
             case WORKER -> WORKER_TOOLS;
-            case HUMAN, ASSISTANT -> NO_TOOLS;
+            case ASSISTANT -> NO_TOOLS;
+            default -> NO_TOOLS;
         };
     }
 
     /**
      * 检查指定工具是否在角色的白名单中。
      *
+     * <p>MCP 工具（mcp__* 前缀）由 McpToolCallbackAdapter 动态注入，默认放行。
+     *
      * @param role      Agent 角色
      * @param toolName  工具名称（方法名）
      * @return true 表示允许使用
      */
     public boolean isAllowed(SwarmRole role, String toolName) {
+        // MCP 工具由 McpToolCallbackAdapter 动态注入，默认允许
+        if (toolName != null && toolName.startsWith("mcp__")) {
+            return true;
+        }
+        // toolName 为 null 或不在白名单中
+        if (toolName == null) {
+            return false;
+        }
         return getAllowedToolNames(role).contains(toolName);
     }
 

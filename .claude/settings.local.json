@@ -96,7 +96,22 @@
       "mcp__desktop-commander__get_config",
       "mcp__desktop-commander__start_search",
       "mcp__desktop-commander__get_more_search_results",
-      "Skill(planning-with-files)"
+      "Skill(planning-with-files)",
+      "mcp__fast-context__fast_context_search",
+      "mcp__augment-context-engine__codebase-retrieval",
+      "mcp__grok-search__web_search",
+      "mcp__grok-search__get_config_info",
+      "mcp__context7__resolve-library-id",
+      "mcp__context7__query-docs",
+      "mcp__chrome-devtools__navigate_page",
+      "mcp__chrome-devtools__take_snapshot",
+      "mcp__chrome-devtools__click",
+      "mcp__chrome-devtools__fill",
+      "mcp__chrome-devtools__fill_form",
+      "mcp__chrome-devtools__wait_for",
+      "mcp__chrome-devtools__list_console_messages",
+      "mcp__chrome-devtools__list_network_requests",
+      "mcp__chrome-devtools__get_network_request"
     ]
   },
   "outputStyle": "Explanatory",

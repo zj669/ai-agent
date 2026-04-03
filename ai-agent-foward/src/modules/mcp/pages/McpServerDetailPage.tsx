@@ -59,10 +59,18 @@ function ConfigDisplay({ server }: { server: McpServer }) {
   )
 }
 
+interface JsonSchemaProperty {
+  type?: string;
+  description?: string;
+  [key: string]: unknown;
+}
+
 function ToolCard({ tool }: { tool: McpTool }) {
   const [schemaExpanded, setSchemaExpanded] = useState(false)
 
-  const inputSchema = tool.inputSchema ? JSON.parse(tool.inputSchema) : null
+  const inputSchema = tool.inputSchema
+    ? (JSON.parse(tool.inputSchema) as { properties?: Record<string, JsonSchemaProperty>; required?: string[] } | null)
+    : null
   const hasParams = inputSchema && inputSchema.properties && Object.keys(inputSchema.properties).length > 0
 
   return (
@@ -99,7 +107,7 @@ function ToolCard({ tool }: { tool: McpTool }) {
         <div className="mt-3">
           <Text strong className="text-xs text-gray-500 uppercase tracking-wide">Input Parameters</Text>
           <div className="mt-1">
-            {Object.entries(inputSchema.properties).map(([key, prop]) => (
+            {Object.entries(inputSchema!.properties ?? {}).map(([key, prop]) => (
               <div key={key} className="flex gap-2 text-sm py-1 border-b border-gray-100 last:border-0">
                 <Text code className="min-w-24">{key}</Text>
                 <Text type="secondary">{prop.type}</Text>

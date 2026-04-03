@@ -25,25 +25,14 @@ class SwarmToolFilterTest {
     class GetAllowedToolNames {
 
         @Test
-        @DisplayName("ROOT 应返回全部 7 个工具")
-        void shouldReturnAllToolsForRoot() {
-            Set<String> tools = toolFilter.getAllowedToolNames(SwarmRole.ROOT);
-            assertThat(tools).hasSize(7);
-            assertThat(tools).containsExactlyInAnyOrder(
-                "create_worker", "delegate_task", "submit_result",
-                "send", "self", "listAgents", "executeWorkflow"
-            );
-        }
-
-        @Test
-        @DisplayName("COORDINATOR 应返回调度工具（不含 submit_result / executeWorkflow）")
+        @DisplayName("COORDINATOR 应返回 6 个调度工具（含 executeWorkflow，不含 submit_result）")
         void shouldReturnCoordinatorTools() {
             Set<String> tools = toolFilter.getAllowedToolNames(SwarmRole.COORDINATOR);
-            assertThat(tools).hasSize(5);
+            assertThat(tools).hasSize(6);
             assertThat(tools).containsExactlyInAnyOrder(
-                "create_worker", "delegate_task", "send", "self", "listAgents"
+                "create_worker", "delegate_task", "send", "self", "listAgents", "executeWorkflow"
             );
-            assertThat(tools).doesNotContain("submit_result", "executeWorkflow");
+            assertThat(tools).doesNotContain("submit_result");
         }
 
         @Test
@@ -58,9 +47,8 @@ class SwarmToolFilterTest {
         }
 
         @Test
-        @DisplayName("HUMAN / ASSISTANT 应返回空集合")
-        void shouldReturnEmptyForHumanAndAssistant() {
-            assertThat(toolFilter.getAllowedToolNames(SwarmRole.HUMAN)).isEmpty();
+        @DisplayName("ASSISTANT 应返回空集合")
+        void shouldReturnEmptyForAssistant() {
             assertThat(toolFilter.getAllowedToolNames(SwarmRole.ASSISTANT)).isEmpty();
         }
 
@@ -88,15 +76,30 @@ class SwarmToolFilterTest {
         }
 
         @Test
-        @DisplayName("ROOT 允许 executeWorkflow")
-        void shouldAllowExecuteWorkflowForRoot() {
-            assertThat(toolFilter.isAllowed(SwarmRole.ROOT, "executeWorkflow")).isTrue();
+        @DisplayName("COORDINATOR 允许 executeWorkflow")
+        void shouldAllowExecuteWorkflowForCoordinator() {
+            assertThat(toolFilter.isAllowed(SwarmRole.COORDINATOR, "executeWorkflow")).isTrue();
         }
 
         @Test
         @DisplayName("未知工具返回 false")
         void shouldReturnFalseForUnknownTool() {
-            assertThat(toolFilter.isAllowed(SwarmRole.ROOT, "unknown_tool")).isFalse();
+            assertThat(toolFilter.isAllowed(SwarmRole.COORDINATOR, "unknown_tool")).isFalse();
+        }
+
+        @Test
+        @DisplayName("mcp__ 前缀工具在所有角色下均返回 true（MCP 工具默认放行）")
+        void shouldAllowMcpToolsForAllRoles() {
+            assertThat(toolFilter.isAllowed(SwarmRole.COORDINATOR, "mcp__1__search")).isTrue();
+            assertThat(toolFilter.isAllowed(SwarmRole.WORKER, "mcp__2__write")).isTrue();
+            assertThat(toolFilter.isAllowed(SwarmRole.ASSISTANT, "mcp__3__any")).isTrue();
+            assertThat(toolFilter.isAllowed(null, "mcp__1__tool")).isTrue();
+        }
+
+        @Test
+        @DisplayName("null 工具名返回 false（不在白名单且不满足 mcp__ 前缀）")
+        void shouldReturnFalseForNullToolName() {
+            assertThat(toolFilter.isAllowed(SwarmRole.COORDINATOR, null)).isFalse();
         }
     }
 
@@ -115,17 +118,18 @@ class SwarmToolFilterTest {
         }
 
         @Test
-        @DisplayName("HUMAN 的工具描述为空提示")
-        void shouldBuildHumanToolSection() {
-            String section = toolFilter.buildToolSection(SwarmRole.HUMAN);
+        @DisplayName("ASSISTANT 的工具描述为空提示")
+        void shouldBuildAssistantToolSection() {
+            String section = toolFilter.buildToolSection(SwarmRole.ASSISTANT);
             assertThat(section).contains("无工具可用");
         }
 
         @Test
-        @DisplayName("ROOT 的工具描述包含 executeWorkflow")
-        void shouldBuildRootToolSection() {
-            String section = toolFilter.buildToolSection(SwarmRole.ROOT);
+        @DisplayName("COORDINATOR 的工具描述包含 executeWorkflow 且不含 submit_result")
+        void shouldBuildCoordinatorToolSection() {
+            String section = toolFilter.buildToolSection(SwarmRole.COORDINATOR);
             assertThat(section).contains("executeWorkflow");
+            assertThat(section).doesNotContain("submit_result");
         }
     }
 }

@@ -13,6 +13,7 @@ import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.context.request.async.AsyncRequestNotUsableException;
 import org.springframework.web.context.request.async.AsyncRequestTimeoutException;
 
 /**
@@ -23,6 +24,17 @@ import org.springframework.web.context.request.async.AsyncRequestTimeoutExceptio
 @Slf4j
 @RestControllerAdvice
 public class GlobalExceptionHandler {
+
+    /**
+     * 处理异步请求不可用（SSE 客户端断开 / Broken Pipe）
+     * 当 SseEmitter.send() flush 到已断开的 TCP 连接时，Spring 抛出此异常。
+     * 此时 HTTP 响应已部分写出，无法回退到 JSON 格式，必须静默吞掉。
+     */
+    @ExceptionHandler(AsyncRequestNotUsableException.class)
+    public void handleAsyncRequestNotUsableException(AsyncRequestNotUsableException e) {
+        // 客户端断开属于正常生命周期，打 DEBUG 级别日志；静默吞掉避免触发二次异常
+        log.debug("Async request not usable (client disconnected): {}", e.getMessage());
+    }
 
     /**
      * 处理异步请求超时 (SSE/Websocket)

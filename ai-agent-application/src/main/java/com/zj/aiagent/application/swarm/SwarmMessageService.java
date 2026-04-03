@@ -55,16 +55,6 @@ public class SwarmMessageService {
             preview(request.getContent())
         );
 
-        if ("human".equals(senderRole)) {
-            log.info(
-                "[Swarm] Human message received: workspace={}, group={}, humanAgent={}, preview={}",
-                group.getWorkspaceId(),
-                groupId,
-                request.getSenderId(),
-                preview(request.getContent())
-            );
-        }
-
         SwarmMessage message = SwarmMessage.builder()
             .workspaceId(group.getWorkspaceId())
             .groupId(groupId)

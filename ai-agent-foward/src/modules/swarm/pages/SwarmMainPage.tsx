@@ -16,6 +16,7 @@ import {
 import type {
   LiveToolCallStep,
   SwarmMessage,
+  WorkerCardData,
   WritingSessionOverview,
   WritingSessionSummary,
 } from "../types/swarm";
@@ -23,7 +24,7 @@ import SwarmNotification, {
   type SwarmNotificationData,
   type NotificationType,
 } from "../components/SwarmNotification";
-import WorkerCard, { type WorkerCardData } from "../components/WorkerCard";
+import WorkerCard from "../components/WorkerCard";
 
 const { Content } = Layout;
 const { Title, Text } = Typography;
@@ -35,7 +36,7 @@ export default function SwarmMainPage() {
   const wid = workspaceId ? Number(workspaceId) : null;
 
   const { agents, reload: reloadAgents } = useSwarmAgents(wid);
-  const [humanAgentId, setHumanAgentId] = useState<number | null>(null);
+  const [userId, setUserId] = useState<number | null>(null);
   const [assistantAgentId, setAssistantAgentId] = useState<number | null>(null);
   const [defaultGroupId, setDefaultGroupId] = useState<number | null>(null);
 
@@ -43,7 +44,7 @@ export default function SwarmMainPage() {
     messages,
     load: loadMessages,
     send,
-  } = useSwarmMessages(defaultGroupId, humanAgentId ?? undefined);
+  } = useSwarmMessages(defaultGroupId, userId ?? undefined);
   const [streamingContent, setStreamingContent] = useState<string | null>(null);
   const [streamingAgentId, setStreamingAgentId] = useState<number | null>(null);
   const [waitingForAgents, setWaitingForAgents] = useState<number[]>([]);
@@ -68,6 +69,7 @@ export default function SwarmMainPage() {
   const workerCardsRef = useRef<WorkerCardData[]>([]);
   const notificationIdRef = useRef(0);
   const coordinatorAgentIdRef = useRef<number | null>(null);
+  const sendInProgressRef = useRef(false);
 
   useEffect(() => {
     streamingContentRef.current = streamingContent;
@@ -143,7 +145,7 @@ export default function SwarmMainPage() {
     workerCardsRef.current = [];
     notificationIdRef.current = 0;
     getWorkspaceDefaults(wid).then((defaults) => {
-      setHumanAgentId(defaults.humanAgentId);
+      setUserId(defaults.userId);
       setAssistantAgentId(defaults.assistantAgentId);
       setDefaultGroupId(defaults.defaultGroupId);
       coordinatorAgentIdRef.current = defaults.assistantAgentId;
@@ -252,7 +254,14 @@ export default function SwarmMainPage() {
       } catch {
         // ignore malformed payloads
       }
-      loadMessages();
+      // Skip SSE-triggered reload while a user send is in flight — the HTTP
+      // response will replace the optimistic message and this is handled in
+      // useSwarmMessages. Without this guard, loadMessages() races with the
+      // send() success handler and wipes the optimistic entry before it can
+      // be confirmed, causing the sent message to flash and disappear.
+      if (!sendInProgressRef.current) {
+        loadMessages();
+      }
       reloadAgents();
       scheduleOverviewRefresh();
     },
@@ -525,7 +534,7 @@ export default function SwarmMainPage() {
 
   const handleSend = useCallback(
     async (content: string) => {
-      if (!humanAgentId || !assistantAgentId) return;
+      if (!userId || !assistantAgentId) return;
       clearLiveToolCleanupTimer();
       liveToolCallsRef.current = [];
       setLiveToolCalls([]);
@@ -534,9 +543,11 @@ export default function SwarmMainPage() {
       streamingContentRef.current = "";
       setStreamingContent("");
       setStreamingAgentId(assistantAgentId);
-      await send(humanAgentId, content);
+      sendInProgressRef.current = true;
+      await send(userId, content);
+      sendInProgressRef.current = false;
     },
-    [humanAgentId, assistantAgentId, clearLiveToolCleanupTimer, send],
+    [userId, assistantAgentId, clearLiveToolCleanupTimer, send],
   );
 
   const handleStop = useCallback(async () => {
@@ -569,20 +580,24 @@ export default function SwarmMainPage() {
   const selectedAgent =
     agents.find((a) => a.id === assistantAgentId) ??
     agents.find((a) => a.role === "assistant");
-  const rootConversationMessages: SwarmMessage[] = sessionOverview
-    ? sessionOverview.rootConversation.map((message) => ({
-        id: message.id,
-        groupId: defaultGroupId ?? 0,
-        senderId: message.senderId,
-        content: message.content,
-        contentType: message.contentType,
-        sendTime: message.sendTime,
-      }))
-    : messages;
-  const optimisticMessages = messages.filter((message) => message.id < 0);
-  const displayedMessages = sessionOverview
-    ? [...rootConversationMessages, ...optimisticMessages]
-    : messages;
+  const displayedMessages = ((): SwarmMessage[] => {
+    if (sessionOverview) {
+      // Show confirmed root messages, but ALWAYS append any still-pending optimistic
+      // messages so they remain visible even if sessionOverview.rootConversation
+      // refreshes before the backend includes the confirmed entry.
+      const confirmedIds = new Set(
+        sessionOverview.rootConversation.map((m) => m.id),
+      );
+      const pendingOptimistic = messages.filter(
+        (m) => m.id < 0 && !confirmedIds.has(m.id),
+      );
+      return [
+        ...(sessionOverview.rootConversation as SwarmMessage[]),
+        ...pendingOptimistic,
+      ];
+    }
+    return messages;
+  })();
   const latestLiveToolCall = liveToolCalls.length
     ? liveToolCalls[liveToolCalls.length - 1]
     : null;
@@ -652,8 +667,8 @@ export default function SwarmMainPage() {
             display: "grid",
             gridTemplateColumns: isMobile
               ? "1fr"
-              : "minmax(0, 1.6fr) minmax(320px, 0.9fr)",
-            gap: 16,
+              : "minmax(0, 1fr) minmax(280px, 0.6fr)",
+            gap: 12,
           }}
         >
           <div
@@ -663,13 +678,13 @@ export default function SwarmMainPage() {
               borderRadius: 16,
               border: "1px solid #eaecf0",
               overflow: "hidden",
-              boxShadow: "0 8px 24px rgba(15, 23, 42, 0.04)",
+              boxShadow: "0 4px 16px rgba(15, 23, 42, 0.04)",
             }}
           >
             <SwarmChatPanel
               messages={displayedMessages}
               agents={agents}
-              humanAgentId={humanAgentId ?? undefined}
+              userId={userId ?? undefined}
               onSend={handleSend}
               onStop={handleStop}
               selectedGroupId={defaultGroupId}
@@ -692,18 +707,16 @@ export default function SwarmMainPage() {
           <div
             style={{
               minHeight: 0,
-              background: "linear-gradient(180deg, #fffdf8 0%, #f8fafc 100%)",
+              background: "#fff",
               borderRadius: 16,
               border: "1px solid #eaecf0",
               overflow: "hidden",
-              boxShadow: "0 8px 24px rgba(15, 23, 42, 0.04)",
-              padding: 16,
+              boxShadow: "0 4px 16px rgba(15, 23, 42, 0.04)",
               display: "flex",
               flexDirection: "column",
-              gap: 12,
             }}
           >
-            <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+            <div style={{ display: "flex", flexDirection: "column", gap: 4, padding: "14px 14px 0" }}>
               <Title level={4} style={{ margin: 0 }}>
                 协作面板
               </Title>
@@ -718,42 +731,43 @@ export default function SwarmMainPage() {
                 </Text>
               ) : null}
             </div>
-            {overviewLoading && !overviewInitialized ? (
-              <div
-                style={{
-                  display: "flex",
-                  flex: 1,
-                  alignItems: "center",
-                  justifyContent: "center",
-                }}
-              >
-                <Spin />
-              </div>
-            ) : writingSessions.length > 0 &&
-              sessionOverview == null &&
-              !overviewError ? (
-              <div
-                style={{
-                  display: "flex",
-                  flex: 1,
-                  alignItems: "center",
-                  justifyContent: "center",
-                }}
-              >
-                <Spin tip="正在加载协作卡片..." />
-              </div>
-            ) : (
-              <CollaborationPanel
-                cards={sessionOverview?.collaborationCards ?? []}
-                latestDraft={sessionOverview?.latestDraft}
-              />
-            )}
+            <div style={{ flex: 1, minHeight: 0, padding: "8px 14px 14px" }}>
+              {overviewLoading && !overviewInitialized ? (
+                <div
+                  style={{
+                    display: "flex",
+                    height: "100%",
+                    alignItems: "center",
+                    justifyContent: "center",
+                  }}
+                >
+                  <Spin />
+                </div>
+              ) : writingSessions.length > 0 &&
+                sessionOverview == null &&
+                !overviewError ? (
+                <div
+                  style={{
+                    display: "flex",
+                    height: "100%",
+                    alignItems: "center",
+                    justifyContent: "center",
+                  }}
+                >
+                  <Spin tip="正在加载协作卡片..." />
+                </div>
+              ) : (
+                <CollaborationPanel
+                  cards={sessionOverview?.collaborationCards ?? []}
+                />
+              )}
+            </div>
 
             {/* WorkerCards — 显示 Coordinator 派发的 Worker 状态 */}
             {workerCards.length > 0 && (
               <>
-                <Divider style={{ margin: "8px 0" }} />
-                <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                <Divider style={{ margin: "0 14px" }} />
+                <div style={{ display: "flex", flexDirection: "column", gap: 8, padding: "0 14px 14px" }}>
                   <Text strong style={{ fontSize: 13, color: "#595959" }}>
                     Worker 状态
                   </Text>
@@ -770,7 +784,6 @@ export default function SwarmMainPage() {
                       <WorkerCard
                         key={worker.agentId}
                         worker={worker}
-                        coordinatorAgentId={coordinatorAgentIdRef.current ?? undefined}
                         onStop={(agentId) => {
                           stopAgent(agentId).catch(() => {});
                           setWorkerCards((current) =>

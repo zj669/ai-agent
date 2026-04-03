@@ -1,63 +1,356 @@
 import { useState } from "react";
-import { Typography } from "antd";
-import {
-  DownOutlined,
-  LoadingOutlined,
-  RightOutlined,
-} from "@ant-design/icons";
+import { Drawer, Typography } from "antd";
+import { LoadingOutlined } from "@ant-design/icons";
+import MarkdownRenderer from "./MarkdownRenderer";
 import ToolCallBadge from "./ToolCallBadge";
-import type { SwarmMessage, SwarmAgent } from "../../types/swarm";
+import type { SwarmMessage, SwarmAgent, LiveToolCallStep } from "../../types/swarm";
 import { parseToolCallMessage } from "./toolCallMessage";
+import { AGENT_GRADIENTS, SWARM_COLORS } from "../../styles/swarm-colors";
 
-const { Paragraph, Text } = Typography;
+const { Text } = Typography;
 
-const AGENT_COLORS = [
-  "#1677ff",
-  "#722ed1",
-  "#13c2c2",
-  "#eb2f96",
-  "#fa8c16",
-  "#52c41a",
-  "#2f54eb",
-];
+/** Strip markdown thinking fences from content before rendering */
+function stripThinkingFences(raw: string): string {
+  return raw
+    .replace(/^```thinking\s*\n?/gim, "")
+    .replace(/^```\s*\n?/gim, "")
+    .trim();
+}
 
 interface Props {
   message: SwarmMessage;
   agents: SwarmAgent[];
-  humanAgentId?: number;
+  userId?: number;
   thinkingTitle?: string;
+  /** Live tool call step shown while streaming */
+  activeToolCall?: LiveToolCallStep | null;
+  /** True when this bubble is the currently streaming message */
+  isStreaming?: boolean;
 }
 
 export default function SwarmMessageBubble({
   message,
   agents,
-  humanAgentId,
+  userId,
   thinkingTitle,
+  activeToolCall,
+  isStreaming = false,
 }: Props) {
-  const [toolExpanded, setToolExpanded] = useState(false);
-  const isHuman = message.senderId === humanAgentId;
+  const [toolDrawerOpen, setToolDrawerOpen] = useState(false);
+  // userId 异步加载；加载前（userId == null）时默认当前用户发送的消息为人类消息
+  const isHuman = userId != null ? message.senderId === userId : true;
   const sender = agents.find((a) => a.id === message.senderId);
   const colorIndex = agents.findIndex((a) => a.id === message.senderId);
-  const color = AGENT_COLORS[colorIndex % AGENT_COLORS.length];
+  const gradient = AGENT_GRADIENTS[colorIndex % AGENT_GRADIENTS.length];
+  const avatarLetter = isHuman ? "我" : (sender?.role?.charAt(0).toUpperCase() ?? "?");
 
   const isThinking = message.contentType === "thinking";
   const toolData = parseToolCallMessage(message);
 
+  const bubbleBg = isHuman
+    ? SWARM_COLORS.humanBubble
+    : isThinking
+      ? SWARM_COLORS.thinkingBubble
+      : SWARM_COLORS.agentBubble;
+
+  const bubbleColor = isHuman
+    ? SWARM_COLORS.humanBubbleText
+    : SWARM_COLORS.agentBubbleText;
+
+  const bubbleStyle: React.CSSProperties = {
+    borderRadius: isHuman ? "16px 16px 4px 16px" : "16px 16px 16px 4px",
+    background: bubbleBg,
+    color: bubbleColor,
+    padding: isThinking ? "10px 14px" : "10px 14px",
+    boxShadow: isHuman
+      ? SWARM_COLORS.humanShadow
+      : SWARM_COLORS.agentShadow,
+    border: isHuman ? "none" : "1px solid #f0f0f0",
+    maxWidth: "72%",
+    width: "fit-content",
+  };
+
+  // ── Tool call message ────────────────────────────────────────────────────
+  if (toolData) {
+    const isRunning =
+      activeToolCall?.toolCallId === `tool_${message.id}` ||
+      activeToolCall?.status === "running";
+
+    return (
+      <>
+        <div
+          className="swarm-msg-enter"
+          style={{
+            display: "flex",
+            flexDirection: isHuman ? "row-reverse" : "row",
+            marginBottom: 10,
+            gap: 8,
+            alignItems: "flex-start",
+          }}
+        >
+          {/* Avatar */}
+          <div
+            style={{
+              width: 32,
+              height: 32,
+              borderRadius: "50%",
+              background: gradient,
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              color: "#fff",
+              fontSize: 12,
+              fontWeight: 600,
+              flexShrink: 0,
+            }}
+          >
+            {avatarLetter}
+          </div>
+          <div style={{ maxWidth: "70%" }}>
+            {!isHuman && (
+              <Text
+                type="secondary"
+                style={{ fontSize: 12, marginBottom: 4, display: "block" }}
+              >
+                {sender?.role ?? `agent_${message.senderId}`}
+              </Text>
+            )}
+            {/* Inline tool call compact card */}
+            <div
+              style={{
+                borderRadius: 12,
+                border: `1px solid ${SWARM_COLORS.toolCardBorder}`,
+                background: SWARM_COLORS.toolCardBg,
+                overflow: "hidden",
+              }}
+            >
+              {/* Header row */}
+              <div
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 8,
+                  padding: "8px 12px",
+                  borderBottom: `1px solid ${SWARM_COLORS.toolCardBorder}`,
+                }}
+              >
+                {isRunning ? (
+                  <LoadingOutlined style={{ color: "#1677ff" }} />
+                ) : (
+                  <ToolCallBadge toolName={toolData.tool} status="done" />
+                )}
+                <Text type="secondary" style={{ fontSize: 12 }}>
+                  {isRunning ? "正在调用..." : "已调用"}
+                </Text>
+                <button
+                  type="button"
+                  onClick={() => setToolDrawerOpen(true)}
+                  style={{
+                    marginLeft: "auto",
+                    background: "none",
+                    border: "none",
+                    cursor: "pointer",
+                    color: "#1677ff",
+                    fontSize: 12,
+                    padding: 0,
+                  }}
+                >
+                  查看详情 →
+                </button>
+              </div>
+              {/* Args preview */}
+              <div style={{ padding: "8px 12px" }}>
+                <Text
+                  strong
+                  style={{
+                    fontSize: 11,
+                    color: "#8c8c8c",
+                    display: "block",
+                    marginBottom: 4,
+                  }}
+                >
+                  调用参数
+                </Text>
+                <div
+                  style={{
+                    background: SWARM_COLORS.codeBg,
+                    borderRadius: 6,
+                    padding: "6px 10px",
+                    fontSize: 12,
+                    lineHeight: 1.5,
+                    whiteSpace: "pre-wrap",
+                    wordBreak: "break-word",
+                    color: "#a5d6ff",
+                    maxHeight: 80,
+                    overflow: "hidden",
+                    position: "relative",
+                  }}
+                >
+                  {toolData.args || "无参数"}
+                  <div
+                    style={{
+                      position: "absolute",
+                      bottom: 0,
+                      left: 0,
+                      right: 0,
+                      height: 24,
+                      background: "linear-gradient(transparent, #0f172a)",
+                    }}
+                  />
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <Drawer
+          title={`工具调用详情 · ${toolData.tool}`}
+          open={toolDrawerOpen}
+          width={480}
+          onClose={() => setToolDrawerOpen(false)}
+        >
+          <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+            <div>
+              <Text strong style={{ fontSize: 13 }}>
+                调用参数
+              </Text>
+              <div
+                style={{
+                  background: "#0f172a",
+                  borderRadius: 8,
+                  padding: 12,
+                  marginTop: 6,
+                  color: "#e6edf3",
+                  fontSize: 13,
+                  lineHeight: 1.6,
+                  whiteSpace: "pre-wrap",
+                  wordBreak: "break-word",
+                }}
+              >
+                {toolData.args || "无参数"}
+              </div>
+            </div>
+            <div>
+              <Text strong style={{ fontSize: 13 }}>
+                执行结果
+              </Text>
+              <div
+                style={{
+                  background: "#f6f8fa",
+                  borderRadius: 8,
+                  padding: 12,
+                  marginTop: 6,
+                  color: "#1a1a2e",
+                  fontSize: 13,
+                  lineHeight: 1.6,
+                  whiteSpace: "pre-wrap",
+                  wordBreak: "break-word",
+                  border: "1px solid #d0d7de",
+                }}
+              >
+                {toolData.result || "无返回结果"}
+              </div>
+            </div>
+          </div>
+        </Drawer>
+      </>
+    );
+  }
+
+  // ── Thinking / processing placeholder ────────────────────────────────────
+  if (isThinking) {
+    return (
+      <div
+        className="swarm-msg-enter"
+        style={{
+          display: "flex",
+          flexDirection: isHuman ? "row-reverse" : "row",
+          marginBottom: 10,
+          gap: 8,
+          alignItems: "flex-start",
+        }}
+      >
+        <div
+          style={{
+            width: 32,
+            height: 32,
+            borderRadius: "50%",
+            background: gradient,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            color: "#fff",
+            fontSize: 12,
+            fontWeight: 600,
+            flexShrink: 0,
+          }}
+        >
+          {avatarLetter}
+        </div>
+        <div style={{ maxWidth: "72%" }}>
+          {!isHuman && (
+            <Text
+              type="secondary"
+              style={{ fontSize: 12, marginBottom: 4, display: "block" }}
+            >
+              {sender?.role ?? `agent_${message.senderId}`}
+            </Text>
+          )}
+          <div
+            style={{
+              borderRadius: 16,
+              background: SWARM_COLORS.thinkingBubble,
+              border: `1px solid ${SWARM_COLORS.thinkingBorder}`,
+              padding: "10px 14px",
+              boxShadow: "0 1px 4px rgba(0,0,0,0.06)",
+            }}
+          >
+            <div
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: 8,
+                marginBottom: 6,
+              }}
+            >
+              <LoadingOutlined style={{ color: "#1677ff", fontSize: 13 }} />
+              <Text
+                style={{ fontSize: 13, color: "#1677ff", fontWeight: 600 }}
+              >
+                {thinkingTitle || "正在思考..."}
+              </Text>
+            </div>
+            {message.content && (
+              <MarkdownRenderer
+                content={stripThinkingFences(message.content)}
+                style={{ fontSize: 13, color: "#475569" }}
+              />
+            )}
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // ── Regular text message ──────────────────────────────────────────────────
   return (
     <div
+      className="swarm-msg-enter"
       style={{
         display: "flex",
         flexDirection: isHuman ? "row-reverse" : "row",
-        marginBottom: 12,
+        marginBottom: 10,
         gap: 8,
+        alignItems: "flex-start",
       }}
     >
+      {/* Avatar */}
       <div
         style={{
           width: 32,
           height: 32,
           borderRadius: "50%",
-          background: isHuman ? "#1677ff" : color,
+          background: gradient,
           display: "flex",
           alignItems: "center",
           justifyContent: "center",
@@ -67,172 +360,20 @@ export default function SwarmMessageBubble({
           flexShrink: 0,
         }}
       >
-        {isHuman ? "我" : (sender?.role?.charAt(0).toUpperCase() ?? "?")}
+        {avatarLetter}
       </div>
-
-      <div style={{ maxWidth: "70%" }}>
+      <div style={{ maxWidth: "72%" }}>
         {!isHuman && (
           <Text
             type="secondary"
-            style={{ fontSize: 12, marginBottom: 2, display: "block" }}
+            style={{ fontSize: 12, marginBottom: 4, display: "block" }}
           >
             {sender?.role ?? `agent_${message.senderId}`}
           </Text>
         )}
-        {toolData ? (
-          <div
-            style={{
-              borderRadius: 12,
-              border: "1px solid #e5e7eb",
-              background: "#f8fafc",
-              overflow: "hidden",
-            }}
-          >
-            <button
-              type="button"
-              onClick={() => setToolExpanded((value) => !value)}
-              style={{
-                width: "100%",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "space-between",
-                gap: 12,
-                padding: "10px 12px",
-                border: "none",
-                background: "transparent",
-                cursor: "pointer",
-                textAlign: "left",
-              }}
-            >
-              <ToolCallBadge toolName={toolData.tool} />
-              <Text
-                type="secondary"
-                style={{
-                  fontSize: 12,
-                  display: "inline-flex",
-                  alignItems: "center",
-                  gap: 6,
-                  flexShrink: 0,
-                }}
-              >
-                {toolExpanded ? <DownOutlined /> : <RightOutlined />}
-                {toolExpanded ? "收起详情" : "展开详情"}
-              </Text>
-            </button>
-            {toolExpanded ? (
-              <div
-                style={{
-                  borderTop: "1px solid #e5e7eb",
-                  padding: "12px",
-                  background: "#fff",
-                  display: "flex",
-                  flexDirection: "column",
-                  gap: 12,
-                }}
-              >
-                <div>
-                  <Text
-                    strong
-                    style={{ fontSize: 12, display: "block", marginBottom: 6 }}
-                  >
-                    调用参数
-                  </Text>
-                  <div
-                    style={{
-                      borderRadius: 8,
-                      background: "#0f172a",
-                      color: "#e2e8f0",
-                      padding: "10px 12px",
-                      fontSize: 12,
-                      lineHeight: 1.6,
-                      whiteSpace: "pre-wrap",
-                      wordBreak: "break-word",
-                    }}
-                  >
-                    {toolData.args || "无参数"}
-                  </div>
-                </div>
-                <div>
-                  <Text
-                    strong
-                    style={{ fontSize: 12, display: "block", marginBottom: 6 }}
-                  >
-                    执行结果
-                  </Text>
-                  <div
-                    style={{
-                      borderRadius: 8,
-                      background: "#f8fafc",
-                      color: "#0f172a",
-                      padding: "10px 12px",
-                      fontSize: 12,
-                      lineHeight: 1.6,
-                      whiteSpace: "pre-wrap",
-                      wordBreak: "break-word",
-                      border: "1px solid #e2e8f0",
-                    }}
-                  >
-                    {toolData.result || "无返回结果"}
-                  </div>
-                </div>
-              </div>
-            ) : null}
-          </div>
-        ) : isThinking ? (
-          <div
-            style={{
-              padding: "10px 12px",
-              borderRadius: 12,
-              background:
-                "linear-gradient(180deg, rgba(248,250,252,0.96) 0%, rgba(241,245,249,0.92) 100%)",
-              color: "#475569",
-              display: "flex",
-              flexDirection: "column",
-              alignItems: "flex-start",
-              gap: 6,
-              border: "1px solid #dbeafe",
-            }}
-          >
-            <span
-              style={{
-                display: "inline-flex",
-                alignItems: "center",
-                gap: 8,
-                color: "#1d4ed8",
-                fontWeight: 600,
-              }}
-            >
-              <LoadingOutlined style={{ fontSize: 14 }} />
-              {thinkingTitle || "正在思考..."}
-            </span>
-            <span>{message.content}</span>
-          </div>
-        ) : (
-          <div
-            style={{
-              padding: "8px 12px",
-              borderRadius: 8,
-              background: isHuman ? "#1677ff" : "#f0f0f0",
-              color: isHuman ? "#fff" : "#000",
-              wordBreak: "break-word",
-              whiteSpace: "pre-wrap",
-            }}
-          >
-            <Paragraph
-              style={{ marginBottom: 0, color: "inherit" }}
-              ellipsis={
-                message.content.length > 1200
-                  ? {
-                      rows: 12,
-                      expandable: "collapsible",
-                    }
-                  : false
-              }
-            >
-              {message.content}
-            </Paragraph>
-          </div>
-        )}
+        <div style={bubbleStyle}>
+          <MarkdownRenderer content={message.content} streaming={isStreaming} />
+        </div>
       </div>
     </div>
   );

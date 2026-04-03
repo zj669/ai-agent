@@ -32,8 +32,14 @@ public class SwarmAgentEventBus {
             for (Consumer<AgentEvent> sub : subs) {
                 try {
                     sub.accept(event);
+                } catch (IllegalStateException e) {
+                    // emitter 已被标记为 complete（通常因为前一次发送时客户端已断开），
+                    // 属于正常生命周期，忽略即可
+                    log.debug("[Swarm] AgentEventBus: emitter already completed, skipping: agent={}", agentId);
                 } catch (Exception e) {
-                    log.warn("[Swarm] AgentEventBus subscriber error: agent={}", agentId, e);
+                    // 客户端断开（SSE flush 失败）或订阅者内部异常，均不影响主流程
+                    log.warn("[Swarm] AgentEventBus subscriber error: agent={}, type={}, error={}",
+                        agentId, e.getClass().getSimpleName(), e.getMessage());
                 }
             }
         }

@@ -2,27 +2,7 @@ import { Tag, Tooltip } from "antd";
 import {
   CheckCircleFilled,
   LoadingOutlined,
-  ToolOutlined,
 } from "@ant-design/icons";
-
-const TOOL_ICONS: Record<string, string> = {
-  create: "🔧",
-  createAgent: "🤖",
-  executeWorkflow: "⚡",
-  send: "📨",
-  self: "🪪",
-  listAgents: "📋",
-  list_agents: "📋",
-  send_group_message: "📢",
-  list_groups: "👥",
-  writing_session: "🧭",
-  writing_agent: "🧠",
-  writing_task: "📝",
-  writing_result: "📚",
-  writing_result_by_task: "📚",
-  writing_result_by_task_uuid: "🧷",
-  writing_draft: "📄",
-};
 
 const TOOL_LABELS: Record<string, string> = {
   createAgent: "创建 Agent",
@@ -50,7 +30,6 @@ export default function ToolCallBadge({
   status = "done",
   showLabel = true,
 }: Props) {
-  const icon = TOOL_ICONS[toolName] ?? "🔧";
   const label = TOOL_LABELS[toolName] ?? toolName;
 
   return (
@@ -58,29 +37,27 @@ export default function ToolCallBadge({
       <Tag
         icon={
           status === "running" ? (
-            <LoadingOutlined spin />
-          ) : status === "done" ? (
-            <CheckCircleFilled />
+            <LoadingOutlined style={{ fontSize: 11 }} />
           ) : (
-            <ToolOutlined />
+            <CheckCircleFilled style={{ fontSize: 11, color: "#52c41a" }} />
           )
         }
-        color={status === "running" ? "processing" : "success"}
+        color={status === "running" ? "processing" : "default"}
         style={{
           marginInlineEnd: 0,
           borderRadius: 999,
-          paddingInline: 10,
-          paddingBlock: 4,
+          paddingInline: 8,
+          paddingBlock: 2,
           display: "inline-flex",
           alignItems: "center",
-          gap: 6,
-          boxShadow:
-            status === "running"
-              ? "0 0 0 4px rgba(22, 119, 255, 0.08)"
-              : "none",
+          gap: 4,
+          fontSize: 12,
+          border: "1px solid",
+          borderColor: status === "running" ? "#91caff" : "#d9d9d9",
+          background: status === "running" ? "#e6f4ff" : "#fafafa",
+          color: status === "running" ? "#1677ff" : "#595959",
         }}
       >
-        <span>{icon}</span>
         {showLabel ? <span>{label}</span> : null}
       </Tag>
     </Tooltip>

@@ -7,7 +7,7 @@ import {
   LoadingOutlined,
   PauseCircleOutlined,
 } from "@ant-design/icons";
-import type { WorkerCardData, WorkerStatus } from "../../types/swarm";
+import type { WorkerCardData, WorkerStatus } from "../types/swarm";
 
 const { Text } = Typography;
 
