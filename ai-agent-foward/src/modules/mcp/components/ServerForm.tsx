@@ -53,6 +53,12 @@ export default function ServerForm({ initialName, initialValues, onSubmit, onCan
     onSubmit({ name: values.name, formData: config, description: values.description || '' })
   }
 
+  // 将 Record<string,string> 转换为 Form.List 需要的数组格式
+  const toKeyValueArray = (record?: Record<string, string>): { key: string; value: string }[] => {
+    if (!record) return []
+    return Object.entries(record).map(([key, value]) => ({ key, value }))
+  }
+
   return (
     <Form
       form={form}
@@ -60,10 +66,14 @@ export default function ServerForm({ initialName, initialValues, onSubmit, onCan
       onFinish={handleFinish}
       initialValues={{
         name: initialName || '',
-        serverType: initialValues?.type as ServerType || 'stdio',
-        command: initialValues?.command,
-        args: initialValues?.args?.join(' '),
-        description: '',
+        description: initialValues?.description || '',
+        serverType: (initialValues?.type || 'stdio') as ServerType,
+        command: initialValues?.command || '',
+        args: initialValues?.args?.join(' ') || '',
+        env: toKeyValueArray(initialValues?.env),
+        url: initialValues?.url || '',
+        headers: toKeyValueArray(initialValues?.headers),
+        endpoint: initialValues?.endpoint || '',
       }}
     >
       <Form.Item

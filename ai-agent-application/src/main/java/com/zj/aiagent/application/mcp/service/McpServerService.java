@@ -137,11 +137,20 @@ public class McpServerService {
         checkOwnership(server, userId);
 
         if (!connectionManager.isConnected(serverId)) {
-            log.info("[McpServerService] Server already disconnected id={}", serverId);
+            // 即使池中已无记录，DB 状态也可能还是 CONNECTED（上次异常断开）
+            // 强制同步 DB 状态为 DISCONNECTED，确保前端状态一致
+            if (server.getStatus() != McpServerStatus.DISCONNECTED) {
+                server.markDisconnected();
+                repository.save(server);
+                log.info("[McpServerService] Force sync DB status to DISCONNECTED for server id={}", serverId);
+            } else {
+                log.info("[McpServerService] Server already disconnected id={}", serverId);
+            }
             return;
         }
 
         connectionManager.disconnect(serverId);
+        // disconnect 已将 DB 状态更新为 DISCONNECTED
         log.info("[McpServerService] Disconnected server id={}", serverId);
     }
 

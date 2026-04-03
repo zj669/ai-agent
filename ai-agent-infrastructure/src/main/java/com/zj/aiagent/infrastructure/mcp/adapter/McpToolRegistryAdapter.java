@@ -1,5 +1,6 @@
 package com.zj.aiagent.infrastructure.mcp.adapter;
 
+import com.zj.aiagent.domain.mcp.entity.McpServer;
 import com.zj.aiagent.domain.mcp.port.IMcpServerRepository;
 import com.zj.aiagent.domain.mcp.port.IMcpToolRegistry;
 import com.zj.aiagent.domain.mcp.valobj.McpToolDefinition;
@@ -88,5 +89,25 @@ public class McpToolRegistryAdapter implements IMcpToolRegistry {
     @Override
     public List<McpToolDefinition> getToolsByUserId(Long userId) {
         return connectionPool.getCachedToolsByUserId(userId);
+    }
+
+    @Override
+    public void connectAllUserServers(Long userId) {
+        if (userId == null) {
+            log.info("[McpToolRegistry] connectAllUserServers: userId is null, skip");
+            return;
+        }
+        List<McpServer> servers = serverRepository.findByUserId(userId);
+        if (servers.isEmpty()) {
+            log.info("[McpToolRegistry] connectAllUserServers: no servers found for userId={}", userId);
+            return;
+        }
+        servers.stream()
+            .filter(s -> Boolean.TRUE.equals(s.getEnabled()))
+            .filter(s -> !connectionPool.isConnected(s.getId()))
+            .forEach(s -> {
+                log.info("[McpToolRegistry] connectAllUserServers: connecting serverId={}, name={}", s.getId(), s.getName());
+                connectionPool.connectAndDiscover(s.getId());
+            });
     }
 }

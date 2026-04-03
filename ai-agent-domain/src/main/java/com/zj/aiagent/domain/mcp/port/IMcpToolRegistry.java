@@ -51,4 +51,12 @@ public interface IMcpToolRegistry {
      * @return 该用户的所有 MCP 工具列表
      */
     List<McpToolDefinition> getToolsByUserId(Long userId);
+
+    /**
+     * 预热：主动连接指定用户的所有 MCP 服务器。
+     * 仅连接已启用且尚未连接的服务器，异步执行，不阻塞调用方。
+     *
+     * @param userId 用户 ID
+     */
+    void connectAllUserServers(Long userId);
 }

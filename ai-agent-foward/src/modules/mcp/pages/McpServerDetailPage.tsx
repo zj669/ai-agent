@@ -194,7 +194,8 @@ export default function McpServerDetailPage() {
     try {
       await mcpAdapter.disconnectServer(serverId)
       message.success('已断开连接')
-      void loadServer()
+      // 等待服务器状态刷新后再清空 UI（确保状态变更为 DISCONNECTED）
+      await loadServer()
       setTools([])
     } catch {
       message.error('断开连接失败')

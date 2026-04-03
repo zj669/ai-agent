@@ -1,24 +1,17 @@
 package com.zj.aiagent.infrastructure.mcp.adapter;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.zj.aiagent.domain.mcp.entity.McpServer;
 import com.zj.aiagent.domain.mcp.port.IMcpServerRepository;
 import com.zj.aiagent.domain.mcp.valobj.McpServerConfig;
 import com.zj.aiagent.domain.mcp.valobj.McpServerStatus;
 import com.zj.aiagent.domain.mcp.valobj.McpToolDefinition;
 import com.zj.aiagent.domain.mcp.valobj.McpToolResult;
+import com.zj.aiagent.infrastructure.mcp.transport.IMcpTransport;
+import com.zj.aiagent.infrastructure.mcp.transport.McpTransportFactory;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 
 import jakarta.annotation.PreDestroy;
-import java.io.BufferedReader;
-import java.io.InputStreamReader;
-import java.io.OutputStreamWriter;
-import java.net.URI;
-import java.net.http.HttpClient;
-import java.net.http.HttpRequest;
-import java.net.http.HttpResponse;
-import java.time.Duration;
 import java.util.*;
 import java.util.concurrent.*;
 
@@ -27,13 +20,16 @@ import java.util.concurrent.*;
  * <p>
  * 懒连接策略：仅在首次调用工具时才连接服务器
  * 并发安全：使用 ConcurrentHashMap + pendingConnections 防止重复连接
+ * <p>
+ * 传输协议通过 {@link McpTransportFactory} 委托给对应的 {@link IMcpTransport} 实现，
+ * 自身不再包含 if-else 判断逻辑
  */
 @Slf4j
 @Component
 public class McpConnectionPool {
 
     private final IMcpServerRepository repository;
-    private final ObjectMapper objectMapper;
+    private final McpTransportFactory transportFactory;
 
     /**
      * serverId -> 连接状态
@@ -51,9 +47,9 @@ public class McpConnectionPool {
         return t;
     });
 
-    public McpConnectionPool(IMcpServerRepository repository, ObjectMapper objectMapper) {
+    public McpConnectionPool(IMcpServerRepository repository, McpTransportFactory transportFactory) {
         this.repository = repository;
-        this.objectMapper = objectMapper;
+        this.transportFactory = transportFactory;
     }
 
     /**
@@ -108,7 +104,7 @@ public class McpConnectionPool {
     }
 
     /**
-     * 发现工具 - 根据服务器类型选择传输协议
+     * 发现工具 - 委托给传输策略
      */
     private List<McpToolDefinition> discoverTools(McpServer server) {
         McpServerConfig config = server.getConfig();
@@ -118,208 +114,12 @@ public class McpConnectionPool {
         }
 
         try {
-            if (config.isStdio()) {
-                return discoverViaStdio(server);
-            } else if (config.isSse() || config.isHttp()) {
-                return discoverViaHttp(server);
-            } else {
-                log.warn("[McpConnectionPool] Unknown server type {} for serverId={}",
-                        config.getType(), server.getId());
-                return Collections.emptyList();
-            }
+            IMcpTransport transport = transportFactory.getTransport(config);
+            return transport.discoverTools(server);
         } catch (Exception e) {
             log.error("[McpConnectionPool] Failed to discover tools for serverId={}", server.getId(), e);
             return Collections.emptyList();
         }
-    }
-
-    /**
-     * 通过 stdio 发现工具
-     */
-    private List<McpToolDefinition> discoverViaStdio(McpServer server) {
-        McpServerConfig config = server.getConfig();
-        try {
-            ProcessBuilder pb = new ProcessBuilder();
-            List<String> cmd = new ArrayList<>();
-            cmd.add(config.getCommand());
-            if (config.getArgs() != null) {
-                cmd.addAll(config.getArgs());
-            }
-            pb.command(cmd);
-
-            // 设置环境变量
-            if (config.getEnv() != null) {
-                Map<String, String> env = pb.environment();
-                env.putAll(config.getEnv());
-            }
-
-            pb.redirectErrorStream(true);
-            Process process = pb.start();
-
-            // 发送 MCP JSON-RPC initialize + tools/list
-            String initializeRequest = buildJsonrpcRequest("initialize", UUID.randomUUID().toString(), Map.of(
-                    "protocolVersion", "2024-11-05",
-                    "capabilities", Map.of("tools", Map.of()),
-                    "clientInfo", Map.of("name", "ai-agent", "version", "1.0.0")
-            ));
-            String initializedRequest = buildJsonrpcRequest("notifications/initialized", UUID.randomUUID().toString(), Map.of());
-            String listToolsRequest = buildJsonrpcRequest("tools/list", UUID.randomUUID().toString(), Map.of());
-
-            try (OutputStreamWriter writer = new OutputStreamWriter(process.getOutputStream())) {
-                writer.write(initializeRequest + "\n");
-                writer.write(initializedRequest + "\n");
-                writer.write(listToolsRequest + "\n");
-                writer.flush();
-            }
-
-            // 读取响应
-            StringBuilder response = new StringBuilder();
-            try (BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream()))) {
-                String line;
-                int count = 0;
-                while ((line = reader.readLine()) != null && count++ < 50) {
-                    response.append(line);
-                }
-            }
-
-            // 等待进程退出，最多 30 秒
-            boolean finished = process.waitFor(30, TimeUnit.SECONDS);
-            if (!finished) {
-                process.destroyForcibly();
-            }
-
-            return parseToolsFromResponse(response.toString(), server.getId(), server.getName());
-        } catch (Exception e) {
-            log.error("[McpConnectionPool] stdio discover failed for serverId={}", server.getId(), e);
-            return Collections.emptyList();
-        }
-    }
-
-    /**
-     * 通过 HTTP 发现工具
-     */
-    private List<McpToolDefinition> discoverViaHttp(McpServer server) {
-        McpServerConfig config = server.getConfig();
-        try {
-            HttpClient httpClient = HttpClient.newHttpClient();
-            String url = config.getUrl();
-            if (url == null || url.isBlank()) {
-                log.warn("[McpConnectionPool] No URL for http serverId={}", server.getId());
-                return Collections.emptyList();
-            }
-            if (config.getEndpoint() != null && !config.getEndpoint().isBlank()) {
-                if (url.endsWith("/") && config.getEndpoint().startsWith("/")) {
-                    url = url + config.getEndpoint().substring(1);
-                } else if (!url.endsWith("/") && !config.getEndpoint().startsWith("/")) {
-                    url = url + "/" + config.getEndpoint();
-                } else {
-                    url = url + config.getEndpoint();
-                }
-            }
-
-            String requestBody = buildJsonrpcRequest("tools/list", UUID.randomUUID().toString(), Map.of());
-
-            HttpRequest.Builder reqBuilder = HttpRequest.newBuilder()
-                    .uri(URI.create(url))
-                    .header("Content-Type", "application/json")
-                    .header("Accept", "application/json, text/event-stream")
-                    .timeout(Duration.ofSeconds(30))
-                    .POST(HttpRequest.BodyPublishers.ofString(requestBody));
-
-            if (config.getHeaders() != null) {
-                config.getHeaders().forEach(reqBuilder::header);
-            }
-
-            HttpResponse<String> resp = httpClient.send(reqBuilder.build(), HttpResponse.BodyHandlers.ofString());
-            if (resp.statusCode() >= 400) {
-                log.warn("[McpConnectionPool] HTTP {} for serverId={}: {}", resp.statusCode(), server.getId(), resp.body());
-                return Collections.emptyList();
-            }
-
-            String responseStr = resp.body();
-            if (responseStr != null && responseStr.contains("data: {\"jsonrpc\"")) {
-                int idx = responseStr.indexOf("data: {");
-                responseStr = responseStr.substring(idx + 6).trim();
-            }
-
-            return parseToolsFromResponse(responseStr, server.getId(), server.getName());
-        } catch (Exception e) {
-            log.error("[McpConnectionPool] HTTP discover failed for serverId={}", server.getId(), e);
-            return Collections.emptyList();
-        }
-    }
-
-    /**
-     * 构建 JSON-RPC 请求（内部格式：params 中的 name + arguments 直接拼接）
-     * 适用于 tools/list（空 params）和 tools/call（name + arguments）
-     */
-    private String buildJsonrpcRequest(String method, String id, Map<String, Object> params) {
-        Map<String, Object> request = new LinkedHashMap<>();
-        request.put("jsonrpc", "2.0");
-        request.put("id", id);
-        request.put("method", method);
-        // MCP JSON-RPC: params 直接包含 name + arguments，不额外嵌套一层 "params"
-        request.put("params", params);
-        try {
-            return objectMapper.writeValueAsString(request);
-        } catch (Exception e) {
-            throw new RuntimeException("Failed to build JSON-RPC request", e);
-        }
-    }
-
-    private List<McpToolDefinition> parseToolsFromResponse(String response, Long serverId, String serverName) {
-        List<McpToolDefinition> tools = new ArrayList<>();
-        if (response == null || response.isBlank()) {
-            return tools;
-        }
-
-        try {
-            var node = objectMapper.readTree(response);
-            var result = node.get("result");
-            if (result != null && result.has("tools")) {
-                var toolsArray = result.get("tools");
-                if (toolsArray != null && toolsArray.isArray()) {
-                    for (var tool : toolsArray) {
-                        String toolName = tool.has("name") ? tool.get("name").asText() : null;
-                        String description = tool.has("description") ? tool.get("description").asText() : "";
-                        String inputSchema = tool.has("inputSchema") ? tool.get("inputSchema").toString() : "{}";
-                        if (toolName != null && !toolName.isBlank()) {
-                            tools.add(McpToolDefinition.builder()
-                                    .serverId(serverId)
-                                    .serverName(serverName)
-                                    .toolName(toolName)
-                                    .fullName(McpToolDefinition.makeFullName(serverId, toolName))
-                                    .description(description)
-                                    .inputSchema(inputSchema)
-                                    .build());
-                        }
-                    }
-                }
-            }
-            // 直接数组格式
-            if (tools.isEmpty() && node.isArray()) {
-                for (var tool : node) {
-                    String toolName = tool.has("name") ? tool.get("name").asText() : null;
-                    String description = tool.has("description") ? tool.get("description").asText() : "";
-                    String inputSchema = tool.has("inputSchema") ? tool.get("inputSchema").toString() : "{}";
-                    if (toolName != null && !toolName.isBlank()) {
-                        tools.add(McpToolDefinition.builder()
-                                .serverId(serverId)
-                                .serverName(serverName)
-                                .toolName(toolName)
-                                .fullName(McpToolDefinition.makeFullName(serverId, toolName))
-                                .description(description)
-                                .inputSchema(inputSchema)
-                                .build());
-                    }
-                }
-            }
-        } catch (Exception e) {
-            log.warn("[McpConnectionPool] Failed to parse tools response for serverId={}: {}", serverId, e.getMessage());
-        }
-
-        log.info("[McpConnectionPool] Parsed {} tools from serverId={}", tools.size(), serverId);
-        return tools;
     }
 
     public boolean isConnected(Long serverId) {
@@ -335,10 +135,19 @@ public class McpConnectionPool {
                 log.info("[McpConnectionPool] Destroyed stdio process for serverId={}", serverId);
             });
         }
-        repository.findById(serverId).ifPresent(server -> {
-            server.markDisconnected();
-            repository.save(server);
-        });
+
+        try {
+            repository.findById(serverId).ifPresent(server -> {
+                server.markDisconnected();
+                repository.save(server);
+                log.info("[McpConnectionPool] Marked DISCONNECTED in DB for serverId={}", serverId);
+            });
+        } catch (Exception e) {
+            // 即使 DB 更新失败，也强制从池中移除（池已在前一步清理）
+            log.warn("[McpConnectionPool] Failed to update DB status for serverId={}, pool entry removed: {}",
+                    serverId, e.getMessage());
+        }
+
         log.info("[McpConnectionPool] Disconnected serverId={}", serverId);
     }
 
@@ -427,137 +236,13 @@ public class McpConnectionPool {
             }
 
             try {
-                if (config.isStdio()) {
-                    return executeStdioTool(server, toolName, args);
-                } else if (config.isSse() || config.isHttp()) {
-                    return executeHttpTool(server, toolName, args);
-                } else {
-                    return McpToolResult.failed("Unknown server type");
-                }
+                IMcpTransport transport = transportFactory.getTransport(config);
+                return transport.executeTool(server, toolName, args);
             } catch (Exception e) {
                 log.error("[McpConnectionPool] Tool execution failed serverId={} tool={}", serverId, toolName, e);
                 return McpToolResult.failed(e.getMessage());
             }
         }, executor);
-    }
-
-    private McpToolResult executeStdioTool(McpServer server, String toolName, Map<String, Object> args) {
-        McpServerConfig config = server.getConfig();
-        try {
-            ProcessBuilder pb = new ProcessBuilder();
-            List<String> cmd = new ArrayList<>();
-            cmd.add(config.getCommand());
-            if (config.getArgs() != null) cmd.addAll(config.getArgs());
-            pb.command(cmd);
-            if (config.getEnv() != null) pb.environment().putAll(config.getEnv());
-            pb.redirectErrorStream(true);
-            Process process = pb.start();
-
-            Map<String, Object> params = new LinkedHashMap<>();
-            params.put("name", toolName);
-            params.put("arguments", args != null ? args : Collections.emptyMap());
-
-            String callRequest = buildJsonrpcRequest("tools/call", UUID.randomUUID().toString(), params);
-
-            StringBuilder response = new StringBuilder();
-            try (OutputStreamWriter writer = new OutputStreamWriter(process.getOutputStream());
-                 BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream()))) {
-                writer.write(callRequest + "\n");
-                writer.flush();
-                String line;
-                int count = 0;
-                while ((line = reader.readLine()) != null && count++ < 100) {
-                    response.append(line);
-                }
-            }
-
-            boolean finished = process.waitFor(10, TimeUnit.SECONDS);
-            if (!finished) process.destroyForcibly();
-
-            return parseToolResult(response.toString());
-        } catch (Exception e) {
-            return McpToolResult.failed(e.getMessage());
-        }
-    }
-
-    private McpToolResult executeHttpTool(McpServer server, String toolName, Map<String, Object> args) {
-        McpServerConfig config = server.getConfig();
-        try {
-            HttpClient httpClient = HttpClient.newHttpClient();
-            String url = config.getUrl();
-            if (url == null || url.isBlank()) {
-                return McpToolResult.failed("No URL configured");
-            }
-            if (config.getEndpoint() != null && !config.getEndpoint().isBlank()) {
-                if (url.endsWith("/") && config.getEndpoint().startsWith("/")) {
-                    url = url + config.getEndpoint().substring(1);
-                } else if (!url.endsWith("/") && !config.getEndpoint().startsWith("/")) {
-                    url = url + "/" + config.getEndpoint();
-                } else {
-                    url = url + config.getEndpoint();
-                }
-            }
-
-            Map<String, Object> params = new LinkedHashMap<>();
-            params.put("name", toolName);
-            params.put("arguments", args != null ? args : Collections.emptyMap());
-
-            String requestBody = buildJsonrpcRequest("tools/call", UUID.randomUUID().toString(), params);
-
-            HttpRequest.Builder reqBuilder = HttpRequest.newBuilder()
-                    .uri(URI.create(url))
-                    .header("Content-Type", "application/json")
-                    .header("Accept", "application/json, text/event-stream")
-                    .timeout(Duration.ofSeconds(60))
-                    .POST(HttpRequest.BodyPublishers.ofString(requestBody));
-
-            if (config.getHeaders() != null) {
-                config.getHeaders().forEach(reqBuilder::header);
-            }
-
-            HttpResponse<String> resp = httpClient.send(reqBuilder.build(), HttpResponse.BodyHandlers.ofString());
-            
-            String responseStr = resp.body();
-            if (responseStr != null && responseStr.contains("data: {\"jsonrpc\"")) {
-                int idx = responseStr.indexOf("data: {");
-                responseStr = responseStr.substring(idx + 6).trim();
-            }
-            
-            return parseToolResult(responseStr);
-        } catch (Exception e) {
-            return McpToolResult.failed(e.getMessage());
-        }
-    }
-
-    private McpToolResult parseToolResult(String response) {
-        if (response == null || response.isBlank()) {
-            return McpToolResult.failed("Empty response");
-        }
-        try {
-            var node = objectMapper.readTree(response);
-            var result = node.get("result");
-            if (result != null) {
-                if (result.has("content")) {
-                    var content = result.get("content");
-                    if (content.isArray() && content.size() > 0) {
-                        var first = content.get(0);
-                        if (first.has("text")) {
-                            return McpToolResult.success(first.get("text").asText());
-                        }
-                    }
-                    return McpToolResult.success(content.toString());
-                }
-                return McpToolResult.success(result.toString());
-            }
-            if (node.has("error")) {
-                var error = node.get("error");
-                String msg = error.has("message") ? error.get("message").asText() : "Unknown error";
-                return McpToolResult.failed(msg);
-            }
-            return McpToolResult.success(response);
-        } catch (Exception e) {
-            return McpToolResult.success(response);
-        }
     }
 
     /**

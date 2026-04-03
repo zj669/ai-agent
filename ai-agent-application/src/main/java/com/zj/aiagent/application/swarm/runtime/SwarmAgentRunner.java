@@ -248,6 +248,7 @@ public class SwarmAgentRunner implements Runnable {
         List<ToolCallback> mcpCallbacks = mcpToolCallbackAdapter != null
                 ? mcpToolCallbackAdapter.getAllMcpToolCallbacks()
                 : List.of();
+        log.info("[Swarm] buildAllToolCallbacks: MCP callbacks={}, swarmCallbacks={}", mcpCallbacks.size(), swarmToolCallbacks.length);
         return ArrayUtils.addAll(swarmToolCallbacks, mcpCallbacks.toArray(new ToolCallback[0]));
     }
 

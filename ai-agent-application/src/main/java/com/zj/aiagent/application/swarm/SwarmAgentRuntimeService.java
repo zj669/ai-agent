@@ -13,6 +13,7 @@ import com.zj.aiagent.application.writing.WritingSessionService;
 import com.zj.aiagent.application.writing.WritingTaskService;
 import com.zj.aiagent.domain.llm.entity.LlmProviderConfig;
 import com.zj.aiagent.domain.llm.repository.LlmProviderConfigRepository;
+import com.zj.aiagent.domain.mcp.port.IMcpToolRegistry;
 
 import com.zj.aiagent.domain.swarm.entity.SwarmAgent;
 import com.zj.aiagent.domain.swarm.entity.SwarmWorkspace;
@@ -59,6 +60,7 @@ public class SwarmAgentRuntimeService {
     private final ObjectMapper objectMapper;
     private final LlmProviderConfigRepository llmProviderConfigRepository;
     private final McpToolCallbackAdapter mcpToolCallbackAdapter;
+    private final IMcpToolRegistry mcpToolRegistry;
     private final SwarmToolFilter toolFilter;
     private final SwarmPromptService promptService;
     private final SwarmContextAnalyzer contextAnalyzer;
@@ -114,6 +116,13 @@ public class SwarmAgentRuntimeService {
             agent.getWorkspaceId(),
             userId
         );
+
+        // 异步预热 MCP 连接，工具发现不阻塞 agent 启动
+        if (userId != null) {
+            mcpToolRegistry.connectAllUserServers(userId);
+        } else {
+            log.info("[Swarm] startAgent: userId is null, skip MCP pre-warm for agent={}", agent.getId());
+        }
 
         SwarmAgentRunner runner = new SwarmAgentRunner(
             agent,
