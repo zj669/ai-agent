@@ -69,6 +69,7 @@ jobs:
           logout: false
 
       - uses: docker/metadata-action@v5
+        id: meta
         with:
           images: ${{ env.IMAGE_NAME_BACKEND }}
           tags: type=raw,value=${{ needs.determine-tags.outputs.tags }}
@@ -83,7 +84,7 @@ jobs:
           build-args: MAVEN_OPTS=-Xmx2048m
           provenance: false
           sbom: false
-          attestations: false
+          attest: false
 
   build-frontend:
     name: Build Frontend Image
@@ -117,6 +118,7 @@ jobs:
           logout: false
 
       - uses: docker/metadata-action@v5
+        id: meta
         with:
           images: ${{ env.IMAGE_NAME_FRONTEND }}
           tags: type=raw,value=${{ needs.determine-tags.outputs.tags }}
@@ -134,4 +136,4 @@ jobs:
           labels: ${{ steps.meta.outputs.labels }}
           provenance: false
           sbom: false
-          attestations: false
+          attest: false
