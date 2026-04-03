@@ -18,6 +18,7 @@ import com.zj.aiagent.domain.workflow.valobj.ExecutionContext;
 import com.zj.aiagent.domain.workflow.valobj.LogicalOperator;
 import com.zj.aiagent.domain.workflow.valobj.NodeExecutionResult;
 import com.zj.aiagent.domain.workflow.valobj.NodeType;
+import com.zj.aiagent.infrastructure.workflow.util.SpelToConditionConverter;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.ai.chat.client.ChatClient;
 import org.springframework.ai.openai.OpenAiChatModel;
@@ -51,12 +52,6 @@ import java.util.regex.Pattern;
 @Slf4j
 @Component
 public class ConditionNodeExecutorStrategy implements NodeExecutorStrategy {
-
-    private static final Pattern SPEL_COMPARISON_PATTERN =
-            Pattern.compile("^#(\\w+)\\s*(==|!=|>=|<=|>|<)\\s*(.+)$");
-
-    private static final Pattern SPEL_METHOD_PATTERN =
-            Pattern.compile("^#(\\w+)\\.(contains|startsWith|endsWith|isEmpty)\\(([^)]*)?\\)$");
 
     private final ConditionEvaluatorPort conditionEvaluator;
     private final ObjectMapper objectMapper;
@@ -145,7 +140,7 @@ public class ConditionNodeExecutorStrategy implements NodeExecutorStrategy {
                 node.getNodeId(), selectedTargetNodeId, selectedBranch.getPriority(), selectedBranch.isDefault());
 
         Map<String, Object> outputs = new HashMap<>();
-        outputs.put("selectedTarget", selectedTargetNodeId);
+        outputs.put("selectedBranchId", selectedTargetNodeId);
         outputs.put("selectedBranchPriority", selectedBranch.getPriority());
         outputs.put("selectedBranchIsDefault", selectedBranch.isDefault());
 
@@ -193,20 +188,15 @@ public class ConditionNodeExecutorStrategy implements NodeExecutorStrategy {
                             .conditionGroups(List.of())
                             .build();
                 } else {
-                    log.warn("[Condition Node {}] Multiple default edges found, replacing previous default with edge: {}",
-                            nodeId, edge.getEdgeId());
-                    defaultBranch = ConditionBranch.builder()
-                            .priority(Integer.MAX_VALUE)
-                            .targetNodeId(edge.getTarget())
-                            .description("Legacy default branch (last-one-wins)")
-                            .isDefault(true)
-                            .conditionGroups(List.of())
-                            .build();
+                    log.error("[Condition Node {}] Multiple default edges found: previous='{}', current='{}'. Only one default edge is allowed.",
+                            nodeId, defaultBranch.getTargetNodeId(), edge.getTarget());
+                    throw new IllegalStateException(
+                            "Condition node " + nodeId + " has multiple default edges; workflow definition is invalid");
                 }
                 continue;
             }
 
-            ConditionItem item = parseLegacySpelToItem(edge.getCondition());
+            ConditionItem item = SpelToConditionConverter.parse(edge.getCondition());
             if (item != null) {
                 branches.add(ConditionBranch.builder()
                         .priority(priority++)
@@ -254,123 +244,6 @@ public class ConditionNodeExecutorStrategy implements NodeExecutorStrategy {
         log.info("[Condition Node {}] Converted {} legacy edges to branches (hasDefault={})",
                 nodeId, branches.size(), defaultBranch != null);
         return branches;
-    }
-
-    ConditionItem parseLegacySpelToItem(String spelExpression) {
-        if (spelExpression == null || spelExpression.isBlank()) {
-            return null;
-        }
-
-        String trimmed = spelExpression.trim();
-
-        Matcher comparisonMatcher = SPEL_COMPARISON_PATTERN.matcher(trimmed);
-        if (comparisonMatcher.matches()) {
-            String variable = comparisonMatcher.group(1);
-            String operator = comparisonMatcher.group(2);
-            String rawValue = comparisonMatcher.group(3).trim();
-
-            if (rawValue.contains("&&") || rawValue.contains("||")
-                    || rawValue.contains("?") || rawValue.contains("#")) {
-                return null;
-            }
-
-            ComparisonOperator compOp = mapSpelOperator(operator);
-            if (compOp == null) {
-                return null;
-            }
-
-            Object parsedValue = parseSpelLiteralValue(rawValue);
-            return ConditionItem.builder()
-                    .leftOperand("inputs." + variable)
-                    .operator(compOp)
-                    .rightOperand(parsedValue)
-                    .build();
-        }
-
-        Matcher methodMatcher = SPEL_METHOD_PATTERN.matcher(trimmed);
-        if (methodMatcher.matches()) {
-            String variable = methodMatcher.group(1);
-            String methodName = methodMatcher.group(2);
-            String methodArg = methodMatcher.group(3);
-
-            ComparisonOperator compOp = mapSpelMethod(methodName);
-            if (compOp == null) {
-                return null;
-            }
-
-            if (compOp == ComparisonOperator.IS_EMPTY) {
-                return ConditionItem.builder()
-                        .leftOperand("inputs." + variable)
-                        .operator(compOp)
-                        .build();
-            }
-
-            Object parsedArg = parseSpelLiteralValue(methodArg != null ? methodArg.trim() : "");
-            return ConditionItem.builder()
-                    .leftOperand("inputs." + variable)
-                    .operator(compOp)
-                    .rightOperand(parsedArg)
-                    .build();
-        }
-
-        return null;
-    }
-
-    private ComparisonOperator mapSpelOperator(String spelOp) {
-        return switch (spelOp) {
-            case "==" -> ComparisonOperator.EQUALS;
-            case "!=" -> ComparisonOperator.NOT_EQUALS;
-            case ">" -> ComparisonOperator.GREATER_THAN;
-            case "<" -> ComparisonOperator.LESS_THAN;
-            case ">=" -> ComparisonOperator.GREATER_THAN_OR_EQUAL;
-            case "<=" -> ComparisonOperator.LESS_THAN_OR_EQUAL;
-            default -> null;
-        };
-    }
-
-    private ComparisonOperator mapSpelMethod(String methodName) {
-        return switch (methodName) {
-            case "contains" -> ComparisonOperator.CONTAINS;
-            case "startsWith" -> ComparisonOperator.STARTS_WITH;
-            case "endsWith" -> ComparisonOperator.ENDS_WITH;
-            case "isEmpty" -> ComparisonOperator.IS_EMPTY;
-            default -> null;
-        };
-    }
-
-    private Object parseSpelLiteralValue(String rawValue) {
-        if (rawValue == null || rawValue.isBlank()) {
-            return null;
-        }
-
-        String trimmed = rawValue.trim();
-
-        if (trimmed.startsWith("'") && trimmed.endsWith("'") && trimmed.length() >= 2) {
-            return trimmed.substring(1, trimmed.length() - 1);
-        }
-
-        if ("true".equalsIgnoreCase(trimmed)) {
-            return Boolean.TRUE;
-        }
-        if ("false".equalsIgnoreCase(trimmed)) {
-            return Boolean.FALSE;
-        }
-
-        if ("null".equalsIgnoreCase(trimmed)) {
-            return null;
-        }
-
-        try {
-            return Long.parseLong(trimmed);
-        } catch (NumberFormatException ignored) {
-        }
-
-        try {
-            return Double.parseDouble(trimmed);
-        } catch (NumberFormatException ignored) {
-        }
-
-        return trimmed;
     }
 
     // ========== LLM 模式：基于 Branch 描述的语义路由 ==========
@@ -429,7 +302,7 @@ public class ConditionNodeExecutorStrategy implements NodeExecutorStrategy {
         log.info("[Condition Node {}] LLM mode selected target: {}", node.getNodeId(), selectedTargetNodeId);
 
         Map<String, Object> outputs = new HashMap<>();
-        outputs.put("selectedTarget", selectedTargetNodeId);
+        outputs.put("selectedBranchId", selectedTargetNodeId);
         outputs.put("routingMode", "LLM");
 
         return NodeExecutionResult.routing(selectedTargetNodeId, outputs);
@@ -512,7 +385,7 @@ public class ConditionNodeExecutorStrategy implements NodeExecutorStrategy {
         return ChatClient.builder(OpenAiChatModel.builder()
                 .openAiApi(OpenAiApi.builder()
                         .apiKey(apiKey)
-                        .baseUrl(apiUrl)
+                        .baseUrl(apiUrl.replaceAll("/v1/?$", "").replaceAll("/+$", ""))
                         .restClientBuilder(restClientBuilder)
                         .build())
                 .defaultOptions(OpenAiChatOptions.builder()

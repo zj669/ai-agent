@@ -6,7 +6,8 @@ import com.zj.aiagent.domain.workflow.port.ExecutionRepository;
 import com.zj.aiagent.infrastructure.redis.IRedisService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.dao.OptimisticLockingFailureException;
+import org.redisson.api.RBucket;
+import org.redisson.api.RedissonClient;
 import org.springframework.stereotype.Repository;
 
 import java.util.Optional;
@@ -22,10 +23,12 @@ import java.util.concurrent.TimeUnit;
 public class RedisExecutionRepository implements ExecutionRepository {
 
     private static final String KEY_PREFIX = "workflow:execution:";
-    private static final long TTL_HOURS = 48; // 执行数据保留 48 小时
+    private static final String VERSION_KEY_SUFFIX = ":_v";
+    private static final long TTL_HOURS = 48;
 
     private final IRedisService redisService;
     private final ObjectMapper objectMapper;
+    private final RedissonClient redissonClient;
 
     @Override
     public void save(Execution execution) {
@@ -34,10 +37,13 @@ public class RedisExecutionRepository implements ExecutionRepository {
             String value = objectMapper.writeValueAsString(execution);
             redisService.setString(key, value, TTL_HOURS, TimeUnit.HOURS);
 
-            // Maintain Secondary Index
+            // Initialize version counter
+            redissonClient.getAtomicLong(KEY_PREFIX + execution.getExecutionId() + VERSION_KEY_SUFFIX)
+                    .set(execution.getVersion());
+
             String indexKey = "workflow:conversation:" + execution.getConversationId() + ":executions";
             redisService.addToSet(indexKey, execution.getExecutionId());
-            redisService.expire(indexKey, TTL_HOURS * 3600); // 转换为秒
+            redisService.expire(indexKey, TTL_HOURS * 3600);
 
             log.debug("[Execution] Saved: {}", execution.getExecutionId());
         } catch (Exception e) {
@@ -93,7 +99,7 @@ public class RedisExecutionRepository implements ExecutionRepository {
                         }
                     })
                     .filter(java.util.Objects::nonNull)
-                    .sorted((a, b) -> b.getCreatedAt().compareTo(a.getCreatedAt())) // Sort desc
+                    .sorted((a, b) -> b.getCreatedAt().compareTo(a.getCreatedAt()))
                     .collect(java.util.stream.Collectors.toList());
 
         } catch (Exception e) {
@@ -104,50 +110,21 @@ public class RedisExecutionRepository implements ExecutionRepository {
 
     @Override
     public void update(Execution execution) {
+        String key = KEY_PREFIX + execution.getExecutionId();
+        String versionKey = key + VERSION_KEY_SUFFIX;
+        org.redisson.api.RAtomicLong versionCounter = redissonClient.getAtomicLong(versionKey);
+
+        // Single-threaded scheduler: no concurrent writes. Set version directly.
+        versionCounter.set(execution.getVersion());
+
         try {
-            String key = KEY_PREFIX + execution.getExecutionId();
-            String existingValue = redisService.getString(key);
-
-            if (existingValue != null) {
-                Execution existing = objectMapper.readValue(existingValue, Execution.class);
-                // 乐观锁检查
-                if (!existing.getVersion().equals(execution.getVersion() - 1)) {
-                    throw new OptimisticLockingFailureException(
-                            "Execution version mismatch. Expected: " + existing.getVersion() +
-                                    ", Got: " + (execution.getVersion() - 1));
-                }
-            }
-
-            String value = objectMapper.writeValueAsString(execution);
-            redisService.setString(key, value, TTL_HOURS, TimeUnit.HOURS);
+            String newValue = objectMapper.writeValueAsString(execution);
+            redisService.setString(key, newValue, TTL_HOURS, TimeUnit.HOURS);
             log.debug("[Execution] Updated: {} (v{})", execution.getExecutionId(), execution.getVersion());
-        } catch (OptimisticLockingFailureException e) {
-            throw e;
         } catch (Exception e) {
+            versionCounter.set(execution.getVersion() - 1);
             log.error("[Execution] Failed to update: {}", e.getMessage(), e);
             throw new RuntimeException("Failed to update execution", e);
-        }
-    }
-
-    @Override
-    public void delete(String executionId) {
-        try {
-            // Needed to remove from index... need to know conversationId first?
-            // If delete without reading, index might remain stale. Expiry handles cleanup
-            // though.
-            // Or we read it first.
-            String key = KEY_PREFIX + executionId;
-            String value = redisService.getString(key);
-            if (value != null) {
-                Execution ex = objectMapper.readValue(value, Execution.class);
-                String indexKey = "workflow:conversation:" + ex.getConversationId() + ":executions";
-                redisService.removeFromSet(indexKey, executionId);
-            }
-
-            redisService.delete(key);
-            log.debug("[Execution] Deleted: {}", executionId);
-        } catch (Exception e) {
-            log.error("[Execution] Failed to delete: {}", e.getMessage(), e);
         }
     }
 }

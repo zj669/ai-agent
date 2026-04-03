@@ -1,7 +1,5 @@
 package com.zj.aiagent.infrastructure.workflow.repository;
 
-import com.baomidou.mybatisplus.core.metadata.IPage;
-import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.zj.aiagent.domain.workflow.entity.HumanReviewRecord;
 import com.zj.aiagent.domain.workflow.port.HumanReviewRepository;
@@ -37,26 +35,18 @@ public class HumanReviewRepositoryImpl implements HumanReviewRepository {
     }
 
     @Override
-    public org.springframework.data.domain.Page<HumanReviewRecord> findReviewHistory(Long userId,
-            org.springframework.data.domain.Pageable pageable) {
-        Page<HumanReviewPO> page = new Page<>(pageable.getPageNumber() + 1, pageable.getPageSize()); // MyBatis Plus is
-                                                                                                     // 1-indexed
-
+    public List<HumanReviewRecord> findReviewHistory(Long userId, int offset, int limit) {
         LambdaQueryWrapper<HumanReviewPO> wrapper = new LambdaQueryWrapper<>();
-        // 如果需要筛选特定reviewer，可以加条件。这里假设查询该用户参与的审核
         if (userId != null) {
             wrapper.eq(HumanReviewPO::getReviewerId, userId);
         }
-        wrapper.orderByDesc(HumanReviewPO::getReviewedAt);
+        wrapper.orderByDesc(HumanReviewPO::getReviewedAt)
+                .last("LIMIT " + offset + ", " + limit);
 
-        IPage<HumanReviewPO> resultPage = humanReviewMapper.selectPage(page, wrapper);
-
-        List<HumanReviewRecord> content = resultPage.getRecords().stream()
+        return humanReviewMapper.selectList(wrapper)
+                .stream()
                 .map(this::toEntity)
                 .collect(Collectors.toList());
-
-        return new org.springframework.data.domain.PageImpl<>(
-                content, pageable, resultPage.getTotal());
     }
 
     private HumanReviewPO toPO(HumanReviewRecord entity) {
@@ -82,7 +72,7 @@ public class HumanReviewRepositoryImpl implements HumanReviewRepository {
 
     private HumanReviewRecord toEntity(HumanReviewPO po) {
         return HumanReviewRecord.builder()
-                .id(po.getId().toString())
+                .id(po.getId() != null ? po.getId().toString() : null)
                 .executionId(po.getExecutionId())
                 .nodeId(po.getNodeId())
                 .reviewerId(po.getReviewerId())

@@ -19,6 +19,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Executor;
+import java.util.concurrent.atomic.AtomicBoolean;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.ai.chat.client.ChatClient;
 import org.springframework.ai.chat.messages.AssistantMessage;
@@ -180,13 +181,14 @@ public class LlmNodeExecutorStrategy implements NodeExecutorStrategy {
 
                     Prompt prompt = new Prompt(messageChain);
 
+                    AtomicBoolean streamError = new AtomicBoolean(false);
+
                     chatClient
                         .prompt(prompt)
                         .stream()
                         .content()
                         .doOnNext(chunk -> {
                             fullResponse.append(chunk);
-                            // 实时推送 delta
                             streamPublisher.publishDelta(chunk);
                         })
                         .doOnError(error -> {
@@ -196,6 +198,7 @@ public class LlmNodeExecutorStrategy implements NodeExecutorStrategy {
                                 error.getMessage()
                             );
                             streamPublisher.publishError(error.getMessage());
+                            streamError.set(true);
                         })
                         .blockLast();
 
@@ -206,11 +209,14 @@ public class LlmNodeExecutorStrategy implements NodeExecutorStrategy {
                         response.length()
                     );
 
-                    // 构建输出
                     Map<String, Object> outputs = new HashMap<>();
-                    outputs.put("llm_output", response); // 与 node template outputSchema key 一致
+                    outputs.put("llm_output", response);
                     outputs.put("response", response);
-                    outputs.put("text", response); // 兼容常用 key
+                    outputs.put("text", response);
+
+                    if (streamError.get()) {
+                        return NodeExecutionResult.failed("Stream interrupted, partial output available");
+                    }
 
                     return NodeExecutionResult.success(outputs);
                 } catch (Exception e) {

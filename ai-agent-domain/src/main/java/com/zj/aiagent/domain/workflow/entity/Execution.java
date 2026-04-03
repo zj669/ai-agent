@@ -88,7 +88,7 @@ public class Execution {
      * 检查节点是否已通过人工审核
      */
     public boolean isNodeReviewed(String nodeId) {
-        return reviewedNodes != null && reviewedNodes.contains(nodeId);
+        return reviewedNodes.contains(nodeId);
     }
 
     /**
@@ -418,11 +418,10 @@ public class Execution {
      * 创建检查点
      */
     public Checkpoint createCheckpoint(String nodeId) {
-        if (
-            this.status == ExecutionStatus.PAUSED ||
-            this.status == ExecutionStatus.PAUSED_FOR_REVIEW
-        ) {
-            return Checkpoint.createPausePoint(executionId, nodeId, context);
+        if (this.status == ExecutionStatus.PAUSED || this.status == ExecutionStatus.PAUSED_FOR_REVIEW) {
+            Checkpoint cp = Checkpoint.create(executionId, nodeId, context);
+            cp.setPausePoint(true);
+            return cp;
         }
         return Checkpoint.create(executionId, nodeId, context);
     }

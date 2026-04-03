@@ -60,13 +60,4 @@ public class Checkpoint {
                 .pausePoint(false)
                 .build();
     }
-
-    /**
-     * 创建暂停点
-     */
-    public static Checkpoint createPausePoint(String executionId, String nodeId, ExecutionContext context) {
-        Checkpoint checkpoint = create(executionId, nodeId, context);
-        checkpoint.setPausePoint(true);
-        return checkpoint;
-    }
 }

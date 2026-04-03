@@ -36,16 +36,20 @@ public class RedisSsePublisher {
         try {
             // 业务逻辑: 构建频道名称
             String channel = CHANNEL_PREFIX + payload.getExecutionId();
-            
+
             // 业务逻辑: 序列化负载
             String message = objectMapper.writeValueAsString(payload);
-            
+
             // 使用 IRedisService 的基础操作: 发布消息
             redisService.publish(channel, message);
-            
+
             log.debug("[SSE-Pub] Published to {}: {}", channel, message);
         } catch (JsonProcessingException e) {
             log.error("[SSE-Pub] Failed to serialize payload", e);
+            throw new RuntimeException("Failed to serialize SSE payload", e);
+        } catch (Exception e) {
+            log.error("[SSE-Pub] Failed to publish message to channel: {}", payload.getExecutionId(), e);
+            throw new RuntimeException("Failed to publish SSE message", e);
         }
     }
 }

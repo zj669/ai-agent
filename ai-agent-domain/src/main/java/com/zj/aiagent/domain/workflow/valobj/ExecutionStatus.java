@@ -51,4 +51,12 @@ public enum ExecutionStatus {
     PAUSED_FOR_REVIEW(10);
 
     private final int code;
+
+    /**
+     * 判断是否为终态
+     * 终态表示执行已完成，不会再有状态变化
+     */
+    public boolean isTerminal() {
+        return this == SUCCEEDED || this == FAILED || this == CANCELLED;
+    }
 }

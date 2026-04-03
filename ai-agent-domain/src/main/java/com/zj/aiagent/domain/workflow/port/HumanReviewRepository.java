@@ -1,8 +1,6 @@
 package com.zj.aiagent.domain.workflow.port;
 
 import com.zj.aiagent.domain.workflow.entity.HumanReviewRecord;
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.Pageable;
 import java.util.List;
 
 /**
@@ -20,8 +18,7 @@ public interface HumanReviewRepository {
     List<HumanReviewRecord> findByExecutionId(String executionId);
 
     /**
-     * 查询待审核列表（如果需要从DB查的话，虽然Design建议从Redis查）
-     * 这里保留查历史记录的能力
+     * 查询审核历史（简单分页：offset + limit）
      */
-    Page<HumanReviewRecord> findReviewHistory(Long userId, Pageable pageable);
+    List<HumanReviewRecord> findReviewHistory(Long userId, int offset, int limit);
 }

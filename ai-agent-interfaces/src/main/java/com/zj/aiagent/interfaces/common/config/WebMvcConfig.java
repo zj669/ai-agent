@@ -3,6 +3,7 @@ package com.zj.aiagent.interfaces.common.config;
 import com.zj.aiagent.interfaces.common.interceptor.LoginInterceptor;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.core.env.Environment;
 import org.springframework.web.servlet.config.annotation.CorsRegistry;
@@ -10,6 +11,8 @@ import org.springframework.web.servlet.config.annotation.InterceptorRegistry;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 
 import java.util.Arrays;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
 
 /**
  * Web MVC 配置
@@ -23,6 +26,16 @@ public class WebMvcConfig implements WebMvcConfigurer {
 
     @Value("${cors.allowed-origins:}")
     private String allowedOrigins;
+
+    @Bean("workflowTaskScheduler")
+    public ScheduledExecutorService workflowTaskScheduler() {
+        return Executors.newScheduledThreadPool(10);
+    }
+
+    @Bean("heartbeatScheduler")
+    public ScheduledExecutorService heartbeatScheduler() {
+        return Executors.newScheduledThreadPool(2);
+    }
 
     @Override
     public void addInterceptors(InterceptorRegistry registry) {

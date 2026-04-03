@@ -50,12 +50,6 @@ public class HumanReviewDTO {
         private Map<String, Object> outputs;
     }
 
-    @Data
-    public static class HumanReviewConfigDTO {
-
-        private String prompt;
-        private String[] editableFields;
-    }
 
     @Data
     public static class ResumeExecutionRequest {

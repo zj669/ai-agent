@@ -41,6 +41,8 @@ public class RedisSseListener implements MessageListener {
             eventHandler.accept(payload);
         } catch (Exception e) {
             log.error("[SSE-Sub] Failed to deserialize message", e);
+            // 重新抛出以便调用方感知失败
+            throw new RuntimeException("Failed to deserialize SSE message", e);
         }
     }
 }

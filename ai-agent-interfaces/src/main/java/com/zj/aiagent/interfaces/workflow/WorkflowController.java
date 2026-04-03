@@ -10,9 +10,11 @@ import java.io.IOException;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
+import jakarta.validation.Valid;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
 import lombok.Data;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -38,10 +40,9 @@ public class WorkflowController {
     private final com.zj.aiagent.domain.workflow.port.WorkflowNodeExecutionLogRepository workflowNodeExecutionLogRepository;
     private final RedisMessageListenerContainer redisMessageListenerContainer;
     private final ObjectMapper objectMapper;
+    private final ScheduledExecutorService workflowTaskScheduler;
 
     private static final long SSE_TIMEOUT = 30 * 60 * 1000L; // 30 minutes
-    private static final ScheduledExecutorService heartbeatScheduler =
-        Executors.newScheduledThreadPool(10);
 
     /**
      * 启动工作流执行 (Direct POST Streaming)
@@ -49,7 +50,7 @@ public class WorkflowController {
      */
     @PostMapping(value = "/start", produces = "text/event-stream;charset=UTF-8")
     public SseEmitter startExecution(
-        @RequestBody StartExecutionRequest request,
+        @Valid @RequestBody StartExecutionRequest request,
         jakarta.servlet.http.HttpServletResponse response
     ) {
         // 强制 response 使用 UTF-8 编码，解决 SSE 中文乱码
@@ -206,7 +207,7 @@ public class WorkflowController {
         );
         log.info("[SSE] Subscribed to Redis channel: {}", channel);
 
-        var heartbeatTask = heartbeatScheduler.scheduleAtFixedRate(
+        var heartbeatTask = workflowTaskScheduler.scheduleAtFixedRate(
             () -> {
                 try {
                     emitter.send(SseEmitter.event().name("ping").data("pong"));
@@ -266,7 +267,7 @@ public class WorkflowController {
      */
     @PostMapping("/stop")
     public ResponseEntity<Void> stopExecution(
-        @RequestBody StopExecutionRequest request
+        @Valid @RequestBody StopExecutionRequest request
     ) {
         log.info("[API] Stopping execution: {}", request.getExecutionId());
         schedulerService.cancelExecution(request.getExecutionId());
@@ -278,7 +279,7 @@ public class WorkflowController {
      */
     @PostMapping("/pause")
     public ResponseEntity<Void> pauseExecution(
-        @RequestBody PauseExecutionRequest request
+        @Valid @RequestBody PauseExecutionRequest request
     ) {
         log.info("[API] Pausing execution: {}", request.getExecutionId());
         schedulerService.pauseExecution(request.getExecutionId());
@@ -400,7 +401,8 @@ public class WorkflowController {
                             new com.zj.aiagent.interfaces.workflow.dto.ExecutionContextDTO.ChatMessage();
                         chatMsg.setRole(msg.get("role"));
                         chatMsg.setContent(msg.get("content"));
-                        chatMsg.setTimestamp(System.currentTimeMillis()); // placeholder
+                        Object msgTimestamp = msg.get("timestamp");
+                        chatMsg.setTimestamp(msgTimestamp != null ? ((Number) msgTimestamp).longValue() : System.currentTimeMillis());
                         chatHistory.add(chatMsg);
                     });
                 dto.setChatHistory(chatHistory);
@@ -441,7 +443,9 @@ public class WorkflowController {
     @Data
     public static class StartExecutionRequest {
 
+        @NotNull(message = "agentId is required")
         private Long agentId;
+        @NotNull(message = "userId is required")
         private Long userId;
         private String conversationId;
         /**
@@ -460,12 +464,14 @@ public class WorkflowController {
     @Data
     public static class StopExecutionRequest {
 
+        @NotNull(message = "executionId is required")
         private String executionId;
     }
 
     @Data
     public static class PauseExecutionRequest {
 
+        @NotNull(message = "executionId is required")
         private String executionId;
     }
 }

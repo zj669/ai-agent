@@ -13,7 +13,7 @@ import com.zj.aiagent.domain.workflow.entity.HumanReviewRecord;
 import com.zj.aiagent.domain.workflow.entity.Node;
 import com.zj.aiagent.domain.workflow.entity.WorkflowGraph;
 import com.zj.aiagent.domain.workflow.port.*;
-import com.zj.aiagent.domain.workflow.service.WorkflowGraphFactory;
+import com.zj.aiagent.infrastructure.workflow.graph.WorkflowGraphFactoryImpl;
 import com.zj.aiagent.domain.workflow.valobj.*;
 import com.zj.aiagent.infrastructure.redis.IRedisService;
 import com.zj.aiagent.infrastructure.workflow.executor.NodeExecutorFactory;
@@ -52,13 +52,10 @@ class SchedulerServiceTest {
     private AgentRepository agentRepository;
 
     @Mock
-    private WorkflowGraphFactory workflowGraphFactory;
+    private WorkflowGraphFactoryImpl workflowGraphFactory;
 
     @Mock
     private IRedisService redisService;
-
-    @Mock
-    private WorkflowCancellationPort cancellationPort;
 
     @Mock
     private HumanReviewQueuePort humanReviewQueuePort;
@@ -222,7 +219,7 @@ class SchedulerServiceTest {
         void should_ThrowException_When_PausedNodeIdMismatch() {
             // Given
             String executionId = "exec-resume-mismatch";
-            when(cancellationPort.isCancelled(executionId)).thenReturn(false);
+            when(redisService.isExists("workflow:cancel:" + executionId)).thenReturn(false);
             when(executionRepository.findById(executionId)).thenReturn(
                 Optional.of(execution)
             );
@@ -247,7 +244,7 @@ class SchedulerServiceTest {
         void should_ThrowException_When_PausedNodeIdMissing() {
             // Given
             String executionId = "exec-resume-missing";
-            when(cancellationPort.isCancelled(executionId)).thenReturn(false);
+            when(redisService.isExists("workflow:cancel:" + executionId)).thenReturn(false);
             when(executionRepository.findById(executionId)).thenReturn(
                 Optional.of(execution)
             );
@@ -295,7 +292,7 @@ class SchedulerServiceTest {
         void should_ReturnEarly_When_ExecutionCancelled() {
             // Given
             String executionId = "exec-cancelled-001";
-            when(cancellationPort.isCancelled(executionId)).thenReturn(true);
+            when(redisService.isExists("workflow:cancel:" + executionId)).thenReturn(true);
 
             // When
             schedulerService.resumeExecution(
@@ -317,7 +314,7 @@ class SchedulerServiceTest {
         @DisplayName("expectedVersion 与当前执行版本不一致时应抛出冲突异常")
         void should_ThrowConflict_When_ExpectedVersionMismatch() {
             String executionId = "exec-resume-version-mismatch";
-            when(cancellationPort.isCancelled(executionId)).thenReturn(false);
+            when(redisService.isExists("workflow:cancel:" + executionId)).thenReturn(false);
             when(executionRepository.findById(executionId)).thenReturn(
                 Optional.of(execution)
             );
@@ -353,7 +350,7 @@ class SchedulerServiceTest {
             Long reviewerId = 456L;
             String reason = "审核未通过";
 
-            when(cancellationPort.isCancelled(executionId)).thenReturn(false);
+            when(redisService.isExists("workflow:cancel:" + executionId)).thenReturn(false);
             when(executionRepository.findById(executionId)).thenReturn(
                 Optional.of(execution)
             );
@@ -392,7 +389,7 @@ class SchedulerServiceTest {
         @DisplayName("reject 节点与 pausedNodeId 不匹配时应抛出异常")
         void should_ThrowException_When_RejectNodeIdMismatch() {
             String executionId = "exec-reject-mismatch";
-            when(cancellationPort.isCancelled(executionId)).thenReturn(false);
+            when(redisService.isExists("workflow:cancel:" + executionId)).thenReturn(false);
             when(executionRepository.findById(executionId)).thenReturn(
                 Optional.of(execution)
             );

@@ -68,7 +68,7 @@ public class ToolNodeExecutorStrategy implements NodeExecutorStrategy {
                                 node.getNodeId(), executionId);
                         Map<String, Object> outputs = new HashMap<>();
                         outputs.put("aborted", true);
-                        return NodeExecutionResult.success(outputs);
+                        return NodeExecutionResult.failed("Tool execution aborted", outputs);
                     }
 
                     if (!result.isSuccess()) {

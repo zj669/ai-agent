@@ -36,7 +36,7 @@ public class ExecutionDTO {
                 .conversationId(execution.getConversationId())
                 .status(execution.getStatus().name())
                 .startTime(execution.getCreatedAt())
-                .endTime(execution.getUpdatedAt()) // Assuming updatedAt is endTime for completed execution
+                .endTime(execution.getStatus().isTerminal() ? execution.getUpdatedAt() : null)
                 .nodeStatuses(execution.getNodeStatuses().entrySet().stream()
                         .collect(Collectors.toMap(Map.Entry::getKey, e -> e.getValue().name())))
                 .build();

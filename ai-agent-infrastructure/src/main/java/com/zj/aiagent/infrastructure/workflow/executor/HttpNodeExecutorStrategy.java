@@ -9,12 +9,12 @@ import com.zj.aiagent.domain.workflow.valobj.NodeType;
 
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Qualifier;
-
 import org.springframework.http.HttpMethod;
 import org.springframework.http.MediaType;
 import org.springframework.stereotype.Component;
 import org.springframework.web.reactive.function.client.WebClient;
 
+import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.util.HashMap;
 import java.util.Map;
@@ -56,53 +56,80 @@ public class HttpNodeExecutorStrategy implements NodeExecutorStrategy {
 
                 log.info("[HTTP Node {}] {} {}", node.getNodeId(), method, url);
 
-                // 构建请求
-                WebClient webClient = webClientBuilder.build();
-                WebClient.RequestBodySpec requestSpec = webClient
-                        .method(method)
-                        .uri(url);
-
-                // 设置 Headers
-                Map<String, Object> headers = config.getMap("headers");
-                if (headers != null) {
-                    headers.forEach((key, value) -> {
-                        if (value != null) {
-                            requestSpec.header(key, resolveTemplate(value.toString(), resolvedInputs));
-                        }
-                    });
-                }
-
-                // 设置 Body
-                WebClient.ResponseSpec responseSpec;
-                String bodyTemplate = config.getString("bodyTemplate");
-                if (bodyTemplate != null && !bodyTemplate.isEmpty()) {
-                    String body = resolveTemplate(bodyTemplate, resolvedInputs);
-                    responseSpec = requestSpec
-                            .contentType(MediaType.APPLICATION_JSON)
-                            .bodyValue(body)
-                            .retrieve();
-                } else {
-                    responseSpec = requestSpec.retrieve();
-                }
-
-                // 执行请求
+                // 设置超时
                 Long timeout = config.getLong("readTimeout");
                 if (timeout == null) {
                     timeout = 30000L;
                 }
-                String response = responseSpec
-                        .bodyToMono(String.class)
-                        .timeout(Duration.ofMillis(timeout))
-                        .block();
+                Duration requestTimeout = Duration.ofMillis(timeout);
 
-                log.info("[HTTP Node {}] Response received, length: {}", node.getNodeId(),
-                        response != null ? response.length() : 0);
+                // 获取 Headers
+                Map<String, Object> headers = config.getMap("headers");
+                String bodyTemplate = config.getString("bodyTemplate");
+
+                // 使用 exchangeToMono 获取状态码
+                WebClient webClient = webClientBuilder.build();
+                int[] statusCodeHolder = new int[1];
+                String[] responseHolder = new String[1];
+
+                try {
+                    String bodyResult;
+                    if (bodyTemplate != null && !bodyTemplate.isEmpty()) {
+                        String body = resolveTemplate(bodyTemplate, resolvedInputs);
+                        bodyResult = webClient.method(method)
+                                .uri(url)
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .headers(h -> {
+                                    if (headers != null) {
+                                        headers.forEach((key, value) -> {
+                                            if (value != null) {
+                                                h.set(key, resolveTemplate(value.toString(), resolvedInputs));
+                                            }
+                                        });
+                                    }
+                                })
+                                .bodyValue(body)
+                                .exchangeToMono(clientResponse -> {
+                                    statusCodeHolder[0] = clientResponse.statusCode().value();
+                                    return clientResponse.bodyToMono(String.class);
+                                })
+                                .block(requestTimeout);
+                    } else {
+                        bodyResult = webClient.method(method)
+                                .uri(url)
+                                .headers(h -> {
+                                    if (headers != null) {
+                                        headers.forEach((key, value) -> {
+                                            if (value != null) {
+                                                h.set(key, resolveTemplate(value.toString(), resolvedInputs));
+                                            }
+                                        });
+                                    }
+                                })
+                                .exchangeToMono(clientResponse -> {
+                                    statusCodeHolder[0] = clientResponse.statusCode().value();
+                                    return clientResponse.bodyToMono(String.class);
+                                })
+                                .block(requestTimeout);
+                    }
+                    responseHolder[0] = bodyResult;
+                } catch (Exception e) {
+                    log.error("[HTTP Node {}] Request failed: {}", node.getNodeId(), e.getMessage());
+                    streamPublisher.publishError(e.getMessage());
+                    return NodeExecutionResult.failed(e.getMessage());
+                }
+
+                int statusCode = statusCodeHolder[0];
+                String response = responseHolder[0] != null ? responseHolder[0] : "";
+
+                log.info("[HTTP Node {}] Response received, statusCode: {}, length: {}",
+                        node.getNodeId(), statusCode, response.length());
 
                 // 构建输出
                 Map<String, Object> outputs = new HashMap<>();
                 outputs.put("response", response);
                 outputs.put("body", response);
-                outputs.put("statusCode", 200); // 简化处理
+                outputs.put("statusCode", statusCode);
 
                 return NodeExecutionResult.success(outputs);
 

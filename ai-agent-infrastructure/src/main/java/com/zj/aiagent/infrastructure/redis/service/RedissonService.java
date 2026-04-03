@@ -139,6 +139,20 @@ public class RedissonService implements IRedisService {
     }
 
     @Override
+    public void addToScoredSortedSet(String key, String value, double score) {
+        redissonClient.getScoredSortedSet(key).add(score, value);
+    }
+
+    @Override
+    public String getHighestScored(String key) {
+        org.redisson.api.RScoredSortedSet<String> scoredSet = redissonClient.getScoredSortedSet(key);
+        if (scoredSet.isEmpty()) {
+            return null;
+        }
+        return scoredSet.last();
+    }
+
+    @Override
     public RLock getLock(String key) {
         return redissonClient.getLock(key);
     }

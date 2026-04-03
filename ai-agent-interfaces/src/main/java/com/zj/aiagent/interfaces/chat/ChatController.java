@@ -31,7 +31,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
@@ -50,9 +49,9 @@ public class ChatController {
     private final AgentRepository agentRepository;
     private final RedisMessageListenerContainer redisMessageListenerContainer;
     private final ObjectMapper objectMapper;
+    private final ScheduledExecutorService heartbeatScheduler;
 
     private static final long SSE_TIMEOUT = 30 * 60 * 1000L;
-    private static final ScheduledExecutorService heartbeatScheduler = Executors.newScheduledThreadPool(2);
 
     /**
      * 创建会话

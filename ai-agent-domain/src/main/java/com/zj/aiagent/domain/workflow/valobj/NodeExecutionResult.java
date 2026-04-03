@@ -58,6 +58,14 @@ public class NodeExecutionResult {
                 .build();
     }
 
+    public static NodeExecutionResult failed(String errorMessage, Map<String, Object> outputs) {
+        return NodeExecutionResult.builder()
+                .status(ExecutionStatus.FAILED)
+                .errorMessage(errorMessage)
+                .outputs(outputs)
+                .build();
+    }
+
     public static NodeExecutionResult routing(String branchId, Map<String, Object> outputs) {
         return NodeExecutionResult.builder()
                 .status(ExecutionStatus.SUCCEEDED)

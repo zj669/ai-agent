@@ -15,7 +15,7 @@ import com.zj.aiagent.domain.workflow.entity.WorkflowGraph;
 import com.zj.aiagent.domain.workflow.entity.WorkflowNodeExecutionLog;
 import com.zj.aiagent.domain.workflow.event.NodeCompletedEvent;
 import com.zj.aiagent.domain.workflow.port.*;
-import com.zj.aiagent.domain.workflow.service.WorkflowGraphFactory;
+import com.zj.aiagent.infrastructure.workflow.graph.WorkflowGraphFactoryImpl;
 import com.zj.aiagent.domain.workflow.valobj.*;
 import com.zj.aiagent.infrastructure.redis.IRedisService;
 import com.zj.aiagent.infrastructure.workflow.executor.NodeExecutorFactory;
@@ -49,13 +49,15 @@ public class SchedulerService {
     private final ExecutionRepository executionRepository;
     private final CheckpointRepository checkpointRepository;
     private final AgentRepository agentRepository;
-    private final WorkflowGraphFactory workflowGraphFactory;
+    private final WorkflowGraphFactoryImpl workflowGraphFactory;
     private final IRedisService redisService;
-    private final WorkflowCancellationPort cancellationPort;
     private final HumanReviewQueuePort humanReviewQueuePort;
     private final StreamPublisherFactory streamPublisherFactory;
     private final ApplicationEventPublisher applicationEventPublisher;
     private final HumanReviewRepository humanReviewRepository;
+
+    private static final String CANCEL_KEY_PREFIX = "workflow:cancel:";
+    private static final long CANCEL_EXPIRY_HOURS = 1;
 
     // ========== 记忆系统依赖 ==========
     private final VectorStore vectorStore;
@@ -1023,11 +1025,11 @@ public class SchedulerService {
                             .get(entry.getKey());
                         String name = n != null ? n.getName() : entry.getKey();
                         sb.append("**").append(name).append("**: ");
-                        String val = output
-                            .values()
-                            .iterator()
-                            .next()
-                            .toString();
+                        String val = output.values().stream()
+                            .filter(v -> v != null)
+                            .findFirst()
+                            .map(Object::toString)
+                            .orElse("");
                         sb.append(
                             val.length() > 200
                                 ? val.substring(0, 200) + "..."
@@ -1149,15 +1151,19 @@ public class SchedulerService {
             NodeCompletedEvent logEvent = NodeCompletedEvent.builder()
                 .executionId(executionId)
                 .nodeId(nodeId)
-                .nodeName(nodeName)
-                .nodeType(nodeType.name())
-                .renderMode(renderMode)
-                .status(result.getStatus().getCode())
-                .inputs(inputs)
-                .outputs(result.getOutputs())
-                .errorMessage(result.getErrorMessage())
-                .startTime(java.time.LocalDateTime.now())
-                .endTime(java.time.LocalDateTime.now())
+                .executionLog(WorkflowNodeExecutionLog.builder()
+                    .executionId(executionId)
+                    .nodeId(nodeId)
+                    .nodeName(nodeName)
+                    .nodeType(nodeType.name())
+                    .renderMode(renderMode)
+                    .status(result.getStatus().getCode())
+                    .inputs(inputs)
+                    .outputs(result.getOutputs())
+                    .errorMessage(result.getErrorMessage())
+                    .startTime(java.time.LocalDateTime.now())
+                    .endTime(java.time.LocalDateTime.now())
+                    .build())
                 .build();
             applicationEventPublisher.publishEvent(logEvent);
 
@@ -1211,7 +1217,9 @@ public class SchedulerService {
 
     public void cancelExecution(String executionId) {
         log.info("[Scheduler] Cancelling execution: {}", executionId);
-        cancellationPort.markAsCancelled(executionId);
+        String key = CANCEL_KEY_PREFIX + executionId;
+        redisService.setString(key, "true", CANCEL_EXPIRY_HOURS, TimeUnit.HOURS);
+        log.info("[Scheduler] Marked as cancelled: {}", executionId);
     }
 
     public void pauseExecution(String executionId) {
@@ -1290,7 +1298,13 @@ public class SchedulerService {
     }
 
     private boolean isCancelled(String executionId) {
-        return cancellationPort.isCancelled(executionId);
+        String key = CANCEL_KEY_PREFIX + executionId;
+        try {
+            return redisService.isExists(key);
+        } catch (Exception e) {
+            log.error("[Scheduler] Failed to check cancellation status: {}", executionId, e);
+            return false;
+        }
     }
 
     private boolean isExecutionPaused(String executionId) {

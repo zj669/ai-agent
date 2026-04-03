@@ -34,13 +34,6 @@ public interface ExecutionRepository {
     void update(Execution execution);
 
     /**
-     * 删除执行
-     * 
-     * @param executionId 执行ID
-     */
-    void delete(String executionId);
-
-    /**
      * 根据会话ID查询执行历史
      */
     java.util.List<Execution> findByConversationId(String conversationId);

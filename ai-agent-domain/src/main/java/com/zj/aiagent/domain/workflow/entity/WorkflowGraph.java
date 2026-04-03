@@ -63,15 +63,6 @@ public class WorkflowGraph {
     }
 
     /**
-     * 获取所有起始节点
-     */
-    public List<Node> getStartNodes() {
-        return nodes.values().stream()
-                .filter(Node::isStartNode)
-                .collect(Collectors.toList());
-    }
-
-    /**
      * 获取节点
      */
     public Node getNode(String nodeId) {
@@ -98,21 +89,6 @@ public class WorkflowGraph {
                 .map(entry -> nodes.get(entry.getKey()))
                 .filter(Objects::nonNull)
                 .collect(Collectors.toSet());
-    }
-
-    /**
-     * 计算节点入度
-     */
-    public Map<String, Integer> calculateInDegrees() {
-        Map<String, Integer> inDegrees = new HashMap<>();
-
-        // 初始化所有节点入度为 0
-        nodes.keySet().forEach(nodeId -> inDegrees.put(nodeId, 0));
-
-        // 统计入度
-        edges.values().forEach(targets -> targets.forEach(target -> inDegrees.merge(target, 1, Integer::sum)));
-
-        return inDegrees;
     }
 
     /**
@@ -152,35 +128,5 @@ public class WorkflowGraph {
 
         recursionStack.remove(nodeId);
         return false;
-    }
-
-    /**
-     * 获取拓扑排序
-     */
-    public List<String> topologicalSort() {
-        Map<String, Integer> inDegrees = calculateInDegrees();
-        Queue<String> queue = new LinkedList<>();
-        List<String> result = new ArrayList<>();
-
-        // 入度为0的节点入队
-        inDegrees.entrySet().stream()
-                .filter(e -> e.getValue() == 0)
-                .map(Map.Entry::getKey)
-                .forEach(queue::add);
-
-        while (!queue.isEmpty()) {
-            String nodeId = queue.poll();
-            result.add(nodeId);
-
-            Set<String> successors = edges.getOrDefault(nodeId, Collections.emptySet());
-            for (String successor : successors) {
-                int newDegree = inDegrees.merge(successor, -1, Integer::sum);
-                if (newDegree == 0) {
-                    queue.add(successor);
-                }
-            }
-        }
-
-        return result;
     }
 }

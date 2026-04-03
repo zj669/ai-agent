@@ -207,12 +207,21 @@ public interface IRedisService {
     <K, V> V getFromMap(String key, K field);
 
     /**
-     * 将指定的值添加到有序集合中
+     * 添加到有序集合（带分数）
      *
      * @param key   键
      * @param value 值
+     * @param score 分数
      */
-    void addToSortedSet(String key, String value);
+    void addToScoredSortedSet(String key, String value, double score);
+
+    /**
+     * 获取有序集合中最高分的元素
+     *
+     * @param key 键
+     * @return 最高分的元素值，无则返回 null
+     */
+    String getHighestScored(String key);
 
     /**
      * 获取 Redis 锁（可重入锁）

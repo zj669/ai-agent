@@ -13,14 +13,12 @@ import com.zj.aiagent.domain.workflow.valobj.ExecutionStatus;
 import com.zj.aiagent.domain.workflow.valobj.TriggerPhase;
 import com.zj.aiagent.interfaces.workflow.dto.HumanReviewDTO;
 import com.zj.aiagent.shared.context.UserContext;
+import com.zj.aiagent.shared.response.Response;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.Pageable;
-import org.springframework.data.web.PageableDefault;
 import org.springframework.http.ResponseEntity;
 import org.springframework.util.StringUtils;
 import org.springframework.web.bind.annotation.*;
@@ -68,6 +66,7 @@ public class HumanReviewController {
                 dto.setPausedAt(execution.getUpdatedAt());
                 dto.setAgentName("Agent-" + execution.getAgentId()); // Placeholder
                 dto.setExecutionVersion(execution.getVersion());
+                dto.setUserId(UserContext.getUserId());
                 return dto;
             })
             .collect(Collectors.toList());
@@ -199,12 +198,12 @@ public class HumanReviewController {
      * 提交审核（恢复执行）
      */
     @PostMapping("/resume")
-    public ResponseEntity<Void> resumeExecution(
+    public ResponseEntity<?> resumeExecution(
         @RequestBody HumanReviewDTO.ResumeExecutionRequest request
     ) {
         Long userId = UserContext.getUserId();
         if (userId == null) {
-            return ResponseEntity.status(401).build();
+            return ResponseEntity.status(401).body(Response.error(401, "Unauthorized"));
         }
 
         schedulerService.resumeExecution(
@@ -223,12 +222,12 @@ public class HumanReviewController {
      * 提交审核（拒绝执行）
      */
     @PostMapping("/reject")
-    public ResponseEntity<Void> rejectExecution(
+    public ResponseEntity<?> rejectExecution(
         @RequestBody HumanReviewDTO.RejectExecutionRequest request
     ) {
         Long userId = UserContext.getUserId();
         if (userId == null) {
-            return ResponseEntity.status(401).build();
+            return ResponseEntity.status(401).body(Response.error(401, "Unauthorized"));
         }
 
         schedulerService.rejectExecution(
@@ -245,12 +244,15 @@ public class HumanReviewController {
      * 审核历史
      */
     @GetMapping("/history")
-    public ResponseEntity<Page<HumanReviewRecord>> getHistory(
+    public ResponseEntity<com.zj.aiagent.shared.response.Response<java.util.List<HumanReviewRecord>>> getHistory(
         @RequestParam(required = false) Long userId,
-        @PageableDefault(size = 20) Pageable pageable
+        @RequestParam(defaultValue = "0") int offset,
+        @RequestParam(defaultValue = "20") int limit
     ) {
         return ResponseEntity.ok(
-            humanReviewRepository.findReviewHistory(userId, pageable)
+            com.zj.aiagent.shared.response.Response.success(
+                humanReviewRepository.findReviewHistory(userId, offset, limit)
+            )
         );
     }
 }
