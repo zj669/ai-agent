@@ -98,7 +98,7 @@ class UserAuthenticationDomainServiceTest {
         }
 
         @Test
-        @DisplayName("邮件发送失败应抛出异常")
+        @DisplayName("邮件发送失败应抛出异常并记录失败日志")
         void shouldThrowExceptionWhenEmailSendFails() {
             // Given
             String email = "test@example.com";

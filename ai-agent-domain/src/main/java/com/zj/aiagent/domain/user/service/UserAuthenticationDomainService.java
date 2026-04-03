@@ -11,12 +11,12 @@ import com.zj.aiagent.domain.user.valobj.Credential;
 import com.zj.aiagent.domain.user.valobj.Email;
 import com.zj.aiagent.domain.user.valobj.UserStatus;
 import com.zj.aiagent.shared.constants.RedisKeyConstants;
+import com.zj.aiagent.shared.util.BCryptUtil;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
 import java.security.SecureRandom;
-import java.util.concurrent.CompletableFuture;
 
 /**
  * 用户认证领域服务
@@ -60,9 +60,7 @@ public class UserAuthenticationDomainService {
 
         String code = generateSecureCode();
         verificationCodeRepository.save(email, code, VERIFICATION_CODE_TTL_SECONDS);
-        CompletableFuture.runAsync(() -> {
-            userRepository.saveEmailLog(email, code);
-        });
+
         boolean sent = emailService.sendVerificationCode(email, code);
         if (!sent) {
             log.error("Failed to send verification email to: {}", emailStr);
@@ -101,8 +99,8 @@ public class UserAuthenticationDomainService {
         // 密码强度校验
         validatePasswordStrength(password);
 
-        // 创建用户
-        Credential credential = Credential.create(password);
+        // 创建凭证并加密密码
+        Credential credential = Credential.fromEncrypted(BCryptUtil.encode(password));
         String finalUsername = (username == null || username.isBlank())
                 ? extractUsernameFromEmail(emailStr)
                 : username;
@@ -215,7 +213,7 @@ public class UserAuthenticationDomainService {
         }
 
         // 重置密码
-        Credential newCredential = Credential.create(newPassword);
+        Credential newCredential = Credential.fromEncrypted(BCryptUtil.encode(newPassword));
         user.resetPassword(newCredential);
         userRepository.save(user);
 

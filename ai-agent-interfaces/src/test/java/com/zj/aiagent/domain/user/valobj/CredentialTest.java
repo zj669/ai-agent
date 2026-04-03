@@ -1,5 +1,6 @@
 package com.zj.aiagent.domain.user.valobj;
 
+import com.zj.aiagent.shared.util.BCryptUtil;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
@@ -14,14 +15,15 @@ class CredentialTest {
         // Given
         String rawPassword = "mySecretPassword";
 
-        // When
-        Credential credential = Credential.create(rawPassword);
+        // When: 在领域服务层使用 BCryptUtil.encode，再构建 Credential
+        String encrypted = BCryptUtil.encode(rawPassword);
+        Credential credential = Credential.fromEncrypted(encrypted);
 
         // Then
         assertNotNull(credential);
         assertNotNull(credential.getEncryptedPassword());
         assertNotEquals(rawPassword, credential.getEncryptedPassword());
-        assertTrue(credential.getEncryptedPassword().startsWith("$2a$"));
+        assertTrue(credential.getEncryptedPassword().startsWith("$2a$") || credential.getEncryptedPassword().startsWith("$2b$"));
     }
 
     @Test
@@ -29,7 +31,8 @@ class CredentialTest {
     void shouldVerifyCorrectPassword() {
         // Given
         String rawPassword = "correctPassword123";
-        Credential credential = Credential.create(rawPassword);
+        String encrypted = BCryptUtil.encode(rawPassword);
+        Credential credential = Credential.fromEncrypted(encrypted);
 
         // When
         boolean result = credential.verify(rawPassword);
@@ -42,7 +45,8 @@ class CredentialTest {
     @DisplayName("错误密码应验证失败")
     void shouldNotVerifyIncorrectPassword() {
         // Given
-        Credential credential = Credential.create("correctPassword");
+        String encrypted = BCryptUtil.encode("correctPassword");
+        Credential credential = Credential.fromEncrypted(encrypted);
 
         // When
         boolean result = credential.verify("wrongPassword");
@@ -55,7 +59,8 @@ class CredentialTest {
     @DisplayName("空密码应验证失败")
     void shouldNotVerifyEmptyPassword() {
         // Given
-        Credential credential = Credential.create("somePassword");
+        String encrypted = BCryptUtil.encode("somePassword");
+        Credential credential = Credential.fromEncrypted(encrypted);
 
         // When
         boolean result = credential.verify("");
@@ -68,7 +73,8 @@ class CredentialTest {
     @DisplayName("null 密码应验证失败")
     void shouldNotVerifyNullPassword() {
         // Given
-        Credential credential = Credential.create("somePassword");
+        String encrypted = BCryptUtil.encode("somePassword");
+        Credential credential = Credential.fromEncrypted(encrypted);
 
         // When
         boolean result = credential.verify(null);
@@ -82,15 +88,23 @@ class CredentialTest {
     void shouldVerifyAfterReconstruction() {
         // Given
         String rawPassword = "originalPassword";
-        Credential original = Credential.create(rawPassword);
+        String encrypted = BCryptUtil.encode(rawPassword);
 
         // 模拟从数据库重建
-        Credential reconstructed = Credential.fromEncrypted(original.getEncryptedPassword());
+        Credential reconstructed = Credential.fromEncrypted(encrypted);
 
         // When
         boolean result = reconstructed.verify(rawPassword);
 
         // Then
         assertTrue(result);
+    }
+
+    @Test
+    @DisplayName("空加密密码应抛出异常")
+    void shouldThrowExceptionForEmptyEncryptedPassword() {
+        assertThrows(IllegalArgumentException.class, () -> Credential.fromEncrypted(""));
+        assertThrows(IllegalArgumentException.class, () -> Credential.fromEncrypted(null));
+        assertThrows(IllegalArgumentException.class, () -> Credential.fromEncrypted("   "));
     }
 }

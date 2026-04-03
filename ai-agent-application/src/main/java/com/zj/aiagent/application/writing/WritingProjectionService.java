@@ -100,10 +100,6 @@ public class WritingProjectionService {
         return swarmMessageRepository
             .findByGroupId(session.getDefaultGroupId())
             .stream()
-            .filter(
-                message ->
-                    session.getRootAgentId().equals(message.getSenderId())
-            )
             .map(message -> toMessageView(message, swarmAgentMap))
             .toList();
     }

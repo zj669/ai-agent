@@ -30,6 +30,24 @@ const STATUS_META: Record<
     label: "空闲",
     icon: <ClockCircleOutlined />,
   },
+  WAITING: {
+    color: "#faad14",
+    bg: "#fffbe6",
+    label: "等待中",
+    icon: <ClockCircleOutlined />,
+  },
+  WAKING: {
+    color: "#faad14",
+    bg: "#fffbe6",
+    label: "唤醒中",
+    icon: <ClockCircleOutlined />,
+  },
+  BUSY: {
+    color: "#722ed1",
+    bg: "#f9f0ff",
+    label: "执行中",
+    icon: <span className="animate-spin-slow">◌</span>,
+  },
   PLANNED: {
     color: "#8c8c8c",
     bg: "#f5f5f5",
@@ -85,8 +103,8 @@ export default function CollaborationPanel({ cards }: Props) {
   const sortedCards = useMemo(
     () =>
       [...cards].sort((a, b) => {
-        const aRunning = a.status === "RUNNING" ? 0 : 1;
-        const bRunning = b.status === "RUNNING" ? 0 : 1;
+        const aRunning = a.status === "RUNNING" || a.status === "BUSY" ? 0 : 1;
+        const bRunning = b.status === "RUNNING" || b.status === "BUSY" ? 0 : 1;
         if (aRunning !== bRunning) return aRunning - bRunning;
         return (a.sortOrder ?? 0) - (b.sortOrder ?? 0);
       }),
@@ -126,8 +144,8 @@ export default function CollaborationPanel({ cards }: Props) {
               sortedCards.map((card, index) => {
                 const meta = getStatusMeta(card.status);
                 const gradient = AGENT_GRADIENTS[index % AGENT_GRADIENTS.length];
-                const isRunning = card.status === "RUNNING";
-                const isDone = card.status === "DONE";
+                const isRunning = card.status === "RUNNING" || card.status === "BUSY";
+                const isDone = card.status === "DONE" || card.status === "IDLE";
                 const isFailed = card.status === "FAILED";
                 return (
                   <Card

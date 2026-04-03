@@ -41,7 +41,9 @@ export default function SwarmMessageBubble({
   const isHuman = userId != null ? message.senderId === userId : true;
   const sender = agents.find((a) => a.id === message.senderId);
   const colorIndex = agents.findIndex((a) => a.id === message.senderId);
-  const gradient = AGENT_GRADIENTS[colorIndex % AGENT_GRADIENTS.length];
+  const gradient = isHuman
+    ? "linear-gradient(135deg, #1677ff 0%, #0958d9 100%)"
+    : AGENT_GRADIENTS[colorIndex % AGENT_GRADIENTS.length];
   const avatarLetter = isHuman ? "我" : (sender?.role?.charAt(0).toUpperCase() ?? "?");
 
   const isThinking = message.contentType === "thinking";
@@ -66,7 +68,7 @@ export default function SwarmMessageBubble({
       ? SWARM_COLORS.humanShadow
       : SWARM_COLORS.agentShadow,
     border: isHuman ? "none" : "1px solid #f0f0f0",
-    maxWidth: "72%",
+    maxWidth: "100%",
     width: "fit-content",
   };
 
@@ -106,7 +108,7 @@ export default function SwarmMessageBubble({
           >
             {avatarLetter}
           </div>
-          <div style={{ maxWidth: "70%" }}>
+          <div style={{ display: "flex", flexDirection: "column", alignItems: isHuman ? "flex-end" : "flex-start", maxWidth: "70%" }}>
             {!isHuman && (
               <Text
                 type="secondary"
@@ -287,7 +289,7 @@ export default function SwarmMessageBubble({
         >
           {avatarLetter}
         </div>
-        <div style={{ maxWidth: "72%" }}>
+        <div style={{ display: "flex", flexDirection: "column", alignItems: isHuman ? "flex-end" : "flex-start", maxWidth: "72%" }}>
           {!isHuman && (
             <Text
               type="secondary"
@@ -362,7 +364,7 @@ export default function SwarmMessageBubble({
       >
         {avatarLetter}
       </div>
-      <div style={{ maxWidth: "72%" }}>
+      <div style={{ display: "flex", flexDirection: "column", alignItems: isHuman ? "flex-end" : "flex-start", maxWidth: "72%" }}>
         {!isHuman && (
           <Text
             type="secondary"

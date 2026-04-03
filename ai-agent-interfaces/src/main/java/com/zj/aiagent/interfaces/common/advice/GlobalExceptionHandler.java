@@ -58,7 +58,7 @@ public class GlobalExceptionHandler {
     ) {
         log.warn("Authentication error: {}", e.getMessage());
         HttpStatus httpStatus = switch (e.getErrorCode()) {
-            case INVALID_CREDENTIALS, USER_DISABLED -> HttpStatus.UNAUTHORIZED;
+            case INVALID_CREDENTIALS, USER_DISABLED, INVALID_REFRESH_TOKEN -> HttpStatus.UNAUTHORIZED;
             case RATE_LIMITED -> HttpStatus.TOO_MANY_REQUESTS;
             default -> HttpStatus.BAD_REQUEST;
         };

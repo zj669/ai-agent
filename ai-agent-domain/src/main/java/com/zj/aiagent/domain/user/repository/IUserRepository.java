@@ -11,6 +11,4 @@ public interface IUserRepository {
     User findByEmail(Email email);
 
     boolean existsByEmail(Email email);
-
-    void saveEmailLog(Email email, String code);
 }

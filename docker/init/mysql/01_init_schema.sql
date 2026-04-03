@@ -32,6 +32,21 @@ CREATE TABLE IF NOT EXISTS `user_info` (
   KEY `idx_username` (`username`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='用户信息表';
 
+-- 邮件发送日志表
+CREATE TABLE IF NOT EXISTS `email_log` (
+  `id` bigint(20) NOT NULL AUTO_INCREMENT COMMENT '日志ID',
+  `email` varchar(100) NOT NULL COMMENT '目标邮箱',
+  `code` varchar(10) DEFAULT NULL COMMENT '验证码',
+  `operation_type` varchar(50) DEFAULT NULL COMMENT '操作类型: REGISTER, RESET_PASSWORD, etc.',
+  `sent` tinyint(1) DEFAULT 1 COMMENT '是否发送成功: 0-失败, 1-成功',
+  `error_message` varchar(500) DEFAULT NULL COMMENT '发送失败时的错误信息',
+  `sent_at` datetime DEFAULT NULL COMMENT '发送时间',
+  `created_at` datetime DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+  PRIMARY KEY (`id`),
+  KEY `idx_email` (`email`),
+  KEY `idx_sent_at` (`sent_at`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='邮件发送日志表';
+
 -- ============================================================
 -- 2. 智能体模块
 -- ============================================================

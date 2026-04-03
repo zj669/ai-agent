@@ -11,31 +11,13 @@ export function useSwarmMessages(groupId: number | null, userId?: number) {
     setLoading(true)
     try {
       const data = await getMessages(groupId, !!userId, userId)
-      setMessages((prev: SwarmMessage[]) => {
-        const optimistic = prev.filter(m => m.id < 0)
-        const prevServerIds = new Set(
-          prev.filter(m => m.id > 0).map(m => m.id)
+      setMessages(prev => {
+        // Keep unconfirmed optimistic messages the server hasn't echoed back yet
+        const stillPending = prev.filter(
+          opt => opt.id < 0 &&
+            !data.some(d => d.senderId === opt.senderId && d.content === opt.content)
         )
-        // Replace optimistic entries if server returned a confirmed version (same content + sender + timestamp)
-        const confirmed = optimistic.map(opt => {
-          const match = data.find(
-            d =>
-              d.id > 0 &&
-              d.senderId === opt.senderId &&
-              d.content === opt.content
-          )
-          return match ?? opt
-        })
-        // Add server messages not yet present
-        const newFromServer = data.filter(
-          d => d.id > 0 && !prevServerIds.has(d.id)
-        )
-        const merged = [...confirmed, ...newFromServer]
-        // Safety: if server shrunk the list (race), keep optimistic
-        if (optimistic.length > 0 && merged.length < prev.length) {
-          return prev
-        }
-        return merged
+        return [...data, ...stillPending]
       })
     } finally {
       setLoading(false)
@@ -65,12 +47,5 @@ export function useSwarmMessages(groupId: number | null, userId?: number) {
     }
   }, [groupId])
 
-  const appendMessage = useCallback((msg: SwarmMessage) => {
-    setMessages(prev => {
-      if (prev.some(m => m.id === msg.id)) return prev
-      return [...prev, msg]
-    })
-  }, [])
-
-  return { messages, loading, load, send, appendMessage }
+  return { messages, loading, load, send }
 }
