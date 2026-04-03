@@ -20,8 +20,8 @@ on:
 
 env:
   REGISTRY: ghcr.io
-  IMAGE_NAME_BACKEND: ghcr.io/${{ github.repository_owner }}/ai-agent/backend
-  IMAGE_NAME_FRONTEND: ghcr.io/${{ github.repository_owner }}/ai-agent/frontend
+  IMAGE_NAME_BACKEND: ghcr.io/${{ github.repository_owner }}/ai-agent-backend
+  IMAGE_NAME_FRONTEND: ghcr.io/${{ github.repository_owner }}/ai-agent-frontend
 
 jobs:
   determine-tags:
