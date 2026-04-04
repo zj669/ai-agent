@@ -42,10 +42,10 @@ services:
       REDIS_RETRY_ATTEMPTS: 3
       REDIS_RETRY_INTERVAL: 1500
       REDIS_PING_INTERVAL: 30000
-      REDIS_KEEP_ALIVE: true
+      REDIS_KEEP_ALIVE: "true"
       # Milvus
       MILVUS_ENABLED: "true"
-      MILVUS_HOST: milvus
+      MILVUS_HOST: ai-agent-milvus
       MILVUS_PORT: 19530
       MILVUS_USERNAME: ""
       MILVUS_PASSWORD: ""
@@ -66,15 +66,12 @@ services:
       # Auth debug
       AUTH_DEBUG_ENABLED: "false"
       # Spring Profile
-      SPRING_PROFILES_ACTIVE: prod
+      SPRING_PROFILES_ACTIVE: local
+      SERVER_PORT: "8090"
     volumes:
       - backend_logs:/app/logs
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8080/actuator/health"]
-      interval: 30s
-      timeout: 10s
-      retries: 5
-      start_period: 60s
+    ports:
+      - "127.0.0.1:8090:8090"
     networks:
       - ai-agent-network
     restart: unless-stopped
@@ -82,15 +79,17 @@ services:
   # ============================================================
   # Frontend - Nginx (React SPA)
   # 端口: 80 → 映射到服务器端口
-  # 注意: 镜像由 GitHub Actions 自动构建并推送至 ghcr.io
+  # 挂载自定义 nginx.conf，将 backend 代理指向 8090
   # ============================================================
   frontend:
     image: ghcr.io/zj669/ai-agent/ai-agent-frontend:${IMAGE_TAG:-latest}
     container_name: ai-agent-frontend
     ports:
       - "${FRONTEND_PORT:-80}:80"
+    volumes:
+      - ./nginx.frontend.conf:/etc/nginx/conf.d/default.conf:ro
     healthcheck:
-      test: ["CMD", "wget", "-q", "--spider", "http://localhost/"]
+      test: ["CMD", "wget", "-q", "-O", "-", "http://127.0.0.1/"]
       interval: 30s
       timeout: 10s
       retries: 3
@@ -195,7 +194,7 @@ services:
   milvus:
     image: milvusdb/milvus:v2.3.3
     container_name: ai-agent-milvus
-    command: ["milvus", "run", "standalone", "--config-file", "/milvus/config/milvus.yaml"]
+    command: milvus run standalone
     environment:
       ETCD_ENDPOINTS: etcd:2379
       MINIO_ADDRESS: minio:9000
@@ -203,7 +202,7 @@ services:
       MINIO_SECRET_ACCESS_KEY: ${MINIO_ROOT_PASSWORD:-admin123456}
     volumes:
       - milvus_data:/var/lib/milvus
-      - ./init/milvus/milvus.yaml:/milvus/config/milvus.yaml:ro
+      - ./init/milvus/milvus.yaml:/etc/milvus/milvus.yaml:ro
     ports:
       - "${MILVUS_GRPC_PORT:-19530}:19530"
       - "${MILVUS_METRICS_PORT:-9091}:9091"

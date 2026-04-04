@@ -4,6 +4,7 @@ import org.apache.catalina.Context;
 import org.apache.catalina.connector.Connector;
 import org.apache.tomcat.util.descriptor.web.SecurityCollection;
 import org.apache.tomcat.util.descriptor.web.SecurityConstraint;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.web.embedded.tomcat.TomcatServletWebServerFactory;
 import org.springframework.boot.web.servlet.server.ServletWebServerFactory;
 import org.springframework.context.annotation.Bean;
@@ -22,11 +23,19 @@ import org.springframework.context.annotation.Profile;
 @Profile("prod")  // 仅在生产环境启用
 public class HttpsConfig {
 
+    @Value("${server.port:8080}")
+    private int serverPort;
+
     /**
      * 配置 Tomcat,支持 HTTP 到 HTTPS 的重定向
      */
     @Bean
     public ServletWebServerFactory servletContainer() {
+        // 仅在标准端口启用 HTTPS 重定向，避免非标准端口被错误重定向
+        if (serverPort != 8080) {
+            return new TomcatServletWebServerFactory();
+        }
+
         TomcatServletWebServerFactory tomcat = new TomcatServletWebServerFactory() {
             @Override
             protected void postProcessContext(Context context) {
