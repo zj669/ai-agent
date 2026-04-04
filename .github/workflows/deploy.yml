@@ -92,15 +92,13 @@ jobs:
 
       - name: Push using custom Docker config
         run: |
-          docker buildx build \
+          docker --config /tmp/docker-config buildx build \
             --build-arg MAVEN_OPTS=-Xmx2048m \
             --file ./ai-agent-interfaces/Dockerfile \
             --tag ghcr.io/${{ github.repository }}/ai-agent-backend:latest \
-            --tag ghcr.io/${{ github.repository }}/ai-agent-backend:$(date +%Y%m%d%H%M) \
             --push \
             --attest type=provenance,disabled=true \
             --attest type=sbom,disabled=true \
-            --config /tmp/docker-config/config.json \
             .
 
   build-frontend:
@@ -152,12 +150,10 @@ jobs:
       # 直接用 docker buildx build，带 --config 参数
       - name: Push frontend image using custom Docker config
         run: |
-          docker buildx build \
+          docker --config /tmp/docker-config buildx build \
             --file ./ai-agent-foward/Dockerfile.prod \
             --tag ghcr.io/${{ github.repository }}/ai-agent-frontend:latest \
-            --tag ghcr.io/${{ github.repository }}/ai-agent-frontend:$(date +%Y%m%d%H%M) \
             --push \
             --attest type=provenance,disabled=true \
             --attest type=sbom,disabled=true \
-            --config /tmp/docker-config/config.json \
             ./ai-agent-foward
