@@ -24,155 +24,63 @@ env:
   IMAGE_NAME_FRONTEND: ghcr.io/${{ github.repository }}/ai-agent-frontend
 
 jobs:
-  determine-tags:
-    name: Determine Image Tags
+  build:
+    name: Build & Push Images
     runs-on: ubuntu-latest
-    outputs:
-      tags: ${{ steps.meta.outputs.tags }}
-    steps:
-      - uses: actions/checkout@v4
-      - id: meta
-        run: |
-          TAGS=""
-          if [[ "${{ github.event_name }}" == "release" ]]; then
-            TAGS="${GITHUB_REF#refs/tags/},latest"
-          elif [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
-            TAGS="${INPUT_IMAGE_TAG:-latest}"
-          elif [[ "${{ github.event_name }}" == "push" && "${{ github.ref }}" == "refs/heads/main" ]]; then
-            TAGS="latest,$(date +%Y%m%d%H%M)-${GITHUB_SHA:0:7}"
-          fi
-          echo "tags=$TAGS" >> $GITHUB_OUTPUT
-
-  build-backend:
-    name: Build Backend Image
-    runs-on: ubuntu-latest
-    needs: determine-tags
     permissions:
-      contents: write
+      contents: read
       packages: write
     steps:
       - uses: actions/checkout@v4
 
-      # 清除 Docker Hub 凭证（daemon 缓存）
-      - name: Clear Docker Hub credentials
-        run: |
-          docker logout docker.io 2>/dev/null || true
-          docker logout 2>/dev/null || true
-          echo "Cleared Docker auth"
+      # ── Authenticate to ghcr.io ──────────────────────────────
+      # 对于仓库级包（ghcr.io/owner/repo/name），GITHUB_TOKEN 足够
+      # 对于用户级包，需使用 classic PAT 并通过 secrets.CR_PAT 传入
+      - name: Login to ghcr.io
+        uses: docker/login-action@v4
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.CR_PAT }}
 
-      - uses: docker/setup-buildx-action@v3
+      # ── Backend ──────────────────────────────────────────────
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
 
-      # 尝试修复 daemon DNS：在 /etc/docker/daemon.json 设置正确 DNS
-      - name: Fix Docker daemon DNS for ghcr.io
-        run: |
-          echo "=== Current Docker daemon DNS ==="
-          docker info 2>/dev/null | grep -i 'DNS\|dns' || echo "no DNS info"
-          # 检查 daemon 进程
-          DOCKER_PID=$(pgrep -xo dockerd 2>/dev/null || echo "")
-          echo "Docker daemon PID: $DOCKER_PID"
-          if [ -n "$DOCKER_PID" ]; then
-            cat /proc/$DOCKER_PID/cmdline 2>/dev/null | tr '\0' ' ' | grep -i 'dns\|host' && echo "" || echo "no DNS flags in daemon"
-          fi
-          # 尝试设置 daemon.json（需要 daemon 重启，GitHub Actions runner 上无法做到）
-          echo "Note: daemon.json DNS changes require daemon restart (not possible in GHA runner)"
+      - name: Build & Push Backend
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: ./ai-agent-interfaces/Dockerfile
+          push: true
+          tags: |
+            ${{ env.IMAGE_NAME_BACKEND }}:latest
+            ${{ env.IMAGE_NAME_BACKEND }}:${{ github.sha }}
+          build-args: MAVEN_OPTS=-Xmx2048m
+          provenance: false
+          sbom: false
 
-      # Crane 直接通过 OCI API 推送，不依赖 Docker daemon
-      - name: Install crane for direct registry push
-        run: |
-          echo "Installing crane (bypasses Docker daemon)..."
-          curl -sL https://github.com/google/go-containerregistry/releases/download/v0.20.2/go-containerregistry_Linux_amd64.tar.gz | tar -xzC /tmp crane
-          chmod +x /tmp/crane
-          echo "Crane installed: $(/tmp/crane version 2>/dev/null | head -1)"
-
-      - name: Push backend image using crane (direct OCI API)
-        run: |
-          # 导出镜像并用 crane push
-          docker save ghcr.io/${{ github.repository }}/ai-agent-backend:latest -o /tmp/backend.tar
-          /tmp/crane push /tmp/backend.tar ghcr.io/${{ github.repository }}/ai-agent-backend:latest \
-            --username ${{ github.actor }} \
-            --password ${{ secrets.CR_PAT }} 2>&1 || echo "Crane push failed, trying docker buildx workaround..."
-
-
-      # 创建 Docker config.json，直接注入 ghcr.io 凭证
-      - name: Create ghcr.io Docker config
-        run: |
-          AUTH=$(echo -n "${{ github.actor }}:${{ secrets.CR_PAT }}" | base64 | tr -d '\n')
-          mkdir -p /tmp/docker-config
-          cat > /tmp/docker-config/config.json << CONFIG
-          {
-            "auths": {
-              "ghcr.io": {
-                "auth": "$AUTH"
-              }
-            }
-          }
-          CONFIG
-          echo "Created Docker config with ghcr.io credentials"
-
-      - name: Push using custom Docker config
-        run: |
-          docker --config /tmp/docker-config buildx build \
-            --build-arg MAVEN_OPTS=-Xmx2048m \
-            --file ./ai-agent-interfaces/Dockerfile \
-            --tag ghcr.io/${{ github.repository }}/ai-agent-backend:latest \
-            --push \
-            --attest type=provenance,disabled=true \
-            --attest type=sbom,disabled=true \
-            .
-
-  build-frontend:
-    name: Build Frontend Image
-    runs-on: ubuntu-latest
-    needs: determine-tags
-    permissions:
-      contents: write
-      packages: write
-    steps:
-      - uses: actions/checkout@v4
-
-      - uses: actions/setup-node@v4
+      # ── Frontend ──────────────────────────────────────────────
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
         with:
           node-version: '20'
           cache: 'npm'
           cache-dependency-path: ai-agent-foward/package-lock.json
 
-      # 清除 Docker Hub 凭证
-      - name: Clear Docker Hub credentials
-        run: |
-          docker logout docker.io 2>/dev/null || true
-          docker logout 2>/dev/null || true
-          echo "Cleared Docker auth"
-
-      - uses: docker/setup-buildx-action@v3
-
-      # 构建前端
-      - name: Build frontend
+      - name: Build Frontend
         working-directory: ./ai-agent-foward
         run: npm ci && VITE_API_BASE_URL=/api npm run build
 
-      # 创建 Docker config.json
-      - name: Create ghcr.io Docker config
-        run: |
-          AUTH=$(echo -n "${{ github.actor }}:${{ secrets.CR_PAT }}" | base64 | tr -d '\n')
-          mkdir -p /tmp/docker-config
-          cat > /tmp/docker-config/config.json << CONFIG
-          {
-            "auths": {
-              "ghcr.io": {
-                "auth": "$AUTH"
-              }
-            }
-          }
-          CONFIG
-          echo "Created Docker config with ghcr.io credentials"
-
-      # 直接用 docker buildx build，带 --config 参数
-      - name: Push frontend image using custom Docker config
-        run: |
-          docker --config /tmp/docker-config buildx build \
-            --file ./ai-agent-foward/Dockerfile.prod \
-            --tag ghcr.io/${{ github.repository }}/ai-agent-frontend:latest \
-            --push \
-            --attest type=provenance,disabled=true \
-            --attest type=sbom,disabled=true \
-            ./ai-agent-foward
+      - name: Build & Push Frontend
+        uses: docker/build-push-action@v6
+        with:
+          context: ./ai-agent-foward
+          file: ./ai-agent-foward/Dockerfile.prod
+          push: true
+          tags: |
+            ${{ env.IMAGE_NAME_FRONTEND }}:latest
+            ${{ env.IMAGE_NAME_FRONTEND }}:${{ github.sha }}
+          build-args: VITE_API_BASE_URL=/api
+          provenance: false
+          sbom: false
