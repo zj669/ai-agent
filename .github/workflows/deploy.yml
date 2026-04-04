@@ -20,7 +20,6 @@ on:
 
 env:
   REGISTRY: ghcr.io
-  # Repository-scoped packages (GITHUB_TOKEN can write to these)
   IMAGE_NAME_BACKEND: ghcr.io/${{ github.repository }}/ai-agent-backend
   IMAGE_NAME_FRONTEND: ghcr.io/${{ github.repository }}/ai-agent-frontend
 
@@ -54,49 +53,55 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      # 清除 runner 预装的 Docker Hub 凭证（关键修复）
+      # 清除 Docker Hub 凭证（daemon 缓存）
       - name: Clear Docker Hub credentials
         run: |
-          docker logout || true
-          echo "Cleared Docker Hub auth from runner"
+          docker logout docker.io 2>/dev/null || true
+          docker logout 2>/dev/null || true
+          echo "Cleared Docker auth"
 
       - uses: docker/setup-buildx-action@v3
 
-      - name: Check ghcr.io connectivity from runner
+      # 深入诊断：Docker daemon 的 ghcr.io 路由问题
+      - name: Diagnose Docker daemon ghcr.io routing
         run: |
-          echo "=== ghcr.io direct test ==="
-          echo "1. Testing ghcr.io v2 API..."
-          STATUS=$(curl -s -o /dev/null -w "%{http_code}" https://ghcr.io/v2/ 2>&1)
-          echo "   HTTP status: $STATUS"
-          echo "2. docker pull ghcr.io/zj669/ai-agent/ai-agent-backend:latest (anonymous test)..."
-          echo "2. docker pull ghcr.io/... (anonymous test)..."
-          docker pull ghcr.io/zj669/ai-agent/ai-agent-backend:latest 2>&1 || echo "   pull failed (expected - may not exist)"
-          echo "3. docker pull Alpine from Docker Hub..."
-          docker pull alpine:3.19 2>&1 && echo "   ✅ Docker Hub OK" || echo "   ❌ Docker Hub FAILED"
-          echo "=== End connectivity test ==="
+          echo "=== DNS resolution ==="
+          getent hosts ghcr.io 2>/dev/null || nslookup ghcr.io 2>/dev/null || echo "DNS lookup failed"
+          echo "=== curl test (no Docker) ==="
+          curl -s -o /dev/null -w "curl ghcr.io/v2/ -> HTTP %{http_code}\n" https://ghcr.io/v2/ || echo "curl failed"
+          echo "=== Docker pull ghcr.io test ==="
+          docker pull ghcr.io/library/alpine:latest 2>&1 && echo "✅ ghcr.io public image pull OK" || echo "❌ ghcr.io pull failed"
+          echo "=== Docker info (registry) ==="
+          docker info 2>&1 | grep -i 'registry\|mirror\|proxy' || echo "no special registry config"
 
-      - name: Skip login-action (daemon blocks ghcr.io), use build-push inline auth
-        run: echo "Using inline credentials in build-push-action instead of login-action"
+      # 创建 Docker config.json，直接注入 ghcr.io 凭证
+      - name: Create ghcr.io Docker config
+        run: |
+          AUTH=$(echo -n "${{ github.actor }}:${{ secrets.CR_PAT }}" | base64 | tr -d '\n')
+          mkdir -p /tmp/docker-config
+          cat > /tmp/docker-config/config.json << CONFIG
+          {
+            "auths": {
+              "ghcr.io": {
+                "auth": "$AUTH"
+              }
+            }
+          }
+          CONFIG
+          echo "Created Docker config with ghcr.io credentials"
 
-      - uses: docker/metadata-action@v5
-        id: meta
-        with:
-          images: ${{ env.IMAGE_NAME_BACKEND }}
-          tags: type=raw,value=${{ needs.determine-tags.outputs.tags }}
-
-      - uses: docker/build-push-action@v6
-        with:
-          context: .
-          file: ./ai-agent-interfaces/Dockerfile
-          push: true
-          tags: ${{ needs.determine-tags.outputs.tags }}
-          labels: ${{ steps.meta.outputs.labels }}
-          build-args: MAVEN_OPTS=-Xmx2048m
-          provenance: false
-          sbom: false
-          username: ${{ github.actor }}
-          password: ${{ secrets.CR_PAT }}
-          registry: ghcr.io
+      - name: Push using custom Docker config
+        run: |
+          docker buildx build \
+            --build-arg MAVEN_OPTS=-Xmx2048m \
+            --file ./ai-agent-interfaces/Dockerfile \
+            --tag ghcr.io/${{ github.repository }}/ai-agent-backend:latest \
+            --tag ghcr.io/${{ github.repository }}/ai-agent-backend:$(date +%Y%m%d%H%M) \
+            --push \
+            --attest type=provenance,disabled=true \
+            --attest type=sbom,disabled=true \
+            --config /tmp/docker-config/config.json \
+            .
 
   build-frontend:
     name: Build Frontend Image
@@ -114,49 +119,45 @@ jobs:
           cache: 'npm'
           cache-dependency-path: ai-agent-foward/package-lock.json
 
-      # 清除 runner 预装的 Docker Hub 凭证（关键修复）
+      # 清除 Docker Hub 凭证
       - name: Clear Docker Hub credentials
         run: |
-          docker logout || true
-          echo "Cleared Docker Hub auth from runner"
+          docker logout docker.io 2>/dev/null || true
+          docker logout 2>/dev/null || true
+          echo "Cleared Docker auth"
 
       - uses: docker/setup-buildx-action@v3
 
-      - name: Check ghcr.io connectivity from runner
-        run: |
-          echo "=== ghcr.io direct test ==="
-          echo "1. Testing ghcr.io v2 API..."
-          STATUS=$(curl -s -o /dev/null -w "%{http_code}" https://ghcr.io/v2/ 2>&1)
-          echo "   HTTP status: $STATUS"
-          echo "2. docker pull ghcr.io/zj669/ai-agent/ai-agent-backend:latest (anonymous test)..."
-          echo "2. docker pull ghcr.io/... (anonymous test)..."
-          docker pull ghcr.io/zj669/ai-agent/ai-agent-backend:latest 2>&1 || echo "   pull failed (expected - may not exist)"
-          echo "3. docker pull Alpine from Docker Hub..."
-          docker pull alpine:3.19 2>&1 && echo "   ✅ Docker Hub OK" || echo "   ❌ Docker Hub FAILED"
-          echo "=== End connectivity test ==="
-
-      - name: Skip login-action (daemon blocks ghcr.io), use build-push inline auth
-        run: echo "Using inline credentials in build-push-action instead of login-action"
-
-      - uses: docker/metadata-action@v5
-        id: meta
-        with:
-          images: ${{ env.IMAGE_NAME_FRONTEND }}
-          tags: type=raw,value=${{ needs.determine-tags.outputs.tags }}
-
+      # 构建前端
       - name: Build frontend
         working-directory: ./ai-agent-foward
         run: npm ci && VITE_API_BASE_URL=/api npm run build
 
-      - uses: docker/build-push-action@v6
-        with:
-          context: ./ai-agent-foward
-          file: ./ai-agent-foward/Dockerfile.prod
-          push: true
-          tags: ${{ needs.determine-tags.outputs.tags }}
-          labels: ${{ steps.meta.outputs.labels }}
-          provenance: false
-          sbom: false
-          username: ${{ github.actor }}
-          password: ${{ secrets.CR_PAT }}
-          registry: ghcr.io
+      # 创建 Docker config.json
+      - name: Create ghcr.io Docker config
+        run: |
+          AUTH=$(echo -n "${{ github.actor }}:${{ secrets.CR_PAT }}" | base64 | tr -d '\n')
+          mkdir -p /tmp/docker-config
+          cat > /tmp/docker-config/config.json << CONFIG
+          {
+            "auths": {
+              "ghcr.io": {
+                "auth": "$AUTH"
+              }
+            }
+          }
+          CONFIG
+          echo "Created Docker config with ghcr.io credentials"
+
+      # 直接用 docker buildx build，带 --config 参数
+      - name: Push frontend image using custom Docker config
+        run: |
+          docker buildx build \
+            --file ./ai-agent-foward/Dockerfile.prod \
+            --tag ghcr.io/${{ github.repository }}/ai-agent-frontend:latest \
+            --tag ghcr.io/${{ github.repository }}/ai-agent-frontend:$(date +%Y%m%d%H%M) \
+            --push \
+            --attest type=provenance,disabled=true \
+            --attest type=sbom,disabled=true \
+            --config /tmp/docker-config/config.json \
+            ./ai-agent-foward
