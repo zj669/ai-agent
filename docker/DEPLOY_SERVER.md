@@ -2,9 +2,8 @@
 
 > 适用于在远程服务器上通过 Docker Compose 部署。
 >
-> **镜像发布**: GitHub Actions 自动构建并推送 backend/frontend 镜像至 ghcr.io。
-> push main 分支 → 自动更新 `latest` 标签；发布 GitHub Release → 使用语义化版本标签。
-> 无需手动构建，只需在服务器拉取启动即可。
+> **镜像发布**: 需要开发者在本地构建并手动推送镜像至 ghcr.io，或在服务器上直接构建。
+> GitHub Actions workflow 当前仅用于 CI 测试，不负责镜像构建。
 
 ---
 
@@ -60,12 +59,49 @@ echo $GITHUB_TOKEN | docker login ghcr.io -u USERNAME --password-stdin
 
 ---
 
-## 2. 方式一：从 ghcr.io 拉取部署（推荐）
+## 2. 方式一：本地构建推送 → 服务器拉取（推荐）
 
-> **镜像由 GitHub Actions 自动构建并推送。**
-> push 到 main 分支后，等待 workflow 完成（约 5-10 分钟），即可在服务器拉取。
+> 在本地构建镜像并推送至 ghcr.io，然后在服务器拉取启动。
+> 需要 GitHub Classic Personal Access Token（拥有 `packages:write` 权限）。
 
-### 2.1 服务器拉取部署
+### 2.1 准备 GitHub Personal Access Token
+
+1. 访问 https://github.com/settings/tokens
+2. Generate new token (Classic)，勾选 `write:packages`
+3. 妥善保存 token（后续两处都需要）
+
+### 2.2 本地登录 ghcr.io
+
+```bash
+# 用刚才生成的 token 替换 YOUR_TOKEN
+echo "YOUR_TOKEN" | docker login ghcr.io -u YOUR_GITHUB_USERNAME --password-stdin
+```
+
+### 2.3 构建并推送镜像
+
+```bash
+cd /path/to/ai-agent
+
+# 构建并推送后端（需要 Java 21 + Maven，或使用 Docker 纯容器方式）
+docker build \
+  -f ai-agent-interfaces/Dockerfile \
+  -t ghcr.io/zj669/ai-agent/ai-agent-backend:latest \
+  .
+
+docker push ghcr.io/zj669/ai-agent/ai-agent-backend:latest
+
+# 构建并推送前端
+docker build \
+  -f ai-agent-foward/Dockerfile.prod \
+  -t ghcr.io/zj669/ai-agent/ai-agent-frontend:latest \
+  ./ai-agent-foward
+
+docker push ghcr.io/zj669/ai-agent/ai-agent-frontend:latest
+```
+
+> **纯 Docker 方式构建后端**（无需本地 Java）：在构建后端时可以用 `--build-arg MAVEN_OPTS=-Xmx2048m`，Dockerfile 内置 Maven 构建。
+
+### 2.4 服务器拉取部署
 
 ```bash
 sudo mkdir -p /opt/ai-agent/docker
@@ -164,16 +200,16 @@ cd /opt/ai-agent
 # 克隆仓库（或通过 scp 上传）
 git clone https://github.com/zj669/ai-agent.git .
 
-# 构建后端镜像（context 为 repo 根目录）
+# 构建后端镜像（镜像名需与 docker-compose.prod.yml 中一致）
 docker build \
   -f ai-agent-interfaces/Dockerfile \
-  -t ghcr.io/zj669/ai-agent/backend:latest \
+  -t ghcr.io/zj669/ai-agent/ai-agent-backend:latest \
   .
 
 # 构建前端镜像
 docker build \
   -f ai-agent-foward/Dockerfile.prod \
-  -t ghcr.io/zj669/ai-agent/frontend:latest \
+  -t ghcr.io/zj669/ai-agent/ai-agent-frontend:latest \
   ./ai-agent-foward
 
 # 启动（在 docker/ 目录下执行）
@@ -308,15 +344,11 @@ docker compose -f docker-compose.prod.yml up -d --build
 ### 7.2 回滚到指定版本
 
 ```bash
-# 查看历史镜像 tag
-docker images | grep ai-agent
+# 指定版本拉取（需要该 tag 已在本地或远程存在）
+docker compose -f docker-compose.prod.yml pull
 
-# 指定版本回滚
-docker compose -f docker-compose.prod.yml pull backend ghcr.io/zj669/ai-agent/backend:v1.0.0
-docker compose -f docker-compose.prod.yml pull frontend ghcr.io/zj669/ai-agent/frontend:v1.0.0
-
-# 使用指定版本启动
-IMAGE_TAG=backend:v1.0.0 docker compose -f docker-compose.prod.yml up -d
+# 指定 IMAGE_TAG 启动
+IMAGE_TAG=v1.0.0 docker compose -f docker-compose.prod.yml up -d
 ```
 
 ---
