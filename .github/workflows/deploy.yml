@@ -68,9 +68,10 @@ jobs:
           echo "1. Testing ghcr.io v2 API..."
           STATUS=$(curl -s -o /dev/null -w "%{http_code}" https://ghcr.io/v2/ 2>&1)
           echo "   HTTP status: $STATUS"
-          echo "2. Testing docker login directly..."
-          echo '${{ secrets.CR_PAT }}' | docker login ghcr.io -u ${{ github.actor }} --password-stdin 2>&1 || echo "   docker login FAILED"
-          echo "3. Testing Docker pull (Docker Hub)..."
+          echo "2. docker pull ghcr.io/zj669/ai-agent/ai-agent-backend:latest (anonymous test)..."
+          echo "2. docker pull ghcr.io/... (anonymous test)..."
+          docker pull ghcr.io/zj669/ai-agent/ai-agent-backend:latest 2>&1 || echo "   pull failed (expected - may not exist)"
+          echo "3. docker pull Alpine from Docker Hub..."
           docker pull alpine:3.19 2>&1 && echo "   ✅ Docker Hub OK" || echo "   ❌ Docker Hub FAILED"
           echo "=== End connectivity test ==="
 
@@ -127,9 +128,10 @@ jobs:
           echo "1. Testing ghcr.io v2 API..."
           STATUS=$(curl -s -o /dev/null -w "%{http_code}" https://ghcr.io/v2/ 2>&1)
           echo "   HTTP status: $STATUS"
-          echo "2. Testing docker login directly..."
-          echo '${{ secrets.CR_PAT }}' | docker login ghcr.io -u ${{ github.actor }} --password-stdin 2>&1 || echo "   docker login FAILED"
-          echo "3. Testing Docker pull (Docker Hub)..."
+          echo "2. docker pull ghcr.io/zj669/ai-agent/ai-agent-backend:latest (anonymous test)..."
+          echo "2. docker pull ghcr.io/... (anonymous test)..."
+          docker pull ghcr.io/zj669/ai-agent/ai-agent-backend:latest 2>&1 || echo "   pull failed (expected - may not exist)"
+          echo "3. docker pull Alpine from Docker Hub..."
           docker pull alpine:3.19 2>&1 && echo "   ✅ Docker Hub OK" || echo "   ❌ Docker Hub FAILED"
           echo "=== End connectivity test ==="
 
