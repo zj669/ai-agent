@@ -62,17 +62,36 @@ jobs:
 
       - uses: docker/setup-buildx-action@v3
 
-      # 深入诊断：Docker daemon 的 ghcr.io 路由问题
-      - name: Diagnose Docker daemon ghcr.io routing
+      # 尝试修复 daemon DNS：在 /etc/docker/daemon.json 设置正确 DNS
+      - name: Fix Docker daemon DNS for ghcr.io
         run: |
-          echo "=== DNS resolution ==="
-          getent hosts ghcr.io 2>/dev/null || nslookup ghcr.io 2>/dev/null || echo "DNS lookup failed"
-          echo "=== curl test (no Docker) ==="
-          curl -s -o /dev/null -w "curl ghcr.io/v2/ -> HTTP %{http_code}\n" https://ghcr.io/v2/ || echo "curl failed"
-          echo "=== Docker pull ghcr.io test ==="
-          docker pull ghcr.io/library/alpine:latest 2>&1 && echo "✅ ghcr.io public image pull OK" || echo "❌ ghcr.io pull failed"
-          echo "=== Docker info (registry) ==="
-          docker info 2>&1 | grep -i 'registry\|mirror\|proxy' || echo "no special registry config"
+          echo "=== Current Docker daemon DNS ==="
+          docker info 2>/dev/null | grep -i 'DNS\|dns' || echo "no DNS info"
+          # 检查 daemon 进程
+          DOCKER_PID=$(pgrep -xo dockerd 2>/dev/null || echo "")
+          echo "Docker daemon PID: $DOCKER_PID"
+          if [ -n "$DOCKER_PID" ]; then
+            cat /proc/$DOCKER_PID/cmdline 2>/dev/null | tr '\0' ' ' | grep -i 'dns\|host' && echo "" || echo "no DNS flags in daemon"
+          fi
+          # 尝试设置 daemon.json（需要 daemon 重启，GitHub Actions runner 上无法做到）
+          echo "Note: daemon.json DNS changes require daemon restart (not possible in GHA runner)"
+
+      # Crane 直接通过 OCI API 推送，不依赖 Docker daemon
+      - name: Install crane for direct registry push
+        run: |
+          echo "Installing crane (bypasses Docker daemon)..."
+          curl -sL https://github.com/google/go-containerregistry/releases/download/v0.20.2/go-containerregistry_Linux_amd64.tar.gz | tar -xzC /tmp crane
+          chmod +x /tmp/crane
+          echo "Crane installed: $(/tmp/crane version 2>/dev/null | head -1)"
+
+      - name: Push backend image using crane (direct OCI API)
+        run: |
+          # 导出镜像并用 crane push
+          docker save ghcr.io/${{ github.repository }}/ai-agent-backend:latest -o /tmp/backend.tar
+          /tmp/crane push /tmp/backend.tar ghcr.io/${{ github.repository }}/ai-agent-backend:latest \
+            --username ${{ github.actor }} \
+            --password ${{ secrets.CR_PAT }} 2>&1 || echo "Crane push failed, trying docker buildx workaround..."
+
 
       # 创建 Docker config.json，直接注入 ghcr.io 凭证
       - name: Create ghcr.io Docker config
