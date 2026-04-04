@@ -36,8 +36,8 @@ jobs:
           TAGS=""
           if [[ "${{ github.event_name }}" == "release" ]]; then
             TAGS="${GITHUB_REF#refs/tags/},latest"
-          elif [[ "${{ github.event_name }}" == "workflow_dispatch" && -n "${{ github.event.inputs.image_tag }}" ]]; then
-            TAGS="${{ github.event.inputs.image_tag }},latest"
+          elif [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
+            TAGS="${INPUT_IMAGE_TAG:-latest}"
           elif [[ "${{ github.event_name }}" == "push" && "${{ github.ref }}" == "refs/heads/main" ]]; then
             TAGS="latest,$(date +%Y%m%d%H%M)-${GITHUB_SHA:0:7}"
           fi
