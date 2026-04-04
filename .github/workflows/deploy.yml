@@ -48,7 +48,7 @@ jobs:
     runs-on: ubuntu-latest
     needs: determine-tags
     permissions:
-      contents: read
+      contents: write
       packages: write
     steps:
       - uses: actions/checkout@v4
@@ -65,16 +65,8 @@ jobs:
         with:
           registry: ${{ env.REGISTRY }}
           username: ${{ github.actor }}
-          password: ${{ secrets.CR_PAT }}
+          password: ${{ secrets.GITHUB_TOKEN }}
           logout: false
-
-      - name: Verify ghcr.io auth
-        run: |
-          echo "Testing ghcr.io push capability..."
-          docker pull alpine > /dev/null 2>&1
-          docker tag alpine ghcr.io/zj669/ai-agent-backend/test-push && \
-          docker push ghcr.io/zj669/ai-agent-backend/test-push && \
-          echo "✅ ghcr.io push OK" || echo "❌ ghcr.io push failed"
 
       - uses: docker/metadata-action@v5
         id: meta
@@ -98,7 +90,7 @@ jobs:
     runs-on: ubuntu-latest
     needs: determine-tags
     permissions:
-      contents: read
+      contents: write
       packages: write
     steps:
       - uses: actions/checkout@v4
@@ -121,16 +113,8 @@ jobs:
         with:
           registry: ${{ env.REGISTRY }}
           username: ${{ github.actor }}
-          password: ${{ secrets.CR_PAT }}
+          password: ${{ secrets.GITHUB_TOKEN }}
           logout: false
-
-      - name: Verify ghcr.io auth
-        run: |
-          echo "Testing ghcr.io push capability..."
-          docker pull alpine > /dev/null 2>&1
-          docker tag alpine ghcr.io/zj669/ai-agent-frontend/test-push && \
-          docker push ghcr.io/zj669/ai-agent-frontend/test-push && \
-          echo "✅ ghcr.io push OK" || echo "❌ ghcr.io push failed"
 
       - uses: docker/metadata-action@v5
         id: meta
