@@ -66,8 +66,18 @@ jobs:
         with:
           registry: ${{ env.REGISTRY }}
           username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
+          password: ${{ secrets.CR_PAT }}
           logout: false
+
+      - name: Check ghcr.io connectivity
+        run: |
+          echo "=== ghcr.io connectivity test ==="
+          echo "Testing ghcr.io v2 API..."
+          STATUS=$(curl -s -o /dev/null -w "%{http_code}" https://ghcr.io/v2/)
+          echo "ghcr.io v2 API HTTP status: $STATUS"
+          echo "Testing Docker pull (Docker Hub)..."
+          docker pull alpine:3.19 && echo "✅ Docker Hub OK" || echo "❌ Docker Hub FAILED"
+          echo "=== End connectivity test ==="
 
       - uses: docker/metadata-action@v5
         id: meta
@@ -114,8 +124,18 @@ jobs:
         with:
           registry: ${{ env.REGISTRY }}
           username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
+          password: ${{ secrets.CR_PAT }}
           logout: false
+
+      - name: Check ghcr.io connectivity
+        run: |
+          echo "=== ghcr.io connectivity test ==="
+          echo "Testing ghcr.io v2 API..."
+          STATUS=$(curl -s -o /dev/null -w "%{http_code}" https://ghcr.io/v2/)
+          echo "ghcr.io v2 API HTTP status: $STATUS"
+          echo "Testing Docker pull (Docker Hub)..."
+          docker pull alpine:3.19 && echo "✅ Docker Hub OK" || echo "❌ Docker Hub FAILED"
+          echo "=== End connectivity test ==="
 
       - uses: docker/metadata-action@v5
         id: meta
