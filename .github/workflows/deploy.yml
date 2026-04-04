@@ -84,7 +84,6 @@ jobs:
           build-args: MAVEN_OPTS=-Xmx2048m
           provenance: false
           sbom: false
-          attest: false
 
   build-frontend:
     name: Build Frontend Image
@@ -136,4 +135,3 @@ jobs:
           labels: ${{ steps.meta.outputs.labels }}
           provenance: false
           sbom: false
-          attest: false
