@@ -1,0 +1,37 @@
+{
+  "taskId": "019db9ca-aafd-77c8-a188-fed65aeaa2e4",
+  "todos": [
+    {
+      "id": "f6fb0ed46306fb62a8b286001144e896",
+      "content": "分析验证码发送慢的根因",
+      "status": "completed"
+    },
+    {
+      "id": "922028dcfcd31338fa3fe6f137d0f49d",
+      "content": "修改 IEmailService 接口 — 新增异步发送方法",
+      "status": "completed"
+    },
+    {
+      "id": "8b5bde52bb712df368d6fe1bb73e7746",
+      "content": "修改 EmailServiceImpl — 实现异步邮件发送",
+      "status": "completed"
+    },
+    {
+      "id": "17b6ced28d2f15ed7815132b93cce594",
+      "content": "修改 UserAuthenticationDomainService — 先存验证码再异步发邮件",
+      "status": "completed"
+    },
+    {
+      "id": "7397a072dc4a3de458cac3908c3ceeab",
+      "content": "修改 application.yml — 添加 SMTP 连接池配置",
+      "status": "completed"
+    },
+    {
+      "id": "007cea03a2184eefc75289b5f5ae3435",
+      "content": "验证改动一致性",
+      "status": "completed"
+    }
+  ],
+  "lastUpdated": 1776940398452,
+  "status": "active"
+}

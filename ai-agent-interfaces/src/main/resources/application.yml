@@ -89,9 +89,12 @@ spring:
           socketFactory:
             class: javax.net.ssl.SSLSocketFactory
             port: ${MAIL_PORT}
-          connectiontimeout: 10000
-          timeout: 10000
-          writetimeout: 10000
+          connectiontimeout: 5000
+          timeout: 5000
+          writetimeout: 5000
+          connectionpool:
+            enable: true
+          connectionpoolsize: 5
 
 server:
   port: 8080

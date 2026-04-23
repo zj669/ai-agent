@@ -9,6 +9,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.mail.javamail.MimeMessageHelper;
+import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 
 @Slf4j
@@ -24,21 +25,44 @@ public class EmailServiceImpl implements IEmailService {
     @Override
     public boolean sendVerificationCode(Email to, String code) {
         try {
-            MimeMessage mimeMessage = javaMailSender.createMimeMessage();
-            MimeMessageHelper helper = new MimeMessageHelper(mimeMessage, true, "UTF-8");
-
-            helper.setFrom(fromEmail);
-            helper.setTo(to.getValue());
-            helper.setSubject("【AI-Agent】邮箱验证码");
-            helper.setText(buildHtmlContent(code), true);
-
-            javaMailSender.send(mimeMessage);
-            log.info("Sent verification code to {}", to.getValue());
+            doSend(to, code);
             return true;
         } catch (MessagingException e) {
             log.error("Failed to send email to {}", to.getValue(), e);
             return false;
         }
+    }
+
+    /**
+     * 异步发送验证码邮件（fire-and-forget）
+     * <p>
+     * 在后台线程池中执行 SMTP I/O，调用方无需等待。
+     * 发送失败仅记录日志，不影响主流程（验证码已存入 Redis）。
+     */
+    @Async
+    @Override
+    public void sendVerificationCodeAsync(Email to, String code) {
+        try {
+            doSend(to, code);
+        } catch (MessagingException e) {
+            log.error("[Async] Failed to send verification email to {}", to.getValue(), e);
+        }
+    }
+
+    /**
+     * 实际的邮件发送逻辑（共享给同步/异步方法）
+     */
+    private void doSend(Email to, String code) throws MessagingException {
+        MimeMessage mimeMessage = javaMailSender.createMimeMessage();
+        MimeMessageHelper helper = new MimeMessageHelper(mimeMessage, true, "UTF-8");
+
+        helper.setFrom(fromEmail);
+        helper.setTo(to.getValue());
+        helper.setSubject("【AI-Agent】邮箱验证码");
+        helper.setText(buildHtmlContent(code), true);
+
+        javaMailSender.send(mimeMessage);
+        log.info("Sent verification code to {}", to.getValue());
     }
 
     private String buildHtmlContent(String code) {

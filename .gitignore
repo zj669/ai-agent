@@ -8,6 +8,7 @@
 /.qoder/
 /.mvn/
 /aiagemt/
+/论文/
 
 # ===== AI 工具配置目录 =====
 # 仅保留 .blueprint 和 .claude，其他 AI 工具目录全部排除

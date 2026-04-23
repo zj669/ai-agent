@@ -61,13 +61,10 @@ public class UserAuthenticationDomainService {
         String code = generateSecureCode();
         verificationCodeRepository.save(email, code, VERIFICATION_CODE_TTL_SECONDS);
 
-        boolean sent = emailService.sendVerificationCode(email, code);
-        if (!sent) {
-            log.error("Failed to send verification email to: {}", emailStr);
-            throw new AuthenticationException(ErrorCode.EMAIL_SEND_FAILED);
-        }
+        // 异步发送邮件（fire-and-forget），验证码已持久化到 Redis，即使邮件发送失败用户也可重试
+        emailService.sendVerificationCodeAsync(email, code);
 
-        log.info("Verification code sent to: {}", emailStr);
+        log.info("Verification code saved and async email dispatched to: {}", emailStr);
     }
 
     /**
