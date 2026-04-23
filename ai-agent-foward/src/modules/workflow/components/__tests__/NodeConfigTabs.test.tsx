@@ -9,6 +9,12 @@ vi.mock("../FieldRenderer", () => ({
   ),
 }));
 
+vi.mock("../../../mcp/api/mcpAdapter", () => ({
+  mcpAdapter: {
+    getAllTools: vi.fn().mockResolvedValue([]),
+  },
+}));
+
 const { default: NodeConfigTabs } = await import("../NodeConfigTabs");
 
 const mockTemplate = {

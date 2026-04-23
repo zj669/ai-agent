@@ -98,6 +98,14 @@ const KNOWLEDGE_OUTPUT_FIELD: FieldSchema = {
   label: "知识列表",
   system: true,
 };
+
+const HTTP_RESPONSE_FIELD: FieldSchema = {
+  key: "http_response",
+  type: "object",
+  label: "HTTP 响应",
+  system: true,
+  description: "HTTP 响应的完整内容",
+};
 const DEFAULT_LLM_PROMPT_TEMPLATE = "{{inputs.inputMessage}}";
 
 function cloneFieldSchema(field: FieldSchema): FieldSchema {
@@ -230,6 +238,11 @@ function normalizeWorkflowNodes(
           userConfig,
         } satisfies WorkflowNodeData,
       };
+    }
+
+    if (data.nodeType === "HTTP") {
+      // 强制保留 http_response 字段，移除用户可能错误删除的系统字段
+      outputSchema = mergeRequiredFields(outputSchema, [HTTP_RESPONSE_FIELD]);
     }
 
     if (data.nodeType === "KNOWLEDGE") {

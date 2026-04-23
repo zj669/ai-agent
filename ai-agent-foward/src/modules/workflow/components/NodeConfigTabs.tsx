@@ -1,5 +1,6 @@
-import { useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { cn } from "../../../lib/utils";
+import { mcpAdapter, type McpTool } from "../../mcp/api/mcpAdapter";
 import type { NodeTemplateDTO } from "../../../shared/api/adapters/metadataAdapter";
 import type {
   SchemaPolicy,
@@ -12,6 +13,466 @@ import VariableRefSelector, {
   type UpstreamVariable,
 } from "./VariableRefSelector";
 import FieldRenderer from "./FieldRenderer";
+
+const inputClass = 'w-full rounded-lg border border-slate-200 bg-slate-50/50 px-3 py-1.5 text-sm text-slate-800 transition focus:border-blue-300 focus:ring-1 focus:ring-blue-200 focus:outline-none';
+
+/**
+ * 从 JSONPath 表达式中提取字段名。
+ * 例: "$.data.items" → "items" | "$.result" → "result" | "$.data[0].name" → "name"
+ */
+function parseJsonPathFieldName(path: string): string {
+  const trimmed = path.trim();
+  if (!trimmed || !trimmed.startsWith("$.")) return "新字段";
+  const parts = trimmed.slice(2).split(".");
+  const last = parts[parts.length - 1];
+  return last.replace(/\[\d+\]/g, "") || "新字段";
+}
+
+export interface JsonExtractorField {
+  key: string;
+  label: string;
+  path: string;
+  type: string;
+  system?: boolean;
+}
+
+function extractFieldsFromJsonPaths(paths: string[]): JsonExtractorField[] {
+  return paths
+    .map((path) => path.trim())
+    .filter((path) => path.length > 0)
+    .map((path) => {
+      const fieldName = parseJsonPathFieldName(path);
+      return {
+        key: `extracted_${fieldName}`,
+        label: `提取: ${fieldName}`,
+        path,
+        type: "string",
+        system: true,
+      };
+    });
+}
+
+function HttpOutputSection({
+  outputSchema,
+  userConfig,
+  onConfigChange,
+  onOutputSchemaChange,
+  canAddOutput,
+  canUpdateOutput,
+}: {
+  outputSchema: FieldSchema[];
+  userConfig: Record<string, unknown>;
+  onConfigChange: (key: string, value: unknown) => void;
+  onOutputSchemaChange?: (schema: FieldSchema[]) => void;
+  canAddOutput: boolean;
+  canUpdateOutput: boolean;
+}) {
+  const rawPaths = userConfig.httpResponseExtractPaths;
+  const paths: string[] = Array.isArray(rawPaths)
+    ? (rawPaths as string[]).filter((p): p is string => typeof p === "string" && p.trim().length > 0)
+    : [];
+
+  const httpResponseFields = outputSchema.filter((f) => f.key === "http_response");
+  const userCustomFields = outputSchema.filter((f) => !f.system);
+
+  const syncSchema = (fields: JsonExtractorField[]) => {
+    if (!onOutputSchemaChange) return;
+    onOutputSchemaChange([...httpResponseFields, ...fields, ...userCustomFields]);
+  };
+
+  const updatePaths = (next: string[]) => {
+    onConfigChange("httpResponseExtractPaths", next);
+    syncSchema(extractFieldsFromJsonPaths(next));
+  };
+
+  const addPath = () => updatePaths([...paths, `$.field_${Date.now()}`]);
+
+  const updatePath = (index: number, value: string) => {
+    const next = [...paths];
+    next[index] = value;
+    updatePaths(next);
+  };
+
+  const removePath = (index: number) => {
+    const next = paths.filter((_, i) => i !== index);
+    updatePaths(next);
+  };
+
+  return (
+    <div className="space-y-3">
+      {/* 系统输出字段 */}
+      {httpResponseFields.map((field) => (
+        <div
+          key={field.key}
+          className="rounded-lg bg-slate-100 px-3 py-2 flex items-center gap-2"
+        >
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center gap-1.5">
+              <span className="text-xs font-medium text-slate-700">
+                {field.label || field.key}
+              </span>
+              <span className="rounded bg-slate-200 px-1 py-0.5 text-[10px] text-slate-500">
+                系统
+              </span>
+            </div>
+            <div className="text-[10px] text-slate-400">
+              {field.key} · {field.type}
+              {field.description && ` — ${field.description}`}
+            </div>
+          </div>
+        </div>
+      ))}
+
+      {/* JSONPath 提取配置 */}
+      <div className="space-y-2">
+        <div>
+          <h4 className="text-xs font-semibold text-slate-500">JSON 字段提取</h4>
+          <p className="mt-0.5 text-[11px] leading-4 text-slate-400">
+            使用 JSONPath 表达式从 HTTP 响应中提取字段，供下游节点引用。
+          </p>
+        </div>
+
+        {paths.length === 0 ? (
+          <button
+            type="button"
+            className="w-full rounded-lg border border-dashed border-slate-300 py-2 text-xs text-slate-400 hover:border-blue-400 hover:text-blue-500 transition"
+            onClick={addPath}
+          >
+            + 添加提取字段
+          </button>
+        ) : (
+          <>
+            <div className="space-y-2">
+              {paths.map((path, i) => (
+                <div key={i} className="flex items-center gap-2">
+                  <div className="flex-1 min-w-0">
+                    <input
+                      className={inputClass}
+                      placeholder="$.data.fieldName"
+                      value={path}
+                      onChange={(e) => updatePath(i, e.target.value)}
+                    />
+                    {path && (
+                      <div className="mt-1 text-[10px] text-slate-400">
+                        提取为字段:{" "}
+                        <span className="font-mono text-blue-500">
+                          {parseJsonPathFieldName(path)}
+                        </span>
+                      </div>
+                    )}
+                  </div>
+                  <button
+                    type="button"
+                    className="shrink-0 text-slate-400 hover:text-red-500 text-sm transition"
+                    onClick={() => removePath(i)}
+                    title="移除"
+                  >
+                    ×
+                  </button>
+                </div>
+              ))}
+            </div>
+            <button
+              type="button"
+              className="w-full rounded-lg border border-dashed border-slate-300 py-1.5 text-xs text-slate-400 hover:border-blue-400 hover:text-blue-500 transition"
+              onClick={addPath}
+            >
+              + 添加提取字段
+            </button>
+          </>
+        )}
+      </div>
+
+      {/* 用户自定义字段 */}
+      {userCustomFields.map((field) => (
+        <OutputFieldCard
+          key={field.key}
+          field={field}
+          canUpdate={canUpdateOutput}
+          canDelete={canAddOutput}
+          onUpdate={(updated) => {
+            const next = [...outputSchema];
+            const idx = next.findIndex((f) => f.key === field.key);
+            if (idx >= 0) next[idx] = updated;
+            onOutputSchemaChange?.(next);
+          }}
+          onDelete={() => {
+            const next = outputSchema.filter((f) => f.key !== field.key);
+            onOutputSchemaChange?.(next);
+          }}
+        />
+      ))}
+
+      {canAddOutput && (
+        <button
+          className="w-full rounded-lg border border-dashed border-slate-300 py-1.5 text-xs text-slate-400 hover:border-blue-400 hover:text-blue-500 transition"
+          onClick={() => {
+            const newField: FieldSchema = {
+              key: `field_${Date.now()}`,
+              label: "新字段",
+              type: "string",
+            };
+            onOutputSchemaChange?.([...outputSchema, newField]);
+          }}
+        >
+          + 添加自定义输出字段
+        </button>
+      )}
+    </div>
+  );
+}
+
+// ─── ToolSection: MCP 工具选择 + 输入输出 Schema ─────────────────────────────
+
+/** 将 MCP 工具的 JSON Schema input 字符串解析为 FieldSchema[] */
+function parseToolInputSchema(inputSchemaStr: string): FieldSchema[] {
+  if (!inputSchemaStr) return [];
+  try {
+    const schema = JSON.parse(inputSchemaStr);
+    if (!schema || schema.type !== "object" || !schema.properties) return [];
+    return Object.entries(schema.properties).map(([key, prop]) => {
+      const p = prop as { type?: string; description?: string; default?: unknown };
+      return {
+        key,
+        label: p.description || key,
+        type: p.type || "string",
+        required: Array.isArray(schema.required) && schema.required.includes(key),
+        defaultValue: p.default,
+        sourceRef: "",
+        system: true,
+      } satisfies FieldSchema;
+    });
+  } catch {
+    return [];
+  }
+}
+
+/** 返回 TOOL 节点的固定输出字段 — 工具执行后的原始返回值 */
+function getToolOutputSchema(): FieldSchema[] {
+  return [{
+    key: "tool_response",
+    type: "string",
+    label: "工具响应",
+    system: true,
+    description: "MCP 工具执行后的原始返回值",
+  }];
+}
+
+interface SelectedToolInfo {
+  serverId: number;
+  serverName: string;
+  toolName: string;
+  fullName: string;
+  description: string;
+  inputSchemaStr: string;
+}
+
+function ToolSection({
+  userConfig,
+  inputSchema,
+  outputSchema,
+  onConfigChange,
+  onInputSchemaChange,
+  onOutputSchemaChange,
+  upstreamVariables,
+}: {
+  userConfig: Record<string, unknown>;
+  inputSchema: FieldSchema[];
+  outputSchema: FieldSchema[];
+  onConfigChange: (key: string, value: unknown) => void;
+  onInputSchemaChange?: (schema: FieldSchema[]) => void;
+  onOutputSchemaChange?: (schema: FieldSchema[]) => void;
+  upstreamVariables: UpstreamVariable[];
+}) {
+  const [tools, setTools] = useState<McpTool[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [search, setSearch] = useState("");
+
+  const selected = userConfig.selectedTool as SelectedToolInfo | undefined;
+
+  useEffect(() => {
+    setLoading(true);
+    mcpAdapter.getAllTools()
+      .then((data) => {
+        setTools(data);
+      })
+      .finally(() => setLoading(false));
+  }, []);
+
+  const filteredTools = tools.filter((t) => {
+    if (!search.trim()) return true;
+    const q = search.toLowerCase();
+    return t.toolName.toLowerCase().includes(q)
+      || t.serverName.toLowerCase().includes(q)
+      || t.fullName.toLowerCase().includes(q);
+  });
+
+  const handleSelectTool = useCallback((tool: McpTool | null) => {
+    if (!tool) {
+      onConfigChange("selectedTool", null);
+      onInputSchemaChange?.([]);
+      onOutputSchemaChange?.([]);
+      return;
+    }
+    const toolInfo: SelectedToolInfo = {
+      serverId: tool.serverId,
+      serverName: tool.serverName,
+      toolName: tool.toolName,
+      fullName: tool.fullName,
+      description: tool.description,
+      inputSchemaStr: tool.inputSchema,
+    };
+    const newInputSchema = parseToolInputSchema(tool.inputSchema);
+    const newOutputSchema = getToolOutputSchema();
+    onConfigChange("selectedTool", toolInfo);
+    onInputSchemaChange?.(newInputSchema);
+    onOutputSchemaChange?.(newOutputSchema);
+  }, [onConfigChange, onInputSchemaChange, onOutputSchemaChange]);
+
+  const handleUpdateInputField = (key: string, updated: Partial<FieldSchema>) => {
+    const next = inputSchema.map((f) => f.key === key ? { ...f, ...updated } : f);
+    onInputSchemaChange?.(next);
+  };
+
+  const handleClearInputField = (key: string) => {
+    const next = inputSchema.map((f) =>
+      f.key === key ? { ...f, sourceRef: "", defaultValue: undefined } : f,
+    );
+    onInputSchemaChange?.(next);
+  };
+
+  return (
+    <div className="space-y-4">
+      {/* 工具选择 */}
+      <div className="space-y-2">
+        <label className="text-xs font-semibold text-slate-500">选择工具</label>
+        <input
+          className={inputClass}
+          placeholder="搜索工具名称或服务器..."
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+        />
+        <select
+          className={inputClass}
+          value={selected?.fullName ?? ""}
+          onChange={(e) => {
+            const tool = tools.find((t) => t.fullName === e.target.value) ?? null;
+            handleSelectTool(tool);
+          }}
+          disabled={loading}
+        >
+          <option value="">{loading ? "加载中..." : "请选择工具"}</option>
+          {filteredTools.map((tool) => (
+            <option key={`${tool.serverId}-${tool.toolName}`} value={tool.fullName}>
+              {tool.serverName} / {tool.toolName}
+            </option>
+          ))}
+          {!loading && filteredTools.length === 0 && search && (
+            <option value="" disabled>未找到匹配的工具</option>
+          )}
+        </select>
+      </div>
+
+      {/* 工具说明 */}
+      {selected && (
+        <div className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2">
+          <div className="text-xs font-medium text-slate-700">{selected.fullName}</div>
+          <div className="mt-1 text-[11px] text-slate-400 leading-4">
+            {selected.description || "无描述"}
+          </div>
+        </div>
+      )}
+
+      {/* 输入参数说明 */}
+      {selected && (
+        <div className="space-y-2">
+          <div className="text-xs font-semibold text-slate-500">
+            工具输入参数
+            <span className="ml-2 font-normal text-slate-400">
+              （可引用上游变量或填写默认值）
+            </span>
+          </div>
+          {inputSchema.length === 0 ? (
+            <p className="text-xs text-slate-400">该工具无输入参数</p>
+          ) : (
+            inputSchema.map((field) => (
+              <div
+                key={field.key}
+                className="rounded-lg bg-slate-100 px-3 py-2 space-y-1.5"
+              >
+                <div className="flex items-center gap-1.5">
+                  <span className="text-xs font-medium text-slate-700">
+                    {field.label || field.key}
+                  </span>
+                  <span className="rounded bg-slate-200 px-1 py-0.5 text-[10px] text-slate-500">
+                    系统
+                  </span>
+                  <span className="text-[10px] text-slate-400">{field.type}</span>
+                  {field.required && (
+                    <span className="text-[10px] text-red-400">*</span>
+                  )}
+                </div>
+                {field.description && (
+                  <div className="text-[10px] text-slate-400 leading-3">
+                    {field.description}
+                  </div>
+                )}
+                <VariableRefSelector
+                  value={field.sourceRef ?? ""}
+                  variables={upstreamVariables}
+                  onSelect={(ref) => handleUpdateInputField(field.key, { sourceRef: ref, defaultValue: undefined })}
+                  onClear={() => handleClearInputField(field.key)}
+                />
+                {!field.sourceRef && (
+                  <input
+                    className="w-full rounded border border-slate-300 px-2 py-1 text-xs placeholder:text-slate-300"
+                    placeholder="默认值"
+                    value={field.defaultValue != null ? String(field.defaultValue) : ""}
+                    onChange={(e) => handleUpdateInputField(field.key, { defaultValue: e.target.value || undefined })}
+                  />
+                )}
+              </div>
+            ))
+          )}
+        </div>
+      )}
+
+      {/* 输出字段说明 */}
+      {selected && (
+        <div className="space-y-2">
+          <div className="text-xs font-semibold text-slate-500">
+            工具输出字段
+            <span className="ml-2 font-normal text-slate-400">（只读，由工具返回）</span>
+          </div>
+          {outputSchema.length === 0 ? (
+            <p className="text-xs text-slate-400">该工具无定义输出（由执行结果决定）</p>
+          ) : (
+            outputSchema.map((field) => (
+              <div
+                key={field.key}
+                className="rounded-lg bg-slate-100 px-3 py-2 flex items-center gap-2"
+              >
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-1.5">
+                    <span className="text-xs font-medium text-slate-700">
+                      {field.label || field.key}
+                    </span>
+                    <span className="rounded bg-slate-200 px-1 py-0.5 text-[10px] text-slate-500">
+                      系统
+                    </span>
+                  </div>
+                  <div className="text-[10px] text-slate-400">
+                    {field.key} · {field.type}
+                  </div>
+                </div>
+              </div>
+            ))
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
 
 interface NodeConfigTabsProps {
   nodeType?: WorkflowNodeType;
@@ -526,11 +987,13 @@ function NodeConfigTabs({
     nodeType ??
     (template?.typeCode?.toUpperCase() as WorkflowNodeType | undefined);
   const isLlmNode = resolvedNodeType === "LLM";
+  const isHttpNode = resolvedNodeType === "HTTP";
+  const isToolNode = resolvedNodeType === "TOOL";
   const hasConfigTab =
     (template &&
       template.configFieldGroups &&
       template.configFieldGroups.length > 0) ||
-    isLlmNode;
+    isLlmNode || isHttpNode || isToolNode;
   const availableTabs = hasConfigTab
     ? TABS
     : TABS.filter((t) => t.key !== "config");
@@ -706,7 +1169,41 @@ function NodeConfigTabs({
 
         {activeTab === "output" && (
           <div className="space-y-2">
-            {outputSchema.length === 0 ? (
+            {isHttpNode ? (
+              <HttpOutputSection
+                outputSchema={outputSchema}
+                userConfig={userConfig}
+                onConfigChange={onConfigChange}
+                onOutputSchemaChange={onOutputSchemaChange}
+                canAddOutput={canAddOutput}
+                canUpdateOutput={canUpdateOutput}
+              />
+            ) : isToolNode ? (
+              outputSchema.length === 0 ? (
+                <p className="text-xs text-slate-400">请在「配置」中选择工具后查看输出字段</p>
+              ) : (
+                outputSchema.map((field) => (
+                  <div
+                    key={field.key}
+                    className="rounded-lg bg-slate-100 px-3 py-2 flex items-center gap-2"
+                  >
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-1.5">
+                        <span className="text-xs font-medium text-slate-700">
+                          {field.label || field.key}
+                        </span>
+                        <span className="rounded bg-slate-200 px-1 py-0.5 text-[10px] text-slate-500">
+                          系统
+                        </span>
+                      </div>
+                      <div className="text-[10px] text-slate-400">
+                        {field.key} · {field.type}
+                      </div>
+                    </div>
+                  </div>
+                ))
+              )
+            ) : outputSchema.length === 0 ? (
               <p className="text-xs text-slate-400">暂无输出字段</p>
             ) : (
               outputSchema.map((field, i) => (
@@ -720,7 +1217,7 @@ function NodeConfigTabs({
                 />
               ))
             )}
-            {canAddOutput && (
+            {!isHttpNode && !isToolNode && canAddOutput && (
               <button
                 className="w-full rounded-lg border border-dashed border-slate-300 py-1.5 text-xs text-slate-400 hover:border-blue-400 hover:text-blue-500 transition"
                 onClick={() => handleAddField("output")}
@@ -757,6 +1254,17 @@ function NodeConfigTabs({
                 onChange={(nodeIds) =>
                   onConfigChange("contextRefNodes", nodeIds)
                 }
+              />
+            )}
+            {isToolNode && (
+              <ToolSection
+                userConfig={userConfig}
+                inputSchema={inputSchema}
+                outputSchema={outputSchema}
+                onConfigChange={onConfigChange}
+                onInputSchemaChange={onInputSchemaChange}
+                onOutputSchemaChange={onOutputSchemaChange}
+                upstreamVariables={upstreamVariables}
               />
             )}
           </div>
