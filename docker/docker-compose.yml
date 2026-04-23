@@ -73,7 +73,7 @@ services:
       - minio_data:/data
     command: server /data --console-address ":9001"
     ports:
-      - "9000:9000"   # API
+      - "9002:9000"   # API
       - "9001:9001"   # Console
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
@@ -113,7 +113,7 @@ services:
   milvus:
     image: milvusdb/milvus:v2.3.3
     container_name: ai-agent-milvus
-    command: ["milvus", "run", "standalone", "--config-file", "/milvus/config/milvus.yaml"]
+    command: ["milvus", "run", "standalone"]
     environment:
       ETCD_ENDPOINTS: etcd:2379
       MINIO_ADDRESS: minio:9000
@@ -121,7 +121,6 @@ services:
       MINIO_SECRET_ACCESS_KEY: ${MINIO_ROOT_PASSWORD:-admin123456}
     volumes:
       - milvus_data:/var/lib/milvus
-      - ./init/milvus/milvus.yaml:/milvus/config/milvus.yaml:ro
     ports:
       - "19530:19530"  # gRPC
       - "9091:9091"    # Metrics

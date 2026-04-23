@@ -1,0 +1,27 @@
+{
+  "taskId": "019dba59-7fc1-74a1-b4a0-c96096813d55",
+  "todos": [
+    {
+      "id": "2df6c1af0daf74bd80553bb765308522",
+      "content": "分析启动方式与依赖",
+      "status": "completed"
+    },
+    {
+      "id": "6089aeb1e654210d15de7079b8092592",
+      "content": "启动后端服务",
+      "status": "completed"
+    },
+    {
+      "id": "bb35362deed524a31046ad18b21d9bf9",
+      "content": "启动前端服务",
+      "status": "completed"
+    },
+    {
+      "id": "25097abf3004d3539b4dbc650d0ed50b",
+      "content": "验证前后端端口与进程状态",
+      "status": "completed"
+    }
+  ],
+  "lastUpdated": 1776949434641,
+  "status": "active"
+}
