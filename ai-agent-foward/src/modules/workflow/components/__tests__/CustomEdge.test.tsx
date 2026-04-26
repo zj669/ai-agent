@@ -1,7 +1,11 @@
-import { render } from '@testing-library/react'
+import { fireEvent, render, screen } from '@testing-library/react'
 import { vi } from 'vitest'
 
-const mockGetBezierPath = vi.fn().mockReturnValue(['M 0 0 C 50 0 50 100 100 100', 50, 50])
+const { mockGetBezierPath, mockSetEdges, mockMarkDirty } = vi.hoisted(() => ({
+  mockGetBezierPath: vi.fn().mockReturnValue(['M 0 0 C 50 0 50 100 100 100', 50, 50]),
+  mockSetEdges: vi.fn(),
+  mockMarkDirty: vi.fn(),
+}))
 
 vi.mock('@xyflow/react', () => ({
   getBezierPath: (...args: unknown[]) => mockGetBezierPath(...args),
@@ -10,7 +14,15 @@ vi.mock('@xyflow/react', () => ({
   ),
   EdgeLabelRenderer: ({ children }: { children: React.ReactNode }) => <>{children}</>,
   Position: { Left: 'left', Right: 'right' },
-  useReactFlow: () => ({ setEdges: vi.fn() }),
+  useReactFlow: () => ({ setEdges: mockSetEdges }),
+}))
+
+vi.mock('../../stores/useEditorStore', () => ({
+  useEditorStore: {
+    getState: () => ({
+      markDirty: mockMarkDirty,
+    }),
+  },
 }))
 
 import { Position } from '@xyflow/react'
@@ -30,13 +42,19 @@ describe('CustomEdge', () => {
     targetPosition: Position.Left,
   }
 
-  it('calls getBezierPath with horizontal positions and curvature 0.16', () => {
+  beforeEach(() => {
+    mockGetBezierPath.mockClear()
+    mockSetEdges.mockClear()
+    mockMarkDirty.mockClear()
+  })
+
+  it('calls getBezierPath with horizontal positions and curvature 0.25', () => {
     render(<svg><CustomEdge {...baseProps} /></svg>)
     expect(mockGetBezierPath).toHaveBeenCalledWith(
       expect.objectContaining({
         sourcePosition: 'right',
         targetPosition: 'left',
-        curvature: 0.16,
+        curvature: 0.25,
       })
     )
   })
@@ -45,5 +63,14 @@ describe('CustomEdge', () => {
     const { getByTestId } = render(<svg><CustomEdge {...baseProps} /></svg>)
     const edge = getByTestId('base-edge')
     expect(edge).toBeInTheDocument()
+  })
+
+  it('marks editor dirty when deleting an edge', () => {
+    render(<svg><CustomEdge {...baseProps} /></svg>)
+
+    fireEvent.click(screen.getByTitle('删除连线'))
+
+    expect(mockSetEdges).toHaveBeenCalledWith(expect.any(Function))
+    expect(mockMarkDirty).toHaveBeenCalled()
   })
 })

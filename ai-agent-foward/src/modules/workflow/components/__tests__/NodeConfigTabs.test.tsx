@@ -2,7 +2,13 @@ import { render, screen, fireEvent } from "@testing-library/react";
 import { vi } from "vitest";
 
 vi.mock("../FieldRenderer", () => ({
-  default: ({ field, value }: any) => (
+  default: ({
+    field,
+    value,
+  }: {
+    field: { fieldKey: string; fieldLabel: string };
+    value?: unknown;
+  }) => (
     <div data-testid={`field-${field.fieldKey}`}>
       {field.fieldLabel}: {String(value ?? "")}
     </div>
@@ -40,21 +46,21 @@ const mockTemplate = {
       ],
     },
   ],
-} as any;
+};
 
 const genericTemplate = {
   id: 99,
   typeCode: "TOOL",
   name: "工具",
   configFieldGroups: [],
-} as any;
+};
 
 const knowledgeTemplate = {
   id: 2,
   typeCode: "KNOWLEDGE",
   name: "知识库",
   configFieldGroups: [],
-} as any;
+};
 
 describe("NodeConfigTabs", () => {
   it("renders 3 tabs: 输入, 输出, 配置", () => {
@@ -142,7 +148,7 @@ describe("NodeConfigTabs", () => {
     fireEvent.click(screen.getByRole("tab", { name: "输入" }));
 
     expect(screen.getByText("Prompt 模板")).toBeInTheDocument();
-    expect(screen.getByDisplayValue("{{inputs.query}}")).toBeInTheDocument();
+    expect(screen.getByDisplayValue("{{inputs.inputMessage}}")).toBeInTheDocument();
     expect(screen.queryByText("用户问题")).not.toBeInTheDocument();
   });
 
@@ -259,7 +265,7 @@ describe("NodeConfigTabs", () => {
         key: "query",
         label: "查询词",
         type: "string",
-        sourceRef: "start.output.query",
+        sourceRef: "",
         required: true,
         system: true,
       }),

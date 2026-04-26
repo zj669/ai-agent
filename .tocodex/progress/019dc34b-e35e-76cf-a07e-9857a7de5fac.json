@@ -1,0 +1,47 @@
+{
+  "taskId": "019dc34b-e35e-76cf-a07e-9857a7de5fac",
+  "todos": [
+    {
+      "id": "f360e584f7998bc208552dc567b171ec",
+      "content": "盘点论文中需要替换为真实系统运行截图的图片引用与对应页面",
+      "status": "completed"
+    },
+    {
+      "id": "d1df541a8e6ee413c270306ce3e262b3",
+      "content": "确认可用的启动方式、端口、依赖服务与测试数据准备方案",
+      "status": "completed"
+    },
+    {
+      "id": "d576935887d853d770ea29614b12996f",
+      "content": "获取可注册测试邮箱与验证码读取方式，完成测试账号注册方案",
+      "status": "completed"
+    },
+    {
+      "id": "2bcdec96257550dbc21db5fe366979fd",
+      "content": "启动后端、前端及必要基础设施，确保浏览器可访问系统",
+      "status": "completed"
+    },
+    {
+      "id": "9df03d3a7c1847b747dd64daea5d1e4a",
+      "content": "使用 Chrome DevTools 登录系统并逐页操作真实功能页面",
+      "status": "completed"
+    },
+    {
+      "id": "1d6c144379851ee21d6b13a2d41dc3da",
+      "content": "截取认证、Agent 编排、Agent 列表、工作流执行、日志、审批、恢复、知识库、SSE 展示等真实运行图片",
+      "status": "completed"
+    },
+    {
+      "id": "b1f5d87f878e97ee3ac6ffafe2df198d",
+      "content": "将截图保存到 `论文/figures/` 并覆盖或替换对应 LaTeX 图片引用",
+      "status": "completed"
+    },
+    {
+      "id": "a62332f52c35936ce778bf6d77597402",
+      "content": "编译或检查 `论文/main.tex`，确认图片路径与论文排版可用",
+      "status": "completed"
+    }
+  ],
+  "lastUpdated": 1777098934802,
+  "status": "active"
+}

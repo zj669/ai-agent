@@ -1,0 +1,107 @@
+{
+  "taskId": "019dbf36-d695-777d-9d03-61b0ddfcf98c",
+  "todos": [
+    {
+      "id": "c075681b6bc434094e8d988fb8ce2813",
+      "content": "阅读开题报告并提炼论文目标与关键能力",
+      "status": "completed"
+    },
+    {
+      "id": "68327a1bce211b26a53970b287dd9e6c",
+      "content": "阅读全局项目入口与模块 AGENT 说明，确定优先分析范围",
+      "status": "completed"
+    },
+    {
+      "id": "ef4c9ac08d1ad1d860b41112bd18b98c",
+      "content": "深入梳理工作流与人工审核实现链路",
+      "status": "completed"
+    },
+    {
+      "id": "d2dcaa8474ffdc98cd2cef2cf3312a01",
+      "content": "深入梳理知识库实现链路",
+      "status": "completed"
+    },
+    {
+      "id": "afb79d80abd4c21d6c5e40e518456066",
+      "content": "深入梳理用户认证与邮箱验证码实现链路",
+      "status": "completed"
+    },
+    {
+      "id": "94dfb21f725b381ceaf9e50d7646812c",
+      "content": "对照开题报告总结已实现能力、偏差点与论文章节可引用材料",
+      "status": "completed"
+    },
+    {
+      "id": "85405c8ae9f3bf6a44078727ff783832",
+      "content": "将分析结论沉淀到 `.tocodex/plans/` 计划文件",
+      "status": "completed"
+    },
+    {
+      "id": "eb738ae197cdf067350b6b959ed5094e",
+      "content": "梳理论文应写模块并形成可执行写作范围建议",
+      "status": "completed"
+    },
+    {
+      "id": "0b3491ecd8a89b941fa901bf5b47d183",
+      "content": "逐章全量阅读论文（ch1~ch6），评估各章写作完整性",
+      "status": "completed"
+    },
+    {
+      "id": "f77696f41c963a659d4d1ef44339750c",
+      "content": "输出每章详细评估报告，标记\"写得不够\"的具体位置与建议",
+      "status": "completed"
+    },
+    {
+      "id": "5e235b3642e2d53b2b3787cb582f75de",
+      "content": "根据评估结果整理论文修订执行清单",
+      "status": "completed"
+    },
+    {
+      "id": "ed54be9484c68c45324912ef8bbb436e",
+      "content": "征求你对修订计划的确认",
+      "status": "completed"
+    },
+    {
+      "id": "1d8241f603d68394c7a1e16cc7f55480",
+      "content": "修改 abstract.tex：重排五模块、下调 MCP、弱化性能硬结论",
+      "status": "completed"
+    },
+    {
+      "id": "28ff56b5473a04f2b10743ddf3227f72",
+      "content": "修改 ch1_intro.tex：收束多智能体表述、对齐五模块贡献点",
+      "status": "completed"
+    },
+    {
+      "id": "dcab18ed7263a9071d0364070cf64084",
+      "content": "修改 ch4_implementation.tex：新增 Agent 管理、知识库、用户认证三大实现小节",
+      "status": "completed"
+    },
+    {
+      "id": "16625fc0cb1e152886ae35c627380d46",
+      "content": "修改 ch6_conclusion.tex：按五模块重写贡献归纳、调整展望",
+      "status": "completed"
+    },
+    {
+      "id": "f7bd3bf8e39735d695030d4dd57880a0",
+      "content": "修改 ch2_requirements.tex：补齐五模块需求结构（Agent 需求、知识库需求、认证需求）",
+      "status": "completed"
+    },
+    {
+      "id": "b2a0b98d1cc99c4d16e7356f20f3dd26",
+      "content": "修改 ch3_design.tex：补齐五模块设计（Agent 编排设计、知识链路设计、认证安全设计）",
+      "status": "completed"
+    },
+    {
+      "id": "129af0e5124dc43991308b47ecde11d5",
+      "content": "修改 ch5_testing.tex：补充 Agent、知识库、认证模块测试覆盖",
+      "status": "completed"
+    },
+    {
+      "id": "784f1f4402a9ba6615408d83123dc3e3",
+      "content": "生成 ch4 缺失的4张截图占位图（fig_agent_editor, fig_agent_list, fig_knowledge_ui, fig_auth_ui）",
+      "status": "completed"
+    }
+  ],
+  "lastUpdated": 1777036266147,
+  "status": "active"
+}

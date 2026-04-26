@@ -55,6 +55,32 @@ const mockStoreState = {
   reset: vi.fn(),
 };
 
+type SavedGraphNode = {
+  nodeId: string;
+  userConfig: Record<string, unknown>;
+  outputSchema?: unknown;
+  inputSchema?: unknown;
+};
+
+type SaveWorkflowPayload = {
+  graph: {
+    nodes: SavedGraphNode[];
+    edges: Array<Record<string, unknown>>;
+  };
+};
+
+type EditorHeaderMockProps = {
+  agentName: string;
+  isDirty: boolean;
+  operationState: string;
+  onSave: () => void;
+  onPublish: () => void;
+};
+
+function getLastSavePayload(): SaveWorkflowPayload {
+  return saveWorkflowMock.mock.calls[0][0] as SaveWorkflowPayload;
+}
+
 vi.mock("../stores/useEditorStore", () => ({
   useEditorStore: (selector?: (s: typeof mockStoreState) => unknown) =>
     selector ? selector(mockStoreState) : mockStoreState,
@@ -73,13 +99,21 @@ vi.mock("react-router-dom", async () => {
 
 // Capture ReactFlow callbacks so tests can simulate canvas interactions
 let capturedOnConnect:
-  | ((conn: { source: string; target: string }) => void)
+  | ((conn: { source: string; target: string; sourceHandle?: string }) => void)
+  | null = null;
+let capturedOnNodesChange:
+  | ((changes: Array<{ type: string; id?: string }>) => void)
+  | null = null;
+let capturedOnEdgesChange:
+  | ((changes: Array<{ type: string; id?: string }>) => void)
   | null = null;
 
 vi.mock("@xyflow/react", () => {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   function ReactFlow(props: any) {
     capturedOnConnect = props.onConnect;
+    capturedOnNodesChange = props.onNodesChange;
+    capturedOnEdgesChange = props.onEdgesChange;
     const nodes = props.nodes as Array<{
       id: string;
       data: { label: string; nodeType: string };
@@ -105,6 +139,7 @@ vi.mock("@xyflow/react", () => {
         id: `${conn.source}-${conn.target}`,
         source: conn.source,
         target: conn.target,
+        sourceHandle: conn.sourceHandle ?? null,
       },
     ],
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -126,9 +161,8 @@ vi.mock("@xyflow/react", () => {
   };
 });
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
 vi.mock("../components/EditorHeader", () => ({
-  default: (props: any) => (
+  default: (props: EditorHeaderMockProps) => (
     <div data-testid="editor-header">
       <span>{props.agentName}</span>
       <span>{props.isDirty ? "未保存" : "已保存"}</span>
@@ -164,9 +198,9 @@ const { default: WorkflowEditorPage } =
   await import("../pages/WorkflowEditorPage");
 
 /** Helper: simulate a ReactFlow connection via the captured onConnect callback */
-function simulateConnect(source: string, target: string) {
+function simulateConnect(source: string, target: string, sourceHandle?: string) {
   act(() => {
-    capturedOnConnect?.({ source, target });
+    capturedOnConnect?.({ source, target, sourceHandle });
   });
 }
 
@@ -197,6 +231,8 @@ describe("workflow editor interaction", () => {
     saveWorkflowMock.mockReset();
     fetchNodeTemplatesMock.mockReset();
     capturedOnConnect = null;
+    capturedOnNodesChange = null;
+    capturedOnEdgesChange = null;
     resetMockStoreState();
 
     fetchWorkflowDetailMock.mockResolvedValue({
@@ -238,6 +274,18 @@ describe("workflow editor interaction", () => {
     simulateConnect("start", "end");
 
     expect(mockStoreState.markDirty).toHaveBeenCalled();
+  });
+
+  it("React Flow 节点和边结构变更会调用 store.markDirty", async () => {
+    render(<WorkflowEditorPage />);
+    await screen.findByText("开始节点（START）");
+
+    act(() => {
+      capturedOnNodesChange?.([{ type: "position", id: "start" }]);
+      capturedOnEdgesChange?.([{ type: "remove", id: "start-end" }]);
+    });
+
+    expect(mockStoreState.markDirty).toHaveBeenCalledTimes(2);
   });
 
   it("自连时显示显式错误反馈", async () => {
@@ -304,6 +352,399 @@ describe("workflow editor interaction", () => {
       expect(publishWorkflowMock).toHaveBeenCalledWith(1001);
     });
     expect(await screen.findByText("发布成功")).toBeInTheDocument();
+  });
+
+  it("保存条件节点时生成后端可执行 branches 并保留分支 sourceHandle", async () => {
+    fetchWorkflowDetailMock.mockResolvedValueOnce({
+      agentId: 1001,
+      version: 3,
+      name: "测试 Agent",
+      graphJson: undefined,
+      graph: {
+        version: "1.0",
+        startNodeId: "start",
+        nodes: [
+          {
+            nodeId: "start",
+            nodeName: "开始节点",
+            nodeType: "START",
+            position: { x: 50, y: 250 },
+            outputSchema: [
+              {
+                key: "inputMessage",
+                label: "用户输入",
+                type: "string",
+                system: true,
+              },
+            ],
+            userConfig: {},
+          },
+          {
+            nodeId: "condition-1",
+            nodeName: "路由判断",
+            nodeType: "CONDITION",
+            position: { x: 250, y: 250 },
+            userConfig: {
+              conditionConfig: {
+                routingStrategy: "EXPRESSION",
+                branches: [
+                  {
+                    id: "branch-if-1",
+                    name: "如果",
+                    type: "if",
+                    priority: 1,
+                    logic: "AND",
+                    conditions: [
+                      {
+                        sourceRef: "start.output.inputMessage",
+                        operator: "GTE",
+                        value: "10",
+                        valueType: "literal",
+                      },
+                      {
+                        sourceRef: "llm-1.output.score",
+                        operator: "LT",
+                        value: "start.output.inputMessage",
+                        valueType: "ref",
+                      },
+                    ],
+                  },
+                  {
+                    id: "branch-else-1",
+                    name: "否则",
+                    type: "else",
+                    priority: 2,
+                    logic: "AND",
+                    conditions: [],
+                  },
+                ],
+              },
+            },
+          },
+          {
+            nodeId: "llm-1",
+            nodeName: "LLM 节点",
+            nodeType: "LLM",
+            position: { x: 450, y: 200 },
+            userConfig: {},
+          },
+          {
+            nodeId: "end",
+            nodeName: "结束节点",
+            nodeType: "END",
+            position: { x: 450, y: 320 },
+            userConfig: {},
+          },
+        ],
+        edges: [
+          { edgeId: "edge-1", source: "start", target: "condition-1" },
+          {
+            edgeId: "edge-2",
+            source: "condition-1",
+            target: "llm-1",
+            sourceHandle: "branch-if-1",
+          },
+          {
+            edgeId: "edge-3",
+            source: "condition-1",
+            target: "end",
+            sourceHandle: "branch-else-1",
+          },
+        ],
+      },
+    });
+
+    render(<WorkflowEditorPage />);
+    await screen.findByText("路由判断（CONDITION）");
+
+    fireEvent.click(screen.getByRole("button", { name: "保存" }));
+
+    await waitFor(() => {
+      expect(saveWorkflowMock).toHaveBeenCalledTimes(1);
+    });
+
+    const savePayload = getLastSavePayload();
+    const conditionNode = savePayload.graph.nodes.find(
+      (node) => node.nodeId === "condition-1",
+    );
+
+    expect(savePayload.graph.edges).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          edgeId: "edge-2",
+          sourceHandle: "branch-if-1",
+        }),
+        expect.objectContaining({
+          edgeId: "edge-3",
+          sourceHandle: "branch-else-1",
+        }),
+      ]),
+    );
+    expect(conditionNode?.userConfig.routingStrategy).toBe("EXPRESSION");
+    expect(conditionNode?.userConfig.conditionConfig).toBeDefined();
+    expect(conditionNode?.userConfig.branches).toEqual([
+      {
+        priority: 0,
+        targetNodeId: "llm-1",
+        description: undefined,
+        isDefault: false,
+        conditionGroups: [
+          {
+            operator: "AND",
+            conditions: [
+              {
+                leftOperand: "inputs.inputMessage",
+                operator: "GREATER_THAN_OR_EQUAL",
+                rightOperand: "10",
+              },
+              {
+                leftOperand: "nodes.llm-1.score",
+                operator: "LESS_THAN",
+                rightOperand: "inputs.inputMessage",
+              },
+            ],
+          },
+        ],
+      },
+      {
+        priority: 2147483647,
+        targetNodeId: "end",
+        description: undefined,
+        isDefault: true,
+        conditionGroups: [],
+      },
+    ]);
+  });
+
+  it("条件节点分支未连接目标时保存失败并显示明确提示", async () => {
+    fetchWorkflowDetailMock.mockResolvedValueOnce({
+      agentId: 1001,
+      version: 3,
+      name: "测试 Agent",
+      graphJson: undefined,
+      graph: {
+        version: "1.0",
+        startNodeId: "start",
+        nodes: [
+          {
+            nodeId: "start",
+            nodeName: "开始节点",
+            nodeType: "START",
+            position: { x: 50, y: 250 },
+            outputSchema: [
+              {
+                key: "inputMessage",
+                label: "用户输入",
+                type: "string",
+                system: true,
+              },
+            ],
+            userConfig: {},
+          },
+          {
+            nodeId: "condition-1",
+            nodeName: "路由判断",
+            nodeType: "CONDITION",
+            position: { x: 250, y: 250 },
+            userConfig: {
+              conditionConfig: {
+                routingStrategy: "EXPRESSION",
+                branches: [
+                  {
+                    id: "branch-if-1",
+                    name: "如果",
+                    type: "if",
+                    priority: 1,
+                    logic: "AND",
+                    conditions: [
+                      {
+                        sourceRef: "start.output.inputMessage",
+                        operator: "EQUALS",
+                        value: "yes",
+                        valueType: "literal",
+                      },
+                    ],
+                  },
+                  {
+                    id: "branch-else-1",
+                    name: "否则",
+                    type: "else",
+                    priority: 2,
+                    logic: "AND",
+                    conditions: [],
+                  },
+                ],
+              },
+            },
+          },
+          {
+            nodeId: "end",
+            nodeName: "结束节点",
+            nodeType: "END",
+            position: { x: 450, y: 250 },
+            userConfig: {},
+          },
+        ],
+        edges: [
+          { edgeId: "edge-1", source: "start", target: "condition-1" },
+          {
+            edgeId: "edge-2",
+            source: "condition-1",
+            target: "end",
+            sourceHandle: "branch-else-1",
+          },
+        ],
+      },
+    });
+
+    render(<WorkflowEditorPage />);
+    await screen.findByText("路由判断（CONDITION）");
+
+    fireEvent.click(screen.getByRole("button", { name: "保存" }));
+
+    expect(
+      await screen.findByText(
+        "条件节点「路由判断」的分支「如果」尚未连接目标节点",
+      ),
+    ).toBeInTheDocument();
+    expect(saveWorkflowMock).not.toHaveBeenCalled();
+  });
+
+  it("历史顶层 branches 能回显为 conditionConfig 并通过 sourceHandle 恢复保存", async () => {
+    fetchWorkflowDetailMock.mockResolvedValueOnce({
+      agentId: 1001,
+      version: 3,
+      name: "测试 Agent",
+      graphJson: undefined,
+      graph: {
+        version: "1.0",
+        startNodeId: "start",
+        nodes: [
+          {
+            nodeId: "start",
+            nodeName: "开始节点",
+            nodeType: "START",
+            position: { x: 50, y: 250 },
+            outputSchema: [
+              {
+                key: "inputMessage",
+                label: "用户输入",
+                type: "string",
+                system: true,
+              },
+            ],
+            userConfig: {},
+          },
+          {
+            nodeId: "condition-1",
+            nodeName: "路由判断",
+            nodeType: "CONDITION",
+            position: { x: 250, y: 250 },
+            userConfig: {
+              routingStrategy: "EXPRESSION",
+              branches: [
+                {
+                  priority: 0,
+                  targetNodeId: "llm-1",
+                  isDefault: false,
+                  conditionGroups: [
+                    {
+                      operator: "OR",
+                      conditions: [
+                        {
+                          leftOperand: "inputs.inputMessage",
+                          operator: "CONTAINS",
+                          rightOperand: "hello",
+                        },
+                      ],
+                    },
+                  ],
+                },
+                {
+                  priority: 2147483647,
+                  targetNodeId: "end",
+                  isDefault: true,
+                  conditionGroups: [],
+                },
+              ],
+            },
+          },
+          {
+            nodeId: "llm-1",
+            nodeName: "LLM 节点",
+            nodeType: "LLM",
+            position: { x: 450, y: 200 },
+            userConfig: {},
+          },
+          {
+            nodeId: "end",
+            nodeName: "结束节点",
+            nodeType: "END",
+            position: { x: 450, y: 320 },
+            userConfig: {},
+          },
+        ],
+        edges: [
+          { edgeId: "edge-1", source: "start", target: "condition-1" },
+          {
+            edgeId: "edge-2",
+            source: "condition-1",
+            target: "llm-1",
+            sourceHandle: "branch-if-restored",
+          },
+          {
+            edgeId: "edge-3",
+            source: "condition-1",
+            target: "end",
+            sourceHandle: "branch-else-restored",
+          },
+        ],
+      },
+    });
+
+    render(<WorkflowEditorPage />);
+    await screen.findByText("路由判断（CONDITION）");
+
+    fireEvent.click(screen.getByRole("button", { name: "保存" }));
+
+    await waitFor(() => {
+      expect(saveWorkflowMock).toHaveBeenCalledTimes(1);
+    });
+
+    const savePayload = getLastSavePayload();
+    const conditionNode = savePayload.graph.nodes.find(
+      (node) => node.nodeId === "condition-1",
+    );
+
+    const conditionConfig = conditionNode?.userConfig.conditionConfig as
+      | { branches: unknown[] }
+      | undefined;
+    expect(conditionConfig?.branches).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          id: "branch-if-restored",
+          name: "如果",
+          logic: "OR",
+        }),
+        expect.objectContaining({
+          id: "branch-else-restored",
+          name: "否则",
+          type: "else",
+        }),
+      ]),
+    );
+    expect(savePayload.graph.edges).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          edgeId: "edge-2",
+          sourceHandle: "branch-if-restored",
+        }),
+        expect.objectContaining({
+          edgeId: "edge-3",
+          sourceHandle: "branch-else-restored",
+        }),
+      ]),
+    );
   });
 
   it("未保存状态下发布会被拦截并提示先保存", async () => {
@@ -566,26 +1007,26 @@ describe("workflow editor interaction", () => {
       expect(saveWorkflowMock).toHaveBeenCalledTimes(1);
     });
 
-    const savePayload = saveWorkflowMock.mock.calls[0][0];
+    const savePayload = getLastSavePayload();
     const savedNodes = savePayload.graph.nodes;
-    const startNode = savedNodes.find((node: any) => node.nodeId === "start");
+    const startNode = savedNodes.find((node) => node.nodeId === "start");
     const knowledgeNode = savedNodes.find(
-      (node: any) => node.nodeId === "knowledge-1",
+      (node) => node.nodeId === "knowledge-1",
     );
-    const llmNode = savedNodes.find((node: any) => node.nodeId === "llm-1");
+    const llmNode = savedNodes.find((node) => node.nodeId === "llm-1");
 
-    expect(startNode.outputSchema).toEqual(
+    expect(startNode?.outputSchema).toEqual(
       expect.arrayContaining([
         expect.objectContaining({ key: "inputMessage", type: "string", system: true }),
       ]),
     );
     // START 节点不再输出 query 字段
-    expect(startNode.outputSchema).not.toEqual(
+    expect(startNode?.outputSchema).not.toEqual(
       expect.arrayContaining([
         expect.objectContaining({ key: "query" }),
       ]),
     );
-    expect(knowledgeNode.inputSchema).toEqual(
+    expect(knowledgeNode?.inputSchema).toEqual(
       expect.arrayContaining([
         expect.objectContaining({
           key: "query",
@@ -596,8 +1037,8 @@ describe("workflow editor interaction", () => {
         }),
       ]),
     );
-    expect(llmNode.userConfig.userPromptTemplate).toBe("{{inputs.inputMessage}}");
-    expect(llmNode.userConfig.contextRefNodes).toEqual(["knowledge-1"]);
+    expect(llmNode?.userConfig.userPromptTemplate).toBe("{{inputs.inputMessage}}");
+    expect(llmNode?.userConfig.contextRefNodes).toEqual(["knowledge-1"]);
   });
 
   it("用户显式清空 contextRefNodes 后，保存时不再自动回填默认引用", async () => {
@@ -822,11 +1263,11 @@ describe("workflow editor interaction", () => {
       expect(saveWorkflowMock).toHaveBeenCalledTimes(1);
     });
 
-    const savePayload = saveWorkflowMock.mock.calls[0][0];
+    const savePayload = getLastSavePayload();
     const llmNode = savePayload.graph.nodes.find(
-      (node: any) => node.nodeId === "llm-1",
+      (node) => node.nodeId === "llm-1",
     );
 
-    expect(llmNode.userConfig.contextRefNodes).toEqual([]);
+    expect(llmNode?.userConfig.contextRefNodes).toEqual([]);
   });
 });

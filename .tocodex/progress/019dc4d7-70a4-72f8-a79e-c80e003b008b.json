@@ -1,0 +1,27 @@
+{
+  "taskId": "019dc4d7-70a4-72f8-a79e-c80e003b008b",
+  "todos": [
+    {
+      "id": "eb803f1dfdb8f478c1cf4718ed659a1f",
+      "content": "明确你的抓包场景与优先级",
+      "status": "in_progress"
+    },
+    {
+      "id": "024f78bb53d3cf567572563dddd13360",
+      "content": "对比 Reqable 与 HTTP Toolkit 的核心能力、平台支持、HTTPS 抓包体验与改包能力",
+      "status": "pending"
+    },
+    {
+      "id": "775c4485ae9b206313219ed479700f31",
+      "content": "给出按场景区分的下载推荐与选择理由",
+      "status": "pending"
+    },
+    {
+      "id": "237f33406471290ee391d0965f7d1872",
+      "content": "如需要，补充安装与证书配置建议",
+      "status": "pending"
+    }
+  ],
+  "lastUpdated": 1777123997555,
+  "status": "active"
+}

@@ -257,8 +257,9 @@ function WorkflowNode({ id, data, selected }: WorkflowNodeProps) {
         getEdges().filter((edge) => edge.source !== id && edge.target !== id),
       );
       setNodes((nds) => nds.filter((n) => n.id !== id));
+      markDirty();
     },
-    [id, setNodes, setEdges, getEdges],
+    [id, markDirty, setNodes, setEdges, getEdges],
   );
 
   const handleConfigChange = useCallback(

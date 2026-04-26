@@ -18,7 +18,9 @@ import {
   BackgroundVariant,
   type Connection,
   type Edge,
+  type EdgeChange,
   type Node,
+  type NodeChange,
   type ReactFlowInstance,
 } from "@xyflow/react";
 import "@xyflow/react/dist/style.css";
@@ -37,7 +39,13 @@ import WorkflowNode, {
   type WorkflowNodeType,
   type SchemaPolicy,
   type FieldSchema,
+  type Branch as WorkflowBranch,
 } from "../components/WorkflowNode";
+import type {
+  Branch as UiConditionBranch,
+  Condition as UiCondition,
+  ConditionBranchConfig,
+} from "../components/ConditionBranchEditor";
 import { useEditorStore } from "../stores/useEditorStore";
 import EditorHeader from "../components/EditorHeader";
 import AgentConfigPanel from "../components/AgentConfigPanel";
@@ -107,6 +115,43 @@ const HTTP_RESPONSE_FIELD: FieldSchema = {
   description: "HTTP 响应的完整内容",
 };
 const DEFAULT_LLM_PROMPT_TEMPLATE = "{{inputs.inputMessage}}";
+const DEFAULT_BRANCH_PRIORITY = 2147483647;
+
+const NO_VALUE_OPERATORS = new Set(["IS_EMPTY", "IS_NOT_EMPTY"]);
+
+const OPERATOR_MAP: Record<string, string> = {
+  EQUALS: "EQUALS",
+  NOT_EQUALS: "NOT_EQUALS",
+  CONTAINS: "CONTAINS",
+  NOT_CONTAINS: "NOT_CONTAINS",
+  IS_EMPTY: "IS_EMPTY",
+  IS_NOT_EMPTY: "IS_NOT_EMPTY",
+  STARTS_WITH: "STARTS_WITH",
+  ENDS_WITH: "ENDS_WITH",
+  GT: "GREATER_THAN",
+  LT: "LESS_THAN",
+  GTE: "GREATER_THAN_OR_EQUAL",
+  LTE: "LESS_THAN_OR_EQUAL",
+};
+
+type BackendConditionItem = {
+  leftOperand: string;
+  operator: string;
+  rightOperand?: unknown;
+};
+
+type BackendConditionGroup = {
+  operator: "AND" | "OR";
+  conditions: BackendConditionItem[];
+};
+
+type BackendConditionBranch = {
+  priority: number;
+  targetNodeId: string;
+  description?: string;
+  isDefault: boolean;
+  conditionGroups?: BackendConditionGroup[];
+};
 
 function cloneFieldSchema(field: FieldSchema): FieldSchema {
   return { ...field };
@@ -181,6 +226,357 @@ function normalizeContextRefNodes(value: unknown): string[] {
     (item): item is string =>
       typeof item === "string" && item.trim().length > 0,
   );
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return Boolean(value) && typeof value === "object" && !Array.isArray(value);
+}
+
+function normalizeConditionLogic(value: unknown): "AND" | "OR" {
+  return value === "OR" ? "OR" : "AND";
+}
+
+function normalizeConditionOperator(value: unknown): string {
+  const raw = typeof value === "string" ? value : "EQUALS";
+  return OPERATOR_MAP[raw] ?? raw;
+}
+
+function normalizeConditionReference(value: unknown): string {
+  if (typeof value !== "string") return "";
+  const trimmed = value.trim();
+  if (!trimmed) return "";
+  if (trimmed.startsWith("inputs.") || trimmed.startsWith("nodes.")) {
+    return trimmed;
+  }
+  if (trimmed === "start.output.inputMessage") {
+    return "inputs.inputMessage";
+  }
+
+  const match = /^([^.]+)\.output\.(.+)$/.exec(trimmed);
+  if (match) {
+    return `nodes.${match[1]}.${match[2]}`;
+  }
+
+  return trimmed;
+}
+
+function branchLabelForIndex(isDefault: boolean, index: number): string {
+  if (isDefault) return "否则";
+  return index === 0 ? "如果" : "否则如果";
+}
+
+function conditionItemsToUiConditions(
+  conditions: unknown,
+): UiCondition[] {
+  if (!Array.isArray(conditions)) return [];
+
+  return conditions
+    .map((item) => {
+      if (!isRecord(item)) return null;
+      const operator =
+        typeof item.operator === "string" ? item.operator : "EQUALS";
+      return {
+        sourceRef:
+          typeof item.leftOperand === "string" ? item.leftOperand : "",
+        operator,
+        value:
+          typeof item.rightOperand === "string"
+            ? item.rightOperand
+            : item.rightOperand == null
+              ? ""
+              : String(item.rightOperand),
+        valueType:
+          typeof item.rightOperand === "string" &&
+          (item.rightOperand.startsWith("inputs.") ||
+            item.rightOperand.startsWith("nodes."))
+            ? "ref"
+            : "literal",
+      } satisfies UiCondition;
+    })
+    .filter((item): item is UiCondition => item !== null);
+}
+
+function buildConditionConfigFromBackend(
+  nodeId: string,
+  userConfig: Record<string, unknown>,
+  graphEdges: Edge[],
+): ConditionBranchConfig | null {
+  const branchesRaw = userConfig.branches;
+  if (!Array.isArray(branchesRaw) || branchesRaw.length === 0) return null;
+
+  const routingStrategy =
+    userConfig.routingStrategy === "LLM" ? "LLM" : "EXPRESSION";
+  let nonDefaultIndex = 0;
+  const usedEdgeIds = new Set<string>();
+
+  const branches = branchesRaw
+    .map((raw) => {
+      if (!isRecord(raw)) return null;
+      const isDefault = raw.isDefault === true;
+      const targetNodeId =
+        typeof raw.targetNodeId === "string" ? raw.targetNodeId : "";
+      const edge = graphEdges.find(
+        (item) =>
+          item.source === nodeId &&
+          item.target === targetNodeId &&
+          !usedEdgeIds.has(item.id),
+      );
+      if (edge) usedEdgeIds.add(edge.id);
+      const branchIndex = nonDefaultIndex;
+      if (!isDefault) nonDefaultIndex += 1;
+
+      const groups = Array.isArray(raw.conditionGroups)
+        ? raw.conditionGroups
+        : [];
+      const firstGroup = groups.find(isRecord);
+      const conditions = firstGroup
+        ? conditionItemsToUiConditions(firstGroup.conditions)
+        : [];
+
+      return {
+        id:
+          typeof edge?.sourceHandle === "string" && edge.sourceHandle
+            ? edge.sourceHandle
+            : `${isDefault ? "else" : "branch"}-${nodeId}-${branchIndex}`,
+        name: branchLabelForIndex(isDefault, branchIndex),
+        type: isDefault
+          ? "else"
+          : branchIndex === 0
+            ? "if"
+            : "elseif",
+        priority:
+          typeof raw.priority === "number"
+            ? raw.priority
+            : isDefault
+              ? DEFAULT_BRANCH_PRIORITY
+              : branchIndex,
+        logic: firstGroup
+          ? normalizeConditionLogic(firstGroup.operator)
+          : "AND",
+        conditions: isDefault
+          ? []
+          : conditions.length > 0
+            ? conditions
+            : [
+                {
+                  sourceRef: "",
+                  operator: "EQUALS",
+                  value: "",
+                  valueType: "literal",
+                },
+              ],
+        description:
+          typeof raw.description === "string" ? raw.description : undefined,
+      } satisfies UiConditionBranch;
+    })
+    .filter((item): item is UiConditionBranch => item !== null);
+
+  return {
+    routingStrategy,
+    routingPrompt:
+      typeof userConfig.routingPrompt === "string"
+        ? userConfig.routingPrompt
+        : undefined,
+    llmConfigId:
+      typeof userConfig.llmConfigId === "number"
+        ? userConfig.llmConfigId
+        : undefined,
+    branches,
+  };
+}
+
+function getConditionConfig(
+  node: Node,
+  graphEdges: Edge[],
+): ConditionBranchConfig | null {
+  const data = node.data as unknown as WorkflowNodeData;
+  const userConfig = data.userConfig ?? {};
+  const existing = userConfig.conditionConfig;
+  if (isRecord(existing) && Array.isArray(existing.branches)) {
+    return existing as unknown as ConditionBranchConfig;
+  }
+  return buildConditionConfigFromBackend(node.id, userConfig, graphEdges);
+}
+
+function getConditionBranchesForHandles(
+  node: Node,
+  graphEdges: Edge[],
+): WorkflowBranch[] {
+  const config = getConditionConfig(node, graphEdges);
+  if (config?.branches?.length) {
+    return config.branches.map((branch) => ({
+      id: branch.id,
+      name: branch.name,
+    }));
+  }
+
+  const data = node.data as unknown as WorkflowNodeData;
+  return data.branches ?? [];
+}
+
+function buildBackendConditionBranches(
+  nodeId: string,
+  config: ConditionBranchConfig,
+  edges: Edge[],
+): BackendConditionBranch[] {
+  let priority = 0;
+
+  return config.branches.map((branch) => {
+    const targetNodeId =
+      edges.find(
+        (edge) => edge.source === nodeId && edge.sourceHandle === branch.id,
+      )?.target ?? "";
+
+    if (branch.type === "else") {
+      return {
+        priority: DEFAULT_BRANCH_PRIORITY,
+        targetNodeId,
+        description: branch.description,
+        isDefault: true,
+        conditionGroups: [],
+      };
+    }
+
+    const result: BackendConditionBranch = {
+      priority,
+      targetNodeId,
+      description: branch.description,
+      isDefault: false,
+    };
+    if (config.routingStrategy !== "LLM") {
+      result.conditionGroups = [
+        {
+          operator: normalizeConditionLogic(branch.logic),
+          conditions: branch.conditions.map((condition) => {
+            const operator = normalizeConditionOperator(condition.operator);
+            const item: BackendConditionItem = {
+              leftOperand: normalizeConditionReference(condition.sourceRef),
+              operator,
+            };
+            if (!NO_VALUE_OPERATORS.has(operator)) {
+              item.rightOperand =
+                condition.valueType === "ref"
+                  ? normalizeConditionReference(condition.value)
+                  : condition.value;
+            }
+            return item;
+          }),
+        },
+      ];
+    }
+    priority += 1;
+    return result;
+  });
+}
+
+function buildConditionUserConfig(
+  node: Node,
+  edges: Edge[],
+): Record<string, unknown> {
+  const data = node.data as unknown as WorkflowNodeData;
+  const userConfig = { ...(data.userConfig ?? {}) };
+  const conditionConfig = getConditionConfig(node, edges);
+  if (!conditionConfig) return userConfig;
+
+  const branches = buildBackendConditionBranches(
+    node.id,
+    conditionConfig,
+    edges,
+  );
+
+  return {
+    ...userConfig,
+    routingStrategy: conditionConfig.routingStrategy,
+    branches,
+    llmConfigId: conditionConfig.llmConfigId,
+    routingPrompt: conditionConfig.routingPrompt,
+    conditionConfig,
+  };
+}
+
+type ConditionValidationResult =
+  | { ok: true }
+  | { ok: false; message: string };
+
+function validateConditionNodes(
+  nodes: Node[],
+  edges: Edge[],
+): ConditionValidationResult {
+  for (const node of nodes) {
+    const data = node.data as unknown as WorkflowNodeData;
+    if (data.nodeType !== "CONDITION") continue;
+
+    const nodeLabel = data.label || node.id;
+    const config = getConditionConfig(node, edges);
+    if (!config || !Array.isArray(config.branches)) {
+      return {
+        ok: false,
+        message: `条件节点「${nodeLabel}」缺少分支配置`,
+      };
+    }
+
+    const elseBranches = config.branches.filter(
+      (branch) => branch.type === "else",
+    );
+    if (elseBranches.length !== 1) {
+      return {
+        ok: false,
+        message: `条件节点「${nodeLabel}」必须且只能有一个「否则」分支`,
+      };
+    }
+
+    for (const branch of config.branches) {
+      const outgoingEdges = edges.filter(
+        (edge) =>
+          edge.source === node.id && edge.sourceHandle === branch.id,
+      );
+      if (outgoingEdges.length === 0) {
+        return {
+          ok: false,
+          message: `条件节点「${nodeLabel}」的分支「${branch.name}」尚未连接目标节点`,
+        };
+      }
+      if (outgoingEdges.length > 1) {
+        return {
+          ok: false,
+          message: `条件节点「${nodeLabel}」的分支「${branch.name}」只能连接一个目标节点`,
+        };
+      }
+
+      if (
+        config.routingStrategy !== "LLM" &&
+        branch.type !== "else"
+      ) {
+        if (!Array.isArray(branch.conditions) || branch.conditions.length === 0) {
+          return {
+            ok: false,
+            message: `条件节点「${nodeLabel}」的分支「${branch.name}」至少需要一个条件`,
+          };
+        }
+
+        for (const condition of branch.conditions) {
+          const operator = normalizeConditionOperator(condition.operator);
+          if (!condition.sourceRef?.trim() || !condition.operator?.trim()) {
+            return {
+              ok: false,
+              message: `条件节点「${nodeLabel}」的分支「${branch.name}」存在未填写完整的条件`,
+            };
+          }
+          if (
+            !NO_VALUE_OPERATORS.has(operator) &&
+            !condition.value?.trim()
+          ) {
+            return {
+              ok: false,
+              message: `条件节点「${nodeLabel}」的分支「${branch.name}」缺少比较值`,
+            };
+          }
+        }
+      }
+    }
+  }
+
+  return { ok: true };
 }
 
 function normalizeWorkflowNodes(
@@ -283,6 +679,28 @@ function normalizeWorkflowNodes(
       }
     }
 
+    if (data.nodeType === "CONDITION") {
+      const conditionConfig = getConditionConfig(node, edges);
+      const branches = getConditionBranchesForHandles(node, edges);
+      userConfig = conditionConfig
+        ? {
+            ...userConfig,
+            conditionConfig,
+          }
+        : userConfig;
+      return {
+        ...node,
+        data: {
+          ...data,
+          branches,
+          inputSchema,
+          outputSchema,
+          policy: data.policy ?? defaultPolicy,
+          userConfig,
+        } satisfies WorkflowNodeData,
+      };
+    }
+
     return {
       ...node,
       data: {
@@ -314,6 +732,7 @@ function normalizeNodeType(input: unknown): WorkflowNodeType {
 
 function mapGraphToFlowNodes(graph: Record<string, unknown>): Node[] {
   const rawNodes = Array.isArray(graph.nodes) ? graph.nodes : [];
+  const graphEdges = mapGraphToFlowEdges(graph);
   return rawNodes
     .map((item, index) => {
       if (!item || typeof item !== "object") return null;
@@ -331,7 +750,7 @@ function mapGraphToFlowNodes(graph: Record<string, unknown>): Node[] {
             ? node.name
             : `节点-${index + 1}`;
       const nodeType = normalizeNodeType(node.nodeType ?? node.type);
-      const userConfig =
+      let userConfig =
         node.userConfig && typeof node.userConfig === "object"
           ? (node.userConfig as Record<string, unknown>)
           : {};
@@ -348,7 +767,7 @@ function mapGraphToFlowNodes(graph: Record<string, unknown>): Node[] {
       const pos = node.position as Record<string, unknown> | undefined;
       const x = typeof pos?.x === "number" ? pos.x : 250;
       const y = typeof pos?.y === "number" ? pos.y : index * 150 + 50;
-      return {
+      const flowNode = {
         id,
         type: "workflowNode",
         position: { x, y },
@@ -361,6 +780,26 @@ function mapGraphToFlowNodes(graph: Record<string, unknown>): Node[] {
           outputSchema,
         } satisfies WorkflowNodeData,
       } as Node;
+
+      if (nodeType === "CONDITION") {
+        const conditionConfig = getConditionConfig(flowNode, graphEdges);
+        if (conditionConfig) {
+          userConfig = { ...userConfig, conditionConfig };
+          return {
+            ...flowNode,
+            data: {
+              ...(flowNode.data as WorkflowNodeData),
+              branches: conditionConfig.branches.map((branch) => ({
+                id: branch.id,
+                name: branch.name,
+              })),
+              userConfig,
+            } satisfies WorkflowNodeData,
+          } as Node;
+        }
+      }
+
+      return flowNode;
     })
     .filter((n): n is Node => n !== null);
 }
@@ -383,6 +822,8 @@ function mapGraphToFlowEdges(graph: Record<string, unknown>): Edge[] {
               : `edge-${index + 1}`,
         source,
         target,
+        sourceHandle:
+          typeof edge.sourceHandle === "string" ? edge.sourceHandle : null,
         type: "custom",
       } as Edge;
     })
@@ -408,7 +849,10 @@ function buildGraphPayload(nodes: Node[], edges: Edge[]) {
         policy: d.policy,
         inputSchema: d.inputSchema,
         outputSchema: d.outputSchema,
-        userConfig: d.userConfig ?? {},
+        userConfig:
+          d.nodeType === "CONDITION"
+            ? buildConditionUserConfig(node, edges)
+            : (d.userConfig ?? {}),
       };
     }),
     edges: edges.map((edge) => ({
@@ -419,6 +863,18 @@ function buildGraphPayload(nodes: Node[], edges: Edge[]) {
       edgeType: "DEPENDENCY",
     })),
   };
+}
+
+function hasDirtyNodeChange(changes: NodeChange[]): boolean {
+  return changes.some((change) =>
+    ["add", "remove", "replace", "position"].includes(change.type),
+  );
+}
+
+function hasDirtyEdgeChange(changes: EdgeChange[]): boolean {
+  return changes.some((change) =>
+    ["add", "remove", "replace"].includes(change.type),
+  );
 }
 
 let nodeCounter = 0;
@@ -508,6 +964,30 @@ function WorkflowEditorPage() {
       setPublishMessage("");
     },
     [edges, setEdges, store],
+  );
+
+  const handleNodesChange = useCallback(
+    (changes: NodeChange[]) => {
+      onNodesChange(changes);
+      if (hasDirtyNodeChange(changes)) {
+        store.markDirty();
+        setSaveMessage("");
+        setPublishMessage("");
+      }
+    },
+    [onNodesChange, store],
+  );
+
+  const handleEdgesChange = useCallback(
+    (changes: EdgeChange[]) => {
+      onEdgesChange(changes);
+      if (hasDirtyEdgeChange(changes)) {
+        store.markDirty();
+        setSaveMessage("");
+        setPublishMessage("");
+      }
+    },
+    [onEdgesChange, store],
   );
 
   const onDragOver = useCallback((event: DragEvent) => {
@@ -654,6 +1134,11 @@ function WorkflowEditorPage() {
       setSaveMessage(validation.message);
       return;
     }
+    const conditionValidation = validateConditionNodes(nodes, edges);
+    if (!conditionValidation.ok) {
+      setSaveMessage(conditionValidation.message);
+      return;
+    }
     store.setOperationState("saving");
     try {
       const normalizedNodes = normalizeWorkflowNodes(
@@ -693,6 +1178,11 @@ function WorkflowEditorPage() {
     });
     if (!validation.ok) {
       setPublishMessage(validation.message);
+      return;
+    }
+    const conditionValidation = validateConditionNodes(nodes, edges);
+    if (!conditionValidation.ok) {
+      setPublishMessage(conditionValidation.message);
       return;
     }
     if (store.isDirty) {
@@ -748,8 +1238,8 @@ function WorkflowEditorPage() {
           <ReactFlow
             nodes={nodes}
             edges={edges}
-            onNodesChange={onNodesChange}
-            onEdgesChange={onEdgesChange}
+            onNodesChange={handleNodesChange}
+            onEdgesChange={handleEdgesChange}
             onConnect={onConnect}
             onInit={setRfInstance}
             onDragOver={onDragOver}

@@ -1,0 +1,39 @@
+{
+	"mcpServers": {
+		"augment-context-engine": {
+			"args": [
+				"--mcp",
+				"--mcp-auto-workspace"
+			],
+			"command": "auggie",
+			"env": {
+				"AUGMENT_SESSION_AUTH": "{\"accessToken\":\"ace_e2d77ba3f2734359e54c01cf11734c227923887b\",\"tenantURL\":\"https://acemcp.heroman.wtf/relay/\",\"scopes\":[\"email\"]}"
+			},
+			"alwaysAllow": [
+				"codebase-retrieval"
+			]
+		},
+		"fast-context": {
+			"command": "npx",
+			"args": [
+				"-y",
+				"fast-context-mcp@1.2.2"
+			],
+			"env": {
+				"WINDSURF_API_KEY": "sk-ws-01-sKlo2WHsbfXAyG7dCZD8A4AyUhUIh8AC8Z_pDF6o8gBemEZwqrXaFYCAjUCBaxrkTntuSmH9ldup2LCO_aWpzB6-JMGz3g"
+			},
+			"type": "stdio"
+		},
+		"chrome-devtools": {
+			"args": [
+				"-y",
+				"chrome-devtools-mcp@latest"
+			],
+			"command": "npx"
+		},
+		"tavily-remote-mcp": {
+			"command": "npx -y mcp-remote https://mcp.tavily.com/mcp/?tavilyApiKey=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",
+			"env": {}
+		}
+	}
+}

@@ -1,5 +1,6 @@
 import { memo, useState, useCallback } from 'react'
 import { BaseEdge, EdgeLabelRenderer, getBezierPath, Position, useReactFlow, type EdgeProps } from '@xyflow/react'
+import { useEditorStore } from '../stores/useEditorStore'
 
 function CustomEdge({ id, sourceX, sourceY, targetX, targetY }: EdgeProps) {
   const [edgePath, labelX, labelY] = getBezierPath({
@@ -20,6 +21,7 @@ function CustomEdge({ id, sourceX, sourceY, targetX, targetY }: EdgeProps) {
       e.stopPropagation()
       e.preventDefault()
       setEdges((eds) => eds.filter((edge) => edge.id !== id))
+      useEditorStore.getState().markDirty()
     },
     [id, setEdges],
   )

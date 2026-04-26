@@ -4,12 +4,13 @@ import { vi } from 'vitest'
 const { default: CanvasToolbar } = await import('../CanvasToolbar')
 
 describe('CanvasToolbar', () => {
-  it('renders 4 draggable node types', () => {
+  it('renders 5 draggable node types', () => {
     render(<CanvasToolbar />)
     expect(screen.getByText('LLM')).toBeInTheDocument()
     expect(screen.getByText('条件')).toBeInTheDocument()
     expect(screen.getByText('工具')).toBeInTheDocument()
     expect(screen.getByText('HTTP')).toBeInTheDocument()
+    expect(screen.getByText('知识库')).toBeInTheDocument()
   })
 
   it('sets drag data on dragStart', () => {

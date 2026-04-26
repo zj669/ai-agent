@@ -1,0 +1,32 @@
+{
+  "taskId": "019dc326-491a-73a8-b4a2-fcc958fc8f60",
+  "todos": [
+    {
+      "id": "c66f12542593c167ec2eacf5adf2d688",
+      "content": "继续进行全文 LaTeX 结构与引用一致性检查",
+      "status": "completed"
+    },
+    {
+      "id": "f2745413ebfed6668dede0a456916e09",
+      "content": "检查图片引用文件是否存在",
+      "status": "completed"
+    },
+    {
+      "id": "163239fe3c4c6261b3d5b45977fcae5a",
+      "content": "检查 LaTeX 编译风险（未定义引用/语法风险）",
+      "status": "completed"
+    },
+    {
+      "id": "77f67a4a7907eb061bfd00d1ed49c8d9",
+      "content": "根据检查结果修复问题",
+      "status": "completed"
+    },
+    {
+      "id": "7aef1f257076b135dec19fe1908ced99",
+      "content": "最终复查并汇总",
+      "status": "completed"
+    }
+  ],
+  "lastUpdated": 1777097708243,
+  "status": "active"
+}
