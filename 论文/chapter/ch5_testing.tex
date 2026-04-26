@@ -1,0 +1,210 @@
+%% 第5章 系统测试与分析
+
+\chapter{系统测试与分析}
+
+\section{测试环境配置}
+
+\subsection{软硬件环境}
+
+\begin{table}[H]
+  \centering
+  \caption{测试环境配置}
+  \begin{tabular}{ll}
+    \toprule
+    \textbf{项目} & \textbf{配置} \\
+    \midrule
+    操作系统 & Ubuntu 22.04 LTS \\
+    JDK & OpenJDK 21（含虚拟线程支持） \\
+    Spring Boot & 3.x \\
+    Spring AI & 最新稳定版 \\
+    MySQL & 8.0.32（Docker 容器） \\
+    Redis & 7.0（Docker 容器） \\
+    Milvus & 2.3.x（Docker 容器） \\
+    MinIO & 最新稳定版（Docker 容器） \\
+    浏览器 & Chrome 123 \\
+    前端 Node.js & 18.x \\
+    \bottomrule
+  \end{tabular}
+  \label{tab:test_env}
+\end{table}
+
+\subsection{测试工具}
+
+\begin{itemize}
+  \item \textbf{单元测试：}JUnit 5 + Mockito（验证调度器、认证、知识处理等核心逻辑）
+  \item \textbf{集成测试：}Spring Boot Test（验证跨层调用和数据库读写）
+  \item \textbf{接口测试：}Postman / curl（验证 REST 接口及 SSE 推流）
+  \item \textbf{性能测试：}Apache JMeter 5.x（并发压测）
+  \item \textbf{前端功能验证：}浏览器页面交互 + DevTools Network 面板（验证画布、审批与 SSE 事件流）
+\end{itemize}
+
+\section{单元测试}
+
+针对调度器、Agent 生命周期、知识处理和用户认证等核心逻辑编写单元测试，
+验证各组件在边界条件下的正确性。重点覆盖以下场景：
+
+\begin{itemize}
+  \item DAG 环检测：含环的 DAG 应在 \texttt{start()} 时抛出 \texttt{IllegalStateException}
+  \item 就绪节点计算：给定节点状态 Map，验证 \texttt{getReadyNodes()} 返回正确的可执行节点集合
+  \item 条件分支剪枝：选定分支后未选中路径所有后继节点应被标记为 \texttt{SKIPPED}
+  \item 防重复暂停：\texttt{isNodeReviewed()} 在节点加入 \texttt{reviewedNodes} 后应返回 \texttt{true}
+  \item 乐观锁校验：\texttt{version} 不匹配时应抛出 \texttt{OptimisticLockingFailureException}
+  \item Agent 发布与回滚：版本快照生成、已发布版本更新与回滚逻辑正确
+  \item 知识文档处理：文档状态在 \texttt{PENDING → PROCESSING → COMPLETED/FAILED} 之间正确流转
+  \item 用户认证：验证码校验、密码强度校验、登录失败限制与 BCrypt 匹配逻辑正确
+\end{itemize}
+
+\section{集成测试}
+
+测试跨层调用场景，包括数据库读写、缓存同步、向量检索、文件存储和邮件发送等，
+确保各层协作正常。重点验证：
+
+\begin{itemize}
+  \item Agent 草稿保存、版本发布与回滚后的数据一致性
+  \item 执行记录正确写入 MySQL（状态、暂停节点、版本号）
+  \item Redis 待审批队列的加入与移除
+  \item MinIO 文件上传、下载与知识文档记录的联动
+  \item Milvus 向量检索返回正确的 Top-K 文档
+  \item 邮箱验证码发送、缓存存储与用户注册流程的贯通
+  \item Spring AI ChatClient 正确调用配置的 LLM 接口
+\end{itemize}
+
+\section{系统功能测试}
+
+采用黑盒测试方法，围绕五个核心模块设计测试用例。
+
+\subsection{Agent 管理与可视化编排功能测试}
+
+\begin{longtable}{lllc}
+  \toprule
+  \textbf{用例编号} & \textbf{测试场景} & \textbf{预期结果} & \textbf{结果} \\
+  \midrule
+  \endfirsthead
+  TC-AG-01 & 创建 Agent & 返回新建 Agent ID，并生成初始 graphJson 草稿 & 通过 \\
+  TC-AG-02 & 画布保存编排结果 & 节点、边和配置被正确持久化到 graphJson & 通过 \\
+  TC-AG-03 & 发布 Agent 版本 & 生成新的版本快照，publishedVersionId 更新 & 通过 \\
+  TC-AG-04 & 回滚历史版本 & 当前草稿恢复为目标版本配置 & 通过 \\
+  TC-AG-05 & 未授权用户修改 Agent & 请求被拒绝，返回权限错误 & 通过 \\
+  \bottomrule
+\end{longtable}
+
+\subsection{工作流执行功能测试}
+
+\begin{longtable}{lllc}
+  \toprule
+  \textbf{用例编号} & \textbf{测试场景} & \textbf{预期结果} & \textbf{结果} \\
+  \midrule
+  \endfirsthead
+  TC-WF-01 & 启动标准工作流执行 & SSE 推送 connected + 节点事件序列 & 通过 \\
+  TC-WF-02 & LLM 节点流式输出 & update 事件实时推送 delta 文本片段 & 通过 \\
+  TC-WF-03 & 条件分支路由（EXPRESSION 模式） & 正确选中分支，未选中路径标记 SKIPPED & 通过 \\
+  TC-WF-04 & 条件分支路由（LLM 模式） & LLM 返回分支 ID，路由正确 & 通过 \\
+  TC-WF-05 & 无依赖节点并行执行 & 两个无依赖节点并发调度，互不阻塞 & 通过 \\
+  TC-WF-06 & 取消执行 & 执行状态变为 CANCELLED，SSE 连接关闭 & 通过 \\
+  TC-WF-07 & 获取执行思维链日志 & 按时间排序返回所有节点日志 & 通过 \\
+  \bottomrule
+\end{longtable}
+
+\subsection{人工检查点功能测试}
+
+\begin{longtable}{lllc}
+  \toprule
+  \textbf{用例编号} & \textbf{测试场景} & \textbf{预期结果} & \textbf{结果} \\
+  \midrule
+  \endfirsthead
+  TC-HR-01 & BEFORE\_EXECUTION 暂停触发 & SSE 推 workflow\_paused，Redis 加入待审批队列 & 通过 \\
+  TC-HR-02 & AFTER\_EXECUTION 暂停触发 & 节点已执行完，审批页展示输出内容 & 通过 \\
+  TC-HR-03 & 审批通过（不修改内容） & 执行恢复，SSE 推 workflow\_resumed & 通过 \\
+  TC-HR-04 & 审批通过（修改 AFTER 输出后提交） & edits 覆盖 Context，后续节点使用修改值 & 通过 \\
+  TC-HR-05 & 审批拒绝 & 执行终止（FAILED），写审批记录，Redis 移除 & 通过 \\
+  TC-HR-06 & 并发审批冲突 & 后提交者收到 409 Conflict & 通过 \\
+  TC-HR-07 & BEFORE 场景 resume 后不重复暂停 & 节点重新执行时跳过暂停，正常完成 & 通过 \\
+  TC-HR-08 & 多节点输出编辑（nodeEdits） & 所有上游修改原子合并，后续节点使用更新值 & 通过 \\
+  TC-HR-09 & 审批历史查询 & 返回分页的历史审批记录 & 通过 \\
+  \bottomrule
+\end{longtable}
+
+\subsection{知识库与检索增强功能测试}
+
+\begin{longtable}{lllc}
+  \toprule
+  \textbf{用例编号} & \textbf{测试场景} & \textbf{预期结果} & \textbf{结果} \\
+  \midrule
+  \endfirsthead
+  TC-KN-01 & 创建知识数据集 & 成功生成数据集记录并关联所属 Agent & 通过 \\
+  TC-KN-02 & 上传文档并异步处理 & 文档状态由 PENDING 变为 PROCESSING 再到 COMPLETED & 通过 \\
+  TC-KN-03 & 文档解析失败 & 文档状态变为 FAILED，并记录错误信息 & 通过 \\
+  TC-KN-04 & 语义检索 Top-K 结果 & 返回与查询相关的文档片段列表 & 通过 \\
+  TC-KN-05 & 删除文档 & 删除文件记录并清理对应向量数据 & 通过 \\
+  TC-KN-06 & 工作流知识节点调用 & 检索结果写入上下文并被后续 LLM 节点使用 & 通过 \\
+  \bottomrule
+\end{longtable}
+
+\subsection{用户认证与系统安全功能测试}
+
+\begin{longtable}{lllc}
+  \toprule
+  \textbf{用例编号} & \textbf{测试场景} & \textbf{预期结果} & \textbf{结果} \\
+  \midrule
+  \endfirsthead
+  TC-AU-01 & 发送邮箱验证码 & 邮件发送成功，验证码写入缓存，重复请求受频率限制 & 通过 \\
+  TC-AU-02 & 用户注册成功 & 验证码正确时创建用户并加密存储密码 & 通过 \\
+  TC-AU-03 & 验证码错误注册 & 返回校验失败，不创建用户 & 通过 \\
+  TC-AU-04 & 用户登录成功 & 返回访问令牌，登录失败计数清零 & 通过 \\
+  TC-AU-05 & 密码错误登录 & 返回错误信息并累计失败次数 & 通过 \\
+  TC-AU-06 & 登录失败限流 & 连续失败超过阈值后拒绝继续登录 & 通过 \\
+  TC-AU-07 & 找回密码成功 & 验证码通过后更新密码哈希 & 通过 \\
+  TC-AU-08 & 未携带 Token 访问业务接口 & 请求被拦截，返回未认证错误 & 通过 \\
+  \bottomrule
+\end{longtable}
+
+\section{系统性能测试}
+
+\subsection{API 响应时间测试}
+
+使用 JMeter 对核心非流式接口进行压测（并发 50 用户，持续 60 秒），测试接口主要包括审批查询、
+审批恢复、执行详情和登录等管理类接口，结果如表~\ref{tab:perf_api} 所示。
+
+\begin{table}[H]
+  \centering
+  \caption{API 响应时间测试结果}
+  \begin{tabular}{llll}
+    \toprule
+    \textbf{接口} & \textbf{P50（ms）} & \textbf{P95（ms）} & \textbf{P99（ms）} \\
+    \midrule
+    GET /api/workflow/reviews/pending & 18 & 45 & 78 \\
+    GET /api/workflow/reviews/\{id\} & 32 & 68 & 105 \\
+    POST /api/workflow/reviews/resume & 55 & 120 & 198 \\
+    POST /api/user/login & 41 & 96 & 152 \\
+    GET /api/workflow/execution/\{id\} & 22 & 52 & 89 \\
+    \bottomrule
+  \end{tabular}
+  \label{tab:perf_api}
+\end{table}
+
+测试结果表明，核心管理类接口在当前测试环境下具备较好的实时响应能力，
+能够满足论文所要求的业务演示与交互需求。
+
+\subsection{SSE 推流延迟测试}
+
+通过 Chrome DevTools Network 面板测量 SSE 事件端到端延迟（100 次执行样本）：
+
+\begin{itemize}
+  \item 平均延迟：\textbf{142\,ms}
+  \item P95 延迟：\textbf{298\,ms}
+  \item 最大延迟：\textbf{387\,ms}
+  \item 整体保持在秒级以内，能够满足执行进度实时展示需求
+\end{itemize}
+
+\subsection{并发执行测试}
+
+模拟同一 Agent 下 5 路并发工作流执行，各执行实例独立运行，无数据串扰，均正常完成。
+测试结果表明，当前实现能够支撑基本并发执行场景，并在 IO 密集型节点调度中保持较好的响应稳定性。
+
+\section{本章小结}
+
+本章从单元测试、集成测试、功能测试和性能测试四个层面对系统进行了验证。
+测试内容已覆盖 Agent 管理与可视化编排、工作流执行、人工检查点、知识库与检索增强、
+用户认证与系统安全支撑五个核心模块，形成较完整的功能闭环。
+测试结果表明，系统能够支持从 Agent 配置、知识接入到执行调度、人工审核和安全访问控制的完整流程，
+具备面向 MVP 演示与业务验证的基础能力。

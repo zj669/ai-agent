@@ -1,0 +1,313 @@
+%% ===========================================================
+%% swust_thesis.sty — 西南科技大学本科毕业论文样式包
+%% 严格遵照《2026版撰写规范》逐条实现
+%% 编译方式：XeLaTeX
+%% ===========================================================
+\NeedsTeXFormat{LaTeX2e}
+\ProvidesPackage{swust_thesis}[2026/03/27 SWUST Thesis v4]
+
+%% ============================================================
+%% 宏包加载（注意：不使用 titletoc，改用手动 TOC 格式）
+%% ============================================================
+\RequirePackage{geometry}
+\RequirePackage{fontspec}
+\RequirePackage{xeCJK}
+\RequirePackage{amsthm}         % 必须在 unicode-math 之前加载
+\RequirePackage{unicode-math}   % 替代 amsmath/amssymb/mathtools，提供标准数学字体
+\RequirePackage{fancyhdr}
+\RequirePackage{titlesec}
+\RequirePackage{graphicx}
+\RequirePackage{booktabs,array,tabularx,multirow,threeparttable}
+\RequirePackage{listings}
+\RequirePackage{xcolor}
+\RequirePackage{tikz}
+\RequirePackage{caption}
+\RequirePackage{enumitem}
+\RequirePackage{indentfirst}
+\RequirePackage{zhnumber}
+\RequirePackage[titles]{tocloft}
+\RequirePackage[super]{gbt7714}   %% 数字上标引用，符合GB/T 7714-2015
+\RequirePackage{hyperref}
+
+%% ============================================================
+%% 字体配置
+%% ============================================================
+\setCJKmainfont[BoldFont=FandolSong-Bold, ItalicFont=FandolKai-Regular]{FandolSong-Regular}
+\setCJKsansfont[BoldFont=FandolHei-Bold]{FandolHei-Regular}
+\setCJKmonofont{Noto Sans Mono CJK SC}
+
+\setCJKfamilyfont{zhsong}[BoldFont=FandolSong-Bold]{FandolSong-Regular}
+\setCJKfamilyfont{zhhei}[BoldFont=FandolHei-Bold]{FandolHei-Regular}
+\setCJKfamilyfont{zhkai}{FandolKai-Regular}
+\renewcommand{\songti}{\CJKfamily{zhsong}}
+\renewcommand{\heiti}{\CJKfamily{zhhei}}
+\renewcommand{\kaishu}{\CJKfamily{zhkai}}
+
+\setmainfont{TeX Gyre Termes}
+\setsansfont{TeX Gyre Heros}
+\setmathfont{TeX Gyre Termes Math}  % 数学字体匹配正文 Times
+
+%% ============================================================
+%% 页面设置（规范 §二(六)）
+%% ============================================================
+\geometry{
+  a4paper,
+  top=2.5cm, bottom=2.5cm, left=2.5cm, right=2.5cm,
+  headheight=14pt,
+  headsep=0.5cm,
+  footskip=1.0cm,
+}
+
+%% ============================================================
+%% 行距：固定值 22 磅
+%% ============================================================
+\linespread{1.527}
+\setlength{\parindent}{2em}
+\setlength{\parskip}{0pt}
+
+%% ============================================================
+%% 页眉页脚（规范 §二(六)1/3）
+%% ============================================================
+\pagestyle{fancy}
+\fancyhf{}
+%% 规范要求页眉字体为5号华文行楷（STXingkai）
+%% 若系统已安装华文行楷，请取消下行注释并注释掉 kaishu 行：
+%% \fancyhead[C]{\zihao{5}\CJKfontspec{STXingkai} 西南科技大学本科生毕业论文（设计）}
+\fancyhead[C]{\zihao{5}\kaishu 西南科技大学本科生毕业论文（设计）}
+\fancyfoot[C]{\zihao{-5}\songti\thepage}
+\renewcommand{\headrulewidth}{0pt}
+\renewcommand{\headrule}{%
+  \hrule height 0.5pt width\headwidth\vskip 1.2pt
+  \hrule height 2.5pt width\headwidth\vskip-3.7pt
+}
+
+\fancypagestyle{plain}{%
+  \fancyhf{}%
+  %% 同上：若安装华文行楷则替换 kaishu 为 CJKfontspec{STXingkai}
+  \fancyhead[C]{\zihao{5}\kaishu 西南科技大学本科生毕业论文（设计）}%
+  \fancyfoot[C]{\zihao{-5}\songti\thepage}%
+  \renewcommand{\headrulewidth}{0pt}%
+  \renewcommand{\headrule}{%
+    \hrule height 0.5pt width\headwidth\vskip 1.2pt
+    \hrule height 2.5pt width\headwidth\vskip-3.7pt
+  }%
+}
+
+\fancypagestyle{empty}{%
+  \fancyhf{}%
+  \renewcommand{\headrulewidth}{0pt}%
+  \renewcommand{\headrule}{}%
+}
+
+%% ============================================================
+%% 章节标题格式（规范 §二(五)）
+%% ============================================================
+
+\titleformat{\chapter}[block]
+  {\centering\zihao{-2}\heiti}
+  {第\,\thechapter\,章}
+  {1em}
+  {}
+\titlespacing{\chapter}{0pt}{0pt}{18pt}
+
+\titleformat{\section}[block]
+  {\zihao{4}\heiti}
+  {\thesection}
+  {1em}
+  {}
+\titlespacing{\section}{0pt}{12pt}{6pt}
+
+\titleformat{\subsection}[block]
+  {\zihao{-4}\heiti}
+  {\thesubsection}
+  {1em}
+  {}
+\titlespacing{\subsection}{0pt}{6pt}{4pt}
+
+\titleformat{\subsubsection}[block]
+  {\zihao{-4}\songti}
+  {\thesubsubsection}
+  {1em}
+  {}
+\titlespacing{\subsubsection}{0pt}{4pt}{2pt}
+
+\renewcommand{\thechapter}{\arabic{chapter}}
+\renewcommand{\thesection}{\thechapter.\arabic{section}}
+\renewcommand{\thesubsection}{\thesection.\arabic{subsection}}
+
+%% ============================================================
+%% 目录格式（规范 §二(八)）用 tocloft
+%% ============================================================
+
+%% 目录标题
+\renewcommand{\contentsname}{\centering\zihao{-2}\heiti 目\quad 录}
+
+%% 章条目格式（小4号黑体）
+\renewcommand{\cftchapfont}{\zihao{-4}\heiti}
+\renewcommand{\cftchappagefont}{\zihao{-4}}
+\renewcommand{\cftchapleader}{\cftdotfill{\cftdotsep}}
+\setlength{\cftchapnumwidth}{5em}
+\cftsetindents{chapter}{0em}{5em}
+
+%% 节条目格式（小4号宋体）
+\renewcommand{\cftsecfont}{\zihao{-4}\songti}
+\renewcommand{\cftsecpagefont}{\zihao{-4}}
+\renewcommand{\cftsecleader}{\cftdotfill{\cftdotsep}}
+\cftsetindents{section}{1.5em}{2.2em}
+
+%% 小节条目格式（小4号宋体）
+\renewcommand{\cftsubsecfont}{\zihao{-4}\songti}
+\renewcommand{\cftsubsecpagefont}{\zihao{-4}}
+\renewcommand{\cftsubsecleader}{\cftdotfill{\cftdotsep}}
+\cftsetindents{subsection}{3.5em}{3em}
+
+%% ============================================================
+%% 摘要环境
+%% ============================================================
+\newcommand{\cnabstract}{%
+  \clearpage
+  \phantomsection
+  \addcontentsline{toc}{chapter}{摘要}
+  \begin{center}
+    {\zihao{-1}\heiti 基于Spring Boot的AI Agent智能体编排系统的设计与实现}\\[0.8cm]
+    {\zihao{-2}\heiti 摘\quad 要}
+  \end{center}
+  \vspace{0.5cm}
+  \zihao{-4}\songti
+}
+\newcommand{\cnkeywords}[1]{%
+  \vspace{\baselineskip}\noindent{\zihao{-4}\heiti 关键词：}{\zihao{-4}\songti #1}
+}
+
+\newcommand{\enabstract}{%
+  \clearpage
+  \phantomsection
+  \addcontentsline{toc}{chapter}{Abstract}
+  \begin{center}{\zihao{-2}\bfseries Abstract}\end{center}
+  \vspace{0.5cm}
+  \zihao{-4}
+}
+\newcommand{\enkeywords}[1]{%
+  \vspace{\baselineskip}\noindent{\zihao{-4}\textbf{Keywords: }}{\zihao{-4} #1}
+}
+
+%% ============================================================
+%% 致谢环境
+%% ============================================================
+\newcommand{\acknowledgement}{%
+  \clearpage
+  \phantomsection
+  \addcontentsline{toc}{chapter}{致谢}
+  \begin{center}{\zihao{-2}\heiti 致\quad 谢}\end{center}
+  \vspace{0.5cm}
+  \zihao{-4}\songti
+}
+
+%% ============================================================
+%% 参考文献标题
+%% ============================================================
+\renewcommand{\bibname}{\centering\zihao{-2}\heiti 参考文献}
+
+%% ============================================================
+%% 公式编号：(式 章号-公式号)  规范 §十五(二)
+%% ============================================================
+\numberwithin{equation}{chapter}
+\renewcommand{\theequation}{式\,\thechapter-\arabic{equation}}
+%% 自定义方程标签样式
+\let\oldlabel\label
+\renewcommand{\label}[1]{%
+  \oldlabel{#1}%
+}
+
+%% ============================================================
+%% 图表题注
+%% ============================================================
+\numberwithin{figure}{chapter}
+\numberwithin{table}{chapter}
+\renewcommand{\thefigure}{\thechapter-\arabic{figure}}
+\renewcommand{\thetable}{\thechapter-\arabic{table}}
+\captionsetup{labelsep=space, font=small, labelfont=bf, justification=centering}
+\captionsetup[figure]{name={图}}
+\captionsetup[table]{name={表}}
+
+%% 规范要求表内文字说明为5号宋体
+\RequirePackage{etoolbox}
+\AtBeginEnvironment{table}{\zihao{5}\songti}
+
+%% ============================================================
+%% 定理环境
+%% ============================================================
+\theoremstyle{plain}
+\newtheorem{theorem}{定理}[chapter]
+\newtheorem{lemma}[theorem]{引理}
+\newtheorem{proposition}[theorem]{命题}
+\newtheorem{corollary}[theorem]{推论}
+\theoremstyle{definition}
+\newtheorem{definition}{定义}[chapter]
+\newtheorem{example}{例}[chapter]
+\theoremstyle{remark}
+\newtheorem{remark}{注}[chapter]
+
+%% ============================================================
+%% 代码样式（支持 Unicode 字符）
+%% ============================================================
+%% 定义支持 CJK/Unicode 的等宽字体命令
+\newfontfamily\codefont{Noto Sans Mono CJK SC}[Scale=0.85]
+\lstset{
+  basicstyle=\zihao{5}\codefont,
+  literate=
+    {ε}{{$\varepsilon$}}1
+    {ζ}{{$\zeta$}}1
+    {π}{{$\pi$}}1
+    {Δ}{{$\Delta$}}1
+    {∞}{{$\infty$}}1
+    {≈}{{$\approx$}}1
+    {²}{{$^2$}}1
+    {³}{{$^3$}}1
+    {→}{{$\to$}}1,
+}
+
+\lstdefinestyle{matlab}{
+  language=Matlab,
+  basicstyle=\zihao{5}\codefont,
+  numbers=left, numberstyle=\tiny\color{gray},
+  backgroundcolor=\color{gray!5},
+  showstringspaces=false,
+  keywordstyle=\color{blue}\bfseries,
+  commentstyle=\color{green!60!black}\itshape,
+  stringstyle=\color{orange},
+  breaklines=true, frame=single,
+  rulecolor=\color{gray!40}, tabsize=4,
+}
+
+%% ============================================================
+%% 超链接
+%% ============================================================
+\hypersetup{
+  colorlinks=true, linkcolor=black, citecolor=black, urlcolor=black,
+  bookmarks=true, pdfencoding=auto,
+}
+
+%% ============================================================
+%% 引用格式
+%% ============================================================
+\newcommand{\upcite}[1]{\textsuperscript{\cite{#1}}}
+
+%% ============================================================
+%% 附录章命令（规范 §二(二十)）
+%% ============================================================
+\newcounter{appendixnum}
+\newcommand{\appendixchapter}[1]{%
+  \clearpage
+  \stepcounter{appendixnum}%
+  \phantomsection
+  \addcontentsline{toc}{chapter}{附录\theappendixnum\quad #1}%
+  \begin{center}{\zihao{-2}\heiti 附录\,\theappendixnum\quad #1}\end{center}
+  \vspace{0.5cm}
+}
+
+%% ============================================================
+%% 便利命令
+%% ============================================================
+\newcommand{\abs}[1]{\left|#1\right|}
+\newcommand{\norm}[1]{\left\|#1\right\|}

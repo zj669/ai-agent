@@ -1,0 +1,46 @@
+\begin{thebibliography}{6}
+\providecommand{\natexlab}[1]{#1}
+\providecommand{\url}[1]{#1}
+\expandafter\ifx\csname urlstyle\endcsname\relax\else
+  \urlstyle{same}\fi
+\expandafter\ifx\csname href\endcsname\relax
+  \DeclareUrlCommand\doi{\urlstyle{rm}}
+  \def\eprint#1#2{#2}
+\else
+  \def\doi#1{\href{https://doi.org/#1}{\nolinkurl{#1}}}
+  \let\eprint\href
+\fi
+
+\bibitem[dif(2024)]{dify2024}
+Dify: Open-source llm app development platform\allowbreak[EB/OL].
+\newblock 2024.
+\newblock \url{https://dify.ai}.
+
+\bibitem[coz(2024)]{coze2024}
+Coze: Ai chatbot and agent platform\allowbreak[EB/OL].
+\newblock 2024.
+\newblock \url{https://www.coze.com}.
+
+\bibitem[lan(2024)]{langgraph2024}
+Langgraph: Build stateful, multi-actor applications with
+  llms\allowbreak[EB/OL].
+\newblock 2024.
+\newblock \url{https://github.com/langchain-ai/langgraph}.
+
+\bibitem[Wu et~al.(2023)]{wu2023autogen}
+WU Q, et~al.
+\newblock Autogen: Enabling next-gen llm applications via multi-agent
+  conversation\allowbreak[A].
+\newblock 2023.
+
+\bibitem[lan(2023)]{langchain2023}
+Langchain: Building applications with llms\allowbreak[EB/OL].
+\newblock 2023.
+\newblock \url{https://www.langchain.com}.
+
+\bibitem[spr(2024)]{springai2024}
+Spring ai: Ai engineering for spring applications\allowbreak[EB/OL].
+\newblock 2024.
+\newblock \url{https://docs.spring.io/spring-ai/reference/}.
+
+\end{thebibliography}

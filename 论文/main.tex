@@ -1,0 +1,79 @@
+% !TEX program = xelatex
+%% main.tex — 西南科技大学本科毕业论文
+%% 题目：基于Spring Boot的AI Agent智能体编排系统的设计与实现
+%% 编译命令：xelatex -shell-escape main.tex （运行两次生成正确交叉引用）
+
+\documentclass[12pt, a4paper, openany]{ctexbook}
+\usepackage{swust_thesis}
+\usepackage{listings}
+\usepackage{xcolor}
+\usepackage{graphicx}
+\graphicspath{{figures/}{./figures/}}
+\usepackage{booktabs}
+\usepackage{longtable}
+\usepackage{float}
+\usepackage{tikz}
+
+%% 代码块全局样式
+\lstset{
+  basicstyle=\zihao{-5}\ttfamily,
+  breaklines=true,
+  frame=single,
+  numbers=left,
+  numberstyle=\tiny\color{gray},
+  keywordstyle=\color{blue!80!black},
+  commentstyle=\color{green!60!black},
+  stringstyle=\color{red!70!black},
+  tabsize=4,
+}
+
+\begin{document}
+
+%% ========== 前置部分（罗马页码，无页眉）==========
+\pagenumbering{Roman}
+\fancypagestyle{frontmatter}{%
+  \fancyhf{}%
+  \fancyfoot[C]{\zihao{-5}\songti\thepage}%
+  \renewcommand{\headrulewidth}{0pt}%
+  \renewcommand{\headrule}{}%
+}
+\pagestyle{frontmatter}
+
+%% 摘要（中英文）
+\include{chapter/abstract}
+
+%% 目录
+\clearpage
+\tableofcontents
+
+%% ========== 正文（阿拉伯页码，有页眉）==========
+\clearpage
+\pagestyle{fancy}
+\pagenumbering{arabic}
+
+\include{chapter/ch1_intro}           %% 第1章 绪论
+\include{chapter/ch2_requirements}   %% 第2章 系统需求分析
+\include{chapter/ch3_design}         %% 第3章 系统概要设计
+\include{chapter/ch4_implementation} %% 第4章 核心技术与详细实现
+\include{chapter/ch5_testing}        %% 第5章 系统测试与分析
+\include{chapter/ch6_conclusion}     %% 第6章 结论与展望
+
+%% ========== 后置部分 ==========
+\include{chapter/acknowledgement}    %% 致谢
+
+\clearpage
+\phantomsection
+\addcontentsline{toc}{chapter}{参考文献}
+{\zihao{5}\songti
+\bibliography{refs}
+}
+
+\include{chapter/appendix}           %% 附录
+
+%% 封底（空白页）
+\clearpage
+\thispagestyle{empty}
+\null
+\clearpage
+
+\end{document}

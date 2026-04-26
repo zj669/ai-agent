@@ -8,7 +8,6 @@
 /.qoder/
 /.mvn/
 /aiagemt/
-/论文/
 
 # ===== AI 工具配置目录 =====
 # 仅保留 .blueprint 和 .claude，其他 AI 工具目录全部排除
@@ -86,9 +85,6 @@ probe_*.json
 ### 测试报告 ###
 midscene_run/
 test-results/
-
-# ===== Docker 初始化脚本（权威副本在 ai-agent-infrastructure/）=====
-docker/init/
 
 # ===== 前端项目排除 =====
 /app/

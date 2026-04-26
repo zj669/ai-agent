@@ -1,0 +1,60 @@
+%% main.tex — 西南科技大学本科毕业论文
+%% 编译：xelatex main.tex（运行两次生成正确交叉引用）
+
+\documentclass[12pt, a4paper, openany]{ctexbook}
+\usepackage{swust_thesis}
+\usepackage{listings}
+\usepackage{xcolor}
+
+\begin{document}
+
+%% ========== 前置部分 ==========
+%% 摘要：无页眉，有罗马数字页码
+\pagenumbering{Roman}
+\fancypagestyle{frontmatter}{%
+  \fancyhf{}%
+  \fancyfoot[C]{\zihao{-5}\songti\thepage}%
+  \renewcommand{\headrulewidth}{0pt}%
+  \renewcommand{\headrule}{}%
+}
+\pagestyle{frontmatter}
+\include{chapters/abstract}
+
+%% 目录
+\clearpage
+\tableofcontents
+
+%% ========== 正文（阿拉伯数字，从1开始，含页眉）==========
+\clearpage
+\pagestyle{fancy}
+\pagenumbering{arabic}
+
+\include{chapters/ch1_intro}
+\include{chapters/ch2_theory}
+\include{chapters/ch3_analytic}
+\include{chapters/ch4_numerical}
+\include{chapters/ch5_spectrum}
+\include{chapters/ch6_conclusion}
+
+%% ========== 后置部分 ==========
+%% 致谢
+\include{chapters/acknowledgement}
+
+%% 参考文献
+\clearpage
+\phantomsection
+\addcontentsline{toc}{chapter}{参考文献}
+{\zihao{5}\songti
+\bibliography{refs}
+}
+
+%% 附录
+\include{chapters/appendix}
+
+%% 封底（空白页）
+\clearpage
+\thispagestyle{empty}
+\null
+\clearpage
+
+\end{document}

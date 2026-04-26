@@ -1,0 +1,134 @@
+\relax 
+\providecommand\hyper@newdestlabel[2]{}
+\@writefile{toc}{\contentsline {chapter}{\numberline {第四章\hspace  {.3em}}系统详细设计与实现}{23}{chapter.4}\protected@file@percent }
+\@writefile{lof}{\addvspace {10.0pt}}
+\@writefile{lot}{\addvspace {10.0pt}}
+\@writefile{toc}{\contentsline {section}{\numberline {4.1}用户认证与系统安全支撑实现}{23}{section.4.1}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {4.1.1}注册、登录与密码找回流程}{23}{subsection.4.1.1}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsubsection}{（1）实现过程}{23}{subsubsection*.31}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsubsection}{（2）关键代码}{23}{subsubsection*.32}\protected@file@percent }
+\@writefile{lol}{\contentsline {lstlisting}{\numberline {4.1}{\ignorespaces 代码4-1 UserAuthenticationDomainService -- 用户认证核心逻辑}}{23}{lstlisting.4.1}\protected@file@percent }
+\@writefile{lol}{\contentsline {lstlisting}{\numberline {4.2}{\ignorespaces 代码4-2 EmailServiceImpl -- 验证码异步发送}}{24}{lstlisting.4.2}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsubsection}{（3）界面展示}{24}{subsubsection*.33}\protected@file@percent }
+\@writefile{lof}{\contentsline {figure}{\numberline {4-1}{\ignorespaces 用户认证界面}}{25}{figure.caption.34}\protected@file@percent }
+\newlabel{fig:auth_ui}{{4-1}{25}{用户认证界面}{figure.caption.34}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {4.1.2}安全控制机制}{25}{subsection.4.1.2}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsubsection}{（1）实现过程}{25}{subsubsection*.35}\protected@file@percent }
+\@writefile{toc}{\contentsline {section}{\numberline {4.2}Agent 管理与可视化编排实现}{26}{section.4.2}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {4.2.1}Agent 创建与版本管理}{26}{subsection.4.2.1}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsubsection}{（1）实现过程}{26}{subsubsection*.36}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsubsection}{（2）关键代码}{26}{subsubsection*.37}\protected@file@percent }
+\@writefile{lol}{\contentsline {lstlisting}{\numberline {4.3}{\ignorespaces 代码4-3 AgentApplicationService -- Agent 生命周期管理关键代码}}{26}{lstlisting.4.3}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsubsection}{（3）界面展示}{27}{subsubsection*.38}\protected@file@percent }
+\@writefile{lof}{\contentsline {figure}{\numberline {4-2}{\ignorespaces Agent 可视化编排界面}}{27}{figure.caption.39}\protected@file@percent }
+\newlabel{fig:agent_editor}{{4-2}{27}{Agent 可视化编排界面}{figure.caption.39}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {4.2.2}工作流图定义与运行时衔接}{27}{subsection.4.2.2}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsubsection}{（1）实现过程}{27}{subsubsection*.40}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsubsection}{（2）关键代码}{28}{subsubsection*.41}\protected@file@percent }
+\@writefile{lol}{\contentsline {lstlisting}{\numberline {4.4}{\ignorespaces 代码4-4 SchedulerService -- graphJson 装载与工作流图解析}}{28}{lstlisting.4.4}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsubsection}{（3）界面展示}{28}{subsubsection*.42}\protected@file@percent }
+\@writefile{lof}{\contentsline {figure}{\numberline {4-3}{\ignorespaces Agent 列表与版本管理界面}}{29}{figure.caption.43}\protected@file@percent }
+\newlabel{fig:agent_list}{{4-3}{29}{Agent 列表与版本管理界面}{figure.caption.43}{}}
+\@writefile{toc}{\contentsline {section}{\numberline {4.3}工作流调度执行实现}{29}{section.4.3}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {4.3.1}工作流执行启动模块}{29}{subsection.4.3.1}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsubsection}{（1）实现过程}{29}{subsubsection*.44}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsubsection}{（2）关键代码}{29}{subsubsection*.45}\protected@file@percent }
+\@writefile{lol}{\contentsline {lstlisting}{\numberline {4.5}{\ignorespaces 代码4-5 SchedulerService -- startExecution 启动流程关键代码}}{29}{lstlisting.4.5}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsubsection}{（3）界面展示}{30}{subsubsection*.46}\protected@file@percent }
+\@writefile{lof}{\contentsline {figure}{\numberline {4-4}{\ignorespaces 工作流执行界面}}{30}{figure.caption.47}\protected@file@percent }
+\newlabel{fig:wf_exec}{{4-4}{30}{工作流执行界面}{figure.caption.47}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {4.3.2}DAG 调度核心模块（Execution 聚合根）}{30}{subsection.4.3.2}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsubsection}{（1）实现过程}{30}{subsubsection*.48}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsubsection}{（2）关键代码}{31}{subsubsection*.49}\protected@file@percent }
+\@writefile{lol}{\contentsline {lstlisting}{\numberline {4.6}{\ignorespaces 代码4-6 Execution.advance() -- DAG 调度推进关键代码}}{31}{lstlisting.4.6}\protected@file@percent }
+\@writefile{lol}{\contentsline {lstlisting}{\numberline {4.7}{\ignorespaces 代码4-7 Execution.skipNodeRecursively() -- 条件分支路径剪枝}}{32}{lstlisting.4.7}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsubsection}{（3）界面展示}{32}{subsubsection*.50}\protected@file@percent }
+\@writefile{lof}{\contentsline {figure}{\numberline {4-5}{\ignorespaces 执行思维链日志}}{32}{figure.caption.51}\protected@file@percent }
+\newlabel{fig:wf_log}{{4-5}{32}{执行思维链日志}{figure.caption.51}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {4.3.3}节点执行器策略模式}{33}{subsection.4.3.3}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsubsection}{（1）实现过程}{33}{subsubsection*.52}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsubsection}{（2）关键代码}{33}{subsubsection*.53}\protected@file@percent }
+\@writefile{lol}{\contentsline {lstlisting}{\numberline {4.8}{\ignorespaces 代码4-8 NodeExecutorStrategy 接口定义}}{33}{lstlisting.4.8}\protected@file@percent }
+\@writefile{toc}{\contentsline {section}{\numberline {4.4}人工检查点与工作流恢复机制}{33}{section.4.4}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {4.4.1}人工检查点触发模块}{33}{subsection.4.4.1}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsubsection}{（1）实现过程}{33}{subsubsection*.54}\protected@file@percent }
+\@writefile{lot}{\contentsline {table}{\numberline {4-1}{\ignorespaces 人工检查点两种触发阶段对比}}{34}{table.caption.55}\protected@file@percent }
+\newlabel{tab:trigger_phase}{{4-1}{34}{人工检查点两种触发阶段对比}{table.caption.55}{}}
+\@writefile{toc}{\contentsline {subsubsection}{（2）关键代码}{34}{subsubsection*.56}\protected@file@percent }
+\@writefile{lol}{\contentsline {lstlisting}{\numberline {4.9}{\ignorespaces 代码4-9 SchedulerService.checkPause() -- 人工检查点触发判断}}{34}{lstlisting.4.9}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsubsection}{（3）界面展示}{35}{subsubsection*.57}\protected@file@percent }
+\@writefile{lof}{\contentsline {figure}{\numberline {4-6}{\ignorespaces 人工检查点审批界面}}{35}{figure.caption.58}\protected@file@percent }
+\newlabel{fig:review_panel}{{4-6}{35}{人工检查点审批界面}{figure.caption.58}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {4.4.2}工作流恢复模块}{35}{subsection.4.4.2}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsubsection}{（1）实现过程}{35}{subsubsection*.59}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsubsection}{（2）关键代码}{35}{subsubsection*.60}\protected@file@percent }
+\@writefile{lol}{\contentsline {lstlisting}{\numberline {4.10}{\ignorespaces 代码4-10 SchedulerService.resumeExecution() -- 工作流恢复关键代码}}{35}{lstlisting.4.10}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsubsection}{（3）界面展示}{36}{subsubsection*.61}\protected@file@percent }
+\@writefile{lof}{\contentsline {figure}{\numberline {4-7}{\ignorespaces 审批通过后工作流恢复执行界面}}{37}{figure.caption.62}\protected@file@percent }
+\newlabel{fig:resume_ui}{{4-7}{37}{审批通过后工作流恢复执行界面}{figure.caption.62}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {4.4.3}并发安全保障}{37}{subsection.4.4.3}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsubsection}{（1）实现过程}{37}{subsubsection*.63}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsubsection}{（2）关键代码}{37}{subsubsection*.64}\protected@file@percent }
+\@writefile{lol}{\contentsline {lstlisting}{\numberline {4.11}{\ignorespaces 代码4-11 Execution.java -- 乐观锁版本控制}}{37}{lstlisting.4.11}\protected@file@percent }
+\@writefile{toc}{\contentsline {section}{\numberline {4.5}知识库与检索增强实现}{38}{section.4.5}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {4.5.1}知识数据集与文档接入流程}{38}{subsection.4.5.1}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsubsection}{（1）实现过程}{38}{subsubsection*.65}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsubsection}{（2）关键代码}{38}{subsubsection*.66}\protected@file@percent }
+\@writefile{lol}{\contentsline {lstlisting}{\numberline {4.12}{\ignorespaces 代码4-12 KnowledgeApplicationService -- 文档上传与异步处理}}{38}{lstlisting.4.12}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsubsection}{（3）界面展示}{39}{subsubsection*.67}\protected@file@percent }
+\@writefile{lof}{\contentsline {figure}{\numberline {4-8}{\ignorespaces 知识库管理界面}}{39}{figure.caption.68}\protected@file@percent }
+\newlabel{fig:knowledge_ui}{{4-8}{39}{知识库管理界面}{figure.caption.68}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {4.5.2}异步分块、向量化与检索增强}{39}{subsection.4.5.2}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsubsection}{（1）实现过程}{39}{subsubsection*.69}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsubsection}{（2）关键代码}{39}{subsubsection*.70}\protected@file@percent }
+\@writefile{lol}{\contentsline {lstlisting}{\numberline {4.13}{\ignorespaces 代码4-13 AsyncDocumentProcessor -- 文档分块与向量化处理}}{39}{lstlisting.4.13}\protected@file@percent }
+\@writefile{lol}{\contentsline {lstlisting}{\numberline {4.14}{\ignorespaces 代码4-14 MilvusVectorStoreAdapter -- 知识检索接口}}{40}{lstlisting.4.14}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsubsection}{（3）界面展示}{40}{subsubsection*.71}\protected@file@percent }
+\@writefile{toc}{\contentsline {section}{\numberline {4.6}SSE 全链路实时推流实现}{41}{section.4.6}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {4.6.1}（1）实现过程}{41}{subsection.4.6.1}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {4.6.2}（2）关键代码}{41}{subsection.4.6.2}\protected@file@percent }
+\@writefile{lol}{\contentsline {lstlisting}{\numberline {4.15}{\ignorespaces 代码4-15 StreamPublisher 接口 -- SSE 推流核心方法}}{41}{lstlisting.4.15}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {4.6.3}（3）界面展示}{41}{subsection.4.6.3}\protected@file@percent }
+\@writefile{lof}{\contentsline {figure}{\numberline {4-9}{\ignorespaces SSE 实时推流前端展示}}{42}{figure.caption.72}\protected@file@percent }
+\newlabel{fig:sse_ui}{{4-9}{42}{SSE 实时推流前端展示}{figure.caption.72}{}}
+\@writefile{toc}{\contentsline {section}{\numberline {4.7}本章小结}{42}{section.4.7}\protected@file@percent }
+\@setckpt{chapter/ch4_implementation}{
+\setcounter{page}{43}
+\setcounter{equation}{0}
+\setcounter{enumi}{3}
+\setcounter{enumii}{0}
+\setcounter{enumiii}{0}
+\setcounter{enumiv}{0}
+\setcounter{footnote}{0}
+\setcounter{mpfootnote}{0}
+\setcounter{part}{0}
+\setcounter{chapter}{4}
+\setcounter{section}{7}
+\setcounter{subsection}{0}
+\setcounter{subsubsection}{0}
+\setcounter{paragraph}{0}
+\setcounter{subparagraph}{0}
+\setcounter{figure}{9}
+\setcounter{table}{1}
+\setcounter{parentequation}{0}
+\setcounter{lstnumber}{7}
+\setcounter{caption@flags}{2}
+\setcounter{continuedfloat}{0}
+\setcounter{lofdepth}{1}
+\setcounter{lotdepth}{1}
+\setcounter{NAT@ctr}{0}
+\setcounter{section@level}{0}
+\setcounter{Item}{3}
+\setcounter{Hfootnote}{0}
+\setcounter{Hy@AnnotLevel}{0}
+\setcounter{bookmark@seq@number}{62}
+\setcounter{theorem}{0}
+\setcounter{definition}{0}
+\setcounter{example}{0}
+\setcounter{remark}{0}
+\setcounter{appendixnum}{0}
+\setcounter{LT@tables}{0}
+\setcounter{LT@chunks}{0}
+\setcounter{float@type}{8}
+\setcounter{lstlisting}{15}
+}

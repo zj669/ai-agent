@@ -1,0 +1,40 @@
+%% 摘要
+
+\cnabstract
+
+随着大语言模型（LLM）推理能力的涌现，人工智能正经历从"被动响应工具"向"智能代理"的范式转变。
+AI Agent 作为这一变革的核心载体，能够主动感知环境、规划路径、调用工具并执行复杂任务，
+已成为大模型落地应用的关键技术方向。
+然而，当前主流的 Agent 编排工具主要基于 Python 生态构建，难以与企业现有的 Java 微服务架构深度集成，
+Java 开发者缺乏一套原生的、功能完备的 Agent 可视化编排平台。
+
+针对上述问题，本文设计并实现了一套基于 Spring Boot 的 AI Agent 智能体编排系统。
+系统采用领域驱动设计（DDD）的分层架构，融合 Spring AI 框架与可视化 DAG 编排能力，
+围绕五项核心功能展开：Agent 管理与可视化编排、事件驱动的 DAG 工作流调度、
+人工检查点与工作流恢复、知识库与检索增强、用户认证与系统安全支撑。
+
+系统支持通过 React Flow 画布配置 Agent 工作流，并以 JSON 图结构持久化编排结果；
+调度引擎基于"就绪节点驱动"策略执行 DAG，支持并行节点、条件分支和路径剪枝；
+人工检查点机制允许审核人查看并修改中间结果后恢复流程，配合乐观锁和分布式锁保障并发安全。
+同时，系统通过 MinIO 与 Milvus 完成文档存储、分块、向量化和语义检索，
+并提供邮箱注册、登录、密码找回、验证码限流、BCrypt 加密和 JWT 令牌认证等安全能力。
+
+系统前端基于 React + TypeScript 实现可视化流程编排与审核交互界面。
+测试结果表明，系统五项核心功能链路已全面打通，核心接口响应延迟满足基本实时性要求，
+具备 MVP 演示与业务验证能力。
+
+\cnkeywords{AI Agent；智能体编排；Spring Boot；DAG 调度；人工检查点；领域驱动设计；知识检索增强}
+
+\enabstract
+
+With the rapid advancement of large language model (LLM) reasoning capabilities, artificial intelligence is undergoing a paradigm shift from \textit{passive response tools} to \textit{intelligent agents}. AI Agents, as the core carrier of this transformation, can proactively perceive environments, plan paths, invoke tools, and execute complex tasks, making them a key technical direction for deploying large models in practice. However, mainstream Agent orchestration tools are primarily built on the Python ecosystem, making deep integration with enterprise Java microservice architectures difficult. Java developers lack a native, fully-featured visual Agent orchestration platform.
+
+To address this gap, this thesis designs and implements an AI Agent orchestration system based on Spring Boot. The system adopts a Domain-Driven Design (DDD) layered architecture and integrates Spring AI with visual DAG orchestration. It focuses on five core capabilities: Agent management and visual orchestration, event-driven DAG workflow scheduling, human checkpoint and workflow recovery, knowledge base retrieval augmentation, and user authentication with system security.
+
+The system supports visual workflow configuration with React Flow and persists orchestration results as JSON graph definitions. The workflow engine adopts a ready-node-driven scheduling strategy and supports parallel execution, conditional branching, and path pruning. The human checkpoint mechanism allows reviewers to inspect and modify intermediate results before resuming execution, while optimistic locking and distributed locks ensure concurrent safety. In addition, MinIO and Milvus are used for document storage, chunking, vectorization, and semantic retrieval. The system also provides registration, login, password recovery, email verification, rate limiting, BCrypt encryption, and JWT-based authentication.
+
+The frontend is implemented with React and TypeScript, providing an interactive visual workflow editor and review management interface. Testing demonstrates that all five core feature pipelines are fully operational with core API response latency meeting basic real-time requirements.
+
+\enkeywords{AI Agent; Agent Orchestration; Spring Boot; DAG Scheduling; Human Checkpoint; Domain-Driven Design; Retrieval-Augmented Generation}
+
+\clearpage

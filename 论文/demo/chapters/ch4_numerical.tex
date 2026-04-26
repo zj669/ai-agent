@@ -1,0 +1,253 @@
+%% 第四章 无穷级数的数值解研究（约4000字）
+
+\chapter{无穷级数的数值解研究}
+
+本章系统研究无穷级数数值解的构造原理与常用求解方法，并对误差的来源、分类与控制进行深入分析。数值解是在解析解不存在或难以获得时，通过有限次计算得到级数和的近似值的方法体系。尽管数值解不具备解析解的精确性，但其普适性使之成为无穷级数求解实践中不可或缺的工具。
+
+\section{数值解的构造原理}
+
+\subsection{部分和逼近的理论基础}
+
+数值解的最基本思想来源于级数收敛性的定义本身。若级数 $\displaystyle \sum_{n=1}^{\infty} a_n$ 收敛于 $S$，则按定义，对任意 $\varepsilon > 0$，存在正整数 $N$，使得当 $n > N$ 时
+\begin{equation}
+\abs{S_n - S} < \varepsilon
+\end{equation}
+其中 $\displaystyle S_n = \sum_{k=1}^{n} a_k$ 为前 $n$ 项部分和。这一收敛性保证了以下事实：只要截取足够多的项，部分和 $S_n$ 可以任意精确地逼近真值 $S$。数值解正是将这一极限过程在有限步骤内截断，以 $S_n$ 作为 $S$ 的近似值。
+
+截断后引入的误差称为\textbf{截断误差}，记为 $R_n = S - S_n$，即余项级数之和：
+\begin{equation}
+R_n = \sum_{k=n+1}^{\infty} a_k.
+\end{equation}
+截断误差的大小反映了数值近似的精度，其控制是数值方法设计的核心问题之一。
+
+\subsection{截断误差的理论界}
+
+对于不同类型的级数，截断误差 $R_n$ 具有不同的估计方式。
+
+\textbf{正项级数的截断误差。}对于正项收敛级数，余项 $R_n > 0$，且 $R_n$ 单调递减趋于零。若能找到与 $R_n$ 相比较的已知可求和级数，则可给出截断误差的上界。例如，对于 $p$-级数 $\displaystyle \sum_{n=1}^{\infty} 1/n^p$（$p > 1$），利用第二章积分判别法的余项估计公式\eqref{eq:int_err}可得
+\begin{equation}
+R_n = \sum_{k=n+1}^{\infty} \frac{1}{k^p} \leq \int_n^{\infty} \frac{1}{x^p}\, \mathrm{d}x = \frac{n^{1-p}}{p-1}.
+\end{equation}
+
+\textbf{交错级数的截断误差。}对满足莱布尼兹条件的交错级数 $\displaystyle \sum_{n=1}^{\infty} (-1)^{n+1} b_n$，余项的绝对值不超过第一个被截去项的绝对值，即
+\begin{equation} \label{eq:alt_err}
+\abs{R_n} \leq b_{n+1}.
+\end{equation}
+这一估计精确且易于计算，是交错级数数值计算的重要依据。
+
+\textbf{一般项级数的截断误差。}对于既非正项也非交错的一般项级数，截断误差的估计通常需要借助绝对收敛性或其他分析工具，情况较为复杂。
+
+\section{常用数值求解方法}
+
+\subsection{方法一：直接部分和逼近法}
+
+直接部分和逼近法是最基础的数值方法：给定精度要求 $\varepsilon$，依次计算部分和 $S_1, S_2, \ldots$，直到 $\abs{a_n} < \varepsilon$ 时停止，以 $S_n$ 作为近似结果。需要注意的是，$\abs{a_n} < \varepsilon$ 仅对满足莱布尼兹条件的交错级数能直接保证截断误差 $\abs{R_n} \leq \abs{a_{n+1}} < \varepsilon$（由公式\eqref{eq:alt_err}）；对一般收敛级数，此条件只是通项趋零的局部指标，截断误差应另行用积分估计或比较法加以确认。
+
+\begin{example}[交错调和级数的数值逼近]
+对交错调和级数 $\displaystyle\sum_{n=1}^{\infty} \frac{(-1)^{n+1}}{n}$，要求截断误差不超过 $0.01$，需截取多少项？
+
+\textbf{解：}由公式\eqref{eq:alt_err}，只需 $b_{n+1} = 1/(n+1) \leq 0.01$，即 $n \geq 99$。故截取前 $99$ 项，所得部分和
+\begin{equation}
+S_{99} = \sum_{n=1}^{99} \frac{(-1)^{n+1}}{n} \approx \ln 2 \approx 0.6931
+\end{equation}
+的截断误差不超过 $1/100 = 0.01$。
+\end{example}
+
+直接部分和逼近法的优点是原理简单、易于实现；缺点是对于收敛缓慢的级数，需要计算大量项才能达到满意的精度，计算效率较低。
+
+\subsection{方法二：欧拉变换加速法}
+
+对于收敛缓慢的级数，可以通过\textbf{收敛加速技术}减少所需的计算项数。欧拉变换是处理交错级数的经典加速方法。
+
+对于交错级数 $\displaystyle \sum_{n=0}^{\infty} (-1)^n a_n$（$a_n > 0$），欧拉变换将其转化为
+\begin{equation}
+\sum_{n=0}^{\infty} (-1)^n a_n = \sum_{n=0}^{\infty} \frac{(-1)^n \Delta^n a_0}{2^{n+1}}
+\end{equation}
+其中 $\Delta^n a_0$ 是序列 $\{a_n\}$ 的 $n$ 阶前向差分：
+\begin{align}
+\Delta^0 a_0 &= a_0, \notag\\
+\Delta^1 a_0 &= a_1 - a_0, \notag\\
+\Delta^2 a_0 &= a_2 - 2a_1 + a_0, \notag\\
+\Delta^n a_0 &= \sum_{k=0}^{n} (-1)^{n-k} \binom{n}{k} a_k. \notag
+\end{align}
+
+\begin{example}[欧拉变换加速莱布尼兹公式]
+对级数 $\displaystyle \pi/4 = \sum_{n=0}^{\infty} (-1)^n/(2n+1)$，令 $a_n = 1/(2n+1)$，计算前几项欧拉变换系数：
+\begin{align}
+\Delta^0 a_0 &= 1, \notag\\
+\Delta^1 a_0 &= \frac{1}{3} - 1 = -\frac{2}{3}, \notag\\
+\Delta^2 a_0 &= \frac{1}{5} - \frac{2}{3} + 1 = \frac{8}{15}. \notag
+\end{align}
+经欧拉变换后，级数的前几项之和已接近 $\pi/4 \approx 0.7854$，收敛速度显著快于原级数。
+\end{example}
+
+欧拉变换的优势在于显著提高了收敛速度，但其实施需要计算高阶差分，对于通项结构复杂的级数，差分的计算本身也会引入舍入误差。
+
+\subsection{方法三：数值积分法}
+
+当级数的通项 $a_n = f(n)$ 与某个函数 $f(x)$ 密切相关时，可以将级数求和问题转化为积分问题，从而借助数值积分的成熟方法求近似解。
+
+一种常见思路是利用欧拉-麦克劳林公式\upcite{press2007recipes}，将求和与积分建立联系：
+\begin{equation}
+\sum_{n=a}^{b} f(n) = \int_a^b f(x)\, \mathrm{d}x + \frac{f(a)+f(b)}{2} + \sum_{k=1}^{p} \frac{B_{2k}}{(2k)!}\left[f^{(2k-1)}(b) - f^{(2k-1)}(a)\right] + R_p
+\end{equation}
+其中 $B_{2k}$ 是伯努利数，$R_p$ 是余项。
+
+另一种思路是将级数通项的生成函数 $\displaystyle F(x) = \sum_{n=0}^{\infty} a_n x^n$ 视为可积函数，通过数值积分 $\displaystyle \int_0^1 F(x)\, \mathrm{d}x$ 来近似级数的和。
+
+\begin{example}[数值积分法估计 $\zeta(2)$]
+已知 $\displaystyle \sum_{n=1}^{\infty} 1/n^2 = \pi^2/6$，利用积分比较，有
+\begin{equation}
+\sum_{n=N+1}^{\infty} \frac{1}{n^2} \leq \int_N^{\infty} \frac{1}{x^2}\, \mathrm{d}x = \frac{1}{N}.
+\end{equation}
+因此，截取前 $N$ 项的部分和 $S_N$ 满足误差界 $\abs{S - S_N} \leq 1/N$。取 $N = 1000$，可得
+\begin{equation}
+S_{1000} = \sum_{n=1}^{1000} \frac{1}{n^2} \approx 1.6439\ldots
+\end{equation}
+其误差不超过 $0.001$，而真值 $\pi^2/6 \approx 1.6449\ldots$，误差约为 $0.001$，符合估计。
+\end{example}
+
+\subsection{方法四：多项式逼近法}
+
+多项式逼近法通过将级数的和函数（若存在）或其近似用多项式逼近，再在多项式上求值，从而得到级数和的近似。
+
+一类典型应用是利用帕德逼近\upcite{press2007recipes}，将幂级数 $\displaystyle \sum_{n=0}^{\infty} c_n x^n$ 用有理函数 $P_m(x)/Q_k(x)$（分子为 $m$ 次多项式，分母为 $k$ 次多项式）逼近，使得展开系数与原幂级数的前 $m+k+1$ 项吻合。相比直接截取多项式，帕德逼近能在更宽的范围内给出更精确的近似，特别适用于收敛域较小的幂级数在边界附近的近似。
+
+\begin{example}[帕德逼近与直接截断的比较]
+对 $\displaystyle \ln 2 = \sum_{n=1}^{\infty} (-1)^{n+1}/n$，直接截取前 $10$ 项得 $S_{10} \approx 0.6456$，误差约 $0.048$。
+
+而利用 $[2/2]$ 帕德逼近，对 $\ln(1+x)$ 在 $x=1$ 处的逼近为
+\begin{equation}
+\ln(1+x) \approx \frac{x(6+x)}{6+4x}
+\end{equation}
+令 $x = 1$，得 $7/10 = 0.7$，误差约 $0.007$，精度提升约 $7$ 倍，所用信息量相当。
+\end{example}
+
+多项式逼近法的优点在于在有限的计算量下可以显著提升近似精度；其局限在于构造逼近多项式本身需要一定的前期计算，且对和函数的光滑性有要求。
+
+\subsection{方法五：序列外推加速算法}
+
+除了分析级数本身的结构特征，许多数值技术着眼于部分和序列 $S_n$ 自身的渐进行为，通过非线性序列变换来外推其极限。代表性的方法包括 Wynn $\varepsilon$-算法和 Richardson 外推法\upcite{jbilou2025survey}。
+
+\textbf{Richardson 外推法}主要针对余项具有 $1/n^k$ 型多项式渐进展开特征的部分和序列。通过将相邻的部分和进行线性组合，可以逐阶消去低阶误差项。例如对交错调和级数的部分和，进行一次外推即可将余项误差阶数降低。
+
+\textbf{Wynn $\varepsilon$-算法}是一种有效的非线性加速序列变换，它通过建立部分和项之间的分数迭代关系：
+\begin{equation}
+\varepsilon_{k+1}^{(n)} = \varepsilon_{k-1}^{(n+1)} + \frac{1}{\varepsilon_{k}^{(n+1)} - \varepsilon_{k}^{(n)}}
+\end{equation}
+来对序列极限进行预测，对多数对数收敛、交错收敛的缓慢级数（如前文提到的交错调和级数、$\zeta(3)$等）能产生明显的加速效果。
+
+\begin{example}[Wynn $\varepsilon$-算法加速交错调和级数]
+对交错调和级数 $\displaystyle\sum_{n=1}^{\infty} (-1)^{n+1}/n$，取前 $5$ 项部分和序列 $S_1=1,\; S_2=0.5,\; S_3\approx0.8333,\; S_4\approx0.5833,\; S_5\approx0.7833$。直接截取 $S_5$ 时误差约 $0.09$。对此序列施加 Wynn $\varepsilon$-算法一步偶数列外推，即可得到估计值约 $0.6944$，误差降至约 $0.001$，加速效果显著。
+\end{example}
+
+这两种外推算法的共同优点是可直接作用于部分和序列，降低了对通项特定解析性质的强依赖；但若结合余项的解析结构（如交错级数的莱布尼兹误差界），还可进一步提升加速效果。
+
+\section{误差分析与精度控制}
+
+\subsection{截断误差的计算}
+
+截断误差是数值解中的主要误差来源，其大小直接决定了近似结果的可靠性。截断误差估计是数值方法设计的理论基础。
+
+对于正项级数，若能找到一个可以精确求和的控制级数 $\displaystyle \sum_{n=1}^{\infty} b_n$（$b_n \geq a_n \geq 0$），则
+\begin{equation}
+R_n = \sum_{k=n+1}^{\infty} a_k \leq \sum_{k=n+1}^{\infty} b_k.
+\end{equation}
+
+对于绝对收敛级数，可以估计
+\begin{equation}
+\abs{R_n} = \left|\sum_{k=n+1}^{\infty} a_k\right| \leq \sum_{k=n+1}^{\infty} \abs{a_k}.
+\end{equation}
+
+实际中最常用的截断误差估计是针对交错级数的莱布尼兹估计公式\eqref{eq:alt_err}，以及针对 $p$-级数余项的积分估计。表~\ref{tab:trunc_err} 汇总了常见级数类型的截断误差估计公式。
+
+\begin{table}[htbp]
+\centering
+\caption{常见级数类型的截断误差估计}
+\label{tab:trunc_err}
+\begin{tabular}{lll}
+\toprule
+\textbf{级数类型} & \textbf{截断误差上界} & \textbf{适用条件} \\
+\midrule
+交错级数 & $\abs{R_n} \leq b_{n+1}$ & 满足莱布尼兹条件 \\
+$p$-级数 & $R_n \leq n^{1-p}/(p-1)$ & $p > 1$ \\
+等比级数余项 & $R_n = \abs{a} \cdot \abs{r}^{n+1}/(1-\abs{r})$ & $\abs{r} < 1$ \\
+一般正项级数 & $\displaystyle R_n \leq \int_n^{\infty} f(x)\, \mathrm{d}x$ & $f(x)$ 单调递减可积 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\subsection{舍入误差的来源与控制}
+
+除截断误差外，数值计算中还存在\textbf{舍入误差}，它来源于计算机浮点数表示的有限精度。每次浮点运算都会引入微小的误差，当计算项数很多时，这些误差可能累积。
+
+设每次加法运算引入的相对误差不超过机器精度 $\varepsilon_{\mathrm{mach}}$（对双精度浮点数约为 $2.2 \times 10^{-16}$），则对 $n$ 项求和，累积舍入误差约为
+\begin{equation}
+E_{\text{round}} \approx n \cdot \varepsilon_{\mathrm{mach}} \cdot \max_k \abs{a_k}.
+\end{equation}
+
+可见，计算项数越多，舍入误差越大。这与截断误差随 $n$ 增大而减小的规律相反，两者之间存在权衡：$n$ 过小则截断误差大，$n$ 过大则舍入误差累积。实际计算中存在一个使总误差最小的截断位置。
+
+控制舍入误差的常用策略包括：
+\begin{enumerate}[label=（\arabic*）]
+  \item \textbf{求和顺序调整。}对绝对值差异悬殊的项，按从小到大的顺序求和，可减少大数吃小数的精度损失；
+  \item \textbf{Kahan 补偿求和算法\upcite{press2007recipes}。}通过记录每步的舍入损失并补偿到下一步，可将累积误差从 $O(n\varepsilon_{\mathrm{mach}})$ 降低至 $O(\varepsilon_{\mathrm{mach}})$；
+  \item \textbf{使用高精度算术。}在必要时采用多精度浮点库（如 GNU MPFR）进行计算，直接减小 $\varepsilon_{\mathrm{mach}}$。
+\end{enumerate}
+
+\subsection{不同方法的误差对比}
+
+不同数值方法在截断误差和计算量之间的权衡各有侧重。以计算 $\displaystyle \ln 2 = \sum_{n=1}^{\infty} (-1)^{n+1}/n$ 为例，要达到 $10^{-4}$ 的精度：直接部分和法由公式\eqref{eq:alt_err} 知需 $n \geq 10^4$ 项；欧拉变换加速后仅需约 $14$ 项即可达到同等精度；帕德逼近则在更少的计算量下可达到更高的精度。表~\ref{tab:method_compare} 给出了直观对比。
+
+\begin{table}[htbp]
+\centering
+\caption{不同数值方法的误差与计算量比较（以 $\ln 2$ 为例，目标精度 $10^{-4}$）}
+\label{tab:method_compare}
+\begin{tabular}{llll}
+\toprule
+\textbf{方法} & \textbf{所需项数} & \textbf{误差控制方式} & \textbf{适用范围} \\
+\midrule
+直接部分和 & $\sim 10^4$ & 莱布尼兹估计 & 所有收敛级数 \\
+欧拉变换加速 & $\sim 14$ & 差分估计 & 交错级数 \\
+帕德逼近 & $\sim 5$ & 有理逼近误差 & 幂级数 \\
+数值积分 & 依函数而定 & 积分误差界 & 与积分可转化者 \\
+序列外推（Wynn / Richardson） & $\sim 5$--$20$ & 外推误差估计 & 收敛缓慢的一般级数 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+可见，对于不同结构的级数，选择适合的数值方法可以大幅提升计算效率。
+
+\section{数值解的局限性分析}
+
+\subsection{近似性局限}
+
+数值解的本质是近似，这决定了它天然存在误差。无论采用何种数值方法，只要计算在有限步骤内终止，就必然存在非零的截断误差。这与解析解的精确性构成根本差异。
+
+在需要精确结论的数学推导中，数值近似无法替代解析结果。例如，验证恒等式 $\displaystyle \sum_{n=1}^{\infty} 1/n^2 = \pi^2/6$ 不能仅凭数值计算——即使数值结果精确到小数点后 $100$ 位，仍不能排除等式不成立的可能性。数值解只能在工程精度要求内提供实用价值，而不能作为严格数学结论的基础。
+
+\subsection{依赖性局限}
+
+数值解的精度依赖于以下几个因素，任何一个因素的限制都可能影响最终结果的可靠性：
+
+\textbf{（1）收敛速度的依赖。}对于收敛极缓慢的级数，即使截取大量项，精度仍然有限。例如调和级数的条件收敛版本 $\displaystyle \sum(-1)^n/\ln n$，收敛速度极慢，数值计算效率极低。
+
+\textbf{（2）对初始条件的敏感性。}某些数值方法（如加速技术）需要准确计算高阶差分，而这一过程对通项值的细微误差极为敏感，可能导致误差被放大。
+
+\textbf{（3）计算精度的天花板。}浮点计算的机器精度决定了数值解精度的上限，超过此精度的计算结果不再可靠。这是纯粹的计算架构限制，无法通过增加项数来突破。
+
+\subsection{收敛速度局限}
+
+许多重要的无穷级数的收敛速度极为缓慢，这使得直接数值方法的效率无法接受。以黎曼 $\zeta$ 函数为例：
+\begin{equation}
+\zeta(2) = \sum_{n=1}^{\infty} \frac{1}{n^2} = \frac{\pi^2}{6}
+\end{equation}
+其截断误差满足 $R_n \approx 1/n$，若要达到 $10^{-6}$ 精度需截取约 $10^6$ 项。而更缓慢的情形如
+\begin{equation}
+\zeta(3) = \sum_{n=1}^{\infty} \frac{1}{n^3} \approx 1.2020569\ldots
+\end{equation}
+虽然收敛速度略快（$R_n \approx 1/(2n^2)$），但要达到高精度仍需大量计算。对于此类级数，必须借助专门的加速算法或变换方法，才能在实际可接受的计算量内获得高精度数值解。
+
+收敛速度的局限性也从另一方面说明了解析解的价值——一旦获得解析表达式（如 $\zeta(2) = \pi^2/6$），就完全绕过了收敛速度的限制，可以直接通过计算初等函数值得到任意精度的结果。解析解在\textbf{精确性}方面具有优势；但在\textbf{普适性}方面，数值方法的覆盖范围远更广泛。两者各有所长，互为补充。
+
+综合本章内容，数值解以普适性和可操作性弥补了解析解存在性的局限，但同时也受到近似性、依赖性和收敛速度等方面的制约。在实际问题中，合理评估这些局限性并选择恰当的方法，是无穷级数数值计算的核心能力。

@@ -1,0 +1,50 @@
+%% 附录
+
+\appendix
+\chapter{系统部署说明}
+
+\section{环境依赖}
+
+\begin{lstlisting}[language=bash, caption={环境依赖启动命令}]
+# 启动中间件（MySQL / Redis / Milvus）
+cd ai-agent-infrastructure/src/main/resources/docker
+docker-compose up -d
+
+# 初始化数据库
+mysql -u root -p < init/mysql/01_init_schema.sql
+\end{lstlisting}
+
+\section{后端启动}
+
+\begin{lstlisting}[language=bash, caption={后端启动命令}]
+# 修改 application.yml 中的数据库连接配置
+mvn spring-boot:run -pl ai-agent-app
+\end{lstlisting}
+
+\section{前端启动}
+
+\begin{lstlisting}[language=bash, caption={前端启动命令}]
+cd ai-agent-foward
+npm install
+npm run dev
+# 默认访问地址：http://localhost:5173
+\end{lstlisting}
+
+\chapter{核心接口速查表}
+
+\begin{longtable}{lll}
+  \toprule
+  \textbf{方法} & \textbf{路径} & \textbf{说明} \\
+  \midrule
+  \endfirsthead
+  POST & /api/workflow/execution/start & 启动工作流执行（SSE） \\
+  POST & /api/workflow/execution/stop & 取消执行 \\
+  GET  & /api/workflow/execution/\{id\} & 获取执行详情 \\
+  GET  & /api/workflow/execution/\{id\}/logs & 获取思维链日志 \\
+  GET  & /api/workflow/reviews/pending & 获取待审核列表 \\
+  GET  & /api/workflow/reviews/\{id\} & 获取审核详情 \\
+  POST & /api/workflow/reviews/resume & 审核通过并恢复 \\
+  POST & /api/workflow/reviews/reject & 审核拒绝并终止 \\
+  GET  & /api/workflow/reviews/history & 审核历史查询 \\
+  \bottomrule
+\end{longtable}
