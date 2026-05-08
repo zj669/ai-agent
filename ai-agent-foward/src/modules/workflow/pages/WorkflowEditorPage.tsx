@@ -118,6 +118,8 @@ const DEFAULT_LLM_PROMPT_TEMPLATE = "{{inputs.inputMessage}}";
 const DEFAULT_BRANCH_PRIORITY = 2147483647;
 
 const NO_VALUE_OPERATORS = new Set(["IS_EMPTY", "IS_NOT_EMPTY"]);
+const DEPRECATED_START_QUERY_REF = "start.output.query";
+const START_INPUT_MESSAGE_REF = "start.output.inputMessage";
 
 const OPERATOR_MAP: Record<string, string> = {
   EQUALS: "EQUALS",
@@ -196,6 +198,18 @@ function mergeRequiredFields(
   return next;
 }
 
+function normalizeSourceRef(sourceRef: string | undefined): string {
+  const ref = sourceRef ?? "";
+  return ref === DEPRECATED_START_QUERY_REF ? START_INPUT_MESSAGE_REF : ref;
+}
+
+function normalizeInputSchemaSourceRefs(fields: FieldSchema[]): FieldSchema[] {
+  return fields.map((field) => ({
+    ...field,
+    sourceRef: normalizeSourceRef(field.sourceRef),
+  }));
+}
+
 function normalizeKnowledgeInputSchema(
   existing: FieldSchema[] | undefined,
 ): FieldSchema[] {
@@ -204,14 +218,9 @@ function normalizeKnowledgeInputSchema(
 
   if (queryIndex >= 0) {
     const existingQuery = fields[queryIndex];
-    // 废弃的 start.output.query 引用已无效（START 节点不再输出 query），自动清空让用户重新选择
-    const safeSourceRef =
-      existingQuery.sourceRef === "start.output.query"
-        ? ""
-        : (existingQuery.sourceRef ?? "");
     fields[queryIndex] = {
       ...KNOWLEDGE_QUERY_FIELD,
-      sourceRef: safeSourceRef,
+      sourceRef: normalizeSourceRef(existingQuery.sourceRef),
     };
     return fields;
   }
@@ -245,16 +254,17 @@ function normalizeConditionReference(value: unknown): string {
   if (typeof value !== "string") return "";
   const trimmed = value.trim();
   if (!trimmed) return "";
-  if (trimmed.startsWith("inputs.") || trimmed.startsWith("nodes.")) {
+  if (trimmed === DEPRECATED_START_QUERY_REF) return START_INPUT_MESSAGE_REF;
+  if (trimmed.startsWith("inputs.") || trimmed.includes(".output.")) {
     return trimmed;
   }
-  if (trimmed === "start.output.inputMessage") {
-    return "inputs.inputMessage";
-  }
 
-  const match = /^([^.]+)\.output\.(.+)$/.exec(trimmed);
-  if (match) {
-    return `nodes.${match[1]}.${match[2]}`;
+  if (trimmed.startsWith("nodes.")) {
+    const rest = trimmed.slice("nodes.".length);
+    const firstDot = rest.indexOf(".");
+    if (firstDot > 0 && firstDot < rest.length - 1) {
+      return `${rest.slice(0, firstDot)}.output.${rest.slice(firstDot + 1)}`;
+    }
   }
 
   return trimmed;
@@ -288,6 +298,7 @@ function conditionItemsToUiConditions(
         valueType:
           typeof item.rightOperand === "string" &&
           (item.rightOperand.startsWith("inputs.") ||
+            item.rightOperand.includes(".output.") ||
             item.rightOperand.startsWith("nodes."))
             ? "ref"
             : "literal",
@@ -609,6 +620,7 @@ function normalizeWorkflowNodes(
       initial?.outputSchema,
     );
     let userConfig = { ...(data.userConfig ?? {}) };
+    inputSchema = normalizeInputSchemaSourceRefs(inputSchema);
 
     if (data.nodeType === "START") {
       inputSchema = mergeRequiredFields(inputSchema, [START_INPUT_FIELD]);

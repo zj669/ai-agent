@@ -1,0 +1,761 @@
+========================================================
+  AI Agent 智能体编排系统 · 论文图表绘制提示词
+  共 11 张图（图8拆分为 8A / 8B）
+  每张图的提示词 = 【全局风格系统提示词】+ 【该图专属内容描述】
+========================================================
+
+
+╔══════════════════════════════════════════════════════╗
+║              【全局风格系统提示词 · 所有图通用】           ║
+║         每次生图时，将此段完整复制到提示词最前面            ║
+╚══════════════════════════════════════════════════════╝
+
+You are a professional technical diagram designer specializing in academic thesis figures for Chinese computer science papers. Generate a clean, publication-quality diagram with the following strict style rules:
+
+**Canvas & Background**
+- White background (#FFFFFF), no gradients, no textures, no drop shadows
+- Canvas size: 1600×1000px (landscape) for architecture/function diagrams; 900×1400px (portrait) for flowcharts
+- Generous padding: at least 40px on all sides
+- No decorative borders around the entire canvas
+
+**Typography**
+- Primary font: "Noto Sans SC" or "Source Han Sans CN" (Chinese); "Inter" or "Helvetica Neue" (English/code)
+- Title font size: 18px bold, color #1A1A1A
+- Node label font size: 13px, color #1A1A1A or white (on dark backgrounds)
+- Annotation/caption font size: 11px, color #555555
+- All Chinese text must render correctly and clearly
+- No italic text
+
+**Shapes & Nodes**
+- Rounded rectangles (border-radius: 6px) for process steps and components
+- Diamond shapes for decision nodes
+- Ellipses for UML use cases
+- Stick figures for UML actors
+- Terminal nodes (start/end): filled circles or rounded pill shapes
+- Node minimum size: 140px wide × 48px tall; text must never overflow
+- Stroke width: 1.5px for node borders; color: slightly darker than fill (#00000030 overlay)
+
+**Color Palette (strictly follow)**
+- Blue nodes   (interface/frontend):    fill #DBEAFE, stroke #3B82F6, text #1E3A5F
+- Green nodes  (application/service):   fill #DCFCE7, stroke #22C55E, text #14532D
+- Orange nodes (domain/infrastructure): fill #FEF3C7, stroke #F59E0B, text #78350F
+- Pink nodes   (persistence/storage):   fill #FCE7F3, stroke #EC4899, text #831843
+- Purple nodes (decision/condition):    fill #EDE9FE, stroke #8B5CF6, text #3B0764
+- Red nodes    (error/reject paths):    fill #FEE2E2, stroke #EF4444, text #7F1D1D
+- Green nodes  (success/complete):      fill #DCFCE7, stroke #16A34A, text #14532D
+- Gray nodes   (skipped/disabled):      fill #F3F4F6, stroke #9CA3AF, text #6B7280
+
+**Swimlane Styling** (for flowcharts)
+- Swimlane headers: 32px tall, background same as lane tint but 20% darker, bold label centered
+- Lane background tint: very light (10–15% opacity of the lane color)
+- Lane dividers: 1px dashed line, color #D1D5DB
+- Lane label font: 12px bold, uppercase, color #374151
+
+**Arrows & Connectors**
+- Arrow style: orthogonal (right-angle bends) preferred; smooth curves only for loop-back arrows
+- Arrowhead: solid filled triangle, size 8px
+- Line stroke width: 1.5px, color #6B7280
+- Cross-lane arrows: use the same 1.5px line with a clear label badge (white rounded rectangle + 11px text) placed at midpoint
+- Loop-back arrows must not overlap other nodes; route around the outside
+
+**Diagram-specific rules**
+- Section dividers within a single diagram: 1px dashed horizontal line (#D1D5DB) + small section title (12px bold, #6B7280, centered above the dashed line)
+- Decision diamonds: always label both exit paths (e.g., "是 / 否" or "通过 / 拒绝") next to the arrow, 11px, color #374151
+- Swimlane participant order: User/Frontend (leftmost) → Service/Application → Domain/Aggregate → Infrastructure (rightmost)
+
+**Output Requirements**
+- Export as PNG at 200 DPI minimum
+- No watermarks, no AI-generation artifacts
+- All text must be crisp and legible at 100% zoom
+- The diagram must be self-contained and fully labeled — no references to external legends
+
+---END OF GLOBAL STYLE PROMPT---
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+图1：系统整体架构图  (fig_arch.png)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+【风格系统提示词（完整复制以上全局提示词，然后接以下内容）】
+
+Draw a **layered software architecture diagram** (horizontal bands, top-to-bottom).
+Diagram title (centered at top): "基于 Spring Boot 的 AI Agent 智能体编排系统整体架构"
+Canvas: 1600×1000px landscape, white background.
+
+【Layer structure — 6 horizontal bands from top to bottom】
+
+Layer 0 — 前端层 (ai-agent-foward)
+  Background: #EDE9FE (light purple), stroke #8B5CF6
+  Label (left-aligned, bold): "前端层  (ai-agent-foward)"
+  Child component boxes inside (horizontal row, equal width):
+    · React 19 + TypeScript
+    · ReactFlow 可视化画布
+    · Zustand 状态管理
+    · Ant Design 6 组件库
+    · SSE Client 实时订阅
+
+Layer 1 — 接口层 (ai-agent-interfaces)
+  Background: #DBEAFE (light blue), stroke #3B82F6
+  Label: "接口层  (ai-agent-interfaces)"
+  Child components:
+    · REST API Controller
+    · SSE Emitter（长连接管理）
+    · DTO / 参数校验
+    · JWT 鉴权过滤器
+
+Layer 2 — 应用层 (ai-agent-application)
+  Background: #DCFCE7 (light green), stroke #22C55E
+  Label: "应用层  (ai-agent-application)"
+  Child components:
+    · SchedulerService（工作流调度核心）
+    · ChatApplicationService
+    · KnowledgeApplicationService
+    · UserApplicationService
+
+Layer 3 — 领域层 (ai-agent-domain)
+  Background: #FEF3C7 (light yellow), stroke #F59E0B
+  Label: "领域层  (ai-agent-domain)  ← 纯洁领域，无框架依赖"
+  Child components:
+    · Execution 聚合根
+    · WorkflowGraph（不可变值对象）
+    · ExecutionContext（LTM / STM / Awareness 三层记忆）
+    · NodeExecutorStrategy 端口接口
+    · StreamPublisher 端口接口
+
+Layer 4 — 基础设施层 (ai-agent-infrastructure)
+  Background: #FCE7F3 (light pink), stroke #EC4899
+  Label: "基础设施层  (ai-agent-infrastructure)"
+  Child components:
+    · LLM / CONDITION / KNOWLEDGE / TOOL / HTTP 节点执行器
+    · MyBatis Plus 仓储适配器
+    · Redisson 分布式锁适配器
+    · MilvusVectorStoreAdapter（向量检索）
+    · Spring AI 模型适配器（OpenAI 兼容）
+
+Layer 5 — 数据存储层 (bottom bar, shorter height)
+  Background: #F3F4F6 (light gray), stroke #9CA3AF
+  Label: "数据存储层"
+  Child components (4 boxes, equal width):
+    · MySQL 8.0（业务持久化 / 审批日志 / Agent 版本）
+    · Redis 7.0（分布式锁 / SSE Pub-Sub / 审批队列）
+    · Milvus 2.3（向量检索 / 长期记忆 LTM）
+    · MinIO（知识文档对象存储）
+
+【Arrows】
+- Between each adjacent layer pair: a vertical double-headed arrow (↕) at the horizontal center
+- Add a small text label on the right side: "interfaces → application → domain ← infrastructure"
+  (This shows the DDD dependency direction rule)
+
+【Additional annotation】
+- Place a small badge on Layer 3: "⚠ 禁止引入 Spring / MyBatis / 任何框架依赖"
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+图2：系统功能结构图  (fig_func.png)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+【风格系统提示词（完整复制以上全局提示词，然后接以下内容）】
+
+Draw a **hierarchical tree decomposition diagram** (top-down, 3 levels).
+Diagram title: "系统功能结构图"
+Canvas: 1600×900px landscape, white background.
+All connectors: straight orthogonal lines (no curves), color #9CA3AF, 1.5px.
+
+【Level 1 — Root node (top center)】
+  One wide rounded rectangle, dark blue fill #1E3A8A, white text, bold:
+  "AI Agent 智能体编排系统"
+
+【Level 2 — 5 module nodes (evenly spaced below root, connected by lines from root)】
+  Each is a medium rounded rectangle, bold label.
+  Colors follow the global palette:
+
+  ① Agent 管理模块               fill #DBEAFE stroke #3B82F6
+  ② 工作流调度执行模块            fill #DCFCE7 stroke #22C55E
+  ③ 人工审核与恢复机制模块        fill #FEF3C7 stroke #F59E0B
+  ④ 知识库与检索增强模块          fill #EDE9FE stroke #8B5CF6
+  ⑤ 用户认证与系统安全支撑模块    fill #FCE7F3 stroke #EC4899
+
+【Level 3 — 3 sub-function nodes under each module (connected by lines from parent)】
+  All sub-function boxes: white fill, stroke same color as parent module, smaller font (12px).
+
+  Under ① Agent 管理模块:
+    · Agent 创建 / 编辑 / 删除
+    · 可视化画布编排与保存（ReactFlow）
+    · 版本发布、查询与历史回滚
+
+  Under ② 工作流调度执行模块:
+    · DAG 拓扑排序与环路检测（Kahn 算法）
+    · 就绪节点并行异步执行调度
+    · SSE 实时节点状态与流式输出推送
+
+  Under ③ 人工审核与恢复机制模块:
+    · BEFORE / AFTER 双阶段检查点触发
+    · 审批通过（含中间结果修改）/ 拒绝
+    · 分布式锁 + 乐观锁版本号并发保护
+
+  Under ④ 知识库与检索增强模块:
+    · 文档上传、异步解析与文本分块
+    · Milvus 向量化入库与 Top-K 语义检索
+    · RAG 召回结果注入 LLM 上下文
+
+  Under ⑤ 用户认证与系统安全支撑模块:
+    · 邮箱验证码注册 / 登录 / 找回密码
+    · BCrypt 密码加密 + 登录失败限流
+    · JWT 令牌签发与全链路接口鉴权
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+图3：工作流执行状态机图  (fig_state.png)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+【风格系统提示词（完整复制以上全局提示词，然后接以下内容）】
+
+Draw a **UML finite state machine diagram**.
+Diagram title: "工作流执行状态机图"
+Canvas: 1400×900px landscape, white background.
+
+【State nodes — 6 states + 1 initial pseudo-state】
+
+Initial pseudo-state:
+  Solid filled black circle (diameter 20px), top-left area
+
+States (rounded rectangles, 160px × 56px each):
+  PENDING          fill #DBEAFE  stroke #3B82F6  text #1E3A5F  — 待执行
+  RUNNING          fill #DCFCE7  stroke #22C55E  text #14532D  — 执行中
+  PAUSED_FOR_REVIEW  fill #FEF3C7  stroke #F59E0B  text #78350F  — 暂停等待审批
+  SUCCEEDED        fill #DCFCE7  stroke #16A34A  text #14532D  — 执行成功 ★终态
+  FAILED           fill #FEE2E2  stroke #EF4444  text #7F1D1D  — 执行失败 ★终态
+  CANCELLED        fill #F3F4F6  stroke #9CA3AF  text #374151  — 已取消 ★终态
+
+Terminal state marker: Add a double-ring symbol (inner filled circle + outer ring) below SUCCEEDED, FAILED, CANCELLED to indicate terminal states (standard UML notation).
+
+【Suggested layout】
+  - PENDING and RUNNING: left side, horizontal neighbors
+  - PAUSED_FOR_REVIEW: right-center
+  - SUCCEEDED: bottom-left
+  - FAILED: bottom-center
+  - CANCELLED: top-right
+
+【Transitions — labeled directed arrows】
+
+  ① Solid black circle → PENDING
+     label: "初始化"
+
+  ② PENDING → RUNNING
+     label: "start() / 工作流启动，图结构校验通过"
+     arrow color: #3B82F6 (blue)
+
+  ③ RUNNING → SUCCEEDED
+     label: "所有节点完成（SUCCEEDED 或 SKIPPED）"
+     arrow color: #16A34A (green)
+
+  ④ RUNNING → FAILED
+     label: "某节点执行失败"
+     arrow color: #EF4444 (red)
+
+  ⑤ RUNNING → CANCELLED
+     label: "用户主动取消"
+     arrow color: #9CA3AF (gray)
+
+  ⑥ RUNNING → PAUSED_FOR_REVIEW
+     label: "checkPause() 检查点条件满足"
+     arrow color: #F59E0B (orange)
+
+  ⑦ PAUSED_FOR_REVIEW → RUNNING
+     label: "resume() 审批通过，工作流恢复"
+     arrow color: #3B82F6 (blue), curved arc (loop back)
+
+  ⑧ PAUSED_FOR_REVIEW → FAILED
+     label: "reject() 审批拒绝，工作流终止"
+     arrow color: #EF4444 (red)
+
+【Annotation】
+  Add a small legend box (bottom-right corner):
+    ● 实心圆 = 初始状态
+    ◎ 双圆圈 = 终态（不可离开）
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+图4：系统用例图  (fig_usecase.png)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+【风格系统提示词（完整复制以上全局提示词，然后接以下内容）】
+
+Draw a **UML use case diagram**.
+Diagram title: "系统用例图"
+Canvas: 1600×1000px landscape, white background.
+
+【System boundary】
+  A large rounded-corner rectangle (stroke #3B82F6, 2px, fill #F0F9FF).
+  Label at top inside: "AI Agent 智能体编排系统" (14px bold, #1E3A5F, centered)
+
+【Actors — 2 stick figures, placed LEFT of the system boundary, vertically spaced】
+  Important: actor names must be derived from business responsibilities, not from technical job titles.
+  Do NOT use "Java 开发者", "业务人员", or "系统管理员" as actor labels.
+  ① 应用构建者       (top)     — builds AI apps/workflows and maintains app-related knowledge, standard UML stick figure, label below
+  ② 业务使用者       (bottom)  — invokes published apps, views results, and handles business approvals, standard UML stick figure, label below
+
+【Use case groups — 5 large grouped use cases inside the system boundary】
+  Important: keep the diagram clean. Do NOT draw actor lines to every small use case.
+  Use one large rounded rectangle or ellipse per functional domain, with 2–3 concise bullet labels inside.
+  Arrange the 5 groups in a clean 2-column grid inside the system boundary:
+    Left column from top to bottom: Agent 管理, 人工审核, 用户认证
+    Right column from top to bottom: 工作流执行, 知识库
+
+  Group A — Agent 管理（blue stroke #3B82F6）:
+    Title: "Agent 管理"
+    Bullets:
+      · 创建与基础信息管理
+      · 可视化画布编排
+      · 版本发布与回滚
+
+  Group B — 工作流执行（green stroke #22C55E）:
+    Title: "工作流执行"
+    Bullets:
+      · 启动执行与 SSE 推流
+      · 节点并行与条件分支
+      · 执行日志查询
+
+  Group C — 人工审核（orange stroke #F59E0B）:
+    Title: "人工审核"
+    Bullets:
+      · 检查点暂停
+      · 审批通过与内容修改
+      · 审批拒绝与历史查询
+
+  Group D — 知识库（purple stroke #8B5CF6）:
+    Title: "知识库"
+    Bullets:
+      · 数据集管理
+      · 文档上传与向量化
+      · 语义检索增强
+
+  Group E — 用户认证（pink stroke #EC4899）:
+    Title: "用户认证"
+    Bullets:
+      · 邮箱注册与验证码
+      · 登录与令牌签发
+      · 找回密码
+
+【Association lines — draw only 2 high-level actor lines, no dense crossing lines】
+  Use solid lines without arrowheads from each actor to its primary functional group:
+    应用构建者     → Agent 管理
+    业务使用者     → 工作流执行
+
+  Use light dashed dependency lines inside the system boundary only if needed:
+    Agent 管理 -- 知识库       label: "接入知识"
+    工作流执行 -- 人工审核     label: "关键节点暂停"
+    工作流执行 -- 知识库       label: "检索增强"
+
+  Do NOT connect actors to 用户认证 as common login capability, to avoid clutter.
+  Do NOT draw "平台运维人员" or any operations/admin actor in this diagram.
+  Do NOT draw lines to every bullet item.
+  Keep all lines orthogonal and avoid crossing.
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+图5：Agent 创建与草稿保存流程图  (fig_agent_create_draft_flow.png)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+【风格系统提示词（完整复制以上全局提示词，然后接以下内容）】
+
+Draw a **vertical swimlane flowchart** with 3 swimlanes, flowing top-to-bottom.
+Diagram title: "Agent 创建与草稿保存流程图"
+Canvas: 900×1100px portrait, white background.
+
+【Swimlanes (3 vertical columns, equal width)】
+  Lane 1 (left):   "前端画布"     background tint #EFF6FF  header #DBEAFE
+  Lane 2 (center): "应用服务层"   background tint #F0FDF4  header #DCFCE7
+  Lane 3 (right):  "持久化层"     background tint #FFFBEB  header #FEF3C7
+
+【Flow nodes — keep concise, top to bottom】
+
+  [Lane 1] START pill (green): "开始：应用构建者已登录"
+      ↓
+  [Lane 1] Process box (blue): "填写 Agent 名称与描述\n点击「创建」"
+      ↓ cross-lane arrow →
+  [Lane 2] Process box (green): "校验基础信息\n创建 Agent 记录"
+      ↓ cross-lane arrow →
+  [Lane 3] Process box (orange): "写入 agent_info 表"
+      ↓ (return left, cross-lane arrow ←)
+  [Lane 1] Process box (blue): "进入可视化画布\n拖拽节点 · 配置参数 · 建立连线"
+      ↓
+  [Lane 1] Process box (blue): "点击「保存草稿」"
+      ↓ cross-lane arrow →
+  [Lane 2] Process box (green): "校验图结构\n环路检测 · 必填参数检查"
+      ↓
+  [Lane 2] Decision diamond (purple): "校验通过？"
+      ↓ NO (left branch) →
+  [Lane 1] Error box (red): "返回错误提示\n应用构建者继续修改"
+            ↓ (loop arrow back up to "可视化画布" node)
+      ↓ YES (right branch) →
+  [Lane 3] Process box (orange): "保存草稿图定义\n写入 graphJson"
+      ↓
+  [Lane 1] END pill (green): "保存成功\n返回草稿状态"
+
+【Arrow labels】
+  Cross-lane arrows use small label badges: "提交", "持久化", "返回".
+  Decision diamond exits must be labeled: "是 / 否".
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+图6：Agent 发布与版本管理流程图  (fig_agent_publish_flow.png)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+【风格系统提示词（完整复制以上全局提示词，然后接以下内容）】
+
+Draw a **vertical swimlane flowchart** with 3 swimlanes, flowing top-to-bottom.
+Diagram title: "Agent 发布与版本管理流程图"
+Canvas: 900×1050px portrait, white background.
+
+【Swimlanes (3 vertical columns, equal width)】
+  Lane 1 (left):   "前端画布"     background tint #EFF6FF  header #DBEAFE
+  Lane 2 (center): "应用服务层"   background tint #F0FDF4  header #DCFCE7
+  Lane 3 (right):  "持久化层"     background tint #FFFBEB  header #FEF3C7
+
+【Flow nodes — keep concise, top to bottom】
+
+  [Lane 1] START pill (green): "开始：草稿已保存"
+      ↓
+  [Lane 1] Process box (blue): "点击「发布版本」"
+      ↓ cross-lane arrow →
+  [Lane 2] Process box (green): "读取草稿图定义\n校验图结构完整性"
+      ↓
+  [Lane 2] Decision diamond (purple): "可发布？"
+      ↓ NO →
+  [Lane 1] Error box (red): "返回发布失败原因\n提示重新修改草稿"
+      ↓ YES →
+  [Lane 2] Process box (green): "生成发布版本快照\n冻结草稿 · 写版本序号"
+      ↓ cross-lane arrow →
+  [Lane 3] Process box (orange): "写入 agent_version 表\n更新 published_version_id 指针"
+      ↓ (return to Lane 1)
+  [Lane 1] Process box (blue): "刷新 Agent 版本列表\n展示当前已发布版本"
+      ↓
+  [Lane 1] Optional process box (blue, dashed border): "需要回退时：选择历史版本\n点击「回滚」"
+      ↓ cross-lane arrow →
+  [Lane 2] Optional process box (green, dashed border): "校验历史版本可用\n更新发布指针"
+      ↓ cross-lane arrow →
+  [Lane 3] Optional process box (orange, dashed border): "记录回滚操作\n保留版本追溯"
+      ↓
+  [Lane 1] END pill (green): "发布或回滚完成"
+
+【Arrow labels】
+  Cross-lane arrows use small label badges: "发布请求", "写入版本", "回滚请求".
+  Decision diamond exits must be labeled: "是 / 否".
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+图7：工作流执行流程图  (fig_exec_flow.png)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+【风格系统提示词（完整复制以上全局提示词，然后接以下内容）】
+
+Draw a **vertical swimlane flowchart** with 3 swimlanes, flowing top-to-bottom.
+Diagram title: "工作流执行流程图"
+Canvas: 900×1500px portrait, white background.
+
+【Swimlanes (3 vertical columns)】
+  Lane 1 (left):   "用户端 / 前端"              background tint #EFF6FF  header #DBEAFE
+  Lane 2 (center): "SchedulerService（应用层）"  background tint #F0FDF4  header #DCFCE7
+  Lane 3 (right):  "基础设施层"                  background tint #FFFBEB  header #FEF3C7
+
+【Flow nodes — top to bottom】
+
+  [Lane 1] START pill (green): "用户输入消息，点击发送"
+      ↓
+  [Lane 1] Process box (blue): "前端建立 SSE 长连接\n(GET /api/workflow/execution/stream)"
+      ↓ cross-lane →
+  [Lane 2] Process box (green): "根据 agentId 查询 Agent 信息\n确定加载版本（已发布版本优先）"
+      ↓ cross-lane →
+  [Lane 3] Process box (orange): "查询 MySQL\nagent_version 表"
+      ↓ (return to Lane 2)
+  [Lane 2] Process box (green): "hydrateMemory()\n记忆水合：加载 LTM + STM"
+      ↓ cross-lane →
+  [Lane 3] Process box (orange): "Milvus 向量检索长期记忆（LTM）\n+ MySQL 加载近期对话历史（STM）"
+      ↓ (return to Lane 2)
+  [Lane 2] Process box (green): "workflowGraphFactory.fromJson()\n反序列化 graphJson → WorkflowGraph"
+      ↓
+  [Lane 2] Process box (green): "Execution.start(inputs)\n① DAG 环路校验（Kahn 算法）\n② 初始化所有节点状态为 PENDING\n③ 计算首批就绪节点（入度为 0）"
+      ↓
+  [Lane 2] Process box (green): "executionRepository.save()\n持久化初始执行状态"
+      ↓ cross-lane →
+  [Lane 3] Process box (orange): "写入 MySQL workflow_execution 表"
+      ↓ (return to Lane 2)
+  [Lane 2] Process box (green): "scheduleNodes()\n并行提交就绪节点\n（CompletableFuture 异步执行）"
+      ↓ cross-lane →
+  [Lane 3] Process box (orange): "各节点执行器策略（Strategy Pattern）\nLLM / TOOL / KNOWLEDGE\n/ HTTP / CONDITION / START / END"
+      ↓ (return to Lane 2, and simultaneously →)
+  [Lane 1] Process box (blue): "SSE 接收实时事件：\nnode_started / stream_delta\n/ node_finished / workflow_paused"
+      ↓ (back to Lane 2)
+  [Lane 2] Process box (green): "advance(nodeId, result)\n写入节点输出到 ExecutionContext\n判断条件分支 · 路径剪枝"
+      ↓
+  [Lane 2] Decision diamond (purple): "还有就绪节点？"
+      ↓ YES — loop arrow back up to "scheduleNodes()"
+      ↓ NO →
+  [Lane 2] Decision diamond (purple): "所有节点状态正常？"
+      ↓ NO →
+  [Lane 2] Error box (red): "status = FAILED\n推送 workflow_failed 事件"
+      ↓ YES →
+  [Lane 2] Process box (green): "status = SUCCEEDED\n提取最终输出，写入对话记录"
+      ↓ cross-lane →
+  [Lane 1] END pill (green): "SSE 接收 workflow_completed 事件\n前端展示最终回答"
+
+【Special annotation】
+  Add a small side note next to the "advance()" node:
+  "条件节点完成后：\npruneUnselectedBranches()\n未选中路径标记为 SKIPPED"
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+图8A：人工检查点暂停与提交审批图  (fig_review_pause.png)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+【风格系统提示词（完整复制以上全局提示词，然后接以下内容）】
+
+Draw a **compact horizontal process diagram** with 3 vertical participant columns.
+Diagram title: "人工检查点暂停与提交审批"
+Canvas: 1400×760px landscape, white background.
+This figure shows only the first half of the human review loop: checkpoint trigger → workflow pause → reviewer submits decision.
+
+【Local style override — use a cleaner academic palette】
+  Use low-saturation colors, fewer strong fills, and more white space.
+  Main cards: fill #F8FAFC, stroke #CBD5E1, text #0F172A
+  Service highlight: fill #EFF6FF, stroke #2563EB, text #1E3A8A
+  Checkpoint highlight: fill #FFF7ED, stroke #F97316, text #7C2D12
+  Reviewer highlight: fill #F0FDF4, stroke #16A34A, text #14532D
+  Avoid bright yellow lane backgrounds. Keep all column backgrounds near-white (#FFFFFF / #F8FAFC).
+
+【Layout】
+  Use 3 participant columns with subtle headers:
+    Column 1: "工作流调度服务"
+    Column 2: "审批任务 / 状态"
+    Column 3: "业务使用者 / 前端"
+  Place a thin vertical divider (#E5E7EB) between columns.
+  Do NOT use full-height colored swimlane backgrounds.
+  Use 6 large rounded cards only, arranged in two rows.
+
+【Top row — workflow pauses】
+  [Column 1] START pill (service highlight): "运行到人工检查点"
+      → 
+  [Column 1] Process card (checkpoint highlight): "暂停执行\n保存节点上下文"
+      → cross-column label "创建待审批任务"
+  [Column 2] Process card (main card): "状态置为\nPAUSED_FOR_REVIEW"
+
+【Bottom row — reviewer submits】
+  From [Column 2] card, arrow → cross-column label "暂停通知"
+  [Column 3] Process card (reviewer highlight): "打开审批面板\n查看输入 / 输出 / 上下文"
+      →
+  [Column 3] Process card (reviewer highlight): "检查内容\n可修改中间结果"
+      →
+  [Column 3] END pill (reviewer highlight): "提交审批决定\n通过或拒绝"
+
+【Small side note】
+  Place a small note below Column 2:
+  "调度器在暂停期间不继续提交后续节点，等待人工决策。"
+
+【Aesthetic requirements】
+  Keep the visual center clean. No more than 6 main nodes.
+  Arrow labels use small white rounded badges.
+  Use orthogonal arrows with generous spacing; avoid crossing lines.
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+图8B：人工审批决策与流程恢复图  (fig_review_decision.png)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+【风格系统提示词（完整复制以上全局提示词，然后接以下内容）】
+
+Draw a **compact decision flow diagram** with a central decision node and two symmetric branches.
+Diagram title: "人工审批决策与流程恢复"
+Canvas: 1400×760px landscape, white background.
+This figure shows only the second half of the human review loop: submitted decision → approve/reject → resume/terminate.
+
+【Local style override — use a cleaner academic palette】
+  Main cards: fill #F8FAFC, stroke #CBD5E1, text #0F172A
+  Decision node: fill #EEF2FF, stroke #4F46E5, text #312E81
+  Approve branch: fill #ECFDF5, stroke #10B981, text #064E3B
+  Reject branch: fill #FEF2F2, stroke #EF4444, text #7F1D1D
+  Record/state cards: fill #F8FAFC, stroke #94A3B8, text #334155
+  Avoid orange/yellow as the dominant color; use green and red only for final outcomes.
+
+【Layout】
+  Use one central decision diamond in the middle:
+    Decision diamond: "审批通过？"
+  Place the APPROVE branch on the upper row, flowing left → center → right.
+  Place the REJECT branch on the lower row, flowing left → center → right.
+  Keep branches symmetrical and short.
+
+【Input node】
+  Left side before the decision:
+    START pill (main card): "收到审批决定\n含修改内容或拒绝原因"
+      → Decision diamond "审批通过？"
+
+【Approve branch — top】
+  Decision YES arrow label: "通过"
+      →
+  Process card (approve branch): "合并修改内容\n恢复执行上下文"
+      →
+  Process card (record/state card): "写入审批记录\n状态恢复为 RUNNING"
+      →
+  END pill (approve branch): "继续调度后续节点"
+
+【Reject branch — bottom】
+  Decision NO arrow label: "拒绝"
+      →
+  Process card (reject branch): "记录拒绝原因\n终止当前执行"
+      →
+  Process card (record/state card): "写入审批记录\n状态置为 FAILED"
+      →
+  END pill (reject branch): "前端展示终止结果"
+
+【Small side note】
+  Place a small note near the decision diamond:
+  "审批通过支持修改中间结果；审批拒绝会结束本次工作流。"
+
+【Aesthetic requirements】
+  Keep node count under 8.
+  Use balanced whitespace and symmetric branch lengths.
+  Arrow labels must be clearly visible: "通过" and "拒绝".
+  No swimlane backgrounds, no dense cross-lane arrows, no bright yellow blocks.
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+图9：知识库检索增强流程图  (fig_knowledge_flow.png)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+【风格系统提示词（完整复制以上全局提示词，然后接以下内容）】
+
+Draw a **vertical swimlane flowchart** with 3 swimlanes, divided into TWO sections by a dashed separator line.
+Diagram title: "知识库检索增强流程图"
+Canvas: 900×1500px portrait, white background.
+
+【Swimlanes (3 vertical columns)】
+  Lane 1 (left):   "前端 / 工作流"   background tint #EFF6FF  header #DBEAFE
+  Lane 2 (center): "知识应用层"      background tint #F0FDF4  header #DCFCE7
+  Lane 3 (right):  "基础设施层"      background tint #FFFBEB  header #FEF3C7
+
+════════ TOP SECTION: 上传与向量化（异步处理）════════
+  Section label (centered above dashed line): "── 上传与向量化（异步处理）──"  12px bold #6B7280
+
+  [Lane 1] START pill (green): "用户选择目标数据集\n上传文档文件"
+      ↓ cross-lane →
+  [Lane 2] Process box (green): "校验数据集归属权限\n+ 文件合法性（类型 / 大小限制）"
+      ↓ cross-lane →
+  [Lane 3] Process box (orange): "MinIO 对象存储\n保存原始文件，返回 fileUrl"
+      ↓ (return to Lane 2)
+  [Lane 2] Process box (green): "创建文档记录（status: PENDING）\n立即返回响应给前端"
+      ↓
+  [Lane 2] Process box (green): "@Async 触发异步文档处理器\nAsyncDocumentProcessor"
+      (add DASHED border and label "异步" to this box to indicate async)
+      ↓ (dashed arrow, labeled "异步执行")
+  [Lane 2] Process box (green): "status → PROCESSING\n调用 DocumentReaderPort\n解析 PDF / Word / Markdown"
+      ↓
+  [Lane 2] Process box (green): "调用 TextSplitterPort\n按 ChunkingConfig 文本分块"
+      ↓ cross-lane →
+  [Lane 3] Process box (orange): "调用 Embedding 模型\n批量生成向量\n写入 Milvus（含元数据：datasetId, docId）"
+      ↓ (return to Lane 2)
+  [Lane 2] Process box (green): "status → COMPLETED\n（或 FAILED 并记录错误日志）"
+      ↓ cross-lane ←
+  [Lane 1] Process box (blue): "前端轮询文档列表\n状态显示「已完成」"
+
+════ DASHED SEPARATOR LINE (full width) ════
+
+════════ BOTTOM SECTION: 工作流执行时的检索增强 ════════
+  Section label: "── 工作流执行时的检索增强 ──"  12px bold #6B7280
+
+  [Lane 1] START pill (green): "工作流执行到\nKNOWLEDGE 类型节点"
+      ↓ cross-lane →
+  [Lane 2] Process box (green): "解析节点配置\n拼接查询模板 + 用户输入\n生成最终检索语句"
+      ↓ cross-lane →
+  [Lane 3] Process box (orange): "调用 Embedding 模型\n将检索语句转为查询向量"
+      ↓
+  [Lane 3] Process box (orange): "Milvus 向量数据库\nTop-K 语义相似度检索\n（按 datasetId 过滤）"
+      ↓ (return to Lane 2)
+  [Lane 2] Process box (green): "汇总 Top-K 召回片段\n按相关度分数排序"
+      ↓ cross-lane ←
+  [Lane 1] Process box (blue): "召回结果注入 ExecutionContext\n作为后续 LLM 节点的知识上下文"
+      ↓
+  [Lane 1] END pill (green): "LLM 节点基于知识上下文\n生成最终回答"
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+图10：用户注册与登录流程图  (fig_auth_flow.png)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+【风格系统提示词（完整复制以上全局提示词，然后接以下内容）】
+
+Draw a **vertical swimlane flowchart** with 3 swimlanes, divided into TWO sections by a dashed separator line.
+Diagram title: "用户注册与登录流程图"
+Canvas: 900×1500px portrait, white background.
+
+【Swimlanes (3 vertical columns)】
+  Lane 1 (left):   "前端"                    background tint #EFF6FF  header #DBEAFE
+  Lane 2 (center): "认证服务（领域服务层）"    background tint #F0FDF4  header #DCFCE7
+  Lane 3 (right):  "缓存与持久化"              background tint #FFFBEB  header #FEF3C7
+
+════════ TOP SECTION: 邮箱验证码注册 ════════
+  Section label: "── 邮箱验证码注册 ──"  12px bold #6B7280
+
+  [Lane 1] START pill (green): "用户输入邮箱\n点击「发送验证码」"
+      ↓ cross-lane →
+  [Lane 2] Decision diamond (purple): "发送频率超限？\n（60秒内重复请求）"
+      ↓ YES (left) →
+  [Lane 1] Error box (red): "提示「请稍后再试」"  [BRANCH ENDS]
+      ↓ NO (down) →
+  [Lane 2] Process box (green): "生成6位随机验证码\n异步发送邮件"
+      ↓ cross-lane →
+  [Lane 3] Process box (orange): "Redis 缓存验证码\n（Key: email, TTL: 5分钟）"
+      ↓ (return to Lane 1)
+  [Lane 1] Process box (blue): "用户填写：邮箱 · 验证码\n密码 · 用户名\n点击「注册」"
+      ↓ cross-lane →
+  [Lane 2] Process box (green): "① 校验验证码是否正确且未过期\n② 校验密码强度（长度/复杂度）\n③ 校验邮箱和用户名唯一性"
+      ↓
+  [Lane 2] Decision diamond (purple): "全部校验通过？"
+      ↓ NO (left) →
+  [Lane 1] Error box (red): "返回具体错误信息\n（验证码错误 / 密码太弱\n/ 邮箱已注册）"  [BRANCH ENDS]
+      ↓ YES (down) →
+  [Lane 2] Process box (green): "BCrypt 加密用户密码"
+      ↓ cross-lane →
+  [Lane 3] Process box (orange): "写入 user_account 表\n清除 Redis 验证码缓存"
+      ↓ (return to Lane 1)
+  [Lane 1] END pill (green): "显示「注册成功」\n跳转登录页"
+
+════ DASHED SEPARATOR LINE (full width) ════
+
+════════ BOTTOM SECTION: 登录与令牌签发 ════════
+  Section label: "── 登录与令牌签发 ──"  12px bold #6B7280
+
+  [Lane 1] START pill (green): "用户输入邮箱 + 密码\n点击「登录」"
+      ↓ cross-lane →
+  [Lane 2] Decision diamond (purple): "账号是否触发限流？\n（失败次数 ≥ 阈值）"
+      ↓ YES (left) →
+  [Lane 1] Error box (red): "提示「登录受限\n请稍后重试」"  [BRANCH ENDS]
+      ↓ NO (down) →
+  [Lane 2] Process box (green): "根据邮箱查询用户记录"
+      ↓ cross-lane →
+  [Lane 3] Process box (orange): "查询 MySQL\nuser_account 表"
+      ↓ (return to Lane 2)
+  [Lane 2] Process box (green): "BCrypt 校验密码哈希\nmatches(inputPwd, storedHash)"
+      ↓
+  [Lane 2] Decision diamond (purple): "密码校验通过？"
+      ↓ NO (left) →
+  [Lane 2] Process box (green): "登录失败计数 +1\n（Redis Key: loginFail:{email}:{ip}）"
+      ↓ cross-lane ←
+  [Lane 1] Error box (red): "提示「密码错误」"  [BRANCH ENDS]
+      ↓ YES (down) →
+  [Lane 2] Process box (green): "清零登录失败计数"
+      ↓
+  [Lane 2] Process box (green): "签发 JWT 访问令牌\n（含 userId, email, 过期时间）\n记录登录上下文（IP · 时间）"
+      ↓ cross-lane ←
+  [Lane 1] END pill (green): "保存访问令牌到本地\n后续所有请求携带 Authorization: Bearer <token>\n跳转业务主页"
+
+【Additional annotation】
+  Add a small note box (bottom-right of diagram):
+  "安全机制说明：
+   · 密码：BCrypt 不可逆哈希，强度因子 10
+   · 限流：Redis 滑动窗口计数
+   · 令牌：JWT 有效期控制，过期需重新登录"
+
+
+========================================================
+  END OF ALL PROMPTS
+========================================================

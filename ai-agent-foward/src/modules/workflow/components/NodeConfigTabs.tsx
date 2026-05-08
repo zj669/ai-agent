@@ -310,6 +310,7 @@ function ToolSection({
   const handleSelectTool = useCallback((tool: McpTool | null) => {
     if (!tool) {
       onConfigChange("selectedTool", null);
+      onConfigChange("mcpToolName", null);
       onInputSchemaChange?.([]);
       onOutputSchemaChange?.([]);
       return;
@@ -325,6 +326,7 @@ function ToolSection({
     const newInputSchema = parseToolInputSchema(tool.inputSchema);
     const newOutputSchema = getToolOutputSchema();
     onConfigChange("selectedTool", toolInfo);
+    onConfigChange("mcpToolName", tool.fullName);
     onInputSchemaChange?.(newInputSchema);
     onOutputSchemaChange?.(newOutputSchema);
   }, [onConfigChange, onInputSchemaChange, onOutputSchemaChange]);

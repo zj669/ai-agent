@@ -38,7 +38,15 @@ public class RedisSseListener implements MessageListener {
             
             // 反序列化为 SseEventPayload
             SseEventPayload payload = objectMapper.readValue(messageStr, SseEventPayload.class);
-            eventHandler.accept(payload);
+            try {
+                eventHandler.accept(payload);
+            } catch (Exception e) {
+                log.warn(
+                    "[SSE-Sub] Failed to deliver event to subscriber, eventType={}, reason={}",
+                    payload.getEventType(),
+                    e.getMessage()
+                );
+            }
         } catch (Exception e) {
             log.error("[SSE-Sub] Failed to deserialize message", e);
             // 重新抛出以便调用方感知失败

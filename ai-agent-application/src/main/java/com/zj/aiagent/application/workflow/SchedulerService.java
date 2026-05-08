@@ -372,7 +372,8 @@ public class SchedulerService {
     }
 
     private String extractUserQuery(Map<String, Object> inputs) {
-        Object query = inputs.get("input");
+        Object query = inputs.get("inputMessage");
+        if (query == null) query = inputs.get("input");
         if (query == null) query = inputs.get("query");
         if (query == null) query = inputs.get("message");
         return query != null ? query.toString() : null;
@@ -737,8 +738,17 @@ public class SchedulerService {
             parentId
         );
 
+        List<Node> acceptedNodes = markNodesRunning(executionId, nodes);
+        if (acceptedNodes.isEmpty()) {
+            log.info(
+                "[Scheduler] No pending nodes accepted for execution: {}",
+                executionId
+            );
+            return;
+        }
+
         String effectiveParentId = parentId;
-        if (effectiveParentId == null && nodes.size() > 1) {
+        if (effectiveParentId == null && acceptedNodes.size() > 1) {
             effectiveParentId = "parallel_" + System.currentTimeMillis();
             log.debug(
                 "[Scheduler] Generated parallel group ID: {}",
@@ -746,9 +756,32 @@ public class SchedulerService {
             );
         }
 
-        for (Node node : nodes) {
+        for (Node node : acceptedNodes) {
             scheduleNode(executionId, node, effectiveParentId);
         }
+    }
+
+    private List<Node> markNodesRunning(String executionId, List<Node> nodes) {
+        Execution execution = executionRepository
+            .findById(executionId)
+            .orElseThrow(() ->
+                new IllegalStateException("Execution not found: " + executionId)
+            );
+
+        List<Node> acceptedNodes = execution.markRunning(nodes);
+        if (!acceptedNodes.isEmpty()) {
+            executionRepository.update(execution);
+        }
+
+        if (acceptedNodes.size() != nodes.size()) {
+            log.info(
+                "[Scheduler] Accepted {}/{} pending nodes for execution: {}",
+                acceptedNodes.size(),
+                nodes.size(),
+                executionId
+            );
+        }
+        return acceptedNodes;
     }
 
     private void scheduleNode(String executionId, Node node, String parentId) {
@@ -808,10 +841,28 @@ public class SchedulerService {
             );
 
         ExecutionContext context = execution.getContext();
-        Map<String, Object> resolvedInputs = expressionResolver.resolveInputs(
-            node.getInputs(),
-            context
-        );
+        Map<String, Object> resolvedInputs;
+        try {
+            resolvedInputs =
+                expressionResolver.resolveInputs(node.getInputs(), context);
+        } catch (IllegalArgumentException e) {
+            String message =
+                "引用解析失败：node=" +
+                    node.getNodeId() +
+                    " reason=" +
+                    e.getMessage();
+            log.error("[Scheduler] {}", message);
+            streamPublisher.publishError(message);
+            onNodeComplete(
+                executionId,
+                node.getNodeId(),
+                node.getName(),
+                node.getType(),
+                NodeExecutionResult.failed(message, Map.of("error", message)),
+                Map.of()
+            );
+            return;
+        }
 
         // Inject Context
         resolvedInputs.put("__context__", context);

@@ -29,19 +29,19 @@ public class StartNodeExecutorStrategy implements NodeExecutorStrategy {
 
         log.info("[Start Node {}] Passing through inputs", node.getNodeId());
 
-        // 从注入的 __context__ 中获取全局输入（用户消息等），合并到输出
         Map<String, Object> outputs = new HashMap<>();
 
-        ExecutionContext context = (ExecutionContext) resolvedInputs.get("__context__");
-        if (context != null && context.getInputs() != null) {
-            outputs.putAll(context.getInputs());
-        }
-
-        // 再合并 resolvedInputs 中的非系统字段
+        // 先合并 resolvedInputs 中的非系统字段，保留 inputSchema 默认值作为兜底。
         for (Map.Entry<String, Object> entry : resolvedInputs.entrySet()) {
             if (!entry.getKey().startsWith("__")) {
                 outputs.put(entry.getKey(), entry.getValue());
             }
+        }
+
+        // 再合并启动时的全局输入。用户显式输入优先级高于 inputSchema 默认值。
+        ExecutionContext context = (ExecutionContext) resolvedInputs.get("__context__");
+        if (context != null && context.getInputs() != null) {
+            outputs.putAll(context.getInputs());
         }
 
         return CompletableFuture.completedFuture(NodeExecutionResult.success(outputs));

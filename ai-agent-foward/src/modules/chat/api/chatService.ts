@@ -344,7 +344,7 @@ export async function startChatStream(
       conversationId: input.conversationId,
       versionId: input.versionId,
       inputs: {
-        query: input.content,
+        inputMessage: input.content,
       },
       mode: "STANDARD",
     }),

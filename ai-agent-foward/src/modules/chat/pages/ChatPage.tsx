@@ -111,6 +111,128 @@ function SystemEventBubble({ message }: { message: ChatMessage }) {
   );
 }
 
+interface PendingReviewBannerProps {
+  reviews: PendingReview[];
+  onOpenReview: (review: PendingReview) => void;
+}
+
+function PendingReviewBanner({
+  reviews,
+  onOpenReview,
+}: PendingReviewBannerProps) {
+  const visibleReviews = reviews.slice(0, 3);
+  const hiddenCount = Math.max(reviews.length - visibleReviews.length, 0);
+
+  return (
+    <div
+      role="region"
+      aria-label="待审核项"
+      style={{
+        marginBottom: 12,
+        padding: "10px 12px",
+        border: "1px solid #ffe7ba",
+        borderRadius: 8,
+        background: "#fffaf0",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "space-between",
+        gap: 12,
+        flexWrap: "wrap",
+      }}
+    >
+      <div
+        style={{
+          display: "flex",
+          alignItems: "center",
+          gap: 10,
+          minWidth: 180,
+        }}
+      >
+        <div
+          style={{
+            width: 32,
+            height: 32,
+            borderRadius: 8,
+            background: "#fff1b8",
+            color: "#ad6800",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            flexShrink: 0,
+          }}
+        >
+          <PauseCircleOutlined />
+        </div>
+        <div style={{ minWidth: 0 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+            <Text strong style={{ fontSize: 14 }}>
+              待审核
+            </Text>
+            <Tag color="warning" style={{ marginInlineEnd: 0 }}>
+              {reviews.length}
+            </Tag>
+          </div>
+          <Text type="secondary" style={{ fontSize: 12 }}>
+            等待人工确认的工作流节点
+          </Text>
+        </div>
+      </div>
+
+      <div
+        style={{
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "flex-end",
+          gap: 8,
+          flex: "1 1 320px",
+          flexWrap: "wrap",
+        }}
+      >
+        {visibleReviews.map((review) => (
+          <button
+            key={`${review.executionId}-${review.nodeId}`}
+            type="button"
+            onClick={() => onOpenReview(review)}
+            title={`${review.nodeName} · ${formatTime(review.pausedAt)}`}
+            style={{
+              height: 34,
+              maxWidth: 220,
+              padding: "0 10px",
+              border: "1px solid #ffd591",
+              borderRadius: 8,
+              background: "#fff",
+              color: "#262626",
+              display: "inline-flex",
+              alignItems: "center",
+              gap: 6,
+              cursor: "pointer",
+              font: "inherit",
+              lineHeight: 1,
+            }}
+          >
+            <NodeIndexOutlined style={{ color: "#ad6800", flexShrink: 0 }} />
+            <span
+              style={{
+                overflow: "hidden",
+                textOverflow: "ellipsis",
+                whiteSpace: "nowrap",
+                minWidth: 0,
+              }}
+            >
+              {review.nodeName || "审核节点"}
+            </span>
+          </button>
+        ))}
+        {hiddenCount > 0 && (
+          <Tag color="default" style={{ marginInlineEnd: 0 }}>
+            +{hiddenCount}
+          </Tag>
+        )}
+      </div>
+    </div>
+  );
+}
+
 /* ---- Node type labels ---- */
 const NODE_TYPE_LABELS: Record<string, string> = {
   LLM: "LLM",
@@ -1229,6 +1351,20 @@ function ChatPage() {
     [refreshPendingReviews],
   );
 
+  const openPendingReview = useCallback(async (review: PendingReview) => {
+    pausedExecutionRef.current = {
+      executionId: review.executionId,
+      nodeId: review.nodeId,
+    };
+    try {
+      const detail = await fetchReviewDetail(review.executionId);
+      setReviewDetail(detail);
+      setReviewModalOpen(true);
+    } catch {
+      setStreamError("获取审核详情失败");
+    }
+  }, []);
+
   const startResumedStream = useCallback(
     (executionId: string, assistantMessageId?: string) => {
       const aId = assistantMessageId?.trim() || makeLocalId("a");
@@ -1629,40 +1765,9 @@ function ChatPage() {
             <div style={{ flex: 1, overflowY: "auto", padding: "16px 20px" }}>
               {/* Pending review banner */}
               {pendingReviewsForAgent.length > 0 && !reviewModalOpen && (
-                <Alert
-                  type="warning"
-                  showIcon
-                  icon={<PauseCircleOutlined />}
-                  title={
-                    <span>
-                      有 {pendingReviewsForAgent.length} 个待审核项
-                      {pendingReviewsForAgent.map((r) => (
-                        <Button
-                          key={`${r.executionId}-${r.nodeId}`}
-                          type="link"
-                          size="small"
-                          onClick={async () => {
-                            pausedExecutionRef.current = {
-                              executionId: r.executionId,
-                              nodeId: r.nodeId,
-                            };
-                            try {
-                              const detail = await fetchReviewDetail(
-                                r.executionId,
-                              );
-                              setReviewDetail(detail);
-                              setReviewModalOpen(true);
-                            } catch {
-                              setStreamError("获取审核详情失败");
-                            }
-                          }}
-                        >
-                          查看 {r.nodeName}
-                        </Button>
-                      ))}
-                    </span>
-                  }
-                  style={{ marginBottom: 12 }}
+                <PendingReviewBanner
+                  reviews={pendingReviewsForAgent}
+                  onOpenReview={(review) => void openPendingReview(review)}
                 />
               )}
               {visibleMessages.length === 0 && (

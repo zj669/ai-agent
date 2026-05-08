@@ -3,53 +3,57 @@
 %% 题目：基于Spring Boot的AI Agent智能体编排系统的设计与实现
 %% 编译命令：xelatex -shell-escape main.tex （运行两次生成正确交叉引用）
 
-\documentclass[12pt, a4paper, openany]{ctexbook}
+\documentclass[zihao=-4, UTF8, openany, oneside, a4paper]{ctexbook}
 \usepackage{swust_thesis}
-\usepackage{listings}
-\usepackage{xcolor}
-\usepackage{graphicx}
+\swusttitle{基于 Spring Boot 的 AI Agent 智能体编排系统的设计与实现}
+\swusttitleen{Design and Implementation of an AI Agent Orchestration System Based on Spring Boot}
 \graphicspath{{figures/}{./figures/}}
-\usepackage{booktabs}
 \usepackage{longtable}
 \usepackage{float}
-\usepackage{tikz}
-
-%% 代码块全局样式
-\lstset{
-  basicstyle=\zihao{-5}\ttfamily,
-  breaklines=true,
-  frame=single,
-  numbers=left,
-  numberstyle=\tiny\color{gray},
-  keywordstyle=\color{blue!80!black},
-  commentstyle=\color{green!60!black},
-  stringstyle=\color{red!70!black},
-  tabsize=4,
+\usepackage{subcaption}
+\usepackage{placeins}
+\usepackage{flafter}
+% Float policy: prefer nearby text placement and avoid pages occupied only by figures.
+\renewcommand{\topfraction}{0.68}
+\renewcommand{\bottomfraction}{0.35}
+\renewcommand{\textfraction}{0.22}
+\renewcommand{\floatpagefraction}{0.90}
+\setcounter{topnumber}{1}
+\setcounter{bottomnumber}{1}
+\setcounter{totalnumber}{3}
+\setlength{\floatsep}{10pt plus 2pt minus 2pt}
+\setlength{\textfloatsep}{12pt plus 2pt minus 3pt}
+\setlength{\intextsep}{10pt plus 2pt minus 2pt}
+\makeatletter
+\def\fps@figure{!htbp}
+\makeatother
+\raggedbottom
+\usepackage{pifont}
+\AtBeginDocument{%
+  \providecommand{\checkmark}{\ding{51}}%  %% unicode-math 不提供时用 pifont 兜底
+  \renewcommand{\checkmark}{\ding{51}}%    %% 强制覆盖，兼容任何包顺序
+  \providecommand{\ctimes}{\ding{55}}%
 }
 
 \begin{document}
 
-%% ========== 前置部分（罗马页码，无页眉）==========
+%% ========== 前置部分（罗马页码）==========
+\frontmatter
 \pagenumbering{Roman}
-\fancypagestyle{frontmatter}{%
-  \fancyhf{}%
-  \fancyfoot[C]{\zihao{-5}\songti\thepage}%
-  \renewcommand{\headrulewidth}{0pt}%
-  \renewcommand{\headrule}{}%
-}
 \pagestyle{frontmatter}
 
 %% 摘要（中英文）
 \include{chapter/abstract}
 
 %% 目录
-\clearpage
+\cleardoublepage
 \tableofcontents
 
 %% ========== 正文（阿拉伯页码，有页眉）==========
-\clearpage
-\pagestyle{fancy}
+\mainmatter
 \pagenumbering{arabic}
+\setcounter{page}{1}
+\pagestyle{thesisplain}
 
 \include{chapter/ch1_intro}           %% 第1章 绪论
 \include{chapter/ch2_requirements}   %% 第2章 系统需求分析
@@ -59,6 +63,7 @@
 \include{chapter/ch6_conclusion}     %% 第6章 结论与展望
 
 %% ========== 后置部分 ==========
+\backmatter
 \include{chapter/acknowledgement}    %% 致谢
 
 \clearpage
@@ -68,12 +73,6 @@
 \bibliography{refs}
 }
 
-\include{chapter/appendix}           %% 附录
-
-%% 封底（空白页）
-\clearpage
-\thispagestyle{empty}
-\null
-\clearpage
+% \include{chapter/appendix}           %% 附录
 
 \end{document}

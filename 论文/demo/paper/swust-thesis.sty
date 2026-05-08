@@ -1,0 +1,380 @@
+% ============================================================================
+%  swust-thesis.sty
+%  西南科技大学本科生毕业论文（设计）LaTeX 格式宏包
+%  适配文档类：ctexbook（XeLaTeX 编译）
+%  基础规范：参考《模板.docx》
+%    - 中文宋体 / 英数 Times New Roman
+%    - 章标题 黑体小二居中
+%    - 节标题 黑体四号 / 二级节 黑体小四
+%    - 正文宋体小四，固定行距 22 磅，首行缩进 2 字符
+%    - 图标题在下、表标题在上、按章编号
+%    - 公式按章编号，居中
+% ============================================================================
+
+\NeedsTeXFormat{LaTeX2e}
+\ProvidesPackage{swust-thesis}[2026/04/26 v1.0 SWUST Undergraduate Thesis Style]
+
+% ----------------------------------------------------------------------------
+% 1. 基础宏包
+% ----------------------------------------------------------------------------
+\RequirePackage{geometry}          % 页面尺寸
+\RequirePackage{fancyhdr}          % 页眉页脚
+\RequirePackage{titlesec}          % 章节标题样式
+\RequirePackage{titletoc}          % 目录样式
+\RequirePackage{setspace}          % 行距控制
+\RequirePackage{indentfirst}       % 首段缩进
+\RequirePackage{caption}           % 图表标题
+\RequirePackage{graphicx}          % 图片
+\RequirePackage{float}             % 浮动体位置
+\RequirePackage{xcolor}            % 颜色
+\RequirePackage{array}             % 表格
+\RequirePackage{booktabs}          % 三线表
+\RequirePackage{longtable}         % 长表格
+\RequirePackage{multirow}          % 多行单元格
+\RequirePackage{tabularx}          % 自适应列宽表格
+\RequirePackage{amsmath, amssymb}  % 数学公式
+\RequirePackage{listings}          % 代码块
+\RequirePackage{enumitem}          % 列表
+\RequirePackage{tikz}              % 绘图
+\usetikzlibrary{shapes.geometric, shapes.symbols, arrows.meta, positioning, fit, backgrounds, calc, trees, chains, decorations.pathreplacing}
+\RequirePackage{hyperref}          % 超链接（必须最后载入）
+\RequirePackage[hang,flushmargin]{footmisc}  % 脚注样式
+
+% ----------------------------------------------------------------------------
+% 2. 页面布局
+%    A4：上 2.5 / 下 2.5 / 左 3.0 / 右 2.0 cm（按西科大模板）
+% ----------------------------------------------------------------------------
+\geometry{
+    a4paper,
+    top=2.5cm,
+    bottom=2.5cm,
+    left=3.0cm,
+    right=2.0cm,
+    headheight=1.5cm,
+    headsep=0.4cm,
+    footskip=1.0cm
+}
+
+% ----------------------------------------------------------------------------
+% 3. 字体与行距
+%    ctex 默认：CJKmainfont 宋体；mainfont Times New Roman
+%    正文 12pt（小四），固定行距 22 磅 ≈ \linespread{1.391}
+% ----------------------------------------------------------------------------
+\linespread{1.391}\selectfont
+\setlength{\parindent}{2em}        % 首行缩进 2 字符
+
+% ----------------------------------------------------------------------------
+% 4. 章节标题样式
+%    章：黑体小二（18pt），居中，段前段后 0.5 行
+%    节（一级）：黑体四号（14pt），左对齐
+%    小节（二级）：黑体小四（12pt），左对齐
+%    小小节（三级）：黑体五号（10.5pt），左对齐
+% ----------------------------------------------------------------------------
+\ctexset{
+    chapter = {
+        format       = \heiti\zihao{-2}\centering,
+        name         = {第,章},
+        number       = \arabic{chapter},
+        beforeskip   = 0.5\baselineskip,
+        afterskip    = 0.5\baselineskip,
+        pagestyle    = thesisplain
+    },
+    section = {
+        format       = \heiti\zihao{4}\raggedright,
+        beforeskip   = 0.5\baselineskip,
+        afterskip    = 0.5\baselineskip
+    },
+    subsection = {
+        format       = \heiti\zihao{-4}\raggedright,
+        beforeskip   = 0.5\baselineskip,
+        afterskip    = 0.5\baselineskip
+    },
+    subsubsection = {
+        format       = \heiti\zihao{5}\raggedright,
+        beforeskip   = 0.25\baselineskip,
+        afterskip    = 0.25\baselineskip
+    }
+}
+
+% ----------------------------------------------------------------------------
+% 5. 页眉与页脚
+%    页眉：西南科技大学本科生毕业论文（设计），五号华文行楷居中
+%    页脚：页码居中
+% ----------------------------------------------------------------------------
+\newCJKfontfamily\swustheaderfont[
+    BoldFont       = STXingkai,
+    ItalicFont     = STXingkai,
+    BoldItalicFont = STXingkai
+]{STXingkai}
+\newcommand{\swustheadtitle}{\zihao{5}\swustheaderfont\mdseries 西南科技大学本科生毕业论文（设计）}
+\newcommand{\swustdoubleheadrule}{\hrule width\headwidth height 0.8pt\vskip 0.8pt\hrule width\headwidth height3.2pt}
+
+\fancypagestyle{thesisplain}{%
+    \fancyhf{}
+    \fancyhead[C]{\swustheadtitle}
+    \fancyfoot[C]{\zihao{5}\thepage}
+    \renewcommand{\headrule}{\swustdoubleheadrule}
+    \renewcommand{\headrulewidth}{0pt}
+    \renewcommand{\footrulewidth}{0pt}
+}
+
+\fancypagestyle{frontmatter}{%
+    \fancyhf{}
+    \fancyhead[C]{\swustheadtitle}
+    \fancyfoot[C]{\zihao{5}\thepage}
+    \renewcommand{\headrule}{\swustdoubleheadrule}
+    \renewcommand{\headrulewidth}{0pt}
+    \renewcommand{\footrulewidth}{0pt}
+}
+
+\pagestyle{thesisplain}
+
+% ----------------------------------------------------------------------------
+% 6. 图表标题
+%    图：宋体加粗五号，居中，图在下
+%    表：宋体加粗五号，居中，表在上
+%    编号按章：图 1-1 / 表 2-1 等
+% ----------------------------------------------------------------------------
+\captionsetup{
+    font          = {bf, small, stretch=1.0},
+    labelsep      = quad,
+    skip          = 6pt
+}
+\captionsetup[figure]{position=below}
+\captionsetup[table]{position=above}
+
+\renewcommand{\thefigure}{\arabic{chapter}-\arabic{figure}}
+\renewcommand{\thetable}{\arabic{chapter}-\arabic{table}}
+\renewcommand{\theequation}{\arabic{chapter}-\arabic{equation}}
+
+% 章计数器变化时，子计数器自动重置（ctexbook 已默认处理，此处保险）
+\@addtoreset{figure}{chapter}
+\@addtoreset{table}{chapter}
+\@addtoreset{equation}{chapter}
+
+% ----------------------------------------------------------------------------
+% 7. 目录格式
+%    "目  录" 小二号黑体居中，三级目录，1.5 倍行距
+% ----------------------------------------------------------------------------
+\renewcommand{\contentsname}{\hfill\heiti\zihao{-2} 目\hspace{2em}录\hfill}
+\setcounter{tocdepth}{2}
+\setcounter{secnumdepth}{3}
+
+\titlecontents{chapter}[0pt]{\heiti\zihao{4}\vspace{6pt}}
+    {\thecontentslabel\hspace{0.6em}}{}{\titlerule*[6pt]{$\cdot$}\contentspage}
+
+\titlecontents{section}[2em]{\songti\zihao{-4}}
+    {\thecontentslabel\hspace{0.6em}}{}{\titlerule*[6pt]{$\cdot$}\contentspage}
+
+\titlecontents{subsection}[4em]{\songti\zihao{-4}}
+    {\thecontentslabel\hspace{0.6em}}{}{\titlerule*[6pt]{$\cdot$}\contentspage}
+
+% ----------------------------------------------------------------------------
+% 8. 脚注
+%    宋体小五，编号每章重置为 ①②③；正文中以 \footnote{} 触发
+% ----------------------------------------------------------------------------
+\renewcommand{\thefootnote}{\textcircled{\scriptsize\arabic{footnote}}}
+\setlength{\footnotesep}{12pt}
+\renewcommand{\footnotesize}{\zihao{-5}}
+
+% 每章重置脚注计数器
+\let\oldchapter\chapter
+\renewcommand{\chapter}{\setcounter{footnote}{0}\oldchapter}
+
+% ----------------------------------------------------------------------------
+% 9. 代码块样式
+% ----------------------------------------------------------------------------
+\definecolor{codegray}{rgb}{0.5,0.5,0.5}
+\definecolor{codekey}{rgb}{0.0,0.0,0.6}
+\definecolor{codestr}{rgb}{0.6,0.0,0.0}
+\definecolor{codecomment}{rgb}{0.25,0.5,0.35}
+\definecolor{codebg}{rgb}{0.97,0.97,0.97}
+
+\lstset{
+    basicstyle      = \ttfamily\zihao{-5},
+    keywordstyle    = \color{codekey}\bfseries,
+    stringstyle     = \color{codestr},
+    commentstyle    = \color{codecomment}\itshape,
+    numberstyle     = \tiny\color{codegray},
+    backgroundcolor = \color{codebg},
+    frame           = single,
+    framerule       = 0.4pt,
+    rulecolor       = \color{codegray},
+    numbers         = left,
+    numbersep       = 6pt,
+    showstringspaces= false,
+    breaklines      = true,
+    breakatwhitespace=true,
+    columns         = flexible,
+    tabsize         = 4,
+    captionpos      = t,
+    aboveskip       = 8pt,
+    belowskip       = 8pt
+}
+\lstdefinestyle{java}{language=Java}
+\lstdefinestyle{ts}{language=Java}      % 近似替代 TypeScript
+\lstdefinestyle{yaml}{language=}        % 无语言高亮
+\lstdefinestyle{sql}{language=SQL}
+
+% ----------------------------------------------------------------------------
+% 10. 超链接样式（黑色，避免输出彩色）
+% ----------------------------------------------------------------------------
+\hypersetup{
+    colorlinks  = true,
+    linkcolor   = black,
+    citecolor   = black,
+    urlcolor    = black,
+    bookmarksopen= true,
+    bookmarksnumbered=true,
+    pdftitle    = {虚拟问诊系统设计与实现},
+    pdfauthor   = {柏彪},
+    pdfsubject  = {西南科技大学本科毕业论文},
+    pdfkeywords = {AI Agent;医学教育;LLM;RAG;Tool Calling}
+}
+
+% ----------------------------------------------------------------------------
+% 11. 封面命令 \swustcover
+%     用法：在 \begin{document} 后第一行调用
+% ----------------------------------------------------------------------------
+\newcommand{\swusttitle}[1]{\def\@swusttitle{#1}}
+\newcommand{\swusttitleen}[1]{\def\@swusttitleen{#1}}
+\newcommand{\swustauthor}[1]{\def\@swustauthor{#1}}
+\newcommand{\swustno}[1]{\def\@swustno{#1}}
+\newcommand{\swustmajor}[1]{\def\@swustmajor{#1}}
+\newcommand{\swustadvisor}[1]{\def\@swustadvisor{#1}}
+\newcommand{\swustcollege}[1]{\def\@swustcollege{#1}}
+\newcommand{\swustdirection}[1]{\def\@swustdirection{#1}}
+\newcommand{\swustdate}[1]{\def\@swustdate{#1}}
+
+\swusttitle{毕业论文题目}
+\swusttitleen{Thesis Title}
+\swustauthor{学生姓名}
+\swustno{学号}
+\swustmajor{专业名称}
+\swustadvisor{指导教师 职称}
+\swustcollege{学院名称}
+\swustdirection{研究方向}
+\swustdate{二〇二六年六月}
+
+\newcommand{\swustcover}{%
+    % ---------- 第一封面 ----------
+    \thispagestyle{empty}
+    \begin{center}
+        \vspace*{0.5cm}
+        {\heiti\zihao{2} 西南科技大学本科生毕业论文（设计）}\\[3.5cm]
+        {\fontspec{Times New Roman}\zihao{-3} Southwest University of Science and Technology}\\[2cm]
+        {\heiti\zihao{2} 本科毕业论文（设计）}\\[3cm]
+        \begin{tabular}{rl}
+            {\heiti\zihao{-3} 题目名称：} & {\heiti\zihao{2}\@swusttitle}\\[1cm]
+        \end{tabular}\\[2cm]
+        \begin{tabular}{rl}
+            {\heiti\zihao{-3} 学院名称：} & {\heiti\zihao{-3}\@swustcollege}\\[0.4cm]
+            {\heiti\zihao{-3} 专业名称：} & {\heiti\zihao{-3}\@swustmajor}\\[0.4cm]
+            {\heiti\zihao{-3} 学生姓名：} & {\heiti\zihao{-3}\@swustauthor}\\[0.4cm]
+            {\heiti\zihao{-3} 学\hspace{2em}号：} & {\zihao{-3}\@swustno}\\[0.4cm]
+            {\heiti\zihao{-3} 指导教师：} & {\heiti\zihao{-3}\@swustadvisor}\\[1.5cm]
+        \end{tabular}\\[1.2cm]
+        {\zihao{-3}\@swustdate}
+    \end{center}
+    \clearpage
+
+    % ---------- 第二封面（中英文题目） ----------
+    \thispagestyle{empty}
+    \noindent
+    {\zihao{-4} 中图分类号：\hspace{8em} 学校代码：10619}\\[0.3cm]
+    {\zihao{-4} UDC 分类号：\hspace{7em} 密\hspace{2em}级：}
+    \begin{center}
+        \vspace*{2cm}
+        {\heiti\zihao{2} 西南科技大学}\\[0.5cm]
+        {\heiti\zihao{2} 本科毕业论文（设计）}\\[2cm]
+        {\heiti\zihao{2}\@swusttitle}\\[1cm]
+        {\fontspec{Times New Roman}\zihao{2}\bfseries\@swusttitleen}\\[2cm]
+        \begin{tabular}{rl}
+            {\songti\zihao{4} 学生姓名：} & {\songti\zihao{4}\@swustauthor}\\[0.3cm]
+            {\songti\zihao{4} 学\hspace{2em}号：} & {\zihao{4}\@swustno}\\[0.3cm]
+            {\songti\zihao{4} 导师姓名、职称：} & {\songti\zihao{4}\@swustadvisor}\\[0.3cm]
+            {\songti\zihao{4} 专业名称：} & {\songti\zihao{4}\@swustmajor}\\[0.3cm]
+            {\songti\zihao{4} 研究方向：} & {\songti\zihao{4}\@swustdirection}\\[0.3cm]
+            {\songti\zihao{4} 学\hspace{2em}院：} & {\songti\zihao{4}\@swustcollege}\\[1cm]
+        \end{tabular}\\[1cm]
+        {\zihao{4}\@swustdate}
+    \end{center}
+    \clearpage
+}
+
+% ----------------------------------------------------------------------------
+% 12. 原创性声明 \swustdeclaration
+% ----------------------------------------------------------------------------
+\newcommand{\swustdeclaration}{%
+    \thispagestyle{empty}
+    \begin{center}
+        {\heiti\zihao{2} 西南科技大学}\\[0.4cm]
+        {\heiti\zihao{2} 本科毕业论文（设计）原创性及学术诚信声明}\\[1.5cm]
+    \end{center}
+    {\songti\zihao{-4}
+    \setlength{\parindent}{2em}
+    本人郑重声明：所呈交的毕业论文（设计），是本人在指导教师的指导下，独立进行研究工作所取得的成果。除文中已经注明引用的内容外，本论文不包含任何其他个人或集体已经发表或撰写过的作品成果。对本文的研究做出重要贡献的个人和集体，均已在文中以明确方式标明。本人恪守学术道德和学术规范，无抄袭、篡改、伪造、买卖论文等学术不端行为，并完全意识到本声明的法律结果由本人承担。\par
+    }
+    \vspace{2.5cm}
+    \hfill 作者签名：\hspace{6em}\null\\[1cm]
+    \hfill 日\hspace{2em}期：\hspace{2em}年\hspace{2em}月\hspace{2em}日\hspace{1em}\null
+    \clearpage
+}
+
+% ----------------------------------------------------------------------------
+% 13. 版权使用授权书 \swustcopyright
+% ----------------------------------------------------------------------------
+\newcommand{\swustcopyright}{%
+    \thispagestyle{empty}
+    \begin{center}
+        {\heiti\zihao{2} 西南科技大学}\\[0.4cm]
+        {\heiti\zihao{2} 本科毕业论文（设计）版权使用授权书}\\[1.5cm]
+    \end{center}
+    {\songti\zihao{-4}
+    \setlength{\parindent}{2em}
+    本毕业论文（设计）作者同意学校保留并向国家有关部门或机构送交论文的复印件和电子版，允许论文被查阅和借阅。本人授权西南科技大学可以将本毕业论文（设计）的全部或部分内容编入有关数据库进行检索，可以采用影印、缩印或扫描等复制手段保存和汇编本毕业论文（设计）。\par
+    \vspace{0.4cm}
+    \hspace*{4em}保密 $\square$，在\hspace{2em}年解密后适用本授权书。\par
+    \vspace{0.2cm}
+    本论文属于\par
+    \hspace*{4em}不保密 $\square$。\par
+    \vspace{0.2cm}
+    （请在以上方框内打"√"）\par
+    }
+    \vspace{2.5cm}
+    \noindent 作者签名：\hspace{8em}指导教师签名：\\[1cm]
+    \noindent 日\hspace{2em}期：\hspace{2em}年\hspace{2em}月\hspace{2em}日\hspace{2em}日\hspace{2em}期：\hspace{2em}年\hspace{2em}月\hspace{2em}日
+    \clearpage
+}
+
+% ----------------------------------------------------------------------------
+% 14. 摘要环境
+%     中文摘要：黑体小二居中"摘  要"，正文宋体小四
+%     英文摘要：Times New Roman 小二粗体居中 Abstract
+% ----------------------------------------------------------------------------
+\newenvironment{abstractzh}{%
+    \cleardoublepage
+    \pagestyle{frontmatter}
+    \thispagestyle{frontmatter}
+    \begin{center}
+        {\heiti\zihao{-1}\@swusttitle}
+    \end{center}
+    \vspace{0.5\baselineskip}
+    \songti\zihao{-4}
+}{}
+
+\newenvironment{abstracten}{%
+    \cleardoublepage
+    \pagestyle{frontmatter}
+    \thispagestyle{frontmatter}
+    \begin{center}
+        {\fontspec{Times New Roman}\bfseries\zihao{-1}\@swusttitleen}
+    \end{center}
+    \vspace{0.5\baselineskip}
+    \fontspec{Times New Roman}\zihao{-4}
+}{}
+
+\newcommand{\keywordszh}[1]{\par\vspace{1.0\baselineskip}\noindent{\heiti\zihao{-4} 关键词：}{\songti\zihao{-4} #1}}
+\newcommand{\keywordsen}[1]{\par\vspace{1.0\baselineskip}\noindent{\fontspec{Times New Roman}\bfseries\zihao{-4} Keywords: }{\fontspec{Times New Roman}\zihao{-4} #1}}
+
+\endinput

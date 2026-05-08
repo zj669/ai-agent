@@ -1,0 +1,7 @@
+{"file": ".trellis/workflow.md", "reason": "Project workflow and conventions"}
+{"file": ".trellis/spec/backend/index.md", "reason": "Backend development guide"}
+{"file": ".trellis/spec/frontend/index.md", "reason": "Frontend development guide"}
+{"file": ".trellis/spec/guides/cross-layer-thinking-guide.md", "reason": "Cross-layer value reference contract requires mapping frontend save, backend conversion, parser and executor inputs"}
+{"file": "ai-agent-foward/src/modules/workflow/components/VariableRefSelector.tsx", "reason": "Frontend upstream value reference selector"}
+{"file": "ai-agent-infrastructure/src/main/java/com/zj/aiagent/infrastructure/workflow/expression/ExpressionResolver.java", "reason": "Backend node input expression/reference resolver"}
+{"file": "ai-agent-application/src/main/java/com/zj/aiagent/application/workflow/SchedulerService.java", "reason": "Builds resolvedInputs and schedules node execution"}

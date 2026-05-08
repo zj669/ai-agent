@@ -1,0 +1,9 @@
+{"file": ".trellis/workflow.md", "reason": "Project workflow and conventions"}
+{"file": ".trellis/spec/backend/index.md", "reason": "Backend development guide"}
+{"file": ".trellis/spec/frontend/index.md", "reason": "Frontend development guide"}
+{"file": "ai-agent-domain/src/main/java/com/zj/aiagent/domain/workflow/AGENT.md", "reason": "Workflow 模块业务约束"}
+{"file": "ai-agent-infrastructure/src/main/java/com/zj/aiagent/infrastructure/workflow/executor/ToolNodeExecutorStrategy.java", "reason": "TOOL 节点执行器读取 MCP 工具名和输出结果的主修改点"}
+{"file": "ai-agent-domain/src/main/java/com/zj/aiagent/domain/workflow/config/NodeConfig.java", "reason": "NodeConfig getString/getMap 配置读取 API"}
+{"file": "ai-agent-infrastructure/src/main/java/com/zj/aiagent/infrastructure/workflow/graph/converter/NodeConfigConverter.java", "reason": "userConfig 到 NodeConfig 的转换兼容点"}
+{"file": "ai-agent-foward/src/modules/workflow/components/NodeConfigTabs.tsx", "reason": "前端 TOOL 工具选择保存 selectedTool 和 mcpToolName 的主修改点"}
+{"file": "ai-agent-foward/src/modules/workflow/pages/WorkflowEditorPage.tsx", "reason": "工作流图保存与 TOOL 节点 schema 标准化相关逻辑"}

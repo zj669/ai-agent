@@ -1,0 +1,49 @@
+{
+  "id": "tool-node-mcp-config-contract-fix",
+  "name": "tool-node-mcp-config-contract-fix",
+  "title": "修复 TOOL 节点 MCP 工具配置字段不一致导致调用失败",
+  "description": "修复工作流 TOOL 节点前端保存 selectedTool.fullName、后端执行器读取 mcpToolName 导致 MCP 工具名为空并触发节点调用失败的问题。",
+  "status": "completed",
+  "dev_type": "fullstack",
+  "scope": "workflow",
+  "priority": "P1",
+  "creator": "zj669",
+  "assignee": "zj669",
+  "createdAt": "2026-05-07",
+  "completedAt": "2026-05-07",
+  "branch": null,
+  "base_branch": "main",
+  "worktree_path": null,
+  "current_phase": 2,
+  "next_action": [
+    {
+      "phase": 1,
+      "action": "implement"
+    },
+    {
+      "phase": 2,
+      "action": "check"
+    },
+    {
+      "phase": 3,
+      "action": "finish"
+    },
+    {
+      "phase": 4,
+      "action": "create-pr"
+    }
+  ],
+  "commit": null,
+  "pr_url": null,
+  "subtasks": [],
+  "children": [],
+  "parent": null,
+  "relatedFiles": [
+    "ai-agent-infrastructure/src/main/java/com/zj/aiagent/infrastructure/workflow/executor/ToolNodeExecutorStrategy.java",
+    "ai-agent-infrastructure/src/test/java/com/zj/aiagent/infrastructure/workflow/executor/ToolNodeExecutorStrategyTest.java",
+    "ai-agent-foward/src/modules/workflow/components/NodeConfigTabs.tsx",
+    "ai-agent-foward/src/modules/workflow/components/__tests__/NodeConfigTabs.test.tsx"
+  ],
+  "notes": "Fixed TOOL node MCP config contract: backend now resolves mcpToolName with selectedTool.fullName fallback and emits tool_response; frontend now persists mcpToolName when selecting/clearing tools. Verified with npm test -- --run src/modules/workflow/components/__tests__/NodeConfigTabs.test.tsx, npm run typecheck, mvn -pl ai-agent-infrastructure -am -Dtest=ToolNodeExecutorStrategyTest -Dsurefire.failIfNoSpecifiedTests=false test, and mvn -pl ai-agent-infrastructure -am test -Dsurefire.failIfNoSpecifiedTests=false.",
+  "meta": {}
+}

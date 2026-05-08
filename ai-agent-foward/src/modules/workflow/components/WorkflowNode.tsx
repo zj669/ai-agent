@@ -497,6 +497,10 @@ function WorkflowNode({ id, data, selected }: WorkflowNodeProps) {
               <ConditionBranchEditor
                 config={conditionConfig}
                 onChange={handleConditionConfigChange}
+                availableVars={upstreamVariables.map((variable) => ({
+                  label: `${variable.nodeName} · ${variable.fieldLabel}`,
+                  value: variable.ref,
+                }))}
               />
             </div>
           ) : template ? (

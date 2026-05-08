@@ -172,7 +172,8 @@ public class StructuredConditionEvaluator implements ConditionEvaluatorPort {
      * <p>
      * 支持的变量引用格式：
      * <ul>
-     *   <li>{@code nodes.{nodeId}.{key}} — 引用上游节点输出</li>
+     *   <li>{@code nodes.{nodeId}.{key}} — 历史上游节点输出引用</li>
+     *   <li>{@code {nodeId}.output.{key}} — 标准上游节点输出引用</li>
      *   <li>{@code inputs.{key}} — 引用全局输入</li>
      * </ul>
      * 非变量引用格式的操作数直接返回原值（作为字面值）。
@@ -191,7 +192,12 @@ public class StructuredConditionEvaluator implements ConditionEvaluatorPort {
             return operand;
         }
 
-        // 尝试解析 "nodes.{nodeId}.{key}" 格式
+        // 标准节点输出引用: "{nodeId}.output.{key}"
+        if (strOperand.contains(".output.")) {
+            return resolveStandardNodeReference(strOperand, context);
+        }
+
+        // 兼容历史 "nodes.{nodeId}.{key}" 格式
         if (strOperand.startsWith("nodes.")) {
             return resolveNodeReference(strOperand, context);
         }
@@ -206,7 +212,22 @@ public class StructuredConditionEvaluator implements ConditionEvaluatorPort {
     }
 
     /**
-     * 解析节点输出引用: nodes.{nodeId}.{key}
+     * 解析标准节点输出引用: {nodeId}.output.{key}
+     */
+    private Object resolveStandardNodeReference(String reference, ExecutionContext context) {
+        int outputIndex = reference.indexOf(".output.");
+        if (outputIndex <= 0 || outputIndex >= reference.length() - ".output.".length()) {
+            log.warn("无效的节点引用格式: {}, 期望格式: {{nodeId}}.output.{{key}}", reference);
+            return null;
+        }
+
+        String nodeId = reference.substring(0, outputIndex);
+        String key = reference.substring(outputIndex + ".output.".length());
+        return resolveNodeOutputValue(reference, nodeId, key, context);
+    }
+
+    /**
+     * 解析历史节点输出引用: nodes.{nodeId}.{key}
      */
     private Object resolveNodeReference(String reference, ExecutionContext context) {
         // 格式: nodes.{nodeId}.{key}
@@ -220,7 +241,15 @@ public class StructuredConditionEvaluator implements ConditionEvaluatorPort {
 
         String nodeId = withoutPrefix.substring(0, dotIndex);
         String key = withoutPrefix.substring(dotIndex + 1);
+        return resolveNodeOutputValue(reference, nodeId, key, context);
+    }
 
+    private Object resolveNodeOutputValue(
+        String reference,
+        String nodeId,
+        String key,
+        ExecutionContext context
+    ) {
         Map<String, Object> nodeOutput = context.getNodeOutput(nodeId);
         if (nodeOutput == null || nodeOutput.isEmpty()) {
             log.warn("节点输出不存在, nodeId={}, reference={}", nodeId, reference);

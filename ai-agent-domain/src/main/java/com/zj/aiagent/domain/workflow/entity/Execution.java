@@ -139,6 +139,36 @@ public class Execution {
     }
 
     /**
+     * 标记节点已进入调度执行中。
+     *
+     * 节点一旦被 Scheduler 派发，就不能继续保持 PENDING，否则并行节点先完成时，
+     * getReadyNodes 会再次把仍在运行的节点判定为 ready，造成外部工具重复调用。
+     */
+    public List<Node> markRunning(Collection<Node> nodes) {
+        if (nodes == null || nodes.isEmpty()) {
+            return Collections.emptyList();
+        }
+
+        List<Node> accepted = new ArrayList<>();
+        for (Node node : nodes) {
+            if (node == null || node.getNodeId() == null) {
+                continue;
+            }
+            ExecutionStatus current = nodeStatuses.get(node.getNodeId());
+            if (current == ExecutionStatus.PENDING) {
+                nodeStatuses.put(node.getNodeId(), ExecutionStatus.RUNNING);
+                accepted.add(node);
+            }
+        }
+
+        if (!accepted.isEmpty()) {
+            this.updatedAt = LocalDateTime.now();
+            this.version++;
+        }
+        return accepted;
+    }
+
+    /**
      * 推进执行（节点完成后调用）
      *
      * @return 下一批可执行的节点
@@ -234,9 +264,11 @@ public class Execution {
 
         // If BEFORE_EXECUTION, return node to be executed.
         // If AFTER_EXECUTION, return empty (Scheduler will manually advance).
-        return (phase == TriggerPhase.BEFORE_EXECUTION)
-            ? List.of(pausedNode)
-            : Collections.emptyList();
+        if (phase == TriggerPhase.BEFORE_EXECUTION) {
+            nodeStatuses.put(nodeId, ExecutionStatus.PENDING);
+            return List.of(pausedNode);
+        }
+        return Collections.emptyList();
     }
 
     /**

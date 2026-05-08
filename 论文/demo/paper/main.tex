@@ -1,0 +1,91 @@
+% ============================================================================
+%  main.tex
+%  西南科技大学本科生毕业论文（设计）
+%  题目：虚拟问诊系统设计与实现
+%  作者：柏彪  学号：5120223930  专业：大数据2203
+%  编译命令：xelatex main → bibtex main → xelatex main → xelatex main
+% ============================================================================
+\documentclass[zihao=-4, UTF8, openany, oneside, a4paper]{ctexbook}
+
+% ---------- 自定义格式宏包 ----------
+\usepackage{swust-thesis}
+
+% ---------- 参考文献：GB/T 7714-2015 ----------
+\usepackage[backend=biber, style=gb7714-2015, gbnamefmt=lowercase, sorting=none]{biblatex}
+\addbibresource{refs.bib}
+\defbibenvironment{bibliography}
+  {\list
+     {}
+     {\setlength{\leftmargin}{0pt}%
+      \setlength{\labelwidth}{0pt}%
+      \setlength{\labelsep}{0pt}%
+      \setlength{\itemindent}{0pt}%
+      \setlength{\itemsep}{\bibitemsep}%
+      \setlength{\parsep}{\bibparsep}}}
+  {\endlist}
+  {\item\printtext[labelnumberwidth]{\printfield{labelprefix}\printfield{labelnumber}}\hspace{1em}}
+
+% ---------- 封面元信息 ----------
+\swusttitle{虚拟问诊系统设计与实现}
+\swusttitleen{Design and Implementation of a Virtual Consultation System}
+\swustauthor{柏\hspace{2em}彪}
+\swustno{5120223930}
+\swustmajor{数据科学与大数据技术}
+\swustadvisor{XXX\hspace{1em}副教授}
+\swustcollege{计算机科学与技术学院}
+\swustdirection{人工智能与软件工程}
+\swustdate{二〇二六年六月}
+
+\begin{document}
+
+% ============================================================================
+% 前置部分：摘要、目录
+% 页码：罗马数字 I, II, III, ...
+% ============================================================================
+\frontmatter
+\pagenumbering{Roman}
+
+% ---- 中文摘要 ----
+\include{chapters/01_abstract_zh}
+
+% ---- 英文摘要 ----
+\include{chapters/02_abstract_en}
+
+% ---- 目录 ----
+\cleardoublepage
+\pagestyle{frontmatter}
+\tableofcontents
+
+% ============================================================================
+% 主体部分：正文
+% 页码：阿拉伯数字 1, 2, 3, ...
+% ============================================================================
+\mainmatter
+\pagenumbering{arabic}
+\setcounter{page}{1}
+\pagestyle{thesisplain}
+
+\include{chapters/04_chapter1_introduction}
+\include{chapters/05_chapter2_technology}
+\include{chapters/06_chapter3_requirement}
+\include{chapters/07_chapter4_design}
+\include{chapters/08_chapter5_agent}
+\include{chapters/09_chapter6_module}
+\include{chapters/10_chapter7_test_deploy}
+\include{chapters/11_chapter8_conclusion}
+
+% ============================================================================
+% 后置部分：致谢、参考文献
+% ============================================================================
+\backmatter
+
+% ---- 致谢 ----
+\include{chapters/12_acknowledgement}
+
+% ---- 参考文献 ----
+\cleardoublepage
+\phantomsection
+\addcontentsline{toc}{chapter}{参考文献}
+\printbibliography[title={\heiti\zihao{-2} 参考文献}]
+
+\end{document}

@@ -203,10 +203,20 @@ public class LlmNodeExecutorStrategy implements NodeExecutorStrategy {
                         .blockLast();
 
                     String response = fullResponse.toString();
+                    if (!streamError.get() && !StringUtils.hasText(response)) {
+                        log.warn(
+                            "[LLM Node {}] Stream returned empty content, retrying with non-streaming call",
+                            node.getNodeId()
+                        );
+                        response = chatClient.prompt(prompt).call().content();
+                        if (StringUtils.hasText(response)) {
+                            streamPublisher.publishDelta(response);
+                        }
+                    }
                     log.info(
                         "[LLM Node {}] Response received, length: {}",
                         node.getNodeId(),
-                        response.length()
+                        response != null ? response.length() : 0
                     );
 
                     Map<String, Object> outputs = new HashMap<>();
@@ -216,6 +226,10 @@ public class LlmNodeExecutorStrategy implements NodeExecutorStrategy {
 
                     if (streamError.get()) {
                         return NodeExecutionResult.failed("Stream interrupted, partial output available");
+                    }
+
+                    if (!StringUtils.hasText(response)) {
+                        return NodeExecutionResult.failed("LLM 返回空响应");
                     }
 
                     return NodeExecutionResult.success(outputs);
@@ -387,6 +401,9 @@ public class LlmNodeExecutorStrategy implements NodeExecutorStrategy {
                     Map<String, String> entry = chatHistory.get(i);
                     String role = entry.get("role");
                     String content = entry.get("content");
+                    if (!StringUtils.hasText(content)) {
+                        continue;
+                    }
 
                     if ("USER".equalsIgnoreCase(role)) {
                         messages.add(new UserMessage(content));

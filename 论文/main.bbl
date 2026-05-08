@@ -1,4 +1,4 @@
-\begin{thebibliography}{6}
+\begin{thebibliography}{15}
 \providecommand{\natexlab}[1]{#1}
 \providecommand{\url}[1]{#1}
 \expandafter\ifx\csname urlstyle\endcsname\relax\else
@@ -11,36 +11,117 @@
   \let\eprint\href
 \fi
 
-\bibitem[dif(2024)]{dify2024}
-Dify: Open-source llm app development platform\allowbreak[EB/OL].
+\bibitem[{LangGenius, Inc.}(2024)]{dify2024}
+{LangGenius, Inc.}
+\newblock {Dify}: Production-ready platform for agentic
+  workflow\allowbreak[EB/OL].
 \newblock 2024.
-\newblock \url{https://dify.ai}.
+\newblock \url{https://github.com/langgenius/dify}.
 
-\bibitem[coz(2024)]{coze2024}
-Coze: Ai chatbot and agent platform\allowbreak[EB/OL].
+\bibitem[{ByteDance}(2024)]{coze2024}
+{ByteDance}.
+\newblock {Coze}: {AI} agent and chatbot development
+  platform\allowbreak[EB/OL].
 \newblock 2024.
-\newblock \url{https://www.coze.com}.
+\newblock \url{https://www.coze.com/}.
 
-\bibitem[lan(2024)]{langgraph2024}
-Langgraph: Build stateful, multi-actor applications with
-  llms\allowbreak[EB/OL].
+\bibitem[{LangChain AI}(2024)]{langgraph2024}
+{LangChain AI}.
+\newblock {LangGraph}: Build resilient language agents as
+  graphs\allowbreak[EB/OL].
 \newblock 2024.
 \newblock \url{https://github.com/langchain-ai/langgraph}.
 
-\bibitem[Wu et~al.(2023)]{wu2023autogen}
-WU Q, et~al.
-\newblock Autogen: Enabling next-gen llm applications via multi-agent
-  conversation\allowbreak[A].
+\bibitem[Wu et~al.(2023)Wu, Bansal, Zhang, Wu, Li, Zhu, Jiang, Zhang, Zhang,
+  Liu, Awadallah, White, Burger, and Wang]{wu2023autogen}
+WU Q, BANSAL G, ZHANG J, et~al.
+\newblock {AutoGen}: Enabling next-gen {LLM} applications via multi-agent
+  conversation\allowbreak[A/OL].
 \newblock 2023.
+\newblock \url{https://arxiv.org/abs/2308.08155}.
 
-\bibitem[lan(2023)]{langchain2023}
-Langchain: Building applications with llms\allowbreak[EB/OL].
-\newblock 2023.
-\newblock \url{https://www.langchain.com}.
-
-\bibitem[spr(2024)]{springai2024}
-Spring ai: Ai engineering for spring applications\allowbreak[EB/OL].
+\bibitem[{Spring}(2024)]{springai2024}
+{Spring}.
+\newblock {Spring AI} reference documentation\allowbreak[EB/OL].
 \newblock 2024.
 \newblock \url{https://docs.spring.io/spring-ai/reference/}.
+
+\bibitem[Xi et~al.(2023)Xi, Chen, Guo, He, Ding, Hong, Zhang, Wang, Jin, Zhou,
+  Zheng, Fan, Wang, Xiong, Zhou, Wang, Jiang, Zou, Liu, Yin, Dou, Weng, Cheng,
+  Zhang, Qin, Zheng, Qiu, Huang, and Gui]{xi2023agentsurvey}
+XI Z, CHEN W, GUO X, et~al.
+\newblock The rise and potential of large language model based agents: A
+  survey\allowbreak[A/OL].
+\newblock 2023.
+\newblock \url{https://arxiv.org/abs/2309.07864}.
+
+\bibitem[Wang et~al.(2024)Wang, Ma, Feng, Zhang, Yang, Zhang, Chen, Tang, Chen,
+  Lin, Zhao, Wei, and Wen]{wang2024agentsurvey}
+WANG L, MA C, FENG X, et~al.
+\newblock A survey on large language model based autonomous
+  agents\allowbreak[J/OL].
+\newblock Frontiers of Computer Science, 2024, 18\allowbreak (6): 186345.
+\newblock \url{https://link.springer.com/article/10.1007/s11704-024-40231-1}.
+
+\bibitem[{Baidu}(2024)]{baidu_agentbuilder}
+{Baidu}.
+\newblock 文心智能体平台 {AgentBuilder}\allowbreak[EB/OL].
+\newblock 2024.
+\newblock \url{https://agents.baidu.com/}.
+
+\bibitem[{ModelScope}(2023)]{modelscope_agent}
+{ModelScope}.
+\newblock {ModelScope-Agent}: {MS-Agent} framework\allowbreak[EB/OL].
+\newblock 2023.
+\newblock \url{https://github.com/modelscope/modelscope-agent}.
+
+\bibitem[{Tencent}(2024)]{tencent_yuanqi}
+{Tencent}.
+\newblock 腾讯元器智能体平台\allowbreak[EB/OL].
+\newblock 2024.
+\newblock \url{https://yuanqi.tencent.com/}.
+
+\bibitem[{LangChain AI}(2023)]{langchain2023}
+{LangChain AI}.
+\newblock {LangChain}: Build context-aware reasoning
+  applications\allowbreak[EB/OL].
+\newblock 2023.
+\newblock \url{https://docs.langchain.com/oss/python/langchain/overview}.
+
+\bibitem[Yao et~al.(2023)Yao, Zhao, Yu, Du, Shafran, Narasimhan, and
+  Cao]{yao2023react}
+YAO S, ZHAO J, YU D, et~al.
+\newblock {ReAct}: Synergizing reasoning and acting in language
+  models\allowbreak[C/OL]//\allowbreak
+International Conference on Learning Representations.
+\newblock 2023.
+\newblock \url{https://openreview.net/forum?id=WE_vluYUL-X}.
+
+\bibitem[Lewis et~al.(2020)Lewis, Perez, Piktus, Petroni, Karpukhin, Goyal,
+  K{\"u}ttler, Lewis, Yih, Rockt{\"a}schel, Riedel, and Kiela]{lewis2020rag}
+LEWIS P, PEREZ E, PIKTUS A, et~al.
+\newblock {Retrieval-Augmented Generation} for knowledge-intensive {NLP}
+  tasks\allowbreak[C/OL]//\allowbreak
+Advances in Neural Information Processing Systems: Vol.~33.
+\newblock 2020: 9459-9474.
+\newblock
+  \url{https://proceedings.neurips.cc/paper/2020/hash/6b493230205f780e1bc26945df7481e5-Abstract.html}.
+
+\bibitem[Singh et~al.(2025)Singh, Ehtesham, Kumar, Khoei, and
+  Vasilakos]{singh2025agenticrag}
+SINGH A, EHTESHAM A, KUMAR S, et~al.
+\newblock Agentic {Retrieval-Augmented Generation}: A survey on agentic
+  {RAG}\allowbreak[A/OL].
+\newblock 2025.
+\newblock \url{https://arxiv.org/abs/2501.09136}.
+
+\bibitem[Wang et~al.(2021)Wang, Yi, Guo, Jin, Xu, Li, Wang, Guo, Li, Xu, Yu,
+  Yuan, Zou, Long, Cai, Li, Zhang, Mo, Gu, Jiang, Wei, and Xie]{milvus2021}
+WANG J, YI X, GUO R, et~al.
+\newblock {Milvus}: A purpose-built vector data management
+  system\allowbreak[C/OL]//\allowbreak
+Proceedings of the 2021 International Conference on Management of Data.
+\newblock 2021: 2614-2627.
+\newblock \url{https://doi.org/10.1145/3448016.3457550}.
 
 \end{thebibliography}

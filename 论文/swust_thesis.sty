@@ -47,50 +47,68 @@
 \setsansfont{TeX Gyre Heros}
 \setmathfont{TeX Gyre Termes Math}  % 数学字体匹配正文 Times
 
+\newcommand{\swusttitle}[1]{\def\@swusttitle{#1}}
+\newcommand{\swusttitleen}[1]{\def\@swusttitleen{#1}}
+\swusttitle{毕业论文题目}
+\swusttitleen{Thesis Title}
+
+\newCJKfontfamily\swustheaderfont[
+  BoldFont       = STXingkai,
+  ItalicFont     = STXingkai,
+  BoldItalicFont = STXingkai
+]{STXingkai}
+\newcommand{\swustheadtitle}{\zihao{5}\swustheaderfont\mdseries 西南科技大学本科生毕业论文（设计）}
+\newcommand{\swustdoubleheadrule}{\hrule width\headwidth height 0.8pt\vskip 0.8pt\hrule width\headwidth height 3.2pt}
+
 %% ============================================================
 %% 页面设置（规范 §二(六)）
 %% ============================================================
 \geometry{
   a4paper,
-  top=2.5cm, bottom=2.5cm, left=2.5cm, right=2.5cm,
-  headheight=14pt,
-  headsep=0.5cm,
+  top=2.5cm, bottom=2.5cm, left=3.0cm, right=2.0cm,
+  headheight=1.5cm,
+  headsep=0.4cm,
   footskip=1.0cm,
 }
 
 %% ============================================================
 %% 行距：固定值 22 磅
 %% ============================================================
-\linespread{1.527}
+\linespread{1.391}\selectfont
 \setlength{\parindent}{2em}
 \setlength{\parskip}{0pt}
+\setlength{\emergencystretch}{2em}
 
 %% ============================================================
 %% 页眉页脚（规范 §二(六)1/3）
 %% ============================================================
-\pagestyle{fancy}
-\fancyhf{}
-%% 规范要求页眉字体为5号华文行楷（STXingkai）
-%% 若系统已安装华文行楷，请取消下行注释并注释掉 kaishu 行：
-%% \fancyhead[C]{\zihao{5}\CJKfontspec{STXingkai} 西南科技大学本科生毕业论文（设计）}
-\fancyhead[C]{\zihao{5}\kaishu 西南科技大学本科生毕业论文（设计）}
-\fancyfoot[C]{\zihao{-5}\songti\thepage}
-\renewcommand{\headrulewidth}{0pt}
-\renewcommand{\headrule}{%
-  \hrule height 0.5pt width\headwidth\vskip 1.2pt
-  \hrule height 2.5pt width\headwidth\vskip-3.7pt
+\fancypagestyle{thesisplain}{%
+  \fancyhf{}%
+  \fancyhead[C]{\swustheadtitle}%
+  \fancyfoot[C]{\zihao{5}\songti\thepage}%
+  \renewcommand{\headrule}{\swustdoubleheadrule}%
+  \renewcommand{\headrulewidth}{0pt}%
+  \renewcommand{\footrulewidth}{0pt}%
 }
+
+\fancypagestyle{frontmatter}{%
+  \fancyhf{}%
+  \fancyhead[C]{\swustheadtitle}%
+  \fancyfoot[C]{\zihao{5}\songti\thepage}%
+  \renewcommand{\headrule}{\swustdoubleheadrule}%
+  \renewcommand{\headrulewidth}{0pt}%
+  \renewcommand{\footrulewidth}{0pt}%
+}
+
+\pagestyle{thesisplain}
 
 \fancypagestyle{plain}{%
   \fancyhf{}%
-  %% 同上：若安装华文行楷则替换 kaishu 为 CJKfontspec{STXingkai}
-  \fancyhead[C]{\zihao{5}\kaishu 西南科技大学本科生毕业论文（设计）}%
-  \fancyfoot[C]{\zihao{-5}\songti\thepage}%
+  \fancyhead[C]{\swustheadtitle}%
+  \fancyfoot[C]{\zihao{5}\songti\thepage}%
+  \renewcommand{\headrule}{\swustdoubleheadrule}%
   \renewcommand{\headrulewidth}{0pt}%
-  \renewcommand{\headrule}{%
-    \hrule height 0.5pt width\headwidth\vskip 1.2pt
-    \hrule height 2.5pt width\headwidth\vskip-3.7pt
-  }%
+  \renewcommand{\footrulewidth}{0pt}%
 }
 
 \fancypagestyle{empty}{%
@@ -108,7 +126,7 @@
   {第\,\thechapter\,章}
   {1em}
   {}
-\titlespacing{\chapter}{0pt}{0pt}{18pt}
+\titlespacing{\chapter}{0pt}{0.5\baselineskip}{0.5\baselineskip}
 
 \titleformat{\section}[block]
   {\zihao{4}\heiti}
@@ -125,15 +143,16 @@
 \titlespacing{\subsection}{0pt}{6pt}{4pt}
 
 \titleformat{\subsubsection}[block]
-  {\zihao{-4}\songti}
+  {\zihao{5}\heiti}
   {\thesubsubsection}
   {1em}
   {}
-\titlespacing{\subsubsection}{0pt}{4pt}{2pt}
+\titlespacing{\subsubsection}{0pt}{0.25\baselineskip}{0.25\baselineskip}
 
 \renewcommand{\thechapter}{\arabic{chapter}}
 \renewcommand{\thesection}{\thechapter.\arabic{section}}
 \renewcommand{\thesubsection}{\thesection.\arabic{subsection}}
+\ctexset{chapter/number=\arabic{chapter}}
 
 %% ============================================================
 %% 目录格式（规范 §二(八)）用 tocloft
@@ -141,10 +160,13 @@
 
 %% 目录标题
 \renewcommand{\contentsname}{\centering\zihao{-2}\heiti 目\quad 录}
+\setcounter{tocdepth}{2}
+\setcounter{secnumdepth}{3}
+\renewcommand{\cftdotsep}{1.2}
 
 %% 章条目格式（小4号黑体）
-\renewcommand{\cftchapfont}{\zihao{-4}\heiti}
-\renewcommand{\cftchappagefont}{\zihao{-4}}
+\renewcommand{\cftchapfont}{\zihao{4}\heiti}
+\renewcommand{\cftchappagefont}{\zihao{4}}
 \renewcommand{\cftchapleader}{\cftdotfill{\cftdotsep}}
 \setlength{\cftchapnumwidth}{5em}
 \cftsetindents{chapter}{0em}{5em}
@@ -165,11 +187,11 @@
 %% 摘要环境
 %% ============================================================
 \newcommand{\cnabstract}{%
-  \clearpage
+  \cleardoublepage
+  \pagestyle{frontmatter}
   \phantomsection
   \addcontentsline{toc}{chapter}{摘要}
   \begin{center}
-    {\zihao{-1}\heiti 基于Spring Boot的AI Agent智能体编排系统的设计与实现}\\[0.8cm]
     {\zihao{-2}\heiti 摘\quad 要}
   \end{center}
   \vspace{0.5cm}
@@ -180,7 +202,8 @@
 }
 
 \newcommand{\enabstract}{%
-  \clearpage
+  \cleardoublepage
+  \pagestyle{frontmatter}
   \phantomsection
   \addcontentsline{toc}{chapter}{Abstract}
   \begin{center}{\zihao{-2}\bfseries Abstract}\end{center}
@@ -191,15 +214,41 @@
   \vspace{\baselineskip}\noindent{\zihao{-4}\textbf{Keywords: }}{\zihao{-4} #1}
 }
 
+\newenvironment{abstractzh}{%
+  \cleardoublepage
+  \pagestyle{frontmatter}
+  \thispagestyle{frontmatter}
+  \begin{center}
+    {\heiti\zihao{-1}\@swusttitle}
+  \end{center}
+  \vspace{0.5\baselineskip}
+  \songti\zihao{-4}
+}{}
+
+\newenvironment{abstracten}{%
+  \cleardoublepage
+  \pagestyle{frontmatter}
+  \thispagestyle{frontmatter}
+  \begin{center}
+    {\bfseries\zihao{-1}\@swusttitleen}
+  \end{center}
+  \vspace{0.5\baselineskip}
+  \rmfamily\zihao{-4}
+}{}
+
+\newcommand{\keywordszh}[1]{\par\vspace{1.0\baselineskip}\noindent{\heiti\zihao{-4} 关键词：}{\songti\zihao{-4} #1}}
+\newcommand{\keywordsen}[1]{\par\vspace{1.0\baselineskip}\noindent{\bfseries\zihao{-4} Keywords: }{\rmfamily\zihao{-4} #1}}
+
 %% ============================================================
 %% 致谢环境
 %% ============================================================
 \newcommand{\acknowledgement}{%
-  \clearpage
+  \cleardoublepage
+  \pagestyle{thesisplain}
   \phantomsection
+  \chapter*{\centering 致\hspace{2em}谢}
   \addcontentsline{toc}{chapter}{致谢}
-  \begin{center}{\zihao{-2}\heiti 致\quad 谢}\end{center}
-  \vspace{0.5cm}
+  \setlength{\parindent}{2em}
   \zihao{-4}\songti
 }
 
@@ -212,7 +261,7 @@
 %% 公式编号：(式 章号-公式号)  规范 §十五(二)
 %% ============================================================
 \numberwithin{equation}{chapter}
-\renewcommand{\theequation}{式\,\thechapter-\arabic{equation}}
+\renewcommand{\theequation}{\thechapter-\arabic{equation}}
 %% 自定义方程标签样式
 \let\oldlabel\label
 \renewcommand{\label}[1]{%
@@ -226,9 +275,9 @@
 \numberwithin{table}{chapter}
 \renewcommand{\thefigure}{\thechapter-\arabic{figure}}
 \renewcommand{\thetable}{\thechapter-\arabic{table}}
-\captionsetup{labelsep=space, font=small, labelfont=bf, justification=centering}
-\captionsetup[figure]{name={图}}
-\captionsetup[table]{name={表}}
+\captionsetup{labelsep=quad, font={bf,small,stretch=1.0}, justification=centering, skip=6pt}
+\captionsetup[figure]{name={图}, position=below}
+\captionsetup[table]{name={表}, position=above}
 
 %% 规范要求表内文字说明为5号宋体
 \RequirePackage{etoolbox}
@@ -253,8 +302,41 @@
 %% ============================================================
 %% 定义支持 CJK/Unicode 的等宽字体命令
 \newfontfamily\codefont{Noto Sans Mono CJK SC}[Scale=0.85]
+\definecolor{codebg}{HTML}{F8FAFC}
+\definecolor{codeframe}{HTML}{D0D7DE}
+\definecolor{codenumber}{HTML}{8C959F}
+\definecolor{codekeyword}{HTML}{0B5CAD}
+\definecolor{codestring}{HTML}{0A7F3F}
+\definecolor{codecomment}{HTML}{6A737D}
+\definecolor{codeemph}{HTML}{8250DF}
 \lstset{
-  basicstyle=\zihao{5}\codefont,
+  basicstyle=\zihao{-5}\codefont,
+  keywordstyle=\color{codekeyword}\bfseries,
+  commentstyle=\color{codecomment}\itshape,
+  stringstyle=\color{codestring},
+  emphstyle=\color{codeemph},
+  morekeywords={var,record,yield,Optional,Stream,Map,List,Set,Queue,HashMap,HashSet,ArrayList,CompletableFuture,Override,Transactional,Async},
+  numbers=left,
+  numberstyle=\tiny\color{codenumber}\codefont,
+  stepnumber=1,
+  numbersep=8pt,
+  frame=single,
+  framerule=0.4pt,
+  framesep=5pt,
+  xleftmargin=1.8em,
+  xrightmargin=0.6em,
+  rulecolor=\color{codeframe},
+  backgroundcolor=\color{codebg},
+  showstringspaces=false,
+  breaklines=true,
+  breakatwhitespace=true,
+  postbreak=\mbox{\textcolor{codenumber}{$\hookrightarrow$}\space},
+  columns=flexible,
+  keepspaces=true,
+  tabsize=4,
+  captionpos=t,
+  aboveskip=8pt,
+  belowskip=8pt,
   literate=
     {ε}{{$\varepsilon$}}1
     {ζ}{{$\zeta$}}1
@@ -267,17 +349,44 @@
     {→}{{$\to$}}1,
 }
 
+\lstdefinelanguage{yaml}{
+  sensitive=false,
+  morecomment=[l]{\#},
+  morestring=[b]",
+  morestring=[b]',
+  morekeywords={true,false,null,services,image,container_name,ports,environment,volumes,depends_on,build,networks,restart}
+}
+
+\lstdefinestyle{java}{
+  language=Java,
+  morekeywords={var,record,yield,Optional,Stream,Map,List,Set,Queue,HashMap,HashSet,ArrayList,CompletableFuture},
+}
+
+\lstdefinestyle{bash}{
+  language=bash,
+  morekeywords={docker,docker-compose,mvn,npm,mysql,xelatex,bibtex},
+}
+
+\lstdefinestyle{sql}{
+  language=SQL,
+}
+
+\lstdefinestyle{yaml}{
+  language=yaml,
+  morekeywords={services,image,container_name,ports,environment,volumes,depends_on,build,networks,restart},
+}
+
 \lstdefinestyle{matlab}{
   language=Matlab,
-  basicstyle=\zihao{5}\codefont,
-  numbers=left, numberstyle=\tiny\color{gray},
-  backgroundcolor=\color{gray!5},
+  basicstyle=\zihao{-5}\codefont,
+  numbers=left, numberstyle=\tiny\color{codenumber}\codefont,
+  backgroundcolor=\color{codebg},
   showstringspaces=false,
-  keywordstyle=\color{blue}\bfseries,
-  commentstyle=\color{green!60!black}\itshape,
-  stringstyle=\color{orange},
+  keywordstyle=\color{codekeyword}\bfseries,
+  commentstyle=\color{codecomment}\itshape,
+  stringstyle=\color{codestring},
   breaklines=true, frame=single,
-  rulecolor=\color{gray!40}, tabsize=4,
+  rulecolor=\color{codeframe}, tabsize=4,
 }
 
 %% ============================================================
@@ -297,13 +406,18 @@
 %% 附录章命令（规范 §二(二十)）
 %% ============================================================
 \newcounter{appendixnum}
+\renewcommand{\theappendixnum}{\Alph{appendixnum}}
 \newcommand{\appendixchapter}[1]{%
-  \clearpage
+  \cleardoublepage
   \stepcounter{appendixnum}%
   \phantomsection
   \addcontentsline{toc}{chapter}{附录\theappendixnum\quad #1}%
   \begin{center}{\zihao{-2}\heiti 附录\,\theappendixnum\quad #1}\end{center}
   \vspace{0.5cm}
+}
+
+\newcommand{\appendixsection}[1]{%
+  \section*{附录\,\Alph{appendixnum}\quad #1}%
 }
 
 %% ============================================================

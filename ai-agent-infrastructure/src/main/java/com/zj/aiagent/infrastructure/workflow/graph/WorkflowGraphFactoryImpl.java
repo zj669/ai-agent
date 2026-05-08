@@ -110,58 +110,25 @@ public class WorkflowGraphFactoryImpl {
     }
 
     /**
-     * 将 sourceRef 路径映射为 SpEL 表达式
+     * 标准化 sourceRef 路径。
      *
-     * 映射规则：
-     * - "nodeId.output.key"  → "#{#nodeId['key']}"
-     * - "state.key"          → "#{#sharedState['key']}"
-     * - "nodeId.key"         → "#{#nodeId['key']}"
+     * 前后端统一使用：
+     * - inputs.key
+     * - nodeId.output.key
+     * - sharedState.key
      *
-     * 格式不匹配时记录 WARN 日志并返回原始 sourceRef
-     *
-     * @param sourceRef 前端配置的数据来源路径
-     * @return SpEL 表达式字符串，或原始 sourceRef（格式不匹配时）
+     * 历史 state.key 归一为 sharedState.key。其它格式保持原值，交由解析阶段明确失败。
      */
-    static String mapSourceRefToSpEL(String sourceRef) {
+    static String normalizeSourceRef(String sourceRef) {
         if (sourceRef == null || sourceRef.isBlank()) {
             return sourceRef;
         }
 
-        int firstDot = sourceRef.indexOf('.');
-        if (firstDot < 0 || firstDot == sourceRef.length() - 1) {
-            // 没有 dot 或 dot 在末尾，格式不匹配
-            log.warn("[GraphFactory] sourceRef 格式不匹配, 无法映射为 SpEL: sourceRef={}", sourceRef);
-            return sourceRef;
+        String trimmed = sourceRef.trim();
+        if (trimmed.startsWith("state.")) {
+            return "sharedState." + trimmed.substring("state.".length());
         }
-
-        String firstSegment = sourceRef.substring(0, firstDot);
-        String rest = sourceRef.substring(firstDot + 1);
-
-        // 格式: state.<key>
-        if ("state".equals(firstSegment)) {
-            return "#{#sharedState['" + rest + "']}";
-        }
-
-        // 格式: <nodeId>.output.<key>
-        int secondDot = rest.indexOf('.');
-        if (secondDot >= 0 && "output".equals(rest.substring(0, secondDot))) {
-            String key = rest.substring(secondDot + 1);
-            if (key.isEmpty()) {
-                log.warn("[GraphFactory] sourceRef 格式不匹配, output 后缺少 key: sourceRef={}", sourceRef);
-                return sourceRef;
-            }
-            // 对包含特殊字符的 nodeId 使用 nodeOutputs map 语法
-            if (firstSegment.matches("[a-zA-Z_][a-zA-Z0-9_]*")) {
-                return "#{#" + firstSegment + "['" + key + "']}";
-            }
-            return "#{#nodeOutputs['" + firstSegment + "']['" + key + "']}";
-        }
-
-        // 格式: <nodeId>.<key>
-        if (firstSegment.matches("[a-zA-Z_][a-zA-Z0-9_]*")) {
-            return "#{#" + firstSegment + "['" + rest + "']}";
-        }
-        return "#{#nodeOutputs['" + firstSegment + "']['" + rest + "']}";
+        return trimmed;
     }
 
     /**
@@ -176,8 +143,7 @@ public class WorkflowGraphFactoryImpl {
         Map<String, Object> inputs = new HashMap<>();
         for (FieldSchemaDTO field : inputSchema) {
             if (field.getSourceRef() != null && !field.getSourceRef().isBlank()) {
-                // 使用 sourceRef 映射为 SpEL 表达式
-                inputs.put(field.getKey(), mapSourceRefToSpEL(field.getSourceRef()));
+                inputs.put(field.getKey(), normalizeSourceRef(field.getSourceRef()));
             } else if (field.getDefaultValue() != null) {
                 // 使用默认值
                 inputs.put(field.getKey(), field.getDefaultValue());

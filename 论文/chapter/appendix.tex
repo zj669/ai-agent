@@ -1,9 +1,8 @@
 %% 附录
 
-\appendix
-\chapter{系统部署说明}
+\appendixchapter{系统部署说明}
 
-\section{环境依赖}
+\section*{环境依赖}
 
 \begin{lstlisting}[language=bash, caption={环境依赖启动命令}]
 # 启动中间件（MySQL / Redis / Milvus）
@@ -14,14 +13,14 @@ docker-compose up -d
 mysql -u root -p < init/mysql/01_init_schema.sql
 \end{lstlisting}
 
-\section{后端启动}
+\section*{后端启动}
 
 \begin{lstlisting}[language=bash, caption={后端启动命令}]
 # 修改 application.yml 中的数据库连接配置
 mvn spring-boot:run -pl ai-agent-app
 \end{lstlisting}
 
-\section{前端启动}
+\section*{前端启动}
 
 \begin{lstlisting}[language=bash, caption={前端启动命令}]
 cd ai-agent-foward
@@ -30,7 +29,7 @@ npm run dev
 # 默认访问地址：http://localhost:5173
 \end{lstlisting}
 
-\chapter{核心接口速查表}
+\appendixchapter{核心接口速查表}
 
 \begin{longtable}{lll}
   \toprule

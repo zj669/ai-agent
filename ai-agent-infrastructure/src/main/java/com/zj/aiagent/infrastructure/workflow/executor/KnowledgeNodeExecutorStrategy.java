@@ -5,12 +5,10 @@ import com.zj.aiagent.domain.workflow.config.NodeConfig;
 import com.zj.aiagent.domain.workflow.entity.Node;
 import com.zj.aiagent.domain.workflow.port.NodeExecutorStrategy;
 import com.zj.aiagent.domain.workflow.port.StreamPublisher;
-import com.zj.aiagent.domain.workflow.valobj.ExecutionContext;
 import com.zj.aiagent.domain.workflow.valobj.NodeExecutionResult;
 import com.zj.aiagent.domain.workflow.valobj.NodeType;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
 import java.util.concurrent.CompletableFuture;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -47,10 +45,17 @@ public class KnowledgeNodeExecutorStrategy implements NodeExecutorStrategy {
                     );
                 }
 
-                String query = extractQuery(resolvedInputs);
+                String query = asNonBlankString(resolvedInputs.get("query"));
                 if (query == null || query.isEmpty()) {
+                    Object ref = node.getInputs() != null
+                        ? node.getInputs().get("query")
+                        : null;
                     return NodeExecutionResult.failed(
-                        "未获取到查询文本，请在输入中配置 query 字段"
+                        "KNOWLEDGE 入参解析失败：node=" +
+                            node.getNodeId() +
+                            " input=query ref=" +
+                            (ref != null ? ref : "<未配置>") +
+                            " reason=必填参数为空"
                     );
                 }
 
@@ -87,62 +92,6 @@ public class KnowledgeNodeExecutorStrategy implements NodeExecutorStrategy {
                 );
             }
         });
-    }
-
-    /**
-     * 兼容历史图配置：
-     * 1. 优先读取标准字段 query
-     * 2. 兼容旧字段 user_input
-     * 3. 兜底读取第一个非系统的非空字符串输入
-     * 4. 最后回退到执行上下文的全局 inputs（query/input/message）
-     */
-    private String extractQuery(Map<String, Object> resolvedInputs) {
-        if (resolvedInputs == null || resolvedInputs.isEmpty()) {
-            return null;
-        }
-
-        String query = asNonBlankString(resolvedInputs.get("query"));
-        if (query != null) {
-            return query;
-        }
-
-        query = asNonBlankString(resolvedInputs.get("user_input"));
-        if (query != null) {
-            return query;
-        }
-
-        query = resolvedInputs
-            .entrySet()
-            .stream()
-            .filter(entry -> !entry.getKey().startsWith("__"))
-            .map(Map.Entry::getValue)
-            .map(this::asNonBlankString)
-            .filter(Objects::nonNull)
-            .findFirst()
-            .orElse(null);
-        if (query != null) {
-            return query;
-        }
-
-        Object contextObj = resolvedInputs.get("__context__");
-        if (
-            contextObj instanceof ExecutionContext context &&
-            context.getInputs() != null
-        ) {
-            query = asNonBlankString(context.getInputs().get("query"));
-            if (query != null) {
-                return query;
-            }
-
-            query = asNonBlankString(context.getInputs().get("input"));
-            if (query != null) {
-                return query;
-            }
-
-            return asNonBlankString(context.getInputs().get("message"));
-        }
-
-        return null;
     }
 
     private String asNonBlankString(Object value) {
