@@ -11,6 +11,14 @@
 
 AI Agent Platform - A DDD-based workflow orchestration system with AI capabilities, built on Spring Boot 3.4.9 and React 19. The platform enables dynamic agent creation, workflow execution with conditional branching, knowledge management with vector search, and real-time streaming via SSE.
 
+## Runtime Entry (Read This First)
+
+The canonical runtime entry for day-to-day work is the workspace skill:
+`.claude/skills/ai-agent-workspace/SKILL.md`. It carries the current business
+domain map, `Meet -> See` routes, `.env` discipline, safety rules, and rolling
+work logs under `logs/YYYY-MM.md`. Prefer routing through that skill; this
+CLAUDE.md stays as a stable architectural reference.
+
 ## Build & Run Commands
 
 ### Backend (Java 21 + Maven)
@@ -61,7 +69,7 @@ npm run preview
 ### Docker Services
 
 ```bash
-cd ai-agent-infrastructure/src/main/resources/docker
+cd docker
 
 # Start all services (MySQL, Redis, Milvus, MinIO, etcd)
 docker-compose up -d
@@ -107,18 +115,30 @@ interfaces → application → domain ← infrastructure
 
 ### Domain Boundaries
 
-The system is organized into bounded contexts:
+The system is organized into bounded contexts. Actual subpackages under
+`ai-agent-domain/src/main/java/com/zj/aiagent/domain/`:
 
-- **workflow**: Workflow execution engine (Execution aggregate root, WorkflowGraph, ExecutionContext)
-- **agent**: Agent management (Agent aggregate root, model configuration)
-- **chat**: Conversation management (Conversation, Message)
-- **knowledge**: Knowledge base (KnowledgeDataset, KnowledgeDocument, vector storage)
-- **user/auth**: User management and authentication
+**Core domains** (first-class routing in the workspace skill):
+
+- **workflow**: Workflow execution engine (Execution aggregate root, WorkflowGraph, ExecutionContext, 7 NodeExecutorStrategy implementations)
+- **agent**: Agent management (Agent aggregate root, model configuration, MCP tool binding)
+- **chat**: Conversation management (Conversation, Message, SSE-backed streaming)
+- **knowledge**: Knowledge base (KnowledgeDataset, KnowledgeDocument, vector storage via Milvus)
+- **user** + **auth**: User management and authentication (注意 REST 前缀是 `/client/user`，不是 `/api/user`)
+
+**Supporting / extension domains** (present in the codebase, 尚未在工作区 skill 单独建入口):
+
+- **swarm**: Multi-agent workspace, groups, graph, SSE (`/api/swarm/**`)
+- **writing**: Writing-assistant flows (`/api/writing`)
+- **mcp**: MCP server registry and tool metadata (`/api/mcp`)
+- **llm**: LLM provider configuration (`/api/llm-config`)
+- **dashboard**: Aggregated metrics (`/api/dashboard`)
+- **memory**: Conversation memory ports used by workflow's ExecutionContext
 
 **Dependency Rules**:
-- `workflow` can depend on `agent` (read graph definition) and `knowledge` (retrieval)
-- `agent`, `knowledge`, `user/auth` should NOT depend on other business domains
-- Cross-domain coordination happens in the application layer (e.g., SchedulerService)
+- `workflow` can depend on `agent` (read graph definition), `knowledge` (retrieval), and `memory` (LTM/STM)
+- `agent`, `knowledge`, `user`/`auth`, `dashboard` should NOT depend on other business domains
+- Cross-domain coordination happens in the application layer (e.g., `SchedulerService`, `ChatApplicationService`)
 
 ### Frontend Architecture
 
@@ -182,14 +202,15 @@ Domain layer defines ports (interfaces), infrastructure layer provides adapters:
 
 ### Node Executor Types
 
-Seven executor strategies implemented in infrastructure layer:
+Seven executor strategies implemented in `ai-agent-infrastructure/.../workflow/executor/`, resolved at runtime by `NodeExecutorFactory`:
 
 - `StartNodeExecutorStrategy` - 工作流起始节点
 - `EndNodeExecutorStrategy` - 工作流结束节点
 - `LlmNodeExecutorStrategy` - LLM 调用节点
-- `ConditionNodeExecutorStrategy` - 条件分支节点 (EXPRESSION/LLM)
+- `ConditionNodeExecutorStrategy` - 条件分支节点 (EXPRESSION / LLM)
 - `HttpNodeExecutorStrategy` - HTTP 请求节点
-- `ToolNodeExecutorStrategy` - 工具调用节点
+- `ToolNodeExecutorStrategy` - 工具调用节点（MCP 工具）
+- `KnowledgeNodeExecutorStrategy` - 知识库召回节点
 
 ## Code Reuse Requirements
 
@@ -200,7 +221,7 @@ Seven executor strategies implemented in infrastructure layer:
    - ✅ ALWAYS use project-encapsulated services
 
 2. **Search for Entities**: Check existing database schema and PO classes before creating new tables
-   - Location: `ai-agent-infrastructure/src/main/resources/docker/init/mysql/01_init_schema.sql`
+   - Location: `docker/init/mysql/01_init_schema.sql`
    - ❌ NEVER create duplicate tables (e.g., if `WorkflowNodeExecution` exists, don't create `WorkflowExecution`)
 
 3. **Search for Business Logic**: Look for similar methods in domain services before implementing
@@ -240,8 +261,8 @@ Seven executor strategies implemented in infrastructure layer:
 
 ### Schema File
 
-- Location: `ai-agent-infrastructure/src/main/resources/docker/init/mysql/01_init_schema.sql`
-- No Flyway — database schema is managed via the Docker MySQL initialization SQL
+- Location: `docker/init/mysql/01_init_schema.sql` (mounted into the MySQL container via `docker/docker-compose.yml` at `/docker-entrypoint-initdb.d`)
+- No Flyway — schema is applied only on the **first** MySQL container start; changing it after data exists requires either `docker-compose down && docker volume rm <mysql_volume>` (destroys data) or a manual migration
 - Always check this file before creating or modifying tables
 
 ### Table Naming
@@ -255,12 +276,17 @@ Seven executor strategies implemented in infrastructure layer:
 | Controller | Path | Description |
 |------------|------|-------------|
 | AgentController | `/api/agent` | Agent CRUD 管理 |
-| WorkflowController | `/api/workflow/execution` | 工作流执行 |
-| HumanReviewController | `/api/workflow/reviews` | 人工审核 |
-| ChatController | `/api/chat` | 对话管理 |
+| WorkflowController | `/api/workflow/execution` | 工作流执行、SSE 订阅 |
+| HumanReviewController | `/api/workflow/reviews` | 人工审核恢复 |
+| ChatController | `/api/chat` | 对话管理，SSE 流式消息 |
 | KnowledgeController | `/api/knowledge` | 知识库管理 |
-| UserController | `/api/user` | 用户注册、登录、信息管理 |
+| UserController | `/client/user` | 注册 / 登录 / 刷新 token / 个人信息（前缀 `/client`，不是 `/api`）|
 | MetadataController | `/api/meta` | 节点类型元数据 |
+| DashboardController | `/api/dashboard` | 看板聚合数据 |
+| LlmConfigController | `/api/llm-config` | LLM provider 配置 |
+| McpServerController | `/api/mcp` | MCP server 注册与工具元数据 |
+| WritingController | `/api/writing` | 写作助手相关接口 |
+| SwarmWorkspace / Group / Graph / Agent / Sse Controllers | `/api/swarm/**` | 多 Agent 工作空间、群组、图结构、SSE 流 |
 
 ## Service Ports
 
@@ -271,7 +297,7 @@ Seven executor strategies implemented in infrastructure layer:
 | MySQL | 13306 | Primary database |
 | Redis | 6379 | Cache & pub/sub |
 | Milvus | 19530 | Vector database |
-| MinIO API | 9000 | Object storage |
+| MinIO API | 9002 (host) → 9000 (container) | Object storage, 注意 host 端口是 9002，不是 9000 |
 | MinIO Console | 9001 | MinIO admin UI |
 | etcd | 2379 | Milvus dependency |
 
@@ -301,25 +327,25 @@ curl http://localhost:8080/actuator/info
 - Project uses Milvus SDK which requires protobuf 3.25.3
 - Version is managed in parent POM to avoid conflicts
 
-### UTF-8 Encoding
-
-- For file operations outside workspace, use `.kiro/scripts/file_operations.py`
-- This ensures proper UTF-8 handling for Chinese characters
-
 ### Blueprint Documentation
 
-- Comprehensive architecture docs in `.blueprint/` directory
-- Key files:
-  - `.blueprint/_overview.md` - System overview and data flow
-  - `.blueprint/domain/workflow/WorkflowEngine.md` - Execution engine details
-  - `.blueprint/domain/workflow/ExecutionContext.md` - Memory model (LTM/STM/Awareness)
-  - `.blueprint/infrastructure/adapters/NodeExecutors.md` - Node executor implementations
+Long-form architecture docs mirror the Maven module layout under `.blueprint/`:
 
-### Kiro Development Environment
+- `.blueprint/README.md` — top-level map
+- `.blueprint/ai-agent-domain/src/...` — domain model (entities, value objects, services, ports)
+- `.blueprint/ai-agent-application/src/...` — application service orchestration
+- `.blueprint/ai-agent-infrastructure/src/...` — adapters and technical implementations
+- `.blueprint/ai-agent-interfaces/src/...` — REST / SSE controllers and configuration
+- `.blueprint/ai-agent-foward/src/...` — frontend structure
 
-- Steering files in `.kiro/steering/` define development standards (auto-injected into AI context)
-- Hooks in `.kiro/hooks/` provide automated checks (code quality, SQL review)
-- See `.kiro/README.md` for complete guide
+Short-form runtime routing index: `.claude/skills/ai-agent-workspace/`.
+
+### Trellis Workflow (`.trellis/`)
+
+- `.trellis/spec/backend/`, `.trellis/spec/frontend/`, `.trellis/spec/guides/` hold executable specs (directory structure, quality guidelines, error handling, logging, code reuse thinking)
+- `.trellis/tasks/` tracks in-progress task PRDs; completed ones move to `.trellis/tasks/archive/`
+- `.trellis/config.yaml` and `.trellis/workflow.md` describe the flow
+- Registered slash commands include `/trellis:start`, `/trellis:before-backend-dev`, `/trellis:check-backend`, `/trellis:finish-work`, `/trellis:break-loop`, `/trellis:record-session`
 
 ## Common Pitfalls
 

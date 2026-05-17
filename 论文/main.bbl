@@ -1,4 +1,4 @@
-\begin{thebibliography}{15}
+\begin{thebibliography}{22}
 \providecommand{\natexlab}[1]{#1}
 \providecommand{\url}[1]{#1}
 \expandafter\ifx\csname urlstyle\endcsname\relax\else
@@ -11,27 +11,6 @@
   \let\eprint\href
 \fi
 
-\bibitem[{LangGenius, Inc.}(2024)]{dify2024}
-{LangGenius, Inc.}
-\newblock {Dify}: Production-ready platform for agentic
-  workflow\allowbreak[EB/OL].
-\newblock 2024.
-\newblock \url{https://github.com/langgenius/dify}.
-
-\bibitem[{ByteDance}(2024)]{coze2024}
-{ByteDance}.
-\newblock {Coze}: {AI} agent and chatbot development
-  platform\allowbreak[EB/OL].
-\newblock 2024.
-\newblock \url{https://www.coze.com/}.
-
-\bibitem[{LangChain AI}(2024)]{langgraph2024}
-{LangChain AI}.
-\newblock {LangGraph}: Build resilient language agents as
-  graphs\allowbreak[EB/OL].
-\newblock 2024.
-\newblock \url{https://github.com/langchain-ai/langgraph}.
-
 \bibitem[Wu et~al.(2023)Wu, Bansal, Zhang, Wu, Li, Zhu, Jiang, Zhang, Zhang,
   Liu, Awadallah, White, Burger, and Wang]{wu2023autogen}
 WU Q, BANSAL G, ZHANG J, et~al.
@@ -39,12 +18,6 @@ WU Q, BANSAL G, ZHANG J, et~al.
   conversation\allowbreak[A/OL].
 \newblock 2023.
 \newblock \url{https://arxiv.org/abs/2308.08155}.
-
-\bibitem[{Spring}(2024)]{springai2024}
-{Spring}.
-\newblock {Spring AI} reference documentation\allowbreak[EB/OL].
-\newblock 2024.
-\newblock \url{https://docs.spring.io/spring-ai/reference/}.
 
 \bibitem[Xi et~al.(2023)Xi, Chen, Guo, He, Ding, Hong, Zhang, Wang, Jin, Zhou,
   Zheng, Fan, Wang, Xiong, Zhou, Wang, Jiang, Zou, Liu, Yin, Dou, Weng, Cheng,
@@ -63,30 +36,13 @@ WANG L, MA C, FENG X, et~al.
 \newblock Frontiers of Computer Science, 2024, 18\allowbreak (6): 186345.
 \newblock \url{https://link.springer.com/article/10.1007/s11704-024-40231-1}.
 
-\bibitem[{Baidu}(2024)]{baidu_agentbuilder}
-{Baidu}.
-\newblock 文心智能体平台 {AgentBuilder}\allowbreak[EB/OL].
-\newblock 2024.
-\newblock \url{https://agents.baidu.com/}.
-
-\bibitem[{ModelScope}(2023)]{modelscope_agent}
-{ModelScope}.
-\newblock {ModelScope-Agent}: {MS-Agent} framework\allowbreak[EB/OL].
-\newblock 2023.
-\newblock \url{https://github.com/modelscope/modelscope-agent}.
-
-\bibitem[{Tencent}(2024)]{tencent_yuanqi}
-{Tencent}.
-\newblock 腾讯元器智能体平台\allowbreak[EB/OL].
-\newblock 2024.
-\newblock \url{https://yuanqi.tencent.com/}.
-
-\bibitem[{LangChain AI}(2023)]{langchain2023}
-{LangChain AI}.
-\newblock {LangChain}: Build context-aware reasoning
-  applications\allowbreak[EB/OL].
-\newblock 2023.
-\newblock \url{https://docs.langchain.com/oss/python/langchain/overview}.
+\bibitem[尹建业\ 等(2025)尹建业 and 苏笑扬]{yin2025difytest}
+尹建业, 苏笑扬.
+\newblock 基于 {Dify}
+  工作流的测试项批量生成工具设计与实现\allowbreak[J/OL].
+\newblock 中国战略新兴产业, 2025\allowbreak (29): 159-161.
+\newblock
+  \url{http://kns--cnki--net--https.cnki.mdjsf.utuvpn.utuedu.com:9000/kcms2/article/abstract?v=ZMT4ddBD2nwdJ4VUDwFk_6I84Jq9Wo6YgxG0pCNaMCddT3Dgr8qlfoyabV0oYy1TeCh5wsYjh8AWAPDCiVCpZ0yWkN_MGbygqjZbtUFBpry9FMxFi21BdYcZap3dbQwM8-Kmyqp_3eeOY4u_TQInxqeLNXrtiFrzDxUSVZ-rYLjjDtIdFQ576A==&uniplatform=NZKPT&language=CHS}.
 
 \bibitem[Yao et~al.(2023)Yao, Zhao, Yu, Du, Shafran, Narasimhan, and
   Cao]{yao2023react}
@@ -107,13 +63,21 @@ Advances in Neural Information Processing Systems: Vol.~33.
 \newblock
   \url{https://proceedings.neurips.cc/paper/2020/hash/6b493230205f780e1bc26945df7481e5-Abstract.html}.
 
-\bibitem[Singh et~al.(2025)Singh, Ehtesham, Kumar, Khoei, and
-  Vasilakos]{singh2025agenticrag}
-SINGH A, EHTESHAM A, KUMAR S, et~al.
-\newblock Agentic {Retrieval-Augmented Generation}: A survey on agentic
-  {RAG}\allowbreak[A/OL].
-\newblock 2025.
-\newblock \url{https://arxiv.org/abs/2501.09136}.
+\bibitem[刘雪颖\ 等(2025)刘雪颖, 云静, 李博, 史晓国, and
+  张钰莹]{liu2025ragsurvey}
+刘雪颖, 云静, 李博, 等.
+\newblock 基于大型语言模型的检索增强生成综述\allowbreak[J/OL].
+\newblock 计算机工程与应用, 2025, 61\allowbreak (13): 1-25.
+\newblock
+  \url{http://kns--cnki--net--https.cnki.mdjsf.utuvpn.utuedu.com:9000/kcms2/article/abstract?v=ZMT4ddBD2nwMYTWQL6F0Y8pzzHCLtyxGjAp1tuvyxPF-S-CZ4cbsrWVoLAg46bIJzdwPThfCAh4FKK65dfqdSxu46OGnni5Y9qBVQx68jemoiMP4MGkl8yB7u_KRvoKxGr4PnT-ILZUg6pwowDcQ3az6THDm6kvv1Y8lkK9DTPoRcgYy_SdmVA==&uniplatform=NZKPT&language=CHS}.
+
+\bibitem[赵静\ 等(2024)赵静, 汤文玉, 霍钰, 傅金菲菲, and
+  乔芷琪]{zhao2024ragoverview}
+赵静, 汤文玉, 霍钰, 等.
+\newblock 大模型检索增强生成（{RAG}）技术浅析\allowbreak[J/OL].
+\newblock 中国信息化, 2024\allowbreak (10): 71-72+70.
+\newblock
+  \url{http://kns--cnki--net--https.cnki.mdjsf.utuvpn.utuedu.com:9000/kcms2/article/abstract?v=ZMT4ddBD2nwbMoy0frhUMuPNFeg8mEFBUaR04zRWnTM8Rus0m1_DZifru5Jn_WVe9RbjNUPWQYjGFMb_mCiCL5-cW73mgkze1kfyAObI6L_SVDfaJueVeR7-fPW0vWboCOv-4CVDtscVGjhqNnHASi0AZqp4RBbvDImdyJ8Qxbup6YhG77d6uw==&uniplatform=NZKPT&language=CHS}.
 
 \bibitem[Wang et~al.(2021)Wang, Yi, Guo, Jin, Xu, Li, Wang, Guo, Li, Xu, Yu,
   Yuan, Zou, Long, Cai, Li, Zhang, Mo, Gu, Jiang, Wei, and Xie]{milvus2021}
@@ -123,5 +87,113 @@ WANG J, YI X, GUO R, et~al.
 Proceedings of the 2021 International Conference on Management of Data.
 \newblock 2021: 2614-2627.
 \newblock \url{https://doi.org/10.1145/3448016.3457550}.
+
+\bibitem[Evans(2016)]{evans2016dddcn}
+EVANS E.
+\newblock 领域驱动设计：软件核心复杂性应对之道\allowbreak[M].
+\newblock 赵俐, 盛海艳, 译.
+\newblock 人民邮电出版社, 2016.
+
+\bibitem[周志明(2019)]{zhou2019jvm}
+周志明.
+\newblock 深入理解 Java 虚拟机：JVM
+  高级特性与最佳实践\allowbreak[M].
+\newblock 机械工业出版社, 2019.
+
+\bibitem[黄健宏(2014)]{huang2014redis}
+黄健宏.
+\newblock Redis 设计与实现\allowbreak[M].
+\newblock 机械工业出版社, 2014.
+
+\bibitem[李锦哲\ 等(2026)李锦哲, 赵辉, 支文韬, and
+  王静]{li2026multicloudworkflow}
+李锦哲, 赵辉, 支文韬, 等.
+\newblock
+  混合多云环境下多目标优化工作流调度方法\allowbreak[J/OL].
+\newblock 西安电子科技大学学报, 2026.
+\newblock
+  \url{http://kns--cnki--net--https.cnki.mdjsf.utuvpn.utuedu.com:9000/kcms2/article/abstract?v=ZMT4ddBD2nwUlMMFmf2PWrEkY44oLmi4J8KGDvt_sIAbqsfZDtzW-XsbNSvcktzVGXnXNUFQQCl0swid_jshO05JKVSxWCIsy3UZ5Qk5pXut3szl0RvfuDWgE3Cnw2wkHuB_xdm9PfjqXVXIpQYWTR1U0UyOnKPO4lcNrCdMjECJiOf3S4if5A==&uniplatform=NZKPT&language=CHS}.
+\newblock DOI: \doi{10.19665/j.issn1001-2400.20260307}.
+
+\bibitem[陈伟宏\ 等(2026)陈伟宏, 陈杰, 向梓嫣, and
+  黄国华]{chen2026ragliterature}
+陈伟宏, 陈杰, 向梓嫣, 等.
+\newblock 基于 {RAG}
+  的大学生文献辅学平台设计与实证研究\allowbreak[J/OL].
+\newblock 计算机时代, 2026\allowbreak (04): 60-64.
+\newblock
+  \url{http://kns--cnki--net--https.cnki.mdjsf.utuvpn.utuedu.com:9000/kcms2/article/abstract?v=ZMT4ddBD2nzcx6LVmJTrL1-ex0239nZyMDVs0ff3JVXgjRZNzrBim0vl-bE0QQSjZfEfqu7vw_rQZX9axy0bfzHQmLyV-gTBGICwkRV1CGnPMGeqonKzfTeFY6eJ3vOFz1ucxsCDVeYOwXlAUNgTMQnINR_EmK2SzLHxXJWT8Evmd0twD0_9GQ==&uniplatform=NZKPT&language=CHS}.
+\newblock DOI: \doi{10.16644/j.cnki.cn33-1094/tp.2026.04.011}.
+
+\bibitem[陈旭(2024)]{chen2024llmagentoverview}
+陈旭.
+\newblock
+  基于大语言模型的自主智能体概述\allowbreak[C/OL]//\allowbreak
+Proceedings of the 23rd Chinese National Conference on Computational
+  Linguistics.
+\newblock 2024: 141-150.
+\newblock \url{https://aclanthology.org/2024.ccl-2.8/}.
+
+\bibitem[郭先会\ 等(2024)郭先会, 张梦姣, and
+  马军]{guo2024llmagentconstruction}
+郭先会, 张梦姣, 马军.
+\newblock 基于大语言模型的智能体构建研究综述\allowbreak[J/OL].
+\newblock 通信技术, 2024, 57\allowbreak (9).
+\newblock DOI: \doi{10.3969/j.issn.1002-0802.2024.09.001}.
+
+\bibitem[奚志恒\ 等(2026)奚志恒, 陈文翔, 郭昕, 何为, 丁怡文,
+  洪博杨, 张明, 王浚哲, 金森杰, 周恩宇, 郑锐, 樊晓然,
+  王枭, 熊立茂, 周钰皓, 王威然, 江常皓, 邹易澄, 刘向阳,
+  印张悦, 窦士涵, 翁荣祥, 秦文娟, 郑咏滟, 邱锡鹏, 黄萱菁,
+  张奇, and 桂韬]{xi2026llmagentfuture}
+奚志恒, 陈文翔, 郭昕, 等.
+\newblock
+  基于大语言模型的智能体：发展与未来展望\allowbreak[J/OL].
+\newblock 中国科学：信息科学, 2026, 56\allowbreak (2): 485-486.
+\newblock
+  \url{https://www.sciengine.com/doi/pdfView/9E6E506A38D04A1E912191CDA9B13C55}.
+
+\bibitem[田国忠\ 等(2012)田国忠, 肖创柏, 徐竹胜, and
+  肖霞]{tian2012multidaghybrid}
+田国忠, 肖创柏, 徐竹胜, 等.
+\newblock 异构分布式环境下多 {DAG}
+  工作流的混合调度策略\allowbreak[J/OL].
+\newblock 软件学报, 2012, 23\allowbreak (10): 2720-2734.
+\newblock \url{https://www.jos.org.cn/jos/article/abstract/4198}.
+\newblock DOI: \doi{10.3724/SP.J.1001.2012.04198}.
+
+\bibitem[袁友伟\ 等(2018)袁友伟, 鲍泽前, 俞东进, and
+  李万清]{yuan2018scientificworkflow}
+袁友伟, 鲍泽前, 俞东进, 等.
+\newblock
+  云环境下基于多目标的多科学工作流调度算法\allowbreak[J/OL].
+\newblock 软件学报, 2018, 29\allowbreak (11): 3326-3339.
+\newblock \url{https://jos.org.cn/html/2018/11/5477.htm}.
+
+\bibitem[徐健锐\ 等(2019)徐健锐 and 朱会娟]{xu2019dagmultiobjective}
+徐健锐, 朱会娟.
+\newblock 云计算环境中面向 {DAG}
+  任务的多目标调度算法\allowbreak[J/OL].
+\newblock 计算机应用研究, 2019, 36\allowbreak (1): 31-36.
+\newblock \url{https://www.arocmag.cn/abs/2017.07.0683}.
+\newblock DOI: \doi{10.19734/j.issn.1001-3695.2017.07.0683}.
+
+\bibitem[包晓安\ 等(2019)包晓安, 曹云棣, and
+  张娜]{bao2019gridvarianceworkflow}
+包晓安, 曹云棣, 张娜.
+\newblock
+  基于格分布方差的多目标云工作流调度算法\allowbreak[J/OL].
+\newblock 电信科学, 2019, 35\allowbreak (2): 1-13.
+\newblock
+  \url{https://www.telecomsci.com/zh/article/doi/10.11959/j.issn.1000-0801.2019035/}.
+
+\bibitem[景维鹏\ 等(2016)景维鹏, 吴智博, 刘宏伟, and
+  舒燕君]{jing2016multidagreliability}
+景维鹏, 吴智博, 刘宏伟, 等.
+\newblock 多 {DAG}
+  工作流在云计算环境下的可靠性调度方法\allowbreak[J/OL].
+\newblock 西安电子科技大学学报, 2016, 43\allowbreak (2): 83-88.
+\newblock
+  \url{https://journal.xidian.edu.cn/xdxb/CN/10.3969/j.issn.1001-2400.2016.02.015}.
 
 \end{thebibliography}

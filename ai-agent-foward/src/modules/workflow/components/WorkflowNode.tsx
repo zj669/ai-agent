@@ -40,17 +40,10 @@ export interface FieldSchema {
   system?: boolean;
 }
 
-export interface ReferenceNodeOption {
-  nodeId: string;
-  nodeName: string;
-  nodeType: WorkflowNodeType;
-}
-
 export interface PromptTemplateVariableOption {
   label: string;
   detail: string;
   template: string;
-  category: "inputs" | "node";
 }
 
 export type WorkflowNodeData = {
@@ -86,6 +79,68 @@ const NODE_TYPE_LABELS: Record<WorkflowNodeType, string> = {
   KNOWLEDGE: "知识库",
 };
 
+function buildIncomingMap(edges: Edge[]): Map<string, string[]> {
+  const incomingMap = new Map<string, string[]>();
+
+  for (const edge of edges) {
+    const sources = incomingMap.get(edge.target) ?? [];
+    sources.push(edge.source);
+    incomingMap.set(edge.target, sources);
+  }
+
+  return incomingMap;
+}
+
+function collectAncestorNodeIds(
+  nodeId: string,
+  incomingMap: Map<string, string[]>,
+): Set<string> {
+  const visited = new Set<string>();
+  const stack = [...(incomingMap.get(nodeId) ?? [])];
+
+  while (stack.length > 0) {
+    const current = stack.pop();
+    if (!current || visited.has(current)) continue;
+    visited.add(current);
+
+    const parents = incomingMap.get(current) ?? [];
+    for (const parentId of parents) {
+      if (!visited.has(parentId)) {
+        stack.push(parentId);
+      }
+    }
+  }
+
+  return visited;
+}
+
+function buildOutputVariables(
+  nodes: Node[],
+  nodeIds: Set<string>,
+): UpstreamVariable[] {
+  const vars: UpstreamVariable[] = [];
+
+  for (const node of nodes) {
+    if (!nodeIds.has(node.id)) continue;
+    const data = node.data as unknown as WorkflowNodeData;
+    const outputs = data.outputSchema ?? [];
+
+    for (const field of outputs) {
+      vars.push({
+        nodeId: node.id,
+        nodeName: data.label,
+        nodeType: data.nodeType,
+        fieldKey: field.key,
+        fieldLabel: field.label ?? field.key,
+        fieldType: field.type,
+        ref: `${node.id}.output.${field.key}`,
+      });
+    }
+  }
+
+  return vars;
+}
+
 interface WorkflowNodeProps {
   id: string;
   data: unknown;
@@ -120,68 +175,8 @@ function WorkflowNode({ id, data, selected }: WorkflowNodeProps) {
     if (!isExpanded) return [];
     const edges = getEdges();
     const nodes = getNodes();
-    // 找到所有指向当前节点的边的 source 节点
-    const upstreamNodeIds = new Set(
-      edges.filter((e) => e.target === id).map((e) => e.source),
-    );
-    const vars: UpstreamVariable[] = [];
-    for (const n of nodes) {
-      if (!upstreamNodeIds.has(n.id)) continue;
-      const nd = n.data as unknown as WorkflowNodeData;
-      const outputs = nd.outputSchema ?? [];
-      for (const field of outputs) {
-        vars.push({
-          nodeId: n.id,
-          nodeName: nd.label,
-          nodeType: nd.nodeType,
-          fieldKey: field.key,
-          fieldLabel: field.label ?? field.key,
-          fieldType: field.type,
-          ref: `${n.id}.output.${field.key}`,
-        });
-      }
-    }
-    return vars;
-  }, [id, isExpanded, getEdges, getNodes]);
-
-  const contextReferenceNodes = useMemo<ReferenceNodeOption[]>(() => {
-    if (!isExpanded) return [];
-
-    const edges = getEdges();
-    const nodes = getNodes();
-    const incomingMap = new Map<string, string[]>();
-
-    for (const edge of edges) {
-      const sources = incomingMap.get(edge.target) ?? [];
-      sources.push(edge.source);
-      incomingMap.set(edge.target, sources);
-    }
-
-    const visited = new Set<string>();
-    const stack = [...(incomingMap.get(id) ?? [])];
-
-    while (stack.length > 0) {
-      const nodeId = stack.pop();
-      if (!nodeId || visited.has(nodeId)) continue;
-      visited.add(nodeId);
-      const parents = incomingMap.get(nodeId) ?? [];
-      for (const parentId of parents) {
-        if (!visited.has(parentId)) {
-          stack.push(parentId);
-        }
-      }
-    }
-
-    return nodes
-      .filter((node) => visited.has(node.id) && node.id !== id)
-      .map((node) => {
-        const data = node.data as unknown as WorkflowNodeData;
-        return {
-          nodeId: node.id,
-          nodeName: data.label,
-          nodeType: data.nodeType,
-        };
-      });
+    const ancestorNodeIds = collectAncestorNodeIds(id, buildIncomingMap(edges));
+    return buildOutputVariables(nodes, ancestorNodeIds);
   }, [id, isExpanded, getEdges, getNodes]);
 
   const promptTemplateVariables = useMemo<
@@ -194,45 +189,9 @@ function WorkflowNode({ id, data, selected }: WorkflowNodeProps) {
     const nodeMap = new Map(
       nodes.map((node) => [node.id, node.data as unknown as WorkflowNodeData]),
     );
-    const incomingMap = new Map<string, string[]>();
-
-    for (const edge of edges) {
-      const sources = incomingMap.get(edge.target) ?? [];
-      sources.push(edge.source);
-      incomingMap.set(edge.target, sources);
-    }
-
-    const visited = new Set<string>();
-    const stack = [...(incomingMap.get(id) ?? [])];
-
-    while (stack.length > 0) {
-      const nodeId = stack.pop();
-      if (!nodeId || visited.has(nodeId)) continue;
-      visited.add(nodeId);
-      const parents = incomingMap.get(nodeId) ?? [];
-      for (const parentId of parents) {
-        if (!visited.has(parentId)) {
-          stack.push(parentId);
-        }
-      }
-    }
+    const visited = collectAncestorNodeIds(id, buildIncomingMap(edges));
 
     const variables: PromptTemplateVariableOption[] = [];
-    const startNode = nodes.find(
-      (node) => (node.data as WorkflowNodeData).nodeType === "START",
-    );
-
-    if (startNode) {
-      const startData = startNode.data as WorkflowNodeData;
-      for (const field of startData.outputSchema ?? []) {
-        variables.push({
-          label: field.label ?? field.key,
-          detail: `inputs.${field.key}`,
-          template: `{{inputs.${field.key}}}`,
-          category: "inputs",
-        });
-      }
-    }
 
     for (const ancestorId of visited) {
       const ancestorData = nodeMap.get(ancestorId);
@@ -242,7 +201,6 @@ function WorkflowNode({ id, data, selected }: WorkflowNodeProps) {
           label: `${ancestorData.label} · ${field.label ?? field.key}`,
           detail: `${ancestorId}.output.${field.key}`,
           template: `{{${ancestorId}.output.${field.key}}}`,
-          category: "node",
         });
       }
     }
@@ -512,7 +470,6 @@ function WorkflowNode({ id, data, selected }: WorkflowNodeProps) {
               outputSchema={nodeData.outputSchema ?? []}
               userConfig={nodeData.userConfig ?? {}}
               upstreamVariables={upstreamVariables}
-              contextReferenceNodes={contextReferenceNodes}
               promptTemplateVariables={promptTemplateVariables}
               onConfigChange={handleConfigChange}
               onInputSchemaChange={handleInputSchemaChange}
@@ -527,7 +484,6 @@ function WorkflowNode({ id, data, selected }: WorkflowNodeProps) {
               outputSchema={nodeData.outputSchema ?? []}
               userConfig={nodeData.userConfig ?? {}}
               upstreamVariables={upstreamVariables}
-              contextReferenceNodes={contextReferenceNodes}
               promptTemplateVariables={promptTemplateVariables}
               onConfigChange={handleConfigChange}
               onInputSchemaChange={handleInputSchemaChange}

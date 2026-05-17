@@ -13,10 +13,11 @@
 | `interfaces/workflow/HumanReviewController.java` | 人工审核 API（`/api/workflow/reviews`） |
 | `interfaces/chat/ChatController.java` | 对话管理 API（`/api/chat`） |
 | `interfaces/knowledge/web/KnowledgeController.java` | 知识库 API（`/api/knowledge`） |
-| `interfaces/user/UserController.java` | 用户认证 API（`/api/user`） |
+| `interfaces/user/UserController.java` | 用户认证 API（`/client/user`） |
 | `interfaces/meta/MetadataController.java` | 节点元数据 API（`/api/meta`），返回 node_template + sys_config_field_def + node_template_config_mapping 联查结果，驱动前端动态渲染节点配置面板 |
 | `interfaces/dashboard/web/DashboardController.java` | 仪表盘 API |
 | `interfaces/llm/` | LLM 模型配置 API |
+| `interfaces/mcp/` | MCP server 配置、连接和工具发现 API |
 | `interfaces/swarm/` | Swarm 多智能体 API |
 | `interfaces/writing/WritingController.java` | 动态写作聚合 API（`/api/writing`） |
 | `interfaces/common/interceptor/` | 认证拦截器：LoginInterceptor、AuthStrategyFactory（JWT/Debug 双策略） |
@@ -57,6 +58,7 @@
   - `GET /workspace/{workspaceId}/sessions`
   - `GET /session/{sessionId}/overview`
 - 这组接口面向前端协作面板，返回的是写作视角的聚合数据，不要求前端自己串联 `swarm_*` 与 `writing_*` 多张表。
+- 当前 `writing_agent` 表已删除，协作者信息来自 `swarm_workspace_agent.session_id/sort_order`。
 - 使用场景：
   - 主页面初始化时拉取 workspace 下的写作 session 列表
   - 选中某个 session 后读取 overview，展示子 Agent 卡片、任务摘要、结果摘要、草稿
@@ -67,6 +69,34 @@
   - `swarm` 相关接口负责正常聊天、工作区与消息流
   - `writing` 相关接口负责协作面板聚合视图
 - 如果协作面板出现“有子 Agent 运行但没有摘要”的问题，优先检查 `/api/writing/session/{sessionId}/overview` 返回值，而不是先查聊天消息流。
+
+### UserController
+- 路径前缀：`/client/user`
+- 公开接口：
+  - `POST /email/sendCode`
+  - `POST /email/register`
+  - `POST /login`
+  - `POST /resetPassword`
+- 受保护接口：
+  - `POST /refresh`
+  - `GET /info`
+  - `POST /profile`
+  - `POST /logout`
+
+### LlmConfigController
+- 路径前缀：`/api/llm-config`
+- 接口：
+  - `GET /`
+  - `POST /`
+  - `PUT /{id}`
+  - `DELETE /{id}`
+  - `POST /{id}/test`
+- DTO 输出不返回 API Key。
+
+### McpServerController
+- 路径前缀：`/api/mcp`
+- 负责 server CRUD、connect/disconnect、status、server tools 和 all tools。
+- `POST /servers/{id}/delete` 是 `DELETE /servers/{id}` 的降级接口。
 
 ## 本地运行注意
 

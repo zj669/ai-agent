@@ -1398,7 +1398,7 @@ public class SchedulerService {
         switch (nodeType) {
             case LLM:
                 Object response = outputs.get("response");
-                if (response == null) response = outputs.get("text");
+                if (response == null) response = outputs.get("json_output");
                 if (response != null) {
                     String text = response.toString();
                     return (
@@ -1623,7 +1623,7 @@ public class SchedulerService {
                     Map<String, Object> llmOutput = context.getNodeOutput(nid);
                     if (llmOutput != null) {
                         Object response = llmOutput.get("response");
-                        if (response == null) response = llmOutput.get("text");
+                        if (response == null) response = llmOutput.get("json_output");
                         if (
                             response != null && !response.toString().isEmpty()
                         ) {
@@ -1764,7 +1764,7 @@ public class SchedulerService {
         if (outputs != null && !outputs.isEmpty()) {
             // 尝试提取响应内容
             Object response = outputs.get("response");
-            if (response == null) response = outputs.get("text");
+            if (response == null) response = outputs.get("json_output");
             if (response == null) response = outputs.get("output");
 
             if (response != null) {
@@ -1809,7 +1809,7 @@ public class SchedulerService {
      * 策略:
      * 1. 优先查询 END 节点的输出
      * 2. 如果 END 节点没有输出，查询最后执行的节点
-     * 3. 提取 response、text、output 或 result 字段
+     * 3. 提取 response、json_output、output 或 result 字段
      * 4. 返回默认值 "执行完成" 如果没有找到
      */
     private String extractFinalResponseFromLogs(String executionId) {
@@ -1838,7 +1838,7 @@ public class SchedulerService {
 
                     // 尝试提取响应字段
                     Object response = outputs.get("response");
-                    if (response == null) response = outputs.get("text");
+                    if (response == null) response = outputs.get("json_output");
                     if (response == null) response = outputs.get("output");
                     if (response == null) response = outputs.get("result");
 
@@ -1900,7 +1900,7 @@ public class SchedulerService {
                 if (outputs != null && !outputs.isEmpty()) {
                     // 尝试提取响应
                     Object response = outputs.get("response");
-                    if (response == null) response = outputs.get("text");
+                    if (response == null) response = outputs.get("json_output");
                     if (response == null) response = outputs.get("output");
                     if (response == null) response = outputs.get("result");
 

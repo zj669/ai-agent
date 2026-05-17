@@ -33,12 +33,16 @@ RUN addgroup -S appgroup && adduser -S appuser -G appgroup
 
 WORKDIR /app
 
-# 创建可写目录供挂载日志，安装 curl 供 healthcheck 使用
+# 创建可写目录供挂载日志，安装 curl 供 healthcheck 使用。
+# Node.js 用于运行随项目发布的 stdio MCP server，例如 CSDN 文章发布工具。
 RUN mkdir -p /app/logs && chown -R appuser:appgroup /app && \
-    apk add --no-cache curl
+    apk add --no-cache curl nodejs npm
 
 # 从 builder 复制 fat-jar
 COPY --from=builder /app/ai-agent-interfaces/target/*.jar app.jar
+
+# 复制项目内置 MCP servers，供后端容器内的 stdio MCP 子进程调用。
+COPY --from=builder --chown=appuser:appgroup /app/mcp-servers ./mcp-servers
 
 USER appuser
 

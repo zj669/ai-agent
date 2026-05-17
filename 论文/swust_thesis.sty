@@ -299,6 +299,12 @@
 
 %% ============================================================
 %% 代码样式（支持 Unicode 字符）
+\renewcommand{\lstlistingname}{代码}
+\makeatletter
+\@addtoreset{lstlisting}{chapter}
+\makeatother
+\providecommand{\thelstlisting}{}
+\renewcommand{\thelstlisting}{\thechapter-\arabic{lstlisting}}
 %% ============================================================
 %% 定义支持 CJK/Unicode 的等宽字体命令
 \newfontfamily\codefont{Noto Sans Mono CJK SC}[Scale=0.85]

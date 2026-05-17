@@ -1,4 +1,5 @@
 import { act } from '@testing-library/react'
+import type { NodeTemplateDTO } from '../../../../shared/api/adapters/metadataAdapter'
 
 const { useEditorStore } = await import('../useEditorStore')
 
@@ -44,8 +45,19 @@ describe('useEditorStore', () => {
   })
 
   it('setNodeTemplates stores templates', () => {
-    const templates = [{ id: 1, typeCode: 'LLM', name: 'LLM', configFieldGroups: [] }]
-    act(() => useEditorStore.getState().setNodeTemplates(templates as any))
+    const templates: NodeTemplateDTO[] = [{
+      id: 1,
+      typeCode: 'LLM',
+      name: 'LLM',
+      description: '',
+      icon: '',
+      category: '',
+      sortOrder: 0,
+      defaultSchemaPolicy: null,
+      initialSchema: null,
+      configFieldGroups: [],
+    }]
+    act(() => useEditorStore.getState().setNodeTemplates(templates))
     expect(useEditorStore.getState().nodeTemplates).toEqual(templates)
   })
 })

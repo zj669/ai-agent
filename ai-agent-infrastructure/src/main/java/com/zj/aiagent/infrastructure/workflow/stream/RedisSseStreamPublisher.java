@@ -1,5 +1,6 @@
 package com.zj.aiagent.infrastructure.workflow.stream;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.zj.aiagent.domain.chat.valobj.SseEventPayload;
 import com.zj.aiagent.domain.chat.valobj.SseEventPayload.ContentPayload;
 import com.zj.aiagent.domain.workflow.port.StreamPublisher;
@@ -63,10 +64,9 @@ public class RedisSseStreamPublisher implements StreamPublisher {
 
         String content = null;
         if (result.getOutputs() != null) {
-            // 优先取 response/text，兼容 LLM 节点
             Object response = result.getOutputs().get("response");
             if (response == null) {
-                response = result.getOutputs().get("text");
+                response = result.getOutputs().get("json_output");
             }
             // 兼容 END 节点：取 output 字段（最终结果）
             if (response == null) {
@@ -76,10 +76,22 @@ public class RedisSseStreamPublisher implements StreamPublisher {
             if (response == null) {
                 response = result.getOutputs().get("finalResult");
             }
-            content = response != null ? response.toString() : null;
+            content = response != null ? formatOutputContent(response) : null;
         }
 
         publish(SseEventType.FINISH, result.getStatus(), content, null, false);
+    }
+
+    private String formatOutputContent(Object value) {
+        if (value instanceof String text) {
+            return text;
+        }
+        try {
+            return objectMapper.writeValueAsString(value);
+        } catch (JsonProcessingException e) {
+            log.warn("[Stream] Failed to serialize output content: {}", e.getMessage());
+            return value.toString();
+        }
     }
 
     @Override

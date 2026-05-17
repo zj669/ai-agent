@@ -1,12 +1,12 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { cn } from "../../../lib/utils";
-import { mcpAdapter, type McpTool } from "../../mcp/api/mcpAdapter";
+import { mcpAdapter } from "../../mcp/api/mcpAdapter";
+import type { McpTool } from "../../mcp/types/mcp";
 import type { NodeTemplateDTO } from "../../../shared/api/adapters/metadataAdapter";
 import type {
   SchemaPolicy,
   FieldSchema,
   WorkflowNodeType,
-  ReferenceNodeOption,
   PromptTemplateVariableOption,
 } from "./WorkflowNode";
 import VariableRefSelector, {
@@ -258,6 +258,36 @@ function getToolOutputSchema(): FieldSchema[] {
   }];
 }
 
+function normalizeToolIdentityPart(value: unknown): string {
+  return String(value ?? "").trim().toLowerCase();
+}
+
+function getToolDisplayKey(tool: McpTool): string {
+  return [
+    normalizeToolIdentityPart(tool.serverName),
+    normalizeToolIdentityPart(tool.toolName),
+  ].join("::");
+}
+
+function getToolOptionKey(tool: McpTool): string {
+  return tool.fullName || `${tool.serverId}-${tool.toolName}`;
+}
+
+function dedupeMcpTools(tools: McpTool[], preferredFullName?: string): McpTool[] {
+  const uniqueTools = new Map<string, McpTool>();
+
+  tools.forEach((tool) => {
+    const key = getToolDisplayKey(tool);
+    const existing = uniqueTools.get(key);
+
+    if (!existing || (preferredFullName && tool.fullName === preferredFullName)) {
+      uniqueTools.set(key, tool);
+    }
+  });
+
+  return Array.from(uniqueTools.values());
+}
+
 interface SelectedToolInfo {
   serverId: number;
   serverName: string;
@@ -289,6 +319,13 @@ function ToolSection({
   const [search, setSearch] = useState("");
 
   const selected = userConfig.selectedTool as SelectedToolInfo | undefined;
+  const selectedFullName =
+    selected?.fullName ??
+    (typeof userConfig.mcpToolName === "string" ? userConfig.mcpToolName : undefined);
+  const uniqueTools = useMemo(
+    () => dedupeMcpTools(tools, selectedFullName),
+    [tools, selectedFullName],
+  );
 
   useEffect(() => {
     setLoading(true);
@@ -299,7 +336,7 @@ function ToolSection({
       .finally(() => setLoading(false));
   }, []);
 
-  const filteredTools = tools.filter((t) => {
+  const filteredTools = uniqueTools.filter((t) => {
     if (!search.trim()) return true;
     const q = search.toLowerCase();
     return t.toolName.toLowerCase().includes(q)
@@ -356,16 +393,19 @@ function ToolSection({
         />
         <select
           className={inputClass}
-          value={selected?.fullName ?? ""}
+          value={selectedFullName ?? ""}
           onChange={(e) => {
-            const tool = tools.find((t) => t.fullName === e.target.value) ?? null;
+            const tool =
+              uniqueTools.find((t) => t.fullName === e.target.value) ??
+              tools.find((t) => t.fullName === e.target.value) ??
+              null;
             handleSelectTool(tool);
           }}
           disabled={loading}
         >
           <option value="">{loading ? "加载中..." : "请选择工具"}</option>
           {filteredTools.map((tool) => (
-            <option key={`${tool.serverId}-${tool.toolName}`} value={tool.fullName}>
+            <option key={getToolOptionKey(tool)} value={tool.fullName}>
               {tool.serverName} / {tool.toolName}
             </option>
           ))}
@@ -421,18 +461,17 @@ function ToolSection({
                 )}
                 <VariableRefSelector
                   value={field.sourceRef ?? ""}
+                  literalValue={field.defaultValue != null ? String(field.defaultValue) : ""}
                   variables={upstreamVariables}
                   onSelect={(ref) => handleUpdateInputField(field.key, { sourceRef: ref, defaultValue: undefined })}
                   onClear={() => handleClearInputField(field.key)}
+                  onLiteralChange={(nextValue) =>
+                    handleUpdateInputField(field.key, {
+                      sourceRef: "",
+                      defaultValue: nextValue,
+                    })
+                  }
                 />
-                {!field.sourceRef && (
-                  <input
-                    className="w-full rounded border border-slate-300 px-2 py-1 text-xs placeholder:text-slate-300"
-                    placeholder="默认值"
-                    value={field.defaultValue != null ? String(field.defaultValue) : ""}
-                    onChange={(e) => handleUpdateInputField(field.key, { defaultValue: e.target.value || undefined })}
-                  />
-                )}
               </div>
             ))
           )}
@@ -484,7 +523,6 @@ interface NodeConfigTabsProps {
   outputSchema: FieldSchema[];
   userConfig: Record<string, unknown>;
   upstreamVariables?: UpstreamVariable[];
-  contextReferenceNodes?: ReferenceNodeOption[];
   promptTemplateVariables?: PromptTemplateVariableOption[];
   onConfigChange: (key: string, value: unknown) => void;
   onInputSchemaChange?: (schema: FieldSchema[]) => void;
@@ -509,94 +547,80 @@ const KNOWLEDGE_QUERY_FIELD: FieldSchema = {
   sourceRef: "",
   description: "请选择上游节点的输出变量作为查询词",
 };
-const DEFAULT_LLM_PROMPT_TEMPLATE = "{{inputs.inputMessage}}";
+const DEFAULT_LLM_PROMPT_TEMPLATE = "{{start.output.inputMessage}}";
 
-function ContextReferenceSection({
-  options,
-  value,
-  onChange,
-}: {
-  options: ReferenceNodeOption[];
-  value: unknown;
-  onChange: (nodeIds: string[]) => void;
-}) {
-  const selectedNodeIds = Array.isArray(value)
-    ? value.filter(
-        (item): item is string =>
-          typeof item === "string" && item.trim().length > 0,
-      )
-    : [];
+const LLM_TEXT_OUTPUT_FIELD: FieldSchema = {
+  key: "response",
+  type: "string",
+  label: "文本输出",
+  system: true,
+  description: "LLM 返回的主要文本内容",
+};
 
-  const toggleNode = (nodeId: string) => {
-    if (selectedNodeIds.includes(nodeId)) {
-      onChange(selectedNodeIds.filter((id) => id !== nodeId));
-      return;
-    }
-    onChange([...selectedNodeIds, nodeId]);
+const LLM_JSON_OUTPUT_FIELD: FieldSchema = {
+  key: "json_output",
+  type: "object",
+  label: "JSON 输出",
+  system: true,
+  description: "LLM 文本响应解析后的 JSON 对象",
+};
+
+const LLM_SYSTEM_OUTPUT_KEYS = new Set([
+  LLM_TEXT_OUTPUT_FIELD.key,
+  LLM_JSON_OUTPUT_FIELD.key,
+  "llm_output",
+  "text",
+]);
+
+function cloneFieldSchema(field: FieldSchema): FieldSchema {
+  return { ...field };
+}
+
+function normalizeLlmOutputMode(value: unknown): "text" | "json" {
+  return value === "json" ? "json" : "text";
+}
+
+function getLlmBaseOutputFields(mode: "text" | "json"): FieldSchema[] {
+  return mode === "json" ? [LLM_JSON_OUTPUT_FIELD] : [LLM_TEXT_OUTPUT_FIELD];
+}
+
+function normalizeLlmOutputSchema(
+  outputSchema: FieldSchema[],
+  mode: "text" | "json",
+): FieldSchema[] {
+  if (mode === "text") {
+    return getLlmBaseOutputFields(mode).map(cloneFieldSchema);
+  }
+
+  const customFields = outputSchema
+    .filter((field) => !field.system && !LLM_SYSTEM_OUTPUT_KEYS.has(field.key))
+    .map(cloneFieldSchema);
+  return [...getLlmBaseOutputFields(mode).map(cloneFieldSchema), ...customFields];
+}
+
+function getTemplateTrigger(value: string, cursor: number) {
+  const beforeCursor = value.slice(0, cursor);
+  const start = beforeCursor.lastIndexOf("{{");
+  if (start < 0) return null;
+
+  const lastClose = beforeCursor.lastIndexOf("}}");
+  if (lastClose > start) return null;
+
+  return {
+    start,
+    query: beforeCursor.slice(start + 2).trim().toLowerCase(),
   };
+}
 
-  return (
-    <div className="space-y-2">
-      <div>
-        <h4 className="text-xs font-semibold text-slate-500">参考节点</h4>
-        <p className="mt-1 text-[11px] leading-4 text-slate-400">
-          选择要注入到 LLM 系统提示词中的上游节点输出，支持多跳祖先节点。
-        </p>
-      </div>
-
-      {options.length === 0 ? (
-        <div className="rounded-lg border border-dashed border-slate-200 bg-slate-50 px-3 py-2 text-xs text-slate-400">
-          暂无可引用的上游节点
-        </div>
-      ) : (
-        <div className="space-y-2">
-          {options.map((option) => {
-            const checked = selectedNodeIds.includes(option.nodeId);
-            return (
-              <label
-                key={option.nodeId}
-                className={cn(
-                  "flex cursor-pointer items-start gap-2 rounded-lg border px-3 py-2 transition",
-                  checked
-                    ? "border-blue-200 bg-blue-50/70"
-                    : "border-slate-200 bg-slate-50/70 hover:border-slate-300",
-                )}
-              >
-                <input
-                  type="checkbox"
-                  className="mt-0.5 h-4 w-4 rounded border-slate-300 text-blue-600"
-                  checked={checked}
-                  onChange={() => toggleNode(option.nodeId)}
-                  aria-label={`引用节点-${option.nodeId}`}
-                />
-                <div className="min-w-0 flex-1">
-                  <div className="text-xs font-medium text-slate-700">
-                    {option.nodeName}
-                  </div>
-                  <div className="text-[11px] text-slate-400">
-                    {option.nodeId} · {option.nodeType}
-                  </div>
-                </div>
-              </label>
-            );
-          })}
-        </div>
-      )}
-
-      {selectedNodeIds.length > 0 && (
-        <div className="flex flex-wrap gap-1.5">
-          {selectedNodeIds.map((nodeId) => (
-            <span
-              key={nodeId}
-              className="rounded bg-blue-100 px-2 py-1 text-[11px] text-blue-700"
-            >
-              {nodeId}
-            </span>
-          ))}
-        </div>
-      )}
-    </div>
-  );
+function templateVariableMatches(
+  variable: PromptTemplateVariableOption,
+  query: string,
+): boolean {
+  if (!query) return true;
+  return [variable.label, variable.detail, variable.template]
+    .join(" ")
+    .toLowerCase()
+    .includes(query);
 }
 
 function PromptTemplateEditor({
@@ -613,11 +637,28 @@ function PromptTemplateEditor({
     start: value.length,
     end: value.length,
   });
-  const inputVariables = variables.filter(
-    (variable) => variable.category === "inputs",
+  const [trigger, setTrigger] = useState<{ start: number; query: string } | null>(
+    null,
   );
-  const nodeVariables = variables.filter(
-    (variable) => variable.category === "node",
+  const filteredVariables = useMemo(
+    () =>
+      variables.filter((variable) =>
+        templateVariableMatches(variable, trigger?.query ?? ""),
+      ),
+    [trigger?.query, variables],
+  );
+  const groupedVariables = useMemo(
+    () =>
+      filteredVariables.reduce<Record<string, PromptTemplateVariableOption[]>>(
+        (acc, variable) => {
+          const key = "祖先节点输出";
+          if (!acc[key]) acc[key] = [];
+          acc[key].push(variable);
+          return acc;
+        },
+        {},
+      ),
+    [filteredVariables],
   );
 
   const syncSelection = () => {
@@ -634,9 +675,15 @@ function PromptTemplateEditor({
       start: textarea.selectionStart ?? value.length,
       end: textarea.selectionEnd ?? value.length,
     };
+    setTrigger(
+      getTemplateTrigger(
+        textarea.value,
+        textarea.selectionStart ?? textarea.value.length,
+      ),
+    );
   };
 
-  const insertTemplate = (template: string) => {
+  const insertTemplate = (template: string, replaceTrigger = false) => {
     const textarea = textareaRef.current;
     if (!textarea) {
       const suffix = value && !value.endsWith("\n") ? "\n" : "";
@@ -644,9 +691,13 @@ function PromptTemplateEditor({
       return;
     }
 
-    const { start, end } = selectionRef.current;
+    const { start, end } =
+      replaceTrigger && trigger
+        ? { start: trigger.start, end: selectionRef.current.end }
+        : selectionRef.current;
     const nextValue = `${value.slice(0, start)}${template}${value.slice(end)}`;
     onChange(nextValue);
+    setTrigger(null);
 
     requestAnimationFrame(() => {
       textarea.focus();
@@ -659,33 +710,13 @@ function PromptTemplateEditor({
     });
   };
 
-  const renderVariableSection = (
-    title: string,
-    items: PromptTemplateVariableOption[],
-  ) => {
-    if (items.length === 0) return null;
-    return (
-      <div className="space-y-2">
-        <div className="text-[11px] font-semibold text-slate-500">{title}</div>
-        <div className="space-y-2">
-          {items.map((item) => (
-            <button
-              key={item.template}
-              type="button"
-              className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-left transition hover:border-blue-300 hover:bg-blue-50/50"
-              onClick={() => insertTemplate(item.template)}
-            >
-              <div className="text-xs font-medium text-slate-700">
-                {item.label}
-              </div>
-              <div className="mt-0.5 text-[11px] text-slate-400">
-                {item.detail}
-              </div>
-            </button>
-          ))}
-        </div>
-      </div>
-    );
+  const handleChange = (nextValue: string, cursor: number) => {
+    selectionRef.current = {
+      start: cursor,
+      end: cursor,
+    };
+    onChange(nextValue);
+    setTrigger(getTemplateTrigger(nextValue, cursor));
   };
 
   return (
@@ -694,28 +725,71 @@ function PromptTemplateEditor({
         <h4 className="text-xs font-semibold text-slate-500">Prompt 模板</h4>
         <p className="text-[11px] leading-4 text-slate-400">
           直接编写发送给 LLM 的用户提示词，可使用 {`{{}}`}{" "}
-          引用全局输入或多跳上游节点输出。
+          引用祖先节点输出。
         </p>
       </div>
 
-      <textarea
-        ref={textareaRef}
-        className="mt-1 w-full rounded-md border border-slate-200 px-2.5 py-1.5 text-xs shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500 bg-white"
-        placeholder="请输入 Prompt 模板，例如：&#10;用户问题：{{inputs.query}}"
-        value={value}
-        onChange={(e) => onChange(e.target.value)}
-        onSelect={syncSelection}
-        onClick={syncSelection}
-        onKeyUp={syncSelection}
-        onFocus={syncSelection}
-      />
+      <div className="relative">
+        <textarea
+          ref={textareaRef}
+          className="mt-1 w-full rounded-md border border-slate-200 bg-white px-2.5 py-1.5 text-xs shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+          placeholder="输入 {{ 选择祖先节点输出"
+          value={value}
+          onChange={(event) =>
+            handleChange(
+              event.target.value,
+              event.target.selectionStart ?? event.target.value.length,
+            )
+          }
+          onSelect={syncSelection}
+          onClick={syncSelection}
+          onKeyUp={syncSelection}
+          onFocus={syncSelection}
+          onKeyDown={(event) => {
+            if (event.key === "Escape") {
+              setTrigger(null);
+            }
+            if (
+              (event.key === "Enter" || event.key === "Tab") &&
+              trigger &&
+              filteredVariables.length > 0
+            ) {
+              event.preventDefault();
+              insertTemplate(filteredVariables[0].template, true);
+            }
+          }}
+        />
 
-      <div className="rounded-lg border border-slate-200 bg-slate-50/70 p-3 space-y-3">
-        <div className="text-xs font-semibold text-slate-500">插入变量</div>
-        {renderVariableSection("全局输入", inputVariables)}
-        {renderVariableSection("祖先节点输出", nodeVariables)}
-        {variables.length === 0 && (
-          <div className="text-xs text-slate-400">暂无可插入的变量</div>
+        {trigger && (
+          <div className="absolute left-0 top-full z-50 mt-1 max-h-56 w-72 overflow-y-auto rounded-md border border-slate-200 bg-white shadow-lg">
+            {filteredVariables.length === 0 ? (
+              <div className="px-3 py-2 text-xs text-slate-400">
+                无匹配的可引用变量
+              </div>
+            ) : (
+              Object.entries(groupedVariables).map(([title, items]) => (
+                <div key={title}>
+                  <div className="sticky top-0 border-b border-slate-100 bg-slate-50 px-3 py-1 text-[10px] font-medium text-slate-500">
+                    {title}
+                  </div>
+                  {items.map((item) => (
+                    <button
+                      key={item.template}
+                      type="button"
+                      className="flex w-full flex-col px-3 py-1.5 text-left text-xs transition hover:bg-blue-50"
+                      onMouseDown={(event) => event.preventDefault()}
+                      onClick={() => insertTemplate(item.template, true)}
+                    >
+                      <span className="text-slate-700">{item.label}</span>
+                      <span className="text-[10px] text-slate-400">
+                        {item.detail}
+                      </span>
+                    </button>
+                  ))}
+                </div>
+              ))
+            )}
+          </div>
         )}
       </div>
     </div>
@@ -740,7 +814,6 @@ function InputFieldCard({
   const [editingMeta, setEditingMeta] = useState(false);
   const isSystem = field.system === true;
   const editable = canUpdate && !isSystem;
-  const hasRef = !!field.sourceRef;
 
   return (
     <div
@@ -839,30 +912,20 @@ function InputFieldCard({
       <div className="space-y-1">
         <VariableRefSelector
           value={field.sourceRef ?? ""}
+          literalValue={field.defaultValue != null ? String(field.defaultValue) : ""}
           variables={upstreamVariables}
           onSelect={(ref) =>
             onUpdate({ ...field, sourceRef: ref, defaultValue: undefined })
           }
           onClear={() => onUpdate({ ...field, sourceRef: "" })}
+          onLiteralChange={(nextValue) =>
+            onUpdate({
+              ...field,
+              sourceRef: "",
+              defaultValue: nextValue,
+            })
+          }
         />
-
-        {!hasRef && (
-          <div>
-            <input
-              className="w-full rounded border border-slate-300 px-2 py-1 text-xs placeholder:text-slate-300"
-              placeholder="输入默认值..."
-              value={
-                field.defaultValue != null ? String(field.defaultValue) : ""
-              }
-              onChange={(e) =>
-                onUpdate({
-                  ...field,
-                  defaultValue: e.target.value || undefined,
-                })
-              }
-            />
-          </div>
-        )}
       </div>
     </div>
   );
@@ -971,6 +1034,191 @@ function OutputFieldCard({
   );
 }
 
+function JsonOutputFieldCard({
+  field,
+  onUpdate,
+  onDelete,
+}: {
+  field: FieldSchema;
+  onUpdate: (updated: FieldSchema) => void;
+  onDelete: () => void;
+}) {
+  const updateKey = (key: string) => {
+    const nextKey = key.trim();
+    onUpdate({
+      ...field,
+      key: nextKey,
+      label: nextKey,
+      required: true,
+    });
+  };
+
+  return (
+    <div className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 space-y-2">
+      <div className="grid grid-cols-[minmax(0,1fr)_96px_auto] gap-2">
+        <input
+          className="min-w-0 rounded border border-slate-300 px-2 py-1 text-xs placeholder:text-slate-300"
+          placeholder="字段名"
+          value={field.key}
+          onChange={(event) => updateKey(event.target.value)}
+        />
+        <select
+          className="rounded border border-slate-300 px-2 py-1 text-xs"
+          value={field.type || "string"}
+          onChange={(event) =>
+            onUpdate({ ...field, type: event.target.value, required: true })
+          }
+        >
+          {FIELD_TYPES.map((type) => (
+            <option key={type} value={type}>
+              {type}
+            </option>
+          ))}
+        </select>
+        <button
+          type="button"
+          className="px-1 text-sm text-slate-400 transition hover:text-red-500"
+          onClick={onDelete}
+          title="删除"
+        >
+          ×
+        </button>
+      </div>
+      <textarea
+        className="w-full rounded border border-slate-300 px-2 py-1 text-xs placeholder:text-slate-300"
+        rows={2}
+        placeholder="字段描述"
+        value={field.description ?? ""}
+        onChange={(event) =>
+          onUpdate({
+            ...field,
+            description: event.target.value,
+            required: true,
+          })
+        }
+      />
+    </div>
+  );
+}
+
+function LlmOutputSection({
+  outputSchema,
+  userConfig,
+  onConfigChange,
+  onOutputSchemaChange,
+}: {
+  outputSchema: FieldSchema[];
+  userConfig: Record<string, unknown>;
+  onConfigChange: (key: string, value: unknown) => void;
+  onOutputSchemaChange?: (schema: FieldSchema[]) => void;
+}) {
+  const mode = normalizeLlmOutputMode(userConfig.llmOutputMode);
+  const normalizedSchema = normalizeLlmOutputSchema(outputSchema, mode);
+  const customFields = normalizedSchema.filter((field) => !field.system);
+  const systemFields = normalizedSchema.filter((field) => field.system);
+
+  const updateMode = (nextMode: "text" | "json") => {
+    onConfigChange("llmOutputMode", nextMode);
+    onOutputSchemaChange?.(normalizeLlmOutputSchema(outputSchema, nextMode));
+  };
+
+  const updateCustomFields = (nextCustomFields: FieldSchema[]) => {
+    const nextSchema = [
+      ...getLlmBaseOutputFields(mode).map(cloneFieldSchema),
+      ...nextCustomFields,
+    ];
+    onOutputSchemaChange?.(nextSchema);
+  };
+
+  const addJsonField = () => {
+    const nextKey = `json_field_${customFields.length + 1}`;
+    updateCustomFields([
+      ...customFields,
+      {
+        key: nextKey,
+        label: nextKey,
+        type: "string",
+        description: "",
+        required: true,
+      },
+    ]);
+  };
+
+  return (
+    <div className="space-y-3">
+      <div className="grid grid-cols-2 gap-1 rounded-md bg-slate-100 p-1">
+        {[
+          { key: "text" as const, label: "文本输出" },
+          { key: "json" as const, label: "JSON 输出" },
+        ].map((item) => (
+          <button
+            key={item.key}
+            type="button"
+            className={cn(
+              "rounded px-2 py-1.5 text-xs font-medium transition",
+              mode === item.key
+                ? "bg-white text-blue-600 shadow-sm"
+                : "text-slate-500 hover:text-slate-800",
+            )}
+            onClick={() => updateMode(item.key)}
+          >
+            {item.label}
+          </button>
+        ))}
+      </div>
+
+      <div className="space-y-2">
+        {systemFields.map((field) => (
+          <div
+            key={field.key}
+            className="flex items-center gap-2 rounded-lg bg-slate-100 px-3 py-2"
+          >
+            <div className="min-w-0 flex-1">
+              <div className="flex items-center gap-1.5">
+                <span className="text-xs font-medium text-slate-700">
+                  {field.label || field.key}
+                </span>
+                <span className="rounded bg-slate-200 px-1 py-0.5 text-[10px] text-slate-500">
+                  系统
+                </span>
+              </div>
+              <div className="text-[10px] text-slate-400">
+                {field.key} · {field.type}
+              </div>
+            </div>
+          </div>
+        ))}
+      </div>
+
+      {mode === "json" && (
+        <div className="space-y-2">
+          {customFields.map((field, index) => (
+            <JsonOutputFieldCard
+              key={index}
+              field={field}
+              onUpdate={(updated) => {
+                const next = [...customFields];
+                next[index] = updated;
+                updateCustomFields(next);
+              }}
+              onDelete={() =>
+                updateCustomFields(customFields.filter((_, i) => i !== index))
+              }
+            />
+          ))}
+          <button
+            type="button"
+            className="w-full rounded-lg border border-dashed border-slate-300 py-1.5 text-xs text-slate-400 transition hover:border-blue-400 hover:text-blue-500"
+            onClick={addJsonField}
+          >
+            + 添加 JSON 顶层字段
+          </button>
+        </div>
+      )}
+    </div>
+  );
+}
+
 function NodeConfigTabs({
   nodeType,
   template,
@@ -979,7 +1227,6 @@ function NodeConfigTabs({
   outputSchema,
   userConfig,
   upstreamVariables = [],
-  contextReferenceNodes = [],
   promptTemplateVariables = [],
   onConfigChange,
   onInputSchemaChange,
@@ -1009,7 +1256,6 @@ function NodeConfigTabs({
   const canUpdateOutput = policy?.outputSchemaUpdate !== false;
   const isKnowledgeNode = resolvedNodeType === "KNOWLEDGE";
   const hasKnowledgeQuery = inputSchema.some((field) => field.key === "query");
-  const [showLlmAdvancedInputs, setShowLlmAdvancedInputs] = useState(false);
   const visibleConfigGroups =
     template?.configFieldGroups
       .map((group) => ({
@@ -1078,69 +1324,17 @@ function NodeConfigTabs({
       <div className="nowheel max-h-72 overflow-y-auto p-3">
         {activeTab === "input" &&
           (isLlmNode ? (
-            <div className="space-y-3">
-              <PromptTemplateEditor
-                value={
-                  typeof userConfig.userPromptTemplate === "string"
-                    ? userConfig.userPromptTemplate
-                    : DEFAULT_LLM_PROMPT_TEMPLATE
-                }
-                variables={promptTemplateVariables}
-                onChange={(nextValue) =>
-                  onConfigChange("userPromptTemplate", nextValue)
-                }
-              />
-
-              <div className="rounded-lg border border-slate-200 bg-slate-50/70">
-                <button
-                  type="button"
-                  className="flex w-full items-center justify-between px-3 py-2 text-left"
-                  onClick={() => setShowLlmAdvancedInputs((value) => !value)}
-                >
-                  <div>
-                    <div className="text-xs font-semibold text-slate-600">
-                      高级映射
-                    </div>
-                    <div className="mt-0.5 text-[11px] text-slate-400">
-                      兼容历史工作流或需要手动维护 inputSchema 时使用
-                    </div>
-                  </div>
-                  <span className="text-xs text-slate-400">
-                    {showLlmAdvancedInputs ? "收起" : "展开"}
-                  </span>
-                </button>
-
-                {showLlmAdvancedInputs && (
-                  <div className="space-y-2 border-t border-slate-200 p-3">
-                    {inputSchema.length === 0 ? (
-                      <p className="text-xs text-slate-400">暂无输入字段</p>
-                    ) : (
-                      inputSchema.map((field, i) => (
-                        <InputFieldCard
-                          key={field.key}
-                          field={field}
-                          canUpdate={canUpdateInput}
-                          canDelete={canAddInput}
-                          upstreamVariables={upstreamVariables}
-                          onUpdate={(updated) =>
-                            handleUpdateInputField(i, updated)
-                          }
-                          onDelete={() => handleDeleteField("input", i)}
-                        />
-                      ))
-                    )}
-                    {canAddInput && (
-                      <button
-                        className="w-full rounded-lg border border-dashed border-slate-300 py-1.5 text-xs text-slate-400 hover:border-blue-400 hover:text-blue-500 transition"
-                        onClick={() => handleAddField("input")}
-                      >
-                        + 添加输入字段
-                      </button>
-                    )}
-                  </div>
-                )}
-              </div>
-            </div>
+            <PromptTemplateEditor
+              value={
+                typeof userConfig.userPromptTemplate === "string"
+                  ? userConfig.userPromptTemplate
+                  : DEFAULT_LLM_PROMPT_TEMPLATE
+              }
+              variables={promptTemplateVariables}
+              onChange={(nextValue) =>
+                onConfigChange("userPromptTemplate", nextValue)
+              }
+            />
           ) : (
             <div className="space-y-2">
               {inputSchema.length === 0 ? (
@@ -1171,7 +1365,14 @@ function NodeConfigTabs({
 
         {activeTab === "output" && (
           <div className="space-y-2">
-            {isHttpNode ? (
+            {isLlmNode ? (
+              <LlmOutputSection
+                outputSchema={outputSchema}
+                userConfig={userConfig}
+                onConfigChange={onConfigChange}
+                onOutputSchemaChange={onOutputSchemaChange}
+              />
+            ) : isHttpNode ? (
               <HttpOutputSection
                 outputSchema={outputSchema}
                 userConfig={userConfig}
@@ -1219,7 +1420,7 @@ function NodeConfigTabs({
                 />
               ))
             )}
-            {!isHttpNode && !isToolNode && canAddOutput && (
+            {!isLlmNode && !isHttpNode && !isToolNode && canAddOutput && (
               <button
                 className="w-full rounded-lg border border-dashed border-slate-300 py-1.5 text-xs text-slate-400 hover:border-blue-400 hover:text-blue-500 transition"
                 onClick={() => handleAddField("output")}
@@ -1244,20 +1445,12 @@ function NodeConfigTabs({
                       field={field}
                       value={userConfig[field.fieldKey]}
                       onChange={onConfigChange}
+                      templateVariables={promptTemplateVariables}
                     />
                   ))}
                 </div>
               </div>
             ))}
-            {isLlmNode && (
-              <ContextReferenceSection
-                options={contextReferenceNodes}
-                value={userConfig.contextRefNodes}
-                onChange={(nodeIds) =>
-                  onConfigChange("contextRefNodes", nodeIds)
-                }
-              />
-            )}
             {isToolNode && (
               <ToolSection
                 userConfig={userConfig}

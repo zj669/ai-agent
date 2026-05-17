@@ -155,35 +155,35 @@ CORS_ALLOWED_ORIGINS=https://your-domain.com
 echo $GITHUB_TOKEN | docker login ghcr.io -u USERNAME --password-stdin
 
 # Docker Compose V2（配置文件在 docker/ 目录，需在目录下执行）
-docker compose -f docker-compose.prod.yml pull
+docker compose --env-file .env.prod -f docker-compose.prod.yml pull
 
 # Docker Compose V1
-docker-compose -f docker-compose.prod.yml pull
+docker-compose --env-file .env.prod -f docker-compose.prod.yml pull
 ```
 
 ### 2.5 启动服务
 
 ```bash
 # 前台启动（首次验证）
-docker compose -f docker-compose.prod.yml up
+docker compose --env-file .env.prod -f docker-compose.prod.yml up
 
 # 后台运行（确认无误后）
-docker compose -f docker-compose.prod.yml up -d
+docker compose --env-file .env.prod -f docker-compose.prod.yml up -d
 
 # 查看状态
-docker compose -f docker-compose.prod.yml ps
+docker compose --env-file .env.prod -f docker-compose.prod.yml ps
 ```
 
 ### 2.6 验证服务
 
 ```bash
 # 健康检查
-curl http://localhost:8080/actuator/health
+curl http://localhost:8090/actuator/health
 curl http://localhost/  # 前端
 
 # 查看日志
-docker compose -f docker-compose.prod.yml logs -f backend
-docker compose -f docker-compose.prod.yml logs -f frontend
+docker compose --env-file .env.prod -f docker-compose.prod.yml logs -f backend
+docker compose --env-file .env.prod -f docker-compose.prod.yml logs -f frontend
 ```
 
 ---
@@ -214,7 +214,7 @@ docker build \
 
 # 启动（在 docker/ 目录下执行）
 cd docker
-docker compose -f docker-compose.prod.yml up -d
+docker compose --env-file .env.prod -f docker-compose.prod.yml up -d
 ```
 
 ---
@@ -226,7 +226,7 @@ docker compose -f docker-compose.prod.yml up -d
 | 服务 | 容器端口 | 默认主机端口 | 说明 |
 |------|---------|------------|------|
 | Frontend | 80 | `FRONTEND_PORT` (默认 80) | 主访问入口 |
-| Backend | 8080 | 不对外暴露 | 由 nginx 代理 |
+| Backend | 8090 | 127.0.0.1:8090 | 由 nginx 代理 |
 | MySQL | 3306 | 不暴露 | 仅容器内访问 |
 | Redis | 6379 | 不暴露 | 仅容器内访问 |
 | MinIO API | 9000 | `MINIO_API_PORT` (默认 9000) | S3 兼容 API |
@@ -252,9 +252,62 @@ MILVUS_GRPC_PORT=19531
 | `MAIL_USERNAME` | ✅ | - | 发送邮件账号 |
 | `MAIL_PASSWORD` | ✅ | - | 邮件密码/授权码 |
 | `CORS_ALLOWED_ORIGINS` | ✅ | - | 前端域名，逗号分隔 |
+| `CSDN_COOKIE` | | - | CSDN 文章发布 MCP 使用的浏览器 Cookie，启用该 MCP 时填写 |
 | `MINIO_ROOT_USER` | | admin | MinIO 访问密钥 |
 | `MINIO_ROOT_PASSWORD` | | admin123456 | MinIO 密文密钥 |
 | `MILVUS_ENABLED` | | true | 是否启用 Milvus |
+
+### 4.3 配置 CSDN 文章发布 MCP
+
+生产环境的 stdio MCP 子进程在 `backend` 容器内运行。后端镜像已内置 Node.js 和项目内的 `mcp-servers/` 目录，CSDN 文章发布 MCP 的容器内路径为：
+
+```text
+/app/mcp-servers/csdn-article-publisher/server.js
+```
+
+1. 在 `docker/.env.prod` 填入 CSDN 登录态 Cookie：
+
+```bash
+CSDN_COOKIE='UserName=...; UserToken=...; SESSION=...'
+```
+
+2. 重建并启动后端镜像，使 `backend` 容器拿到新的环境变量：
+
+```bash
+docker compose --env-file .env.prod -f docker-compose.prod.yml up -d --build backend
+```
+
+如果使用 GHCR 拉取镜像部署，需要先重新构建并推送后端镜像，然后在服务器执行：
+
+```bash
+docker compose --env-file .env.prod -f docker-compose.prod.yml pull backend
+docker compose --env-file .env.prod -f docker-compose.prod.yml up -d backend
+```
+
+3. 用户注册或登录后，查询目标用户 ID：
+
+```bash
+docker exec -it ai-agent-mysql sh -c 'mysql -uroot -p"$MYSQL_ROOT_PASSWORD" ai_agent -e "SELECT id, username, email FROM user_info ORDER BY id DESC;"'
+```
+
+4. 为该用户注册 MCP server 配置：
+
+```bash
+./scripts/register-csdn-mcp.sh <user_id>
+```
+
+脚本会在 `mcp_server_config` 中创建或更新如下 stdio 配置：
+
+```json
+{
+  "type": "stdio",
+  "command": "node",
+  "args": ["/app/mcp-servers/csdn-article-publisher/server.js"],
+  "env": {}
+}
+```
+
+Cookie 不写入数据库；MCP 子进程从 `backend` 容器环境继承 `CSDN_COOKIE`。注册完成后，在前端「MCP 管理」页面点击连接，工具列表中应出现 `send_article`。
 
 ---
 
@@ -264,29 +317,29 @@ MILVUS_GRPC_PORT=19531
 
 ```bash
 # 全部服务
-docker compose -f docker-compose.prod.yml ps
+docker compose --env-file .env.prod -f docker-compose.prod.yml ps
 
 # 后端健康状态
-curl -s http://localhost:8080/actuator/health | jq .
+curl -s http://localhost:8090/actuator/health | jq .
 
 # Prometheus 指标
-curl http://localhost:8080/actuator/prometheus | head -20
+curl http://localhost:8090/actuator/prometheus | head -20
 ```
 
 ### 5.2 日志查看
 
 ```bash
 # 实时查看所有日志
-docker compose -f docker-compose.prod.yml logs -f
+docker compose --env-file .env.prod -f docker-compose.prod.yml logs -f
 
 # 实时查看后端日志
-docker compose -f docker-compose.prod.yml logs -f backend
+docker compose --env-file .env.prod -f docker-compose.prod.yml logs -f backend
 
 # 查看最近 100 行后端日志
-docker compose -f docker-compose.prod.yml logs --tail=100 backend
+docker compose --env-file .env.prod -f docker-compose.prod.yml logs --tail=100 backend
 
 # 查找错误
-docker compose -f docker-compose.prod.yml logs backend | grep -i error
+docker compose --env-file .env.prod -f docker-compose.prod.yml logs backend | grep -i error
 ```
 
 ---
@@ -312,12 +365,12 @@ docker run --rm \
   alpine tar czf /backup/minio_backup_$(date +%Y%m%d).tar.gz -C /data .
 
 # 恢复 MySQL（停止服务后操作）
-docker compose -f docker-compose.prod.yml down mysql
+docker compose --env-file .env.prod -f docker-compose.prod.yml down mysql
 docker run --rm \
   -v ai-agent_mysql_data:/data \
   -v $(pwd)/backup:/backup \
   alpine tar xzf /backup/mysql_backup_20260403.tar.gz -C /data
-docker compose -f docker-compose.prod.yml up -d
+docker compose --env-file .env.prod -f docker-compose.prod.yml up -d
 ```
 
 > ⚠️ `docker compose down -v` 会**删除所有数据卷**，务必谨慎使用！
@@ -332,30 +385,30 @@ docker compose -f docker-compose.prod.yml up -d
 cd /opt/ai-agent
 
 # 拉取最新镜像
-docker compose -f docker-compose.prod.yml pull
+docker compose --env-file .env.prod -f docker-compose.prod.yml pull
 
 # 滚动更新（自动重启服务）
-docker compose -f docker-compose.prod.yml up -d
+docker compose --env-file .env.prod -f docker-compose.prod.yml up -d
 
 # 如需重新构建（代码变更后）
-docker compose -f docker-compose.prod.yml up -d --build
+docker compose --env-file .env.prod -f docker-compose.prod.yml up -d --build
 ```
 
 ### 7.2 回滚到指定版本
 
 ```bash
 # 指定版本拉取（需要该 tag 已在本地或远程存在）
-docker compose -f docker-compose.prod.yml pull
+docker compose --env-file .env.prod -f docker-compose.prod.yml pull
 
 # 指定 IMAGE_TAG 启动
-IMAGE_TAG=v1.0.0 docker compose -f docker-compose.prod.yml up -d
+IMAGE_TAG=v1.0.0 docker compose --env-file .env.prod -f docker-compose.prod.yml up -d
 ```
 
 ---
 
 ## 8. HTTPS 配置
 
-生产环境强烈建议通过 **Nginx/Traefik 反向代理**处理 HTTPS，应用容器保持 8080 明文。
+生产环境强烈建议通过 **Nginx/Traefik 反向代理**处理 HTTPS，当前 Docker Compose 后端保持 8090 明文。
 
 ### 8.1 Nginx 反向代理方案
 
@@ -385,7 +438,7 @@ server {
 
     # 后端 API
     location /api/ {
-        proxy_pass http://127.0.0.1:8080/api/;
+        proxy_pass http://127.0.0.1:8090/api/;
         proxy_http_version 1.1;
         proxy_set_header Host $host;
         proxy_set_header X-Real-IP $remote_addr;
@@ -395,7 +448,7 @@ server {
 
     # WebSocket (SSE)
     location /ws/ {
-        proxy_pass http://127.0.0.1:8080/ws/;
+        proxy_pass http://127.0.0.1:8090/ws/;
         proxy_http_version 1.1;
         proxy_set_header Upgrade $http_upgrade;
         proxy_set_header Connection "upgrade";
@@ -433,8 +486,8 @@ CORS_ALLOWED_ORIGINS=https://your-domain.com
 
 ```bash
 # 检查 MySQL 是否健康
-docker compose -f docker-compose.prod.yml ps mysql
-docker compose -f docker-compose.prod.yml logs mysql | tail -20
+docker compose --env-file .env.prod -f docker-compose.prod.yml ps mysql
+docker compose --env-file .env.prod -f docker-compose.prod.yml logs mysql | tail -20
 
 # 手动测试连接
 docker exec -it ai-agent-mysql mysql -uroot -p -h mysql
@@ -447,7 +500,7 @@ docker exec -it ai-agent-mysql mysql -uroot -p -h mysql
 **解决**：
 ```bash
 # Milvus 有 90s start_period，首次启动耐心等待
-docker compose -f docker-compose.prod.yml logs milvus | tail -30
+docker compose --env-file .env.prod -f docker-compose.prod.yml logs milvus | tail -30
 ```
 
 ### Q3: 前端 502 Bad Gateway
@@ -457,10 +510,10 @@ docker compose -f docker-compose.prod.yml logs milvus | tail -30
 **解决**：
 ```bash
 # 确认 backend 健康
-curl http://backend:8080/actuator/health
+curl http://backend:8090/actuator/health
 
 # 在 frontend 容器内测试连通性
-docker exec ai-agent-frontend wget -qO- http://backend:8080/actuator/health
+docker exec ai-agent-frontend wget -qO- http://backend:8090/actuator/health
 ```
 
 ### Q4: 镜像拉取失败 (manifest unknown)
@@ -477,7 +530,7 @@ echo $GITHUB_TOKEN | docker login ghcr.io -u USERNAME --password-stdin
 
 ```bash
 # Backend
-curl http://localhost:8080/actuator/info | jq .app.version
+curl http://localhost:8090/actuator/info | jq .app.version
 
 # MySQL
 docker exec ai-agent-mysql mysql -V

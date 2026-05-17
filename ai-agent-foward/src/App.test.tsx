@@ -2,6 +2,18 @@ import { render, screen } from '@testing-library/react'
 import { TestRouter } from './app/router'
 import App from './app/App'
 
+function saveUserInfo(username = '管理员') {
+  localStorage.setItem('userInfo', JSON.stringify({
+    id: 1,
+    username,
+    email: 'admin@example.com',
+    avatarUrl: null,
+    phone: null,
+    status: 1,
+    createdAt: '2026-02-20T00:00:00',
+  }))
+}
+
 describe('App', () => {
   it('默认使用 light 主题', () => {
     render(<App />)
@@ -10,6 +22,7 @@ describe('App', () => {
 
   it('已登录访问 /dashboard 时显示工作台', async () => {
     localStorage.setItem('accessToken', 'token')
+    saveUserInfo()
 
     render(<TestRouter initialEntries={['/dashboard']} />)
 

@@ -55,4 +55,9 @@ public class FieldSchemaDTO {
      * 合并策略（overwrite, append, addMessages）
      */
     private String reducerType;
+
+    /**
+     * 是否为系统字段
+     */
+    private Boolean system;
 }

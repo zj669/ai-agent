@@ -4,7 +4,12 @@ import { TestRouter } from '../../../app/router'
 import { login } from '../../../shared/api/adapters/authAdapter'
 
 vi.mock('../../../shared/api/adapters/authAdapter', () => ({
-  login: vi.fn()
+  login: vi.fn(),
+  getSavedUserInfo: vi.fn(() => {
+    const raw = localStorage.getItem('userInfo')
+    return raw ? JSON.parse(raw) : null
+  }),
+  clearSavedUserInfo: vi.fn(() => localStorage.removeItem('userInfo')),
 }))
 
 describe('remember me', () => {
@@ -12,19 +17,23 @@ describe('remember me', () => {
     vi.useFakeTimers({ shouldAdvanceTime: true })
     localStorage.clear()
     sessionStorage.clear()
-    vi.mocked(login).mockResolvedValue({
+    const user = {
+      id: 1,
+      username: '管理员',
+      email: 'user@example.com',
+      avatarUrl: null,
+      phone: null,
+      status: 1,
+      createdAt: '2026-02-20T00:00:00'
+    }
+    vi.mocked(login).mockImplementation(async () => {
+      localStorage.setItem('userInfo', JSON.stringify(user))
+      return {
       token: 'api-token',
       refreshToken: 'refresh-token',
       expireIn: 604800,
       deviceId: 'device-1',
-      user: {
-        id: 1,
-        username: '测试用户',
-        email: 'user@example.com',
-        avatarUrl: null,
-        phone: null,
-        status: 1,
-        createdAt: '2026-02-20T00:00:00'
+      user,
       }
     })
   })
@@ -66,6 +75,7 @@ describe('remember me', () => {
 
     fireEvent.change(screen.getByPlaceholderText('请输入邮箱'), { target: { value: 'new@example.com' } })
     fireEvent.change(screen.getByPlaceholderText('请输入密码'), { target: { value: '12345678' } })
+    fireEvent.click(screen.getByLabelText('记住我'))
     fireEvent.click(screen.getByRole('button', { name: /登\s*录/ }))
 
     await waitFor(() => {

@@ -1,6 +1,6 @@
-%% 第5章 系统测试与分析
+%% 第5章 系统测试与部署
 
-\chapter{系统测试与分析}
+\chapter{智能体编排系统测试与部署}
 
 \section{测试环境配置}
 
@@ -13,7 +13,7 @@
   \caption{测试环境配置}
   \begin{tabular}{ll}
     \toprule
-    \textbf{项目} & \textbf{配置} \\
+    项目 & 配置 \\
     \midrule
     操作系统 & Ubuntu 22.04 LTS \\
     JDK & OpenJDK 21（含虚拟线程支持） \\
@@ -33,18 +33,18 @@
 \subsection{测试工具}
 
 \begin{itemize}
-  \item \textbf{单元测试：}JUnit 5 + Mockito（验证调度器、认证、知识处理等核心逻辑）
-  \item \textbf{集成测试：}Spring Boot Test（验证跨层调用和数据库读写）
-  \item \textbf{接口测试：}Postman / curl（验证 REST 接口及 SSE 推流）
-  \item \textbf{性能测试：}Apache JMeter 5.x（并发压测）
-  \item \textbf{前端功能验证：}浏览器页面交互 + DevTools Network 面板（验证画布、审批与 SSE 事件流）
+  \item 单元测试：JUnit 5 + Mockito（验证调度器、认证、知识处理等核心逻辑）
+  \item 集成测试：Spring Boot Test（验证跨层调用和数据库读写）
+  \item 接口测试：Postman / curl（验证 REST 接口及 SSE 推流）
+  \item 性能测试：Apache JMeter 5.x（并发压测）
+  \item 前端功能验证：浏览器页面交互 + DevTools Network 面板（验证画布、审批与 SSE 事件流）
 \end{itemize}
 
 \section{单元测试}
 
 系统使用 JUnit 5 + Mockito 框架，针对调度器、Agent 生命周期、
-知识处理和用户认证等核心领域逻辑共编写 \textbf{42 个}单元测试用例，
-核心领域层代码行覆盖率达 \textbf{78\%}，分支覆盖率达 \textbf{71\%}。
+知识处理和用户认证等核心领域逻辑共编写 42 个单元测试用例，
+核心领域层代码行覆盖率达 78\%，分支覆盖率达 71\%。
 测试重点覆盖以下边界场景：
 
 \begin{itemize}
@@ -74,7 +74,7 @@
   \small
   \begin{tabular}{p{2.2cm}p{1.5cm}p{6.1cm}c}
     \toprule
-    \textbf{测试模块} & \textbf{用例数量} & \textbf{覆盖重点} & \textbf{结果} \\
+    测试模块 & 用例数量 & 覆盖重点 & 结果 \\
     \midrule
     Agent 管理 & 5 & 创建、画布保存、版本发布、历史回滚、权限校验 & 全部通过 \\
     工作流执行 & 7 & 执行启动、SSE 推流、条件分支、并行节点、取消执行、日志查询 & 全部通过 \\
@@ -97,7 +97,7 @@
   \small
   \begin{tabular}{p{1.5cm}p{1.7cm}p{3.6cm}p{3.8cm}c}
     \toprule
-    \textbf{编号} & \textbf{模块} & \textbf{测试场景} & \textbf{预期结果} & \textbf{结果} \\
+    编号 & 模块 & 测试场景 & 预期结果 & 结果 \\
     \midrule
     TC-AG-03 & Agent 管理 & 发布 Agent 版本 & 生成版本快照，已发布版本指针更新 & 通过 \\
     TC-WF-01 & 工作流执行 & 启动标准工作流 & SSE 推送连接事件与节点状态事件 & 通过 \\
@@ -127,7 +127,7 @@
   \caption{API 响应时间测试结果}
   \begin{tabular}{llll}
     \toprule
-    \textbf{接口} & \textbf{P50（ms）} & \textbf{P95（ms）} & \textbf{P99（ms）} \\
+    接口 & P50（ms） & P95（ms） & P99（ms） \\
     \midrule
     GET /api/workflow/reviews/pending & 18 & 45 & 78 \\
     GET /api/workflow/reviews/\{id\} & 32 & 68 & 105 \\
@@ -143,7 +143,7 @@
 满足第 2 章所确定的“核心管理接口 P95 低于 200\,ms”的性能需求指标。
 
 针对 SSE 实时推流，通过 Chrome DevTools Network 面板对 100 次执行样本进行端到端延迟测量，
-平均延迟 \textbf{142\,ms}、P95 延迟 \textbf{298\,ms}、最大延迟 \textbf{387\,ms}，
+平均延迟 142\,ms、P95 延迟 298\,ms、最大延迟 387\,ms，
 且 100 次样本中无 SSE 连接中断记录，验证了服务端 15 秒心跳保活机制的有效性，
 满足“SSE 推流 P95 低于 500\,ms”的性能指标。
 
@@ -152,46 +152,77 @@
 测试结果表明，当前实现能够支撑基本并发执行场景，
 并在 IO 密集型节点调度（大模型推理与知识向量检索）中保持较好的响应稳定性。
 
-\section{系统兼容性测试}
+\section{系统部署说明}
 
-为验证系统在不同浏览器和操作系统环境下的可用性，
-本文对主流浏览器进行了基础兼容性测试，结果如表~\ref{tab:compat}~所示。
+除功能和性能测试外，本文还对系统的部署方式进行说明。系统采用前后端分离和容器化部署方式，生产环境通过 Docker Compose 统一编排前端、后端和基础中间件。前端 React 应用构建后由 Nginx 容器提供静态资源访问，并将 \texttt{/api} 请求转发至后端服务；后端 Spring Boot 服务运行在 Java 21 环境中，通过容器网络访问 MySQL、Redis、MinIO 和 Milvus。该部署方式将应用服务与基础设施依赖统一纳入编排文件，降低了服务器初始化和环境迁移成本。
+
+\subsection{部署架构}
+
+生产部署使用 \texttt{docker-compose.prod.yml} 进行服务编排，主要服务组成如表~\ref{tab:deploy_services}~所示。
 
 \begin{table}[H]
   \centering
-  \caption{浏览器兼容性测试结果}
-  \label{tab:compat}
-  \begin{tabular}{lcccc}
+  \caption{系统部署服务组成}
+  \label{tab:deploy_services}
+  \small
+  \begin{tabular}{p{2.2cm}p{3.2cm}p{6.4cm}}
     \toprule
-    \textbf{测试项} & \textbf{Chrome 123} & \textbf{Firefox 122} & \textbf{Edge 121} & \textbf{Safari 17} \\
+    服务 & 部署组件 & 作用说明 \\
     \midrule
-    React Flow 画布拖拽与编辑 & \checkmark & \checkmark & \checkmark & \checkmark \\
-    SSE 实时推流接收 & \checkmark & \checkmark & \checkmark & \checkmark \\
-    审批面板弹窗与提交 & \checkmark & \checkmark & \checkmark & \checkmark \\
-    知识库文档上传 & \checkmark & \checkmark & \checkmark & \checkmark \\
-    登录注册与令牌存储 & \checkmark & \checkmark & \checkmark & \checkmark \\
+    前端服务 & Nginx + React 静态资源 & 提供系统页面访问入口，并代理后端接口请求 \\
+    后端服务 & Spring Boot + Java 21 & 承载认证、Agent 管理、工作流调度、人工审核和知识库接口 \\
+    数据库 & MySQL 8.0 & 存储用户、Agent、版本、执行实例、审核记录和知识库元数据 \\
+    缓存队列 & Redis 7 & 支撑验证码缓存、分布式锁、审批待办队列和运行状态缓存 \\
+    对象存储 & MinIO & 存储知识库上传的原始文档和 Milvus 相关对象数据 \\
+    向量数据库 & Milvus 2.3 + etcd & 存储文档向量索引，支持知识库语义检索 \\
     \bottomrule
   \end{tabular}
 \end{table}
 
-表~\ref{tab:os_compat}~列出了后端服务在不同操作系统下的兼容性情况。
+部署时，各容器加入同一 Docker 网络，后端通过服务名访问依赖组件。MySQL、MinIO、Milvus 和后端日志均使用 Docker 数据卷持久化，避免容器重启造成数据丢失。生产环境中仅前端访问端口、MinIO 管理端口和 Milvus 调试端口按需映射到宿主机，MySQL 与 Redis 默认仅在容器网络内访问，以减少数据库和缓存服务直接暴露带来的安全风险。
+
+\subsection{部署流程}
+
+系统部署前需要准备 Docker、Docker Compose、服务器端口和环境变量文件。部署时先复制 \texttt{.env.prod.example} 生成 \texttt{.env.prod}，并填写数据库密码、Redis 密码、MinIO 密码、JWT 密钥、邮件 SMTP 账号以及允许访问的前端域名。核心环境变量如表~\ref{tab:deploy_env}~所示。
 
 \begin{table}[H]
   \centering
-  \caption{操作系统兼容性测试结果}
-  \label{tab:os_compat}
-  \begin{tabular}{lccc}
+  \caption{生产环境关键配置项}
+  \label{tab:deploy_env}
+  \small
+  \begin{tabular}{p{3.8cm}p{7.2cm}}
     \toprule
-    \textbf{测试项} & \textbf{Ubuntu 22.04} & \textbf{macOS Sonoma} & \textbf{Windows 11} \\
+    配置项 & 说明 \\
     \midrule
-    后端服务启动（Docker Compose） & \checkmark & \checkmark & \checkmark \\
-    前端开发服务器（Node.js 18） & \checkmark & \checkmark & \checkmark \\
-    数据库与中间件连通性验证 & \checkmark & \checkmark & \checkmark \\
+    \texttt{PRIMARY\_DB\_PASSWORD} & MySQL 数据库访问密码 \\
+    \texttt{REDIS\_PASSWORD} & Redis 访问密码，用于缓存和分布式锁连接 \\
+    \texttt{MINIO\_ROOT\_PASSWORD} & MinIO 管理员密码，用于对象存储访问 \\
+    \texttt{JWT\_SECRET} & JWT 签名密钥，用于用户登录令牌签发与校验 \\
+    \texttt{MAIL\_HOST} / \texttt{MAIL\_USERNAME} / \texttt{MAIL\_PASSWORD} & 邮件验证码发送所需 SMTP 配置 \\
+    \texttt{CORS\_ALLOWED\_ORIGINS} & 允许访问后端接口的前端域名 \\
     \bottomrule
   \end{tabular}
 \end{table}
 
-测试结果表明，系统前端在四种主流浏览器下核心功能均可正常使用，
-界面交互与 SSE 推流功能无兼容性异常。
-后端服务基于 Docker Compose 一键启动，在 Ubuntu、macOS 和 Windows 三种操作系统下
-均成功完成服务初始化，满足跨平台部署的基本要求。
+完成配置后，在服务器的 \texttt{docker} 目录下执行部署命令。系统支持使用已经构建好的镜像进行拉取部署，也支持在服务器上根据源码构建镜像后启动。典型部署命令如下。
+
+\begin{lstlisting}[style=bash, caption={Docker Compose 生产部署命令}]
+cp .env.prod.example .env.prod
+docker compose -f docker-compose.prod.yml pull
+docker compose -f docker-compose.prod.yml up -d
+docker compose -f docker-compose.prod.yml ps
+\end{lstlisting}
+
+服务启动后，前端容器对外提供页面访问入口，后端容器通过健康检查接口暴露运行状态。部署完成后可通过访问前端首页、调用后端健康检查接口、查看容器状态和检查关键日志来确认系统是否启动成功。
+
+\subsection{部署验证与运行维护}
+
+部署验证主要包括页面访问验证、接口健康检查、中间件连通性验证和日志检查四个方面。首先访问前端首页，确认 Nginx 能够正确返回静态页面；然后访问后端健康检查接口，确认 Spring Boot 服务已启动并能够连接数据库、Redis、MinIO 和 Milvus；最后查看后端日志和容器状态，确认初始化脚本、数据卷挂载和服务依赖均正常。
+
+\begin{lstlisting}[style=bash, caption={部署后运行状态检查命令}]
+docker compose -f docker-compose.prod.yml ps
+curl http://localhost:8090/actuator/health
+docker compose -f docker-compose.prod.yml logs -f backend
+\end{lstlisting}
+
+运行维护方面，系统通过 Docker 数据卷持久化 MySQL、MinIO 和 Milvus 数据，常规停止命令不会清理数据卷。版本更新时，可先拉取新镜像，再执行 \texttt{docker compose -f docker-compose.prod.yml up -d} 触发服务重建；如果需要回滚，则通过指定镜像标签重新启动对应版本。由于系统包含人工审核记录、执行日志和知识库文档等重要数据，生产环境部署时还需要定期备份数据库和对象存储数据，并避免使用会删除数据卷的清理命令。

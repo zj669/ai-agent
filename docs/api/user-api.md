@@ -75,7 +75,8 @@ Authorization: Bearer {token}
   "email": "user@example.com",
   "code": "123456",
   "password": "SecurePass123",
-  "username": "张三"
+  "username": "张三",
+  "deviceId": "browser-device-001"
 }
 ```
 
@@ -86,6 +87,7 @@ Authorization: Bearer {token}
 | code | string | Body | 是 | 6位验证码 |
 | password | string | Body | 是 | 密码，至少8位 |
 | username | string | Body | 否 | 用户名，不填则使用邮箱前缀 |
+| deviceId | string | Body | 否 | 设备 ID；用于多设备 refresh token |
 
 **成功响应** (200):
 ```json
@@ -94,7 +96,9 @@ Authorization: Bearer {token}
   "message": "success",
   "data": {
     "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
-    "expireIn": 604800,
+    "refreshToken": "refresh-token-value",
+    "expireIn": 7200,
+    "deviceId": "browser-device-001",
     "user": {
       "id": 1,
       "username": "张三",
@@ -112,7 +116,9 @@ Authorization: Bearer {token}
 | 字段 | 类型 | 说明 |
 |------|------|------|
 | token | string | JWT Token,用于后续请求认证 |
-| expireIn | number | Token 有效期(秒),默认7天 |
+| refreshToken | string | Refresh Token，用于 `/client/user/refresh` |
+| expireIn | number | Access Token 有效期(秒)，默认来自 `jwt.access-token.expiration`，当前代码默认值为 7200 秒 |
+| deviceId | string | 设备 ID |
 | user.id | number | 用户ID |
 | user.username | string | 用户名 |
 | user.email | string | 邮箱 |
@@ -142,7 +148,8 @@ Authorization: Bearer {token}
 ```json
 {
   "email": "user@example.com",
-  "password": "SecurePass123"
+  "password": "SecurePass123",
+  "deviceId": "browser-device-001"
 }
 ```
 
@@ -151,6 +158,7 @@ Authorization: Bearer {token}
 |--------|------|------|------|------|
 | email | string | Body | 是 | 邮箱地址 |
 | password | string | Body | 是 | 密码 |
+| deviceId | string | Body | 否 | 设备 ID；用于多设备 refresh token |
 
 **成功响应** (200):
 ```json
@@ -159,7 +167,9 @@ Authorization: Bearer {token}
   "message": "success",
   "data": {
     "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
-    "expireIn": 604800,
+    "refreshToken": "refresh-token-value",
+    "expireIn": 7200,
+    "deviceId": "browser-device-001",
     "user": {
       "id": 1,
       "username": "张三",
@@ -183,11 +193,47 @@ Authorization: Bearer {token}
 **业务规则**:
 - 登录失败限流: 同一邮箱15分钟内最多失败5次,超过后锁定15分钟
 - 登录成功后记录最后登录IP和时间
-- Token 有效期7天
+- Access Token 有效期来自 `jwt.access-token.expiration`，当前代码默认值为 7200000ms（7200秒）
 
 ---
 
-### 4. 重置密码
+### 4. 刷新 Token
+
+**接口**: `POST /client/user/refresh`
+
+**描述**: 使用 Refresh Token 和设备 ID 换取新的 Access Token 与 Refresh Token。
+
+**请求参数**:
+```json
+{
+  "refreshToken": "refresh-token-value",
+  "deviceId": "browser-device-001"
+}
+```
+
+**字段说明**:
+| 参数名 | 类型 | 位置 | 必填 | 说明 |
+|--------|------|------|------|------|
+| refreshToken | string | Body | 是 | Refresh Token |
+| deviceId | string | Body | 是 | 设备 ID |
+
+**成功响应** (200):
+```json
+{
+  "code": 200,
+  "message": "success",
+  "data": {
+    "token": "new-access-token",
+    "refreshToken": "new-refresh-token",
+    "expiresIn": 7200,
+    "tokenType": "Bearer"
+  }
+}
+```
+
+---
+
+### 5. 重置密码
 
 **接口**: `POST /client/user/resetPassword`
 
@@ -238,7 +284,7 @@ Authorization: Bearer {token}
 
 **认证方式**: 在请求头中添加 `Authorization: Bearer {token}`
 
-### 5. 获取当前用户信息
+### 6. 获取当前用户信息
 
 **接口**: `GET /client/user/info`
 
@@ -274,7 +320,7 @@ Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
 
 ---
 
-### 6. 修改用户信息
+### 7. 修改用户信息
 
 **接口**: `POST /client/user/profile`
 
@@ -330,15 +376,23 @@ Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
 
 ---
 
-### 7. 用户登出
+### 8. 用户登出
 
 **接口**: `POST /client/user/logout`
 
-**描述**: 用户登出,将当前 Token 加入黑名单。
+**描述**: 用户登出，将当前 Access Token 加入黑名单；传入 `deviceId` 时也会使该设备 Refresh Token 失效。
 
 **请求头**:
 ```
 Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+```
+
+**请求体**:
+```json
+{
+  "token": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+  "deviceId": "browser-device-001"
+}
 ```
 
 **成功响应** (200):
@@ -356,8 +410,9 @@ Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
 | 401 | UNAUTHORIZED | Token 无效或已过期 |
 
 **业务规则**:
-- Token 加入 Redis 黑名单,有效期为 Token 剩余有效期
-- 登出后该 Token 无法再次使用
+- Access Token 加入 Redis 黑名单，有效期为 Token 剩余有效期
+- 传入 `deviceId` 时会使该用户该设备的 Refresh Token 失效
+- 登出后该 Access Token 无法再次使用
 
 ---
 
@@ -388,7 +443,8 @@ Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
 
 ### 2. Token 安全
 - Token 使用 HMAC-SHA256 签名
-- 有效期: 7天 (604800秒)
+- Access Token 有效期来自 `jwt.access-token.expiration`，当前代码默认 7200 秒
+- 支持 Refresh Token 与多设备 `deviceId`
 - 登出后 Token 加入黑名单,无法再次使用
 - Token 格式: `Bearer {jwt_token}`
 
@@ -432,7 +488,7 @@ const login = async (email, password) => {
     headers: {
       'Content-Type': 'application/json',
     },
-    body: JSON.stringify({ email, password }),
+    body: JSON.stringify({ email, password, deviceId: 'browser-device-001' }),
   });
   const data = await response.json();
   if (data.code === 200) {
@@ -462,6 +518,9 @@ const getUserInfo = async () => {
 ---
 
 ## 更新日志
+
+### v1.2.0 (2026-05-14)
+- 对齐当前代码：补充 `/refresh`、`refreshToken`、`deviceId` 和 Access Token 默认有效期
 
 ### v1.1.0 (2025-02-10)
 - 新增登录失败限流 (5次/15分钟)

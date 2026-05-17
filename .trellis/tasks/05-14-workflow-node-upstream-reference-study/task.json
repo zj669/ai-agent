@@ -1,0 +1,65 @@
+{
+  "id": "workflow-node-upstream-reference-study",
+  "name": "workflow-node-upstream-reference-study",
+  "title": "熟悉工作流拖拽画布上游节点引用填充机制",
+  "description": "梳理拖拽式工作流页面中节点之间的数据互通机制，重点确认下游节点如何选择、保存、校验并在执行时解析上游节点输出引用。",
+  "status": "in_progress",
+  "dev_type": "fullstack",
+  "scope": "workflow",
+  "priority": "P1",
+  "creator": "zj669",
+  "assignee": "zj669",
+  "createdAt": "2026-05-14",
+  "completedAt": null,
+  "branch": null,
+  "base_branch": "main",
+  "worktree_path": null,
+  "current_phase": 1,
+  "next_action": [
+    {
+      "phase": 1,
+      "action": "implement"
+    },
+    {
+      "phase": 2,
+      "action": "check"
+    },
+    {
+      "phase": 3,
+      "action": "finish"
+    },
+    {
+      "phase": 4,
+      "action": "create-pr"
+    }
+  ],
+  "commit": null,
+  "pr_url": null,
+  "subtasks": [],
+  "children": [],
+  "parent": null,
+  "relatedFiles": [
+    "ai-agent-foward/src/modules/workflow/components/WorkflowNode.tsx",
+    "ai-agent-foward/src/modules/workflow/components/VariableRefSelector.tsx",
+    "ai-agent-foward/src/modules/workflow/components/NodeConfigTabs.tsx",
+    "ai-agent-foward/src/modules/workflow/components/FieldRenderer.tsx",
+    "ai-agent-foward/src/modules/workflow/pages/WorkflowEditorPage.tsx",
+    "ai-agent-foward/src/modules/workflow/validation/validateWorkflowGraph.ts",
+    "ai-agent-infrastructure/src/main/java/com/zj/aiagent/infrastructure/workflow/graph/WorkflowGraphFactoryImpl.java",
+    "ai-agent-infrastructure/src/main/java/com/zj/aiagent/infrastructure/workflow/expression/ExpressionResolver.java",
+    "ai-agent-infrastructure/src/main/java/com/zj/aiagent/infrastructure/workflow/template/PromptTemplateResolver.java",
+    "ai-agent-application/src/main/java/com/zj/aiagent/application/workflow/SchedulerService.java",
+    "ai-agent-domain/src/main/java/com/zj/aiagent/domain/workflow/entity/Node.java",
+    "ai-agent-domain/src/main/java/com/zj/aiagent/domain/workflow/valobj/ExecutionContext.java",
+    "ai-agent-infrastructure/src/main/java/com/zj/aiagent/infrastructure/workflow/executor/StartNodeExecutorStrategy.java",
+    "ai-agent-infrastructure/src/main/java/com/zj/aiagent/infrastructure/workflow/executor/KnowledgeNodeExecutorStrategy.java",
+    "ai-agent-infrastructure/src/main/java/com/zj/aiagent/infrastructure/workflow/executor/ToolNodeExecutorStrategy.java",
+    "ai-agent-infrastructure/src/main/java/com/zj/aiagent/infrastructure/workflow/executor/HttpNodeExecutorStrategy.java",
+    "ai-agent-infrastructure/src/main/java/com/zj/aiagent/infrastructure/workflow/executor/LlmNodeExecutorStrategy.java",
+    "ai-agent-infrastructure/src/main/java/com/zj/aiagent/infrastructure/workflow/executor/EndNodeExecutorStrategy.java",
+    "ai-agent-foward/src/modules/workflow/components/__tests__/NodeConfigTabs.test.tsx",
+    "ai-agent-foward/src/modules/workflow/__tests__/workflow.editor-interaction.test.tsx"
+  ],
+  "notes": "Implemented follow-up UX/contract fixes. Ordinary input fields now use all ancestor node outputSchema entries, not only direct incoming nodes, so TOOL/HTTP can reference LLM outputs across multi-hop chains. Reference input now supports typing {{ to open an autocomplete popover and stores the selected sourceRef as the standard raw reference. Config text/textarea fields such as HTTP URL/headers/body also support {{ autocomplete against upstream variables. LLM nodes now have text/json output modes; JSON mode instructs the model to return JSON, parses the response server-side into json_output, and exposes top-level JSON fields in node outputs. HTTP executor now reads current frontend config keys http_url/http_method/http_headers/http_body, resolves direct node-output templates through PromptTemplateResolver, and emits http_response to match the frontend system output schema. Latest frontend cleanup removes the global input concept from Prompt defaults and autocomplete; new LLM prompts default to {{start.output.inputMessage}}, and all reference popovers only group ancestor node outputs. Autocomplete popovers now accept Tab to apply the first matched candidate; Enter still works where it already made sense. LLM input tab no longer renders the advanced inputSchema mapping panel; it now keeps only the Prompt template editor. LLM output schema now exposes only the active mode primary field in the editor: text mode shows response, JSON mode shows json_output; backend legacy aliases llm_output/text remain runtime compatibility outputs only. LLM config tab no longer renders the contextRefNodes reference-node selector, WorkflowNode no longer computes that candidate list, and save normalization removes historical contextRefNodes instead of auto-filling them. Tool node dropdown now deduplicates MCP tools by displayed serverName/toolName while preserving the selected fullName when reopening historical configs. Verified with npm run typecheck, targeted workflow Vitest suite, targeted NodeConfigTabs Vitest coverage, targeted ESLint, and mvn -pl ai-agent-infrastructure -am -DskipTests compile.",
+  "meta": {}
+}

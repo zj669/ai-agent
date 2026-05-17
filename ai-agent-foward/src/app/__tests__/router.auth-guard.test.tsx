@@ -3,6 +3,18 @@ import { MemoryRouter, Route, Routes, useLocation } from 'react-router-dom'
 import RequireAuth from '../AuthGuard'
 import { TestRouter } from '../router'
 
+function saveUserInfo(username = '管理员') {
+  localStorage.setItem('userInfo', JSON.stringify({
+    id: 1,
+    username,
+    email: 'admin@example.com',
+    avatarUrl: null,
+    phone: null,
+    status: 1,
+    createdAt: '2026-02-20T00:00:00',
+  }))
+}
+
 describe('router auth guard', () => {
   it('未登录访问 /dashboard?tab=recent 时会把 redirect 带到 /login', async () => {
     localStorage.removeItem('accessToken')
@@ -31,6 +43,7 @@ describe('router auth guard', () => {
 
   it('已登录访问 /dashboard 时保留在受保护页面', async () => {
     localStorage.setItem('accessToken', 'token')
+    saveUserInfo()
     let currentPath = '/dashboard'
 
     render(
@@ -55,6 +68,7 @@ describe('router auth guard', () => {
 
   it('已登录可通过侧栏跳转到 /knowledge 与 /chat', async () => {
     localStorage.setItem('accessToken', 'token')
+    saveUserInfo()
     let currentPath = '/dashboard'
 
     render(

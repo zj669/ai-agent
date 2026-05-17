@@ -67,6 +67,8 @@ build/
 log/
 logs/
 *.log
+.run/
+*.har
 .run-logs/
 .playwright-mcp/
 .tmp-*.log

@@ -10,13 +10,16 @@ import com.zj.aiagent.domain.workflow.entity.Node;
 import com.zj.aiagent.domain.workflow.port.NodeExecutorStrategy;
 import com.zj.aiagent.domain.workflow.port.StreamPublisher;
 import com.zj.aiagent.domain.workflow.valobj.ExecutionContext;
+import com.zj.aiagent.domain.workflow.valobj.FieldSchema;
 import com.zj.aiagent.domain.workflow.valobj.NodeExecutionResult;
 import com.zj.aiagent.domain.workflow.valobj.NodeType;
 import com.zj.aiagent.infrastructure.workflow.template.PromptTemplateResolver;
 import java.util.ArrayList;
-import java.util.HashMap;
+import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Executor;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -47,6 +50,9 @@ import org.springframework.web.client.RestClient;
 @Slf4j
 @Component
 public class LlmNodeExecutorStrategy implements NodeExecutorStrategy {
+
+    private static final String CONFIG_LLM_OUTPUT_MODE = "llmOutputMode";
+    private static final String OUTPUT_MODE_JSON = "json";
 
     private final Executor executor;
     private final ObjectMapper objectMapper;
@@ -152,6 +158,7 @@ public class LlmNodeExecutorStrategy implements NodeExecutorStrategy {
                     // Step 1: 构建 System Prompt（包含 LTM + RAG + Awareness）
                     String userInput = buildUserPrompt(config, resolvedInputs);
                     String systemPrompt = buildSystemPrompt(
+                        node,
                         config,
                         context,
                         resolvedInputs,
@@ -219,11 +226,6 @@ public class LlmNodeExecutorStrategy implements NodeExecutorStrategy {
                         response != null ? response.length() : 0
                     );
 
-                    Map<String, Object> outputs = new HashMap<>();
-                    outputs.put("llm_output", response);
-                    outputs.put("response", response);
-                    outputs.put("text", response);
-
                     if (streamError.get()) {
                         return NodeExecutionResult.failed("Stream interrupted, partial output available");
                     }
@@ -232,6 +234,15 @@ public class LlmNodeExecutorStrategy implements NodeExecutorStrategy {
                         return NodeExecutionResult.failed("LLM 返回空响应");
                     }
 
+                    Map<String, Object> outputs;
+                    try {
+                        outputs = buildOutputs(response, node);
+                    } catch (JsonProcessingException | IllegalArgumentException e) {
+                        String message = "LLM JSON 输出解析失败：" + e.getMessage();
+                        log.warn("[LLM Node {}] {}", node.getNodeId(), message);
+                        streamPublisher.publishError(message);
+                        return NodeExecutionResult.failed(message);
+                    }
                     return NodeExecutionResult.success(outputs);
                 } catch (Exception e) {
                     log.error(
@@ -262,7 +273,8 @@ public class LlmNodeExecutorStrategy implements NodeExecutorStrategy {
      * 构建增强的 System Prompt
      * 包含：基础人设 + RAG知识库 + LTM + Awareness + Context Ref
      */
-    private String buildSystemPrompt(
+    String buildSystemPrompt(
+        Node node,
         NodeConfig config,
         ExecutionContext context,
         Map<String, Object> resolvedInputs,
@@ -278,6 +290,10 @@ public class LlmNodeExecutorStrategy implements NodeExecutorStrategy {
         );
         if (StringUtils.hasText(systemPromptConfig)) {
             sb.append(systemPromptConfig).append("\n\n");
+        }
+
+        if (OUTPUT_MODE_JSON.equals(config.getString(CONFIG_LLM_OUTPUT_MODE))) {
+            appendJsonOutputInstructions(sb, node.getOutputSchema());
         }
 
         // 2. [RAG] 知识库检索 - 根据用户输入从 Milvus 检索相关文档片段
@@ -339,34 +355,6 @@ public class LlmNodeExecutorStrategy implements NodeExecutorStrategy {
                 sb.append("### 当前工作流执行进度 (Execution Log):\n");
                 sb.append(execLog).append("\n");
             }
-        }
-
-        // 4. [Context Ref] 注入特定节点输出
-        List<String> refNodes = config.getList("contextRefNodes");
-        if (refNodes != null && !refNodes.isEmpty()) {
-            sb.append("### 参考资料 (Reference Outputs):\n");
-            for (String nodeId : refNodes) {
-                Map<String, Object> output = context.getNodeOutput(nodeId);
-                if (output != null && !output.isEmpty()) {
-                    try {
-                        String json = objectMapper.writeValueAsString(output);
-                        sb
-                            .append("- 节点[")
-                            .append(nodeId)
-                            .append("] 输出: ")
-                            .append(json)
-                            .append("\n");
-                    } catch (JsonProcessingException e) {
-                        sb
-                            .append("- 节点[")
-                            .append(nodeId)
-                            .append("] 输出: ")
-                            .append(output)
-                            .append("\n");
-                    }
-                }
-            }
-            sb.append("\n");
         }
 
         return sb.toString();
@@ -452,5 +440,163 @@ public class LlmNodeExecutorStrategy implements NodeExecutorStrategy {
             resolvedInputs,
             context
         );
+    }
+
+    private void appendJsonOutputInstructions(StringBuilder sb, List<FieldSchema> outputSchema) {
+        List<FieldSchema> jsonFields = getJsonOutputFields(outputSchema);
+        validateJsonOutputFields(jsonFields);
+
+        sb.append("### 输出格式要求\n");
+        sb.append("你必须只输出一个合法 JSON 对象。\n");
+        sb.append("硬性规则：不要输出 Markdown 代码块，不要添加解释文本，不要在 JSON 前后添加任何额外内容。\n");
+        sb.append("字段名必须使用双引号，输出必须能被标准 JSON parser 直接解析。\n\n");
+
+        sb.append("字段说明：\n");
+        for (FieldSchema field : jsonFields) {
+            sb.append("- \"")
+                .append(field.getKey().trim())
+                .append("\" (")
+                .append(normalizeJsonFieldType(field.getType()))
+                .append(")");
+            if (StringUtils.hasText(field.getDescription())) {
+                sb.append(": ").append(field.getDescription().trim());
+            }
+            sb.append("\n");
+        }
+
+        Map<String, Object> example = new LinkedHashMap<>();
+        for (FieldSchema field : jsonFields) {
+            example.put(field.getKey().trim(), buildJsonExampleValue(field.getType()));
+        }
+
+        sb.append("\n必须严格按下面 JSON 结构输出，字段名不得更改：\n");
+        try {
+            sb.append(objectMapper.writerWithDefaultPrettyPrinter().writeValueAsString(example));
+        } catch (JsonProcessingException e) {
+            sb.append(example);
+        }
+        sb.append("\n\n");
+    }
+
+    private List<FieldSchema> getJsonOutputFields(List<FieldSchema> outputSchema) {
+        if (outputSchema == null || outputSchema.isEmpty()) {
+            return List.of();
+        }
+
+        return outputSchema.stream()
+            .filter(field -> field != null && StringUtils.hasText(field.getKey()))
+            .filter(field -> !Boolean.TRUE.equals(field.getSystem()))
+            .filter(field -> !"json_output".equals(field.getKey()))
+            .filter(field -> !"response".equals(field.getKey()))
+            .toList();
+    }
+
+    private void validateJsonOutputFields(List<FieldSchema> jsonFields) {
+        if (jsonFields == null || jsonFields.isEmpty()) {
+            throw new IllegalArgumentException("JSON 输出模式至少需要定义一个输出字段");
+        }
+
+        Set<String> keys = new LinkedHashSet<>();
+        for (FieldSchema field : jsonFields) {
+            String key = field.getKey().trim();
+            if (!keys.add(key)) {
+                throw new IllegalArgumentException("JSON 输出字段重复: " + key);
+            }
+            if (!key.matches("[A-Za-z_][A-Za-z0-9_]*")) {
+                throw new IllegalArgumentException(
+                    "JSON 输出字段名只能使用英文、数字、下划线，且不能以数字开头: " + key
+                );
+            }
+            if (!StringUtils.hasText(field.getDescription())) {
+                throw new IllegalArgumentException("JSON 输出字段缺少描述: " + key);
+            }
+        }
+    }
+
+    private String normalizeJsonFieldType(String type) {
+        if (!StringUtils.hasText(type)) {
+            return "string";
+        }
+        return switch (type.trim().toLowerCase()) {
+            case "number", "boolean", "array", "object" -> type.trim().toLowerCase();
+            default -> "string";
+        };
+    }
+
+    private Object buildJsonExampleValue(String type) {
+        return switch (normalizeJsonFieldType(type)) {
+            case "number" -> 0;
+            case "boolean" -> true;
+            case "array" -> List.of();
+            case "object" -> Map.of();
+            default -> "string";
+        };
+    }
+
+    Map<String, Object> buildOutputs(String response, Node node)
+        throws JsonProcessingException {
+        NodeConfig config = node.getConfig();
+
+        if (!OUTPUT_MODE_JSON.equals(config.getString(CONFIG_LLM_OUTPUT_MODE))) {
+            Map<String, Object> outputs = new LinkedHashMap<>();
+            outputs.put("response", response);
+            return outputs;
+        }
+
+        String jsonText = extractJsonCandidate(response);
+        Object parsed = objectMapper.readValue(jsonText, Object.class);
+        Map<String, Object> outputs = new LinkedHashMap<>();
+        outputs.put("json_output", parsed);
+
+        List<FieldSchema> jsonFields = getJsonOutputFields(node.getOutputSchema());
+        validateJsonOutputFields(jsonFields);
+
+        if (!(parsed instanceof Map<?, ?> map)) {
+            throw new IllegalArgumentException("配置了 JSON 字段时，模型必须返回 JSON object");
+        }
+
+        for (FieldSchema field : jsonFields) {
+            String key = field.getKey().trim();
+            if (!map.containsKey(key)) {
+                throw new IllegalArgumentException("模型返回 JSON 缺少字段: " + key);
+            }
+            outputs.put(key, map.get(key));
+        }
+
+        return outputs;
+    }
+
+    private String extractJsonCandidate(String response) {
+        String text = response.trim();
+        if (text.startsWith("```")) {
+            int firstLineEnd = text.indexOf('\n');
+            int fenceEnd = text.lastIndexOf("```");
+            if (firstLineEnd >= 0 && fenceEnd > firstLineEnd) {
+                text = text.substring(firstLineEnd + 1, fenceEnd).trim();
+            }
+        }
+
+        int objectStart = text.indexOf('{');
+        int arrayStart = text.indexOf('[');
+        int start;
+        if (objectStart < 0) {
+            start = arrayStart;
+        } else if (arrayStart < 0) {
+            start = objectStart;
+        } else {
+            start = Math.min(objectStart, arrayStart);
+        }
+
+        if (start < 0) {
+            return text;
+        }
+
+        char open = text.charAt(start);
+        char close = open == '{' ? '}' : ']';
+        int end = text.lastIndexOf(close);
+        if (end <= start) {
+            return text.substring(start).trim();
+        }
+        return text.substring(start, end + 1).trim();
     }
 }

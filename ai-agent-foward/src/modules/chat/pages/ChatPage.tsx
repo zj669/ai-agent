@@ -915,6 +915,7 @@ function ChatPage() {
   const executionIdRef = useRef("");
   const isStoppedRef = useRef(false);
   const hasStreamErrorRef = useRef(false);
+  const isPausedRef = useRef(false);
   const pendingStopRef = useRef(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const skipMessageLoadRef = useRef(false);
@@ -1164,6 +1165,7 @@ function ChatPage() {
     pendingStopRef.current = false;
     isStoppedRef.current = false;
     hasStreamErrorRef.current = false;
+    isPausedRef.current = false;
   };
 
   const submitStop = async () => {
@@ -1234,6 +1236,7 @@ function ChatPage() {
     pendingStopRef.current = false;
     isStoppedRef.current = false;
     hasStreamErrorRef.current = false;
+    isPausedRef.current = false;
 
     try {
       await startChatStream(
@@ -1280,12 +1283,17 @@ function ChatPage() {
             setStreamError(msg);
           },
           onPaused: (eid, nid) => {
+            isPausedRef.current = true;
             void handlePaused(eid, nid, aId);
           },
         },
         ctrl.signal,
       );
-      if (!isStoppedRef.current && !hasStreamErrorRef.current)
+      if (
+        !isStoppedRef.current &&
+        !hasStreamErrorRef.current &&
+        !isPausedRef.current
+      )
         finishMsg(aId, "COMPLETED");
     } catch {
       if (!isStoppedRef.current) {
@@ -1399,6 +1407,7 @@ function ChatPage() {
       pendingStopRef.current = false;
       isStoppedRef.current = false;
       hasStreamErrorRef.current = false;
+      isPausedRef.current = false;
       setIsSending(true);
 
       void resumeChatStream(
@@ -1440,13 +1449,18 @@ function ChatPage() {
             setStreamError(msg);
           },
           onPaused: (eid, nid) => {
+            isPausedRef.current = true;
             void handlePaused(eid, nid, aId);
           },
         },
         ctrl.signal,
       )
         .then(() => {
-          if (!isStoppedRef.current && !hasStreamErrorRef.current)
+          if (
+            !isStoppedRef.current &&
+            !hasStreamErrorRef.current &&
+            !isPausedRef.current
+          )
             finishMsg(aId, "COMPLETED");
         })
         .catch(() => {

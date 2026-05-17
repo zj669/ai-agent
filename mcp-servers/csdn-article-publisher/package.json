@@ -1,0 +1,17 @@
+{
+  "name": "csdn-article-publisher-mcp",
+  "version": "0.1.0",
+  "description": "Single-tool MCP stdio server for publishing CSDN articles through the CSDN postedit saveArticle API.",
+  "type": "commonjs",
+  "bin": {
+    "csdn-article-publisher-mcp": "./server.js"
+  },
+  "scripts": {
+    "start": "node server.js"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "license": "UNLICENSED",
+  "private": true
+}

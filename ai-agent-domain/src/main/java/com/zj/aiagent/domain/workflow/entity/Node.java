@@ -1,12 +1,14 @@
 package com.zj.aiagent.domain.workflow.entity;
 
 import com.zj.aiagent.domain.workflow.config.NodeConfig;
+import com.zj.aiagent.domain.workflow.valobj.FieldSchema;
 import com.zj.aiagent.domain.workflow.valobj.NodeType;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
@@ -50,6 +52,11 @@ public class Node {
      * key: 上下文中的 key, value: 从结果中提取的路径
      */
     private Map<String, String> outputs;
+
+    /**
+     * 输出字段定义。
+     */
+    private List<FieldSchema> outputSchema;
 
     /**
      * 依赖的上游节点ID

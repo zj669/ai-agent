@@ -1,195 +1,184 @@
-# AI Agent Platform - 后端 API 总览
+# 后端 API 总览
 
 ## 系统概述
-AI Agent Platform 提供智能体管理、工作流执行、知识库、对话管理等核心能力。基于 DDD 架构设计，支持动态创建智能体、条件分支工作流、向量检索知识库和实时流式响应。
+
+AI Agent Platform 后端提供 Agent 管理、工作流执行、人工审核、Chat 会话、知识库、节点元数据、Dashboard、LLM 配置、MCP、Swarm 和 Writing overview 等能力。
+
+当前代码采用 DDD/Ports and Adapters 风格组织，但 Maven 依赖并非完全纯净分层：`ai-agent-application` 当前直接依赖 `ai-agent-infrastructure`。做架构描述时应使用“分层风格”，不要写成严格隔离的理想 DDD。
 
 ## 认证机制
-所有接口需要 JWT Token 认证：
-- Header: `Authorization: Bearer {token}`
-- 获取 Token: POST /api/user/login
-- Token 有效期：24 小时（可配置）
 
-## 通用响应格式
+受保护接口通过 JWT Bearer Token 认证：
+
+```http
+Authorization: Bearer {token}
+```
+
+用户认证接口实际路径是 `/client/user`：
+
+| 动作 | 当前接口 |
+|------|----------|
+| 发送邮箱验证码 | `POST /client/user/email/sendCode` |
+| 邮箱注册 | `POST /client/user/email/register` |
+| 登录 | `POST /client/user/login` |
+| 刷新 Token | `POST /client/user/refresh` |
+| 当前用户信息 | `GET /client/user/info` |
+| 修改资料 | `POST /client/user/profile` |
+| 登出 | `POST /client/user/logout` |
+| 重置密码 | `POST /client/user/resetPassword` |
+
+本地调试可通过配置启用 debug header。默认代码中的 header 名称为 `debug-user`，前端 Chat SSE 代码也有该调试头的兼容。
+
+## 响应格式
+
+大多数业务接口使用统一响应：
+
 ```json
 {
   "code": 200,
   "message": "success",
-  "data": {...}
+  "data": {}
 }
 ```
 
-**错误码说明**：
-- `200`: 成功
-- `400`: 请求参数错误
-- `401`: 未认证或 Token 失效
-- `403`: 无权限访问
-- `404`: 资源不存在
-- `500`: 服务器内部错误
+例外：
+
+1. `/api/workflow/execution/start` 返回 `text/event-stream`，不是 JSON。
+2. `/api/workflow/execution/{executionId}/stream` 返回 `text/event-stream`。
+3. `/api/workflow/reviews/*` 当前由 `HumanReviewController` 返回原始 DTO 或空 `200`，不走统一 `Response<T>` 包装。
+4. `DELETE /api/chat/conversations/{conversationId}` 当前 Controller 返回 `void`。
 
 ## API 模块
 
-### 1. Agent 管理 (`/api/agent`)
-智能体 CRUD、版本管理、发布回滚
+| 模块 | 路径 | 说明 | 文档 |
+|------|------|------|------|
+| User/Auth | `/client/user` | 邮箱验证码、注册、登录、刷新、资料、登出、重置密码 | [user-api.md](./user-api.md) |
+| Agent | `/api/agent` | Agent CRUD、发布、回滚、版本管理 | [agent.md](./agent.md) |
+| Workflow | `/api/workflow/execution` | 工作流启动、订阅、停止、暂停、详情、日志、上下文 | [workflow.md](./workflow.md) |
+| Review | `/api/workflow/reviews` | 待审核、详情、恢复、拒绝、历史 | [review.md](./review.md) |
+| Chat | `/api/chat` | 会话创建、列表、消息历史、删除；发送消息接口存在但当前前端主要直接启动 Workflow | [chat.md](./chat.md) |
+| Knowledge | `/api/knowledge` | 数据集、文档上传/处理/重试、检索 | [knowledge.md](./knowledge.md) |
+| Metadata | `/api/meta` | 节点模板、节点类型 | [meta.md](./meta.md) |
+| Dashboard | `/api/dashboard` | 用户维度统计 | [dashboard.md](./dashboard.md) |
+| LLM Config | `/api/llm-config` | 模型配置 CRUD、默认配置、测试 | [llm-config.md](./llm-config.md) |
+| MCP | `/api/mcp` | MCP server 配置、连接、工具发现 | [mcp.md](./mcp.md) |
+| Swarm | `/api/swarm/*` | 多 Agent 工作空间、Agent、群组、消息、图谱、SSE | [swarm.md](./swarm.md) |
+| Writing | `/api/writing` | 写作会话和协作 overview 聚合查询 | [writing.md](./writing.md) |
 
-**核心功能**：
-- 创建/更新/删除智能体
-- 工作流图配置（节点、边、条件分支）
-- 版本管理（草稿、发布、回滚）
-- 智能体列表查询
+## 关键接口清单
 
-**详细文档**: [Agent API](./agent.md)
+### Agent
 
-### 2. 用户管理 (`/api/user`)
-注册、登录、用户信息
+| 方法 | 路径 | 说明 |
+|------|------|------|
+| `POST` | `/api/agent/create` | 创建 Agent |
+| `POST` | `/api/agent/update` | 更新 Agent 与 `graphJson` |
+| `POST` | `/api/agent/publish` | 发布当前图并生成版本快照 |
+| `POST` | `/api/agent/rollback` | 回滚到指定版本 |
+| `POST` | `/api/agent/delete` | 逻辑删除 |
+| `DELETE` | `/api/agent/{id}/versions/{version}` | 删除指定历史版本 |
+| `DELETE` | `/api/agent/{id}/force` | 强制逻辑删除 Agent 与版本 |
+| `GET` | `/api/agent/list` | 当前用户 Agent 列表 |
+| `GET` | `/api/agent/{id}` | Agent 详情 |
+| `GET` | `/api/agent/{id}/versions` | 版本列表 |
 
-**核心功能**：
-- 用户注册（邮箱验证）
-- 登录认证（JWT Token）
-- 用户信息查询/更新
-- 密码修改
+当前后端没有 `/api/agent/offline`。如果文档或前端代码提到该接口，应标为偏移点。
 
-**详细文档**: [User API](./user-api.md)
+### Workflow
 
-### 3. 对话管理 (`/api/chat`)
-创建对话、发送消息、历史记录
+| 方法 | 路径 | 说明 |
+|------|------|------|
+| `POST` | `/api/workflow/execution/start` | 启动执行并直接返回 SSE |
+| `GET` | `/api/workflow/execution/{executionId}/stream` | 重新订阅已有执行的 SSE |
+| `POST` | `/api/workflow/execution/stop` | 停止执行 |
+| `POST` | `/api/workflow/execution/pause` | 手动暂停 |
+| `GET` | `/api/workflow/execution/{executionId}` | 执行详情 |
+| `GET` | `/api/workflow/execution/{executionId}/node/{nodeId}` | 节点详情 |
+| `GET` | `/api/workflow/execution/{executionId}/logs` | 节点执行日志 |
+| `GET` | `/api/workflow/execution/history/{conversationId}` | 会话执行历史 |
+| `GET` | `/api/workflow/execution/{executionId}/context` | 执行上下文 |
 
-**核心功能**：
-- 创建对话会话
-- 发送消息（触发工作流执行）
-- 查询对话历史
-- 删除对话
+### 节点类型
 
-**详细文档**: [Chat API](./chat.md)
+当前代码和初始化 SQL 支持：
 
-### 4. 工作流执行 (`/api/workflow/execution`)
-启动、监控、控制工作流
-
-**核心功能**：
-- 启动工作流执行
-- **SSE 流式输出**: GET /api/workflow/execution/{executionId}/stream
-- 暂停/恢复/取消执行
-- 查询执行状态和历史
-
-**详细文档**: [Workflow API](./workflow.md)
-
-### 5. 人工审核 (`/api/workflow/reviews`)
-审核任务查询、批准/拒绝
-
-**核心功能**：
-- 查询待审核任务
-- 批准/拒绝审核
-- 审核历史记录
-
-**详细文档**: [Review API](./review.md)
-
-### 6. 知识库 (`/api/knowledge`)
-数据集管理、文档上传、向量检索
-
-**核心功能**：
-- 数据集 CRUD
-- 文档上传（支持 TXT、PDF、Markdown）
-- 文档分块和向量化
-- 语义检索（基于 Milvus）
-
-**详细文档**: [Knowledge API](./knowledge.md)
-
-### 7. 元数据 (`/api/meta`)
-节点类型、模板查询
-
-**核心功能**：
-- 查询可用节点类型（START、END、LLM、CONDITION、HTTP、TOOL）
-- 获取节点配置模板
-- 查询支持的 LLM 模型列表
-
-**详细文档**: [Meta API](./meta.md)
-
-### 8. 仪表盘 (`/api/dashboard`)
-统计数据概览
-
-**核心功能**：
-- 智能体数量统计
-- 工作流执行统计
-- 对话数量统计
-- 知识库容量统计
-
-**详细文档**: [Dashboard API](./dashboard.md)
+```text
+START, END, LLM, HTTP, KNOWLEDGE, CONDITION, TOOL
+```
 
 ## 技术栈
-- **后端框架**: Spring Boot 3.4.9 + Java 21
-- **数据库**: MySQL 8.0 + Redis 7.0
-- **向量数据库**: Milvus 2.3
-- **对象存储**: MinIO
-- **AI 集成**: Spring AI (OpenAI、Ollama)
-- **实时通信**: SSE (Server-Sent Events)
 
-## 开发环境
-- **后端服务**: http://localhost:8080
-- **前端服务**: http://localhost:5173
-- **MySQL**: localhost:13306
-- **Redis**: localhost:6379
-- **Milvus**: localhost:19530
-- **MinIO Console**: http://localhost:9001
+| 类别 | 当前代码 |
+|------|----------|
+| 后端 | Spring Boot 3.4.9, Java 21 |
+| AI | Spring AI 1.0.1, OpenAI Chat/Embedding, Milvus VectorStore, Tika Reader |
+| 数据库 | MySQL, MyBatis Plus |
+| 缓存/队列 | Redis, Redisson |
+| 对象存储 | MinIO |
+| 实时通信 | SSE |
+| 前端 | Vite, React 19, Ant Design 6, React Router 7, Zustand |
 
-## 快速开始
+## 本地开发端口
 
-### 1. 用户注册和登录
+| 服务 | 默认地址 |
+|------|----------|
+| 后端 | `http://localhost:8080` |
+| 前端 | `http://localhost:5173` |
+| MySQL | `localhost:13306` |
+| Redis | `localhost:6379` |
+| Milvus | `localhost:19530` |
+| MinIO Console | `http://localhost:9001` |
+
+## 快速调用示例
+
+### 登录
+
 ```bash
-# 注册
-curl -X POST http://localhost:8080/api/user/register \
+curl -X POST http://localhost:8080/client/user/login \
   -H "Content-Type: application/json" \
-  -d '{"username":"test","email":"test@example.com","password":"123456"}'
-
-# 登录获取 Token
-curl -X POST http://localhost:8080/api/user/login \
-  -H "Content-Type: application/json" \
-  -d '{"email":"test@example.com","password":"123456"}'
+  -d '{"email":"test@example.com","password":"SecurePass123"}'
 ```
 
-### 2. 创建智能体
+### 创建 Agent
+
 ```bash
-curl -X POST http://localhost:8080/api/agent \
+curl -X POST http://localhost:8080/api/agent/create \
   -H "Authorization: Bearer {token}" \
   -H "Content-Type: application/json" \
-  -d '{
-    "name": "客服助手",
-    "description": "智能客服",
-    "workflowGraph": {...}
-  }'
+  -d '{"name":"客服助手","description":"智能客服","icon":"robot"}'
 ```
 
-### 3. 启动对话
+### 更新 Agent 图
+
 ```bash
-# 创建对话
-curl -X POST http://localhost:8080/api/chat/conversations \
+curl -X POST http://localhost:8080/api/agent/update \
   -H "Authorization: Bearer {token}" \
   -H "Content-Type: application/json" \
-  -d '{"agentId":"agent-123","title":"测试对话"}'
+  -d '{"id":1,"name":"客服助手","description":"智能客服","graphJson":"{\"nodes\":[],\"edges\":[]}","version":1}'
+```
 
-# 发送消息
-curl -X POST http://localhost:8080/api/chat/conversations/{conversationId}/messages \
+### 启动工作流 SSE
+
+```bash
+curl -N -X POST http://localhost:8080/api/workflow/execution/start \
   -H "Authorization: Bearer {token}" \
   -H "Content-Type: application/json" \
-  -d '{"content":"你好"}'
+  -d '{"agentId":1,"userId":1,"conversationId":"conv-1","inputs":{"inputMessage":"你好"},"mode":"STANDARD"}'
 ```
 
-### 4. 监听流式响应
+### 重新订阅执行流
+
 ```bash
-curl -N http://localhost:8080/api/workflow/execution/{executionId}/stream \
-  -H "Authorization: Bearer {token}"
+curl -N "http://localhost:8080/api/workflow/execution/{executionId}/stream?token={token}"
 ```
 
-## 详细文档索引
-- [Agent API](./agent.md) - 智能体管理
-- [User API](./user-api.md) - 用户管理
-- [Chat API](./chat.md) - 对话管理
-- [Workflow API](./workflow.md) - 工作流执行
-- [Review API](./review.md) - 人工审核
-- [Knowledge API](./knowledge.md) - 知识库管理
-- [Meta API](./meta.md) - 元数据查询
-- [Dashboard API](./dashboard.md) - 仪表盘统计
+## 相关入口
 
-## 相关资源
-- [系统架构文档](../../.blueprint/_overview.md)
-- [工作流引擎设计](../../.blueprint/domain/workflow/WorkflowEngine.md)
-- [前端开发指南](../frontend/README.md)
-- [部署指南](../deployment/README.md)
+| 资源 | 路径 |
+|------|------|
+| Spring Boot 入口 | `ai-agent-interfaces/src/main/java/com/zj/aiagent/AiAgentApplication.java` |
+| Controller | `ai-agent-interfaces/src/main/java/com/zj/aiagent/interfaces/**` |
+| 工作流调度 | `ai-agent-application/src/main/java/com/zj/aiagent/application/workflow/SchedulerService.java` |
+| Workflow 领域聚合 | `ai-agent-domain/src/main/java/com/zj/aiagent/domain/workflow/entity/Execution.java` |
+| 初始化 SQL | `docker/init/mysql/01_init_schema.sql` |
+| 前端 API adapter | `ai-agent-foward/src/shared/api/adapters/**` |

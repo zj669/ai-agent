@@ -120,40 +120,7 @@ describe("WorkflowNode", () => {
     mockStore.expandedNodeId = "";
   });
 
-  it("为 LLM 节点传入可达的多跳祖先节点作为参考节点候选", () => {
-    mockStore.expandedNodeId = "llm-1";
-    reactFlowNodes = [
-      { id: "start", data: { label: "开始节点", nodeType: "START" } },
-      {
-        id: "knowledge-1",
-        data: { label: "知识库节点", nodeType: "KNOWLEDGE" },
-      },
-      { id: "tool-1", data: { label: "工具节点", nodeType: "TOOL" } },
-      { id: "llm-1", data: { label: "LLM 节点", nodeType: "LLM" } },
-    ];
-    reactFlowEdges = [
-      { source: "start", target: "knowledge-1" },
-      { source: "knowledge-1", target: "tool-1" },
-      { source: "tool-1", target: "llm-1" },
-    ];
-
-    render(
-      <WorkflowNode
-        id="llm-1"
-        data={{ label: "LLM 节点", nodeType: "LLM" }}
-        selected={false}
-      />,
-    );
-
-    expect(nodeConfigTabsProps?.contextReferenceNodes).toEqual([
-      { nodeId: "start", nodeName: "开始节点", nodeType: "START" },
-      { nodeId: "knowledge-1", nodeName: "知识库节点", nodeType: "KNOWLEDGE" },
-      { nodeId: "tool-1", nodeName: "工具节点", nodeType: "TOOL" },
-    ]);
-    mockStore.expandedNodeId = "";
-  });
-
-  it("为 LLM 节点透传 Prompt 模板变量，包含全局输入和多跳祖先输出", () => {
+  it("为 LLM 节点透传 Prompt 模板变量，包含多跳祖先输出", () => {
     mockStore.expandedNodeId = "llm-1";
     reactFlowNodes = [
       {
@@ -198,16 +165,14 @@ describe("WorkflowNode", () => {
     expect(nodeConfigTabsProps?.promptTemplateVariables).toEqual(
       expect.arrayContaining([
         {
-          label: "查询词",
-          detail: "inputs.query",
-          template: "{{inputs.query}}",
-          category: "inputs",
+          label: "开始节点 · 查询词",
+          detail: "start.output.query",
+          template: "{{start.output.query}}",
         },
         {
           label: "知识库节点 · 知识列表",
           detail: "knowledge-1.output.knowledge_list",
           template: "{{knowledge-1.output.knowledge_list}}",
-          category: "node",
         },
       ]),
     );

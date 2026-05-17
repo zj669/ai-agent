@@ -21,8 +21,9 @@ Authorization: Bearer {token}
 
 - **流式推送**：使用 SSE (Server-Sent Events) 实时推送执行进度
 - **异步执行**：工作流在后台异步执行，不阻塞请求
-- **状态管理**：支持暂停、恢复、取消等操作
+- **状态管理**：支持停止、手动暂停、人工审核暂停、恢复和拒绝
 - **记忆系统**：自动加载长期记忆(LTM)和短期记忆(STM)
+- **版本选择**：启动时优先使用请求中的 `versionId`，否则使用 Agent 的 `publishedVersionId`，仍为空时使用 Agent 当前草稿 `graphJson`
 
 ## 接口列表
 
@@ -38,7 +39,7 @@ Authorization: Bearer {token}
 
 **特殊说明**: 此接口返回类型为 `SseEmitter`（Server-Sent Events），非标准 JSON 响应。
 
-**请求参数**：
+**请求体示例**：
 
 ```json
 {
@@ -47,7 +48,7 @@ Authorization: Bearer {token}
   "conversationId": "conv_123",
   "versionId": 2,
   "inputs": {
-    "query": "帮我分析一下这个数据",
+    "inputMessage": "帮我分析一下这个数据",
     "context": "用户上下文信息"
   },
   "mode": "STANDARD"
@@ -60,8 +61,8 @@ Authorization: Bearer {token}
 |--------|------|------|------|------|
 | agentId | Long | Body | 是 | Agent ID |
 | userId | Long | Body | 是 | 用户 ID |
-| conversationId | String | Body | 是 | 会话 ID |
-| versionId | Integer | Body | 否 | 版本号，null 则使用已发布版本 |
+| conversationId | String | Body | 否 | 会话 ID；存在时调度器会写入/更新 Chat 消息 |
+| versionId | Integer | Body | 否 | 版本号；null 时按“已发布版本 -> 草稿图”的顺序选择 |
 | inputs | Map | Body | 是 | 输入参数 |
 | mode | String | Body | 否 | 执行模式：STANDARD/DEBUG/DRY_RUN，默认 STANDARD |
 
@@ -100,49 +101,55 @@ data: pong
 | error | 执行错误 |
 | ping | 心跳事件（每 15 秒） |
 
-**示例代码**：
+**调用说明**：
+
+`POST /start` 是直接返回 SSE 的 POST 接口，浏览器原生 `EventSource` 不能发 POST body。当前前端使用 `fetch` 读取流式响应；如需断线后重连，再使用下面的 `GET /{executionId}/stream`。
+
+**fetch 示例**：
 
 ```javascript
-// 前端 JavaScript 示例
-const eventSource = new EventSource('/api/workflow/execution/start', {
+const response = await fetch('/api/workflow/execution/start', {
   method: 'POST',
   headers: {
-    'Content-Type': 'application/json'
+    'Content-Type': 'application/json',
+    Authorization: `Bearer ${token}`
   },
   body: JSON.stringify({
     agentId: 1,
     userId: 100,
     conversationId: 'conv_123',
-    inputs: { query: '你好' }
+    inputs: { inputMessage: '你好' },
+    mode: 'STANDARD'
   })
 });
 
-eventSource.addEventListener('connected', (e) => {
-  const data = JSON.parse(e.data);
-  console.log('Execution ID:', data.executionId);
-});
-
-eventSource.addEventListener('update', (e) => {
-  const data = JSON.parse(e.data);
-  console.log('Progress:', data.delta);
-});
-
-eventSource.addEventListener('finish', (e) => {
-  const data = JSON.parse(e.data);
-  console.log('Completed:', data.status);
-  eventSource.close();
-});
-
-eventSource.addEventListener('error', (e) => {
-  const data = JSON.parse(e.data);
-  console.error('Error:', data.message);
-  eventSource.close();
-});
+const reader = response.body?.getReader();
+// 按 SSE 文本协议解析 event/data 行
 ```
 
 ---
 
-### 2. 停止/取消执行
+### 2. 重新订阅执行流
+
+订阅已创建 execution 的 SSE 流，适合断线重连或前端用 `EventSource` 读取已有执行。
+
+**接口**：`GET /api/workflow/execution/{executionId}/stream`
+
+**认证说明**：
+
+除标准 `Authorization: Bearer {token}` 外，当前 `LoginInterceptor` 也支持 query 参数 `token`，用于 `EventSource` 这类不方便设置请求头的场景。
+
+**示例**：
+
+```javascript
+const es = new EventSource(
+  `/api/workflow/execution/${executionId}/stream?token=${encodeURIComponent(token)}`
+);
+```
+
+---
+
+### 3. 停止/取消执行
 
 取消正在执行的工作流。
 
@@ -174,7 +181,31 @@ eventSource.addEventListener('error', (e) => {
 
 ---
 
-### 3. 获取执行详情
+### 4. 手动暂停执行
+
+手动暂停正在运行的执行。该暂停不等同于节点级人工审核详情页，审核详情页主要处理配置了人工审核的节点暂停。
+
+**接口**：`POST /api/workflow/execution/pause`
+
+**请求参数**：
+
+| 参数名 | 类型 | 位置 | 必填 | 说明 |
+|--------|------|------|------|------|
+| executionId | String | Body | 是 | 工作流执行 ID |
+
+**响应**：
+
+```json
+{
+  "code": 200,
+  "message": "success",
+  "data": null
+}
+```
+
+---
+
+### 5. 获取执行详情
 
 获取工作流执行的详细信息。
 
@@ -205,7 +236,7 @@ eventSource.addEventListener('error', (e) => {
 
 ---
 
-### 4. 获取节点执行日志
+### 6. 获取节点执行日志
 
 获取特定节点的执行日志。
 
@@ -233,7 +264,7 @@ eventSource.addEventListener('error', (e) => {
 
 ---
 
-### 5. 获取执行思维链日志
+### 7. 获取执行思维链日志
 
 获取整个执行的所有节点日志，按时间排序。
 
@@ -268,7 +299,7 @@ eventSource.addEventListener('error', (e) => {
 
 ---
 
-### 6. 获取会话执行历史
+### 8. 获取会话执行历史
 
 获取某个会话的所有执行记录。
 
@@ -299,7 +330,7 @@ eventSource.addEventListener('error', (e) => {
 
 ---
 
-### 7. 获取执行上下文快照
+### 9. 获取执行上下文快照
 
 获取执行的上下文信息，包括 LTM、STM、执行日志和全局变量。
 
@@ -406,13 +437,13 @@ PENDING → RUNNING → SUCCEEDED
 
 ## 更新日志
 
+- **2026-05-14**：对齐当前代码：补充 POST SSE 调用方式、GET stream、pause 接口、版本选择顺序、Chat 回写语义
 - **2026-02-10**：初始版本，基于架构重构后的代码
-- **架构改进**：Domain 层完全纯净，使用端口适配器模式
 
 ---
 
 ## 相关文档
 
-- [工作流引擎架构](.blueprint/domain/workflow/WorkflowEngine.md)
-- [执行上下文设计](.blueprint/domain/workflow/ExecutionContext.md)
-- [节点执行器实现](.blueprint/infrastructure/adapters/NodeExecutors.md)
+- [项目蓝图](../../.blueprint/README.md)
+- [Application 蓝图](../../.blueprint/ai-agent-application/README.md)
+- [Infrastructure 蓝图](../../.blueprint/ai-agent-infrastructure/README.md)

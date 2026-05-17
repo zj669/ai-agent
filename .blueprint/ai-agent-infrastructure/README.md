@@ -19,7 +19,7 @@
 | `infrastructure/meta/` | 元数据持久化：NodeTemplateMapper、SysConfigFieldDefMapper |
 | `infrastructure/redis/` | Redis 封装：IRedisService、RedissonService、RedisConfig |
 | `infrastructure/swarm/` | Swarm 基础设施：LLM 调用、SSE 推送、工具执行、持久化 |
-| `infrastructure/writing/` | 动态写作持久化：PO、Mapper、RepositoryImpl、聚合查询 |
+| `infrastructure/writing/` | 动态写作持久化：PO、Mapper、RepositoryImpl |
 | `infrastructure/user/` | 用户持久化：UserMapper、UserRepositoryImpl、RedisVerificationCodeRepository |
 | `infrastructure/workflow/` | **工作流核心实现**（见下方详细说明） |
 
@@ -59,18 +59,16 @@
 ### 动态写作持久化
 - `infrastructure/writing/` 对应 `domain/writing` 的仓储实现，当前包含：
   - `WritingSession` 持久化
-  - `WritingAgent` 持久化
   - `WritingTask` 持久化
   - `WritingResult` 持久化
   - `WritingDraft` 持久化
+- 当前没有 `WritingAgent` 持久化；历史 `writing_agent` 表已删除，协作者关系在 `swarm_workspace_agent.session_id/sort_order`。
 - 写作相关 PO 中存在 JSON 字段时，统一通过 `JacksonTypeHandler` 映射，避免把结构化扩展字段拆成过多表。
 - 写作与 swarm 的数据库职责边界：
-  - `swarm_*` 负责运行时 workspace / agent / message / tool_call
+  - `swarm_*` 负责运行时 workspace / agent / group / message
   - `writing_*` 负责写作业务数据沉淀与聚合查询
-- 当前初始化脚本已按方案 A 重建 swarm + writing 结构，部署时优先以这两份脚本为准：
-  - `docker/init/mysql/20260318_rebuild_swarm_writing_schema.sql`
-  - `src/main/resources/docker/init/mysql/20260318_rebuild_swarm_writing_schema.sql`
-- 本次 schema 修复重点之一是补齐 `swarm_workspace_agent` 需要的字段，避免再次出现查询 `description` 列时报错。
+- 当前初始化脚本入口是 `docker/init/mysql/01_init_schema.sql`。
+- `swarm_workspace_agent` 当前已包含 `description/session_id/sort_order`，避免创建/查询 Agent 时缺列。
 
 ## 上下游依赖
 - 上游：实现 `ai-agent-domain` 定义的端口接口

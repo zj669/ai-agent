@@ -1,0 +1,6 @@
+{"file": ".claude/commands/trellis/finish-work.md", "reason": "Finish work checklist"}
+{"file": ".claude/commands/trellis/check-backend.md", "reason": "Backend check spec"}
+{"file": ".claude/commands/trellis/check-frontend.md", "reason": "Frontend check spec"}
+{"file": "ai-agent-foward/src/modules/workflow/components/__tests__/NodeConfigTabs.test.tsx", "reason": "Frontend LLM output schema tests"}
+{"file": "ai-agent-foward/src/modules/workflow/__tests__/workflow.editor-interaction.test.tsx", "reason": "Workflow editor reference and save normalization tests"}
+{"file": "ai-agent-infrastructure/src/test/java/com/zj/aiagent/infrastructure/workflow/executor/LlmNodeExecutorStrategyPromptTemplateTest.java", "reason": "Existing backend LLM executor test harness to extend or mirror for output contract tests"}

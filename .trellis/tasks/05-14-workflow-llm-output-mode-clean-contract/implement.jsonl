@@ -1,0 +1,10 @@
+{"file": ".trellis/workflow.md", "reason": "Project workflow and conventions"}
+{"file": ".trellis/spec/backend/index.md", "reason": "Backend development guide"}
+{"file": ".trellis/spec/frontend/index.md", "reason": "Frontend development guide"}
+{"file": ".trellis/tasks/05-14-workflow-llm-output-mode-clean-contract/prd.md", "reason": "Task requirements and non-compatibility contract"}
+{"file": "ai-agent-application/src/main/java/com/zj/aiagent/application/workflow/SchedulerService.java", "reason": "Final response extraction currently has legacy LLM field fallbacks"}
+{"file": "ai-agent-infrastructure/src/main/java/com/zj/aiagent/infrastructure/workflow/executor/LlmNodeExecutorStrategy.java", "reason": "Backend LLM output construction and JSON parsing"}
+{"file": "ai-agent-foward/src/modules/workflow/components/NodeConfigTabs.tsx", "reason": "Frontend LLM output mode selector and output schema UI"}
+{"file": "ai-agent-foward/src/modules/workflow/pages/WorkflowEditorPage.tsx", "reason": "Workflow graph save normalization and default LLM schema"}
+{"file": "ai-agent-foward/src/modules/workflow/components/WorkflowNode.tsx", "reason": "Ancestor output variable generation for downstream references"}
+{"file": "ai-agent-infrastructure/src/main/java/com/zj/aiagent/infrastructure/workflow/stream/RedisSseStreamPublisher.java", "reason": "Stream publish output field selection"}

@@ -1,6 +1,18 @@
 import { render, screen, waitFor } from '@testing-library/react'
 import { TestRouter } from '../../../app/router'
 
+function saveUserInfo(username = '管理员') {
+  localStorage.setItem('userInfo', JSON.stringify({
+    id: 1,
+    username,
+    email: 'admin@example.com',
+    avatarUrl: null,
+    phone: null,
+    status: 1,
+    createdAt: '2026-02-20T00:00:00',
+  }))
+}
+
 describe('auth routes', () => {
   it('未登录访问受保护路由会跳转到登录页', async () => {
     localStorage.removeItem('accessToken')
@@ -39,6 +51,7 @@ describe('auth routes', () => {
 
   it('已登录访问受保护路由保持在工作台', async () => {
     localStorage.setItem('accessToken', 'token')
+    saveUserInfo()
     sessionStorage.removeItem('accessToken')
     let currentPath = '/dashboard'
 
@@ -60,6 +73,7 @@ describe('auth routes', () => {
 
   it('已登录访问 /agents/:agentId/workflow 可达并渲染页面', async () => {
     localStorage.setItem('accessToken', 'token')
+    saveUserInfo()
     sessionStorage.removeItem('accessToken')
 
     render(<TestRouter initialEntries={['/agents/agent-123/workflow']} />)

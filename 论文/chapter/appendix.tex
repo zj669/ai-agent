@@ -4,7 +4,7 @@
 
 \section*{环境依赖}
 
-\begin{lstlisting}[language=bash, caption={环境依赖启动命令}]
+\begin{lstlisting}[style=bash, caption={环境依赖启动命令}]
 # 启动中间件（MySQL / Redis / Milvus）
 cd ai-agent-infrastructure/src/main/resources/docker
 docker-compose up -d
@@ -15,14 +15,14 @@ mysql -u root -p < init/mysql/01_init_schema.sql
 
 \section*{后端启动}
 
-\begin{lstlisting}[language=bash, caption={后端启动命令}]
+\begin{lstlisting}[style=bash, caption={后端启动命令}]
 # 修改 application.yml 中的数据库连接配置
 mvn spring-boot:run -pl ai-agent-app
 \end{lstlisting}
 
 \section*{前端启动}
 
-\begin{lstlisting}[language=bash, caption={前端启动命令}]
+\begin{lstlisting}[style=bash, caption={前端启动命令}]
 cd ai-agent-foward
 npm install
 npm run dev
@@ -33,7 +33,7 @@ npm run dev
 
 \begin{longtable}{lll}
   \toprule
-  \textbf{方法} & \textbf{路径} & \textbf{说明} \\
+  方法 & 路径 & 说明 \\
   \midrule
   \endfirsthead
   POST & /api/workflow/execution/start & 启动工作流执行（SSE） \\

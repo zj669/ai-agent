@@ -493,14 +493,14 @@ describe("workflow editor interaction", () => {
             operator: "AND",
             conditions: [
               {
-                leftOperand: "inputs.inputMessage",
+                leftOperand: "start.output.inputMessage",
                 operator: "GREATER_THAN_OR_EQUAL",
                 rightOperand: "10",
               },
               {
-                leftOperand: "nodes.llm-1.score",
+                leftOperand: "llm-1.output.score",
                 operator: "LESS_THAN",
-                rightOperand: "inputs.inputMessage",
+                rightOperand: "start.output.inputMessage",
               },
             ],
           },
@@ -652,7 +652,7 @@ describe("workflow editor interaction", () => {
                       operator: "OR",
                       conditions: [
                         {
-                          leftOperand: "inputs.inputMessage",
+                          leftOperand: "start.output.inputMessage",
                           operator: "CONTAINS",
                           rightOperand: "hello",
                         },
@@ -798,7 +798,75 @@ describe("workflow editor interaction", () => {
     expect(endNode).toBeInTheDocument();
   });
 
-  it("保存时保留知识库 query 字段上用户显式选择的 sourceRef，并为下游 LLM 自动补充 contextRefNodes", async () => {
+  it("LLM 选择 JSON 输出时必须先定义字段名和字段描述", async () => {
+    fetchWorkflowDetailMock.mockResolvedValueOnce({
+      agentId: 1001,
+      version: 3,
+      name: "测试 Agent",
+      graphJson: undefined,
+      graph: {
+        version: "1.0",
+        startNodeId: "start",
+        nodes: [
+          {
+            nodeId: "start",
+            nodeName: "开始节点",
+            nodeType: "START",
+            position: { x: 50, y: 250 },
+            outputSchema: [
+              {
+                key: "inputMessage",
+                label: "用户输入",
+                type: "string",
+                system: true,
+              },
+            ],
+            userConfig: {},
+          },
+          {
+            nodeId: "llm-1",
+            nodeName: "LLM 节点",
+            nodeType: "LLM",
+            position: { x: 300, y: 250 },
+            outputSchema: [
+              {
+                key: "json_output",
+                label: "JSON 输出",
+                type: "object",
+                system: true,
+              },
+            ],
+            userConfig: { llmOutputMode: "json" },
+          },
+          {
+            nodeId: "end",
+            nodeName: "结束节点",
+            nodeType: "END",
+            position: { x: 550, y: 250 },
+            userConfig: {},
+          },
+        ],
+        edges: [
+          { edgeId: "edge-1", source: "start", target: "llm-1" },
+          { edgeId: "edge-2", source: "llm-1", target: "end" },
+        ],
+      },
+    });
+
+    render(<WorkflowEditorPage />);
+    await screen.findByText("LLM 节点（LLM）");
+
+    fireEvent.click(screen.getByRole("button", { name: "保存" }));
+
+    expect(
+      await screen.findByText(
+        "LLM 节点「LLM 节点」选择 JSON 输出时至少需要定义一个 JSON 字段",
+      ),
+    ).toBeInTheDocument();
+    expect(saveWorkflowMock).not.toHaveBeenCalled();
+  });
+
+  it("保存时保留知识库 query 字段上用户显式选择的 sourceRef，且不再为 LLM 自动补充 contextRefNodes", async () => {
     fetchWorkflowDetailMock.mockResolvedValueOnce({
       agentId: 1001,
       version: 3,
@@ -1037,11 +1105,18 @@ describe("workflow editor interaction", () => {
         }),
       ]),
     );
-    expect(llmNode?.userConfig.userPromptTemplate).toBe("{{inputs.inputMessage}}");
-    expect(llmNode?.userConfig.contextRefNodes).toEqual(["knowledge-1"]);
+    expect(llmNode?.userConfig.userPromptTemplate).toBe("{{start.output.inputMessage}}");
+    expect(llmNode?.userConfig).not.toHaveProperty("contextRefNodes");
+    expect(llmNode?.outputSchema).toEqual([
+      expect.objectContaining({
+        key: "response",
+        type: "string",
+        system: true,
+      }),
+    ]);
   });
 
-  it("用户显式清空 contextRefNodes 后，保存时不再自动回填默认引用", async () => {
+  it("历史 contextRefNodes 保存时会从 LLM 配置中移除", async () => {
     fetchWorkflowDetailMock.mockResolvedValueOnce({
       agentId: 1001,
       version: 3,
@@ -1268,6 +1343,6 @@ describe("workflow editor interaction", () => {
       (node) => node.nodeId === "llm-1",
     );
 
-    expect(llmNode?.userConfig.contextRefNodes).toEqual([]);
+    expect(llmNode?.userConfig).not.toHaveProperty("contextRefNodes");
   });
 });

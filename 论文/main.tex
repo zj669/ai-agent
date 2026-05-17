@@ -8,6 +8,7 @@
 \swusttitle{基于 Spring Boot 的 AI Agent 智能体编排系统的设计与实现}
 \swusttitleen{Design and Implementation of an AI Agent Orchestration System Based on Spring Boot}
 \graphicspath{{figures/}{./figures/}}
+\usepackage{eso-pic}
 \usepackage{longtable}
 \usepackage{float}
 \usepackage{subcaption}
@@ -34,8 +35,29 @@
   \renewcommand{\checkmark}{\ding{51}}%    %% 强制覆盖，兼容任何包顺序
   \providecommand{\ctimes}{\ding{55}}%
 }
+\newcommand{\coverimagepage}[1]{%
+  \clearpage
+  \thispagestyle{empty}%
+  \AddToShipoutPictureBG*{%
+    \AtPageLowerLeft{%
+      \parbox[b][\paperheight][c]{\paperwidth}{%
+        \centering
+        \includegraphics[width=\paperwidth,height=\paperheight,keepaspectratio]{#1}%
+      }%
+    }%
+  }%
+  \null
+  \clearpage
+}
 
 \begin{document}
+
+\begingroup
+\pagestyle{empty}
+\coverimagepage{conver0.png}
+\coverimagepage{conver1.png}
+\coverimagepage{conver2.png}
+\endgroup
 
 %% ========== 前置部分（罗马页码）==========
 \frontmatter
@@ -70,6 +92,11 @@
 \phantomsection
 \addcontentsline{toc}{chapter}{参考文献}
 {\zihao{5}\songti
+\nocite{wu2023autogen,xi2023agentsurvey,wang2024agentsurvey,yao2023react,lewis2020rag,milvus2021}
+\nocite{zhou2019jvm,huang2014redis,evans2016dddcn}
+\nocite{yin2025difytest,li2026multicloudworkflow,chen2026ragliterature,liu2025ragsurvey,zhao2024ragoverview}
+\nocite{chen2024llmagentoverview,guo2024llmagentconstruction,xi2026llmagentfuture,tian2012multidaghybrid}
+\nocite{yuan2018scientificworkflow,xu2019dagmultiobjective,bao2019gridvarianceworkflow,jing2016multidagreliability}
 \bibliography{refs}
 }
 

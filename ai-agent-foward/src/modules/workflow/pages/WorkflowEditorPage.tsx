@@ -114,12 +114,36 @@ const HTTP_RESPONSE_FIELD: FieldSchema = {
   system: true,
   description: "HTTP 响应的完整内容",
 };
-const DEFAULT_LLM_PROMPT_TEMPLATE = "{{inputs.inputMessage}}";
+
+const LLM_TEXT_OUTPUT_FIELD: FieldSchema = {
+  key: "response",
+  type: "string",
+  label: "文本输出",
+  system: true,
+  description: "LLM 返回的主要文本内容",
+};
+
+const LLM_JSON_OUTPUT_FIELD: FieldSchema = {
+  key: "json_output",
+  type: "object",
+  label: "JSON 输出",
+  system: true,
+  description: "LLM 文本响应解析后的 JSON 对象",
+};
+
+const LLM_SYSTEM_OUTPUT_KEYS = new Set([
+  LLM_TEXT_OUTPUT_FIELD.key,
+  LLM_JSON_OUTPUT_FIELD.key,
+  "llm_output",
+  "text",
+]);
+const DEFAULT_LLM_PROMPT_TEMPLATE = "{{start.output.inputMessage}}";
 const DEFAULT_BRANCH_PRIORITY = 2147483647;
 
 const NO_VALUE_OPERATORS = new Set(["IS_EMPTY", "IS_NOT_EMPTY"]);
 const DEPRECATED_START_QUERY_REF = "start.output.query";
 const START_INPUT_MESSAGE_REF = "start.output.inputMessage";
+const LEGACY_INPUT_REF_PREFIX = "inputs.";
 
 const OPERATOR_MAP: Record<string, string> = {
   EQUALS: "EQUALS",
@@ -229,16 +253,34 @@ function normalizeKnowledgeInputSchema(
   return [...fields, { ...KNOWLEDGE_QUERY_FIELD }];
 }
 
-function normalizeContextRefNodes(value: unknown): string[] {
-  if (!Array.isArray(value)) return [];
-  return value.filter(
-    (item): item is string =>
-      typeof item === "string" && item.trim().length > 0,
-  );
+function normalizeLlmOutputMode(value: unknown): "text" | "json" {
+  return value === "json" ? "json" : "text";
+}
+
+function normalizeLlmOutputSchema(
+  existing: FieldSchema[] | undefined,
+  mode: "text" | "json",
+): FieldSchema[] {
+  if (mode === "text") {
+    return [cloneFieldSchema(LLM_TEXT_OUTPUT_FIELD)];
+  }
+
+  const customFields = (existing ?? [])
+    .filter((field) => !field.system && !LLM_SYSTEM_OUTPUT_KEYS.has(field.key))
+    .map(cloneFieldSchema);
+  return [cloneFieldSchema(LLM_JSON_OUTPUT_FIELD), ...customFields];
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return Boolean(value) && typeof value === "object" && !Array.isArray(value);
+}
+
+function omitLlmContextRefNodes(
+  config: Record<string, unknown>,
+): Record<string, unknown> {
+  const next = { ...config };
+  delete next.contextRefNodes;
+  return next;
 }
 
 function normalizeConditionLogic(value: unknown): "AND" | "OR" {
@@ -255,7 +297,10 @@ function normalizeConditionReference(value: unknown): string {
   const trimmed = value.trim();
   if (!trimmed) return "";
   if (trimmed === DEPRECATED_START_QUERY_REF) return START_INPUT_MESSAGE_REF;
-  if (trimmed.startsWith("inputs.") || trimmed.includes(".output.")) {
+  if (trimmed.startsWith(LEGACY_INPUT_REF_PREFIX)) {
+    return `start.output.${trimmed.slice(LEGACY_INPUT_REF_PREFIX.length)}`;
+  }
+  if (trimmed.includes(".output.")) {
     return trimmed;
   }
 
@@ -268,6 +313,16 @@ function normalizeConditionReference(value: unknown): string {
   }
 
   return trimmed;
+}
+
+function isConditionReferenceText(value: string): boolean {
+  const trimmed = value.trim();
+  return (
+    trimmed === DEPRECATED_START_QUERY_REF ||
+    trimmed.startsWith(LEGACY_INPUT_REF_PREFIX) ||
+    trimmed.includes(".output.") ||
+    trimmed.startsWith("nodes.")
+  );
 }
 
 function branchLabelForIndex(isDefault: boolean, index: number): string {
@@ -285,23 +340,21 @@ function conditionItemsToUiConditions(
       if (!isRecord(item)) return null;
       const operator =
         typeof item.operator === "string" ? item.operator : "EQUALS";
+      const rawRightOperand =
+        typeof item.rightOperand === "string" ? item.rightOperand : "";
+      const rightOperandIsRef = isConditionReferenceText(rawRightOperand);
       return {
-        sourceRef:
-          typeof item.leftOperand === "string" ? item.leftOperand : "",
+        sourceRef: normalizeConditionReference(item.leftOperand),
         operator,
         value:
           typeof item.rightOperand === "string"
-            ? item.rightOperand
+            ? rightOperandIsRef
+              ? normalizeConditionReference(item.rightOperand)
+              : item.rightOperand
             : item.rightOperand == null
               ? ""
               : String(item.rightOperand),
-        valueType:
-          typeof item.rightOperand === "string" &&
-          (item.rightOperand.startsWith("inputs.") ||
-            item.rightOperand.includes(".output.") ||
-            item.rightOperand.startsWith("nodes."))
-            ? "ref"
-            : "literal",
+        valueType: rightOperandIsRef ? "ref" : "literal",
       } satisfies UiCondition;
     })
     .filter((item): item is UiCondition => item !== null);
@@ -509,6 +562,63 @@ type ConditionValidationResult =
   | { ok: true }
   | { ok: false; message: string };
 
+const JSON_OUTPUT_FIELD_KEY_PATTERN = /^[A-Za-z_][A-Za-z0-9_]*$/;
+
+function getLlmJsonCustomFields(outputSchema: FieldSchema[] | undefined): FieldSchema[] {
+  return (outputSchema ?? []).filter(
+    (field) => !field.system && !LLM_SYSTEM_OUTPUT_KEYS.has(field.key),
+  );
+}
+
+function validateLlmJsonOutputNodes(nodes: Node[]): ConditionValidationResult {
+  for (const node of nodes) {
+    const data = node.data as unknown as WorkflowNodeData;
+    if (data.nodeType !== "LLM") continue;
+    if (normalizeLlmOutputMode(data.userConfig?.llmOutputMode) !== "json") continue;
+
+    const nodeLabel = data.label || node.id;
+    const customFields = getLlmJsonCustomFields(data.outputSchema);
+    if (customFields.length === 0) {
+      return {
+        ok: false,
+        message: `LLM 节点「${nodeLabel}」选择 JSON 输出时至少需要定义一个 JSON 字段`,
+      };
+    }
+
+    const usedKeys = new Set<string>();
+    for (const field of customFields) {
+      const key = field.key?.trim() ?? "";
+      if (!key) {
+        return {
+          ok: false,
+          message: `LLM 节点「${nodeLabel}」存在未填写字段名的 JSON 输出字段`,
+        };
+      }
+      if (!JSON_OUTPUT_FIELD_KEY_PATTERN.test(key)) {
+        return {
+          ok: false,
+          message: `LLM 节点「${nodeLabel}」的 JSON 输出字段「${key}」只能使用英文、数字、下划线，且不能以数字开头`,
+        };
+      }
+      if (usedKeys.has(key)) {
+        return {
+          ok: false,
+          message: `LLM 节点「${nodeLabel}」存在重复的 JSON 输出字段「${key}」`,
+        };
+      }
+      usedKeys.add(key);
+      if (!field.description?.trim()) {
+        return {
+          ok: false,
+          message: `LLM 节点「${nodeLabel}」的 JSON 输出字段「${key}」缺少字段描述`,
+        };
+      }
+    }
+  }
+
+  return { ok: true };
+}
+
 function validateConditionNodes(
   nodes: Node[],
   edges: Edge[],
@@ -595,12 +705,6 @@ function normalizeWorkflowNodes(
   edges: Edge[],
   templates: NodeTemplateDTO[],
 ): Node[] {
-  const nodeTypeById = new Map(
-    nodes.map(
-      (node) => [node.id, (node.data as WorkflowNodeData).nodeType] as const,
-    ),
-  );
-
   return nodes.map((node) => {
     const data = node.data as WorkflowNodeData;
     const template = templates.find((item) => item.typeCode === data.nodeType);
@@ -661,32 +765,20 @@ function normalizeWorkflowNodes(
     }
 
     if (data.nodeType === "LLM") {
-      const hasExplicitContextRefNodes = Array.isArray(
-        userConfig.contextRefNodes,
-      );
+      const llmOutputMode = normalizeLlmOutputMode(userConfig.llmOutputMode);
+      outputSchema = normalizeLlmOutputSchema(outputSchema, llmOutputMode);
+      userConfig = {
+        ...omitLlmContextRefNodes(userConfig),
+        llmOutputMode,
+      };
+
       const hasExplicitUserPromptTemplate =
         typeof userConfig.userPromptTemplate === "string";
-      const upstreamKnowledgeNodeIds = edges
-        .filter((edge) => edge.target === node.id)
-        .map((edge) => edge.source)
-        .filter((sourceId) => nodeTypeById.get(sourceId) === "KNOWLEDGE");
 
       if (!hasExplicitUserPromptTemplate) {
         userConfig = {
           ...userConfig,
           userPromptTemplate: DEFAULT_LLM_PROMPT_TEMPLATE,
-        };
-      }
-
-      if (hasExplicitContextRefNodes) {
-        userConfig = {
-          ...userConfig,
-          contextRefNodes: normalizeContextRefNodes(userConfig.contextRefNodes),
-        };
-      } else if (upstreamKnowledgeNodeIds.length > 0) {
-        userConfig = {
-          ...userConfig,
-          contextRefNodes: Array.from(new Set([...upstreamKnowledgeNodeIds])),
         };
       }
     }
@@ -1107,7 +1199,20 @@ function WorkflowEditorPage() {
                   nodeType,
                   policy,
                   inputSchema: initialSchema?.inputSchema ?? [],
-                  outputSchema: initialSchema?.outputSchema ?? [],
+                  outputSchema:
+                    nodeType === "LLM"
+                      ? normalizeLlmOutputSchema(
+                          initialSchema?.outputSchema,
+                          "text",
+                        )
+                      : (initialSchema?.outputSchema ?? []),
+                  userConfig:
+                    nodeType === "LLM"
+                      ? {
+                          llmOutputMode: "text",
+                          userPromptTemplate: DEFAULT_LLM_PROMPT_TEMPLATE,
+                        }
+                      : undefined,
                 }) satisfies WorkflowNodeData,
       };
       setNodes((nds) => [...nds, newNode]);
@@ -1151,13 +1256,19 @@ function WorkflowEditorPage() {
       setSaveMessage(conditionValidation.message);
       return;
     }
+    const normalizedNodes = normalizeWorkflowNodes(
+      nodes,
+      edges,
+      store.nodeTemplates,
+    );
+    const llmJsonValidation = validateLlmJsonOutputNodes(normalizedNodes);
+    if (!llmJsonValidation.ok) {
+      setSaveMessage(llmJsonValidation.message);
+      return;
+    }
+
     store.setOperationState("saving");
     try {
-      const normalizedNodes = normalizeWorkflowNodes(
-        nodes,
-        edges,
-        store.nodeTemplates,
-      );
       const result = await saveWorkflow({
         agentId: numericAgentId,
         version: store.version,
@@ -1195,6 +1306,16 @@ function WorkflowEditorPage() {
     const conditionValidation = validateConditionNodes(nodes, edges);
     if (!conditionValidation.ok) {
       setPublishMessage(conditionValidation.message);
+      return;
+    }
+    const normalizedNodes = normalizeWorkflowNodes(
+      nodes,
+      edges,
+      store.nodeTemplates,
+    );
+    const llmJsonValidation = validateLlmJsonOutputNodes(normalizedNodes);
+    if (!llmJsonValidation.ok) {
+      setPublishMessage(llmJsonValidation.message);
       return;
     }
     if (store.isDirty) {

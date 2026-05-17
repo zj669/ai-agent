@@ -38,6 +38,32 @@ const { getPendingReviewsMock } = vi.hoisted(() => ({
   getPendingReviewsMock: vi.fn(),
 }));
 
+interface ResumeStreamHandlers {
+  onConnected?: (executionId: string) => void;
+  onDelta?: (delta: string) => void;
+  onFinish?: () => void;
+}
+
+function isPromiseLike(value: unknown): value is PromiseLike<unknown> {
+  return (
+    typeof value === "object" &&
+    value !== null &&
+    "then" in value &&
+    typeof (value as { then?: unknown }).then === "function"
+  );
+}
+
+async function waitForLatestMockResult(mockFn: {
+  mock: { results: { value: unknown }[] };
+}) {
+  const latestResult = mockFn.mock.results.at(-1)?.value;
+  if (!isPromiseLike(latestResult)) return;
+
+  await act(async () => {
+    await latestResult;
+  });
+}
+
 vi.mock("../api/chatService", () => ({
   createChatConversation: (...args: unknown[]) =>
     createChatConversationMock(...args),
@@ -73,6 +99,7 @@ vi.mock("rehype-highlight", () => ({ default: () => {} }));
 
 describe("chat page streaming", () => {
   beforeEach(() => {
+    vi.useRealTimers();
     createChatConversationMock.mockReset();
     fetchConversationListMock.mockReset();
     fetchConversationMessagesMock.mockReset();
@@ -150,6 +177,8 @@ describe("chat page streaming", () => {
         },
       ) => {
         handlers.onConnected?.("exec-1");
+        await Promise.resolve();
+        await Promise.resolve();
         handlers.onDelta?.("恢复后的结果");
         handlers.onFinish?.();
       },
@@ -168,6 +197,7 @@ describe("chat page streaming", () => {
     await waitFor(() => {
       expect(fetchConversationMessagesMock).toHaveBeenCalled();
     });
+    await waitForLatestMockResult(fetchConversationMessagesMock);
   }
 
   it("发送消息后可渲染流式增量并完成", async () => {
@@ -289,6 +319,8 @@ describe("chat page streaming", () => {
   });
 
   it("恢复执行后会直接重连执行流并继续展示输出", async () => {
+    let resumeHandlers: ResumeStreamHandlers | null = null;
+    let completeResumeStream: (() => void) | null = null;
     startChatStreamMock.mockImplementation(
       async (
         _input: unknown,
@@ -299,6 +331,15 @@ describe("chat page streaming", () => {
       ) => {
         handlers.onConnected?.("exec-1");
         handlers.onPaused?.("exec-1", "node-1");
+      },
+    );
+    resumeChatStreamMock.mockImplementation(
+      async (_executionId: string, handlers: ResumeStreamHandlers) => {
+        resumeHandlers = handlers;
+        handlers.onConnected?.("exec-1");
+        return new Promise<void>((resolve) => {
+          completeResumeStream = resolve;
+        });
       },
     );
 
@@ -329,6 +370,22 @@ describe("chat page streaming", () => {
       );
     });
 
-    expect(await screen.findByText("恢复后的结果")).toBeInTheDocument();
+    await waitFor(() => {
+      expect(resumeHandlers).not.toBeNull();
+      expect(completeResumeStream).not.toBeNull();
+    });
+    if (!resumeHandlers || !completeResumeStream) {
+      throw new Error("resume stream handlers were not captured");
+    }
+
+    await act(async () => {
+      resumeHandlers.onDelta?.("恢复后的结果");
+      resumeHandlers.onFinish?.();
+      completeResumeStream();
+    });
+
+    expect(
+      await screen.findByText("恢复后的结果", {}, { timeout: 5000 }),
+    ).toBeInTheDocument();
   }, 8000);
 });

@@ -1,0 +1,58 @@
+{
+  "id": "workflow-llm-output-mode-clean-contract",
+  "name": "workflow-llm-output-mode-clean-contract",
+  "title": "LLM 输出模式干净化：严格文本/JSON 二选一",
+  "description": "清理工作流 LLM 节点输出契约，移除 llm_output/text 等历史兼容字段。文本模式只暴露并产出 response；JSON 模式只暴露并产出 json_output 以及显式配置的 JSON 字段。前端、保存归一化、后端执行、最终回复提取和测试必须围绕唯一契约实现，不再为旧工作流做兼容兜底。",
+  "status": "in_progress",
+  "dev_type": "fullstack",
+  "scope": "workflow",
+  "priority": "P1",
+  "creator": "zj669",
+  "assignee": "zj669",
+  "createdAt": "2026-05-14",
+  "completedAt": null,
+  "branch": null,
+  "base_branch": "main",
+  "worktree_path": null,
+  "current_phase": 1,
+  "next_action": [
+    {
+      "phase": 1,
+      "action": "implement"
+    },
+    {
+      "phase": 2,
+      "action": "check"
+    },
+    {
+      "phase": 3,
+      "action": "finish"
+    },
+    {
+      "phase": 4,
+      "action": "create-pr"
+    }
+  ],
+  "commit": null,
+  "pr_url": null,
+  "subtasks": [],
+  "children": [],
+  "parent": null,
+  "relatedFiles": [
+    "ai-agent-foward/src/modules/workflow/components/NodeConfigTabs.tsx",
+    "ai-agent-foward/src/modules/workflow/components/WorkflowNode.tsx",
+    "ai-agent-foward/src/modules/workflow/pages/WorkflowEditorPage.tsx",
+    "ai-agent-foward/src/modules/workflow/components/__tests__/NodeConfigTabs.test.tsx",
+    "ai-agent-foward/src/modules/workflow/__tests__/workflow.editor-interaction.test.tsx",
+    "ai-agent-domain/src/main/java/com/zj/aiagent/domain/workflow/entity/Node.java",
+    "ai-agent-domain/src/main/java/com/zj/aiagent/domain/workflow/valobj/FieldSchema.java",
+    "ai-agent-infrastructure/src/main/java/com/zj/aiagent/infrastructure/workflow/graph/dto/FieldSchemaDTO.java",
+    "ai-agent-infrastructure/src/main/java/com/zj/aiagent/infrastructure/workflow/graph/WorkflowGraphFactoryImpl.java",
+    "ai-agent-infrastructure/src/main/java/com/zj/aiagent/infrastructure/workflow/executor/LlmNodeExecutorStrategy.java",
+    "ai-agent-infrastructure/src/main/java/com/zj/aiagent/infrastructure/workflow/stream/RedisSseStreamPublisher.java",
+    "ai-agent-application/src/main/java/com/zj/aiagent/application/workflow/SchedulerService.java",
+    "ai-agent-infrastructure/src/test/java/com/zj/aiagent/infrastructure/workflow/executor/LlmNodeExecutorStrategyPromptTemplateTest.java"
+  ],
+  "notes": "Created to clean up LLM node output contract without historical compatibility. The task explicitly requires text mode to expose/produce only response, JSON mode to expose/produce only json_output plus explicitly configured JSON fields, and removal of llm_output/text fallback paths. Implemented JSON field definition flow: frontend JSON mode now edits explicit field name, type, and field description; graph conversion preserves node outputSchema into the domain node; LLM execution injects those JSON fields and descriptions into the system prompt as a required JSON example; JSON mode returns only json_output plus those explicit fields, fails when configured fields are missing, and text mode returns only response. Latest tightening requires JSON mode to define at least one user field with a valid field name and non-empty description before save/publish or model execution; switching back to text mode drops JSON custom fields so downstream references cannot point at nonexistent text-mode outputs. Scheduler and SSE finish extraction now read response/json_output instead of old text aliases, and SSE serializes structured json_output as JSON text instead of Java Map.toString(). Local backend was rebuilt/installed and restarted with the previous CSDN_COOKIE preserved; health check is UP.",
+  "meta": {}
+}

@@ -1,7 +1,9 @@
 # ai-agent-application 模块蓝图
 
 ## 模块职责
-用例编排层，协调领域对象完成业务用例。包含应用服务、DTO、命令对象、事件监听器。负责跨域协调（如 SchedulerService 串联 workflow + agent + knowledge + chat）。
+用例编排层，协调领域对象完成业务用例。包含应用服务、DTO、命令对象、事件监听器。负责跨域协调（如 `SchedulerService` 串联 workflow + agent + knowledge + chat）。
+
+当前 Maven 依赖中，`ai-agent-application` 直接依赖了 `ai-agent-infrastructure`。因此本模块不是严格意义上的纯 application 层；文档描述要以当前代码为准。
 
 ## 关键文件
 
@@ -20,7 +22,7 @@
 | `application/dashboard/service/DashboardApplicationService.java` | 仪表盘统计聚合 |
 | `application/llm/` | LLM 模型配置管理应用服务 |
 | `application/swarm/` | Swarm 多智能体运行时编排（runtime、prompt、event） |
-| `application/writing/` | 动态写作编排：写作会话、子 Agent 规划、任务拆解、结果回填、草稿汇总、overview 聚合 |
+| `application/writing/` | 动态写作编排：写作会话、任务拆解、结果回填、草稿汇总、overview 聚合 |
 | `application/chat/listener/AutoTitleListener.java` | 自动生成对话标题（事件监听） |
 | `application/chat/listener/ExecutionCompletedListener.java` | 执行完成后回写消息（事件监听） |
 
@@ -28,7 +30,7 @@
 
 ### SchedulerService
 - `startExecution(...)`
-  - 解析 Agent 已发布版本/草稿图
+  - 解析 Agent 图，优先级为请求 `versionId` -> Agent `publishedVersionId` -> Agent 当前草稿 `graphJson`
   - 初始化聊天消息
   - 执行记忆水合：LTM 来自 `VectorStore.search(...)`，STM 来自 `ConversationRepository`
   - 构建 `Execution` 并调度根节点
@@ -59,13 +61,10 @@
   - 工作流知识库节点默认走 `retrieveByDataset(...)`
   - 支持 `SEMANTIC / KEYWORD / HYBRID` 三种按 dataset 检索策略
 
-### 动态多智能体写作
+### Swarm / 动态写作
 - `WritingSessionService`
   - 创建 / 更新写作会话
   - 记录本次用户创作目标、上下文、状态
-- `WritingAgentCoordinatorService`
-  - 保存主 Agent 规划出的子 Agent 列表
-  - 协调已有 swarm agent 创建逻辑，把写作规划映射成真实运行时 agent
 - `WritingTaskService`
   - 保存主 Agent 拆解出的任务
   - 维护任务与 session / agent 的关联关系与状态流转
@@ -74,26 +73,27 @@
 - `WritingDraftService`
   - 保存主 Agent 汇总后的草稿
 - `WritingProjectionService`
-  - 聚合 session、agent、task、result、draft
+  - 聚合 writing session、swarm agent、task、result、draft
   - 输出前端协作面板使用的 overview 结构，避免前端自行拼表
 - `SwarmTools`
-  - 已新增 `writing_session / writing_agent / writing_task / writing_result / writing_draft`
+  - 当前通过 `create_worker / delegate_task / submit_result` 等工具创建 worker、派发任务、提交结果
+  - worker 与写作 session 的关系直接写入 `swarm_workspace_agent.session_id/sort_order`
 - `SwarmAgentRunner`
   - 已识别上述写作工具
-  - 已限制子 Agent 不能创建 `session / agent / task / draft`
-- `SwarmPromptTemplate`
-  - 已切换为动态多智能体写作提示词，并补充 few-shot，约束模型按正确顺序调用工具
+  - 已限制子 Agent 不能创建 `session / task / draft` 等 Coordinator 权限动作
+- `SwarmPromptService` / prompt 相关类
+  - 负责组装动态多智能体写作提示词和工具使用约束
 
 ## 当前重要约定
 
 - 审核详情/审核列表中的 `executionVersion` 是前后端并发保护的关键字段。
 - `HumanReviewController` 返回的是原始 DTO / 空 `200`，不是 `Response<T>`；涉及聊天页审核适配器时要按这个契约实现。
-- 动态写作协作当前遵循“主 Agent 统筹、子 Agent 执行、overview 聚合展示”的模式：
-  - 主 Agent 创建 session / agent / task / draft
-  - 子 Agent 只回填 result
+- 动态写作协作当前遵循“Coordinator 统筹、Worker 执行、overview 聚合展示”的模式：
+  - Coordinator 创建 session / worker / task / draft
+  - Worker 只回填 result
   - 前端不消费完整子 Agent 消息流，而是消费 overview 聚合结果
 - 当前写作链路的主要排查入口：
-  - 工具调用顺序异常：先看 `SwarmPromptTemplate`
+  - 工具调用顺序异常：先看 `SwarmPromptService` / prompt 相关类
   - 子 Agent 执行权限异常：看 `SwarmAgentRunner`
   - 协作面板数据缺失：看 `WritingProjectionService`
 - 已知仍需重点关注的风险：
@@ -101,5 +101,5 @@
   - 聊天页拒绝流程当前有真实 reject 能力，但 `expectedVersion` 还没有像恢复流程那样透传。
 
 ## 上下游依赖
-- 上游：依赖 `ai-agent-domain`（调用领域服务和仓储接口）、`ai-agent-shared`
+- 上游：依赖 `ai-agent-domain`、`ai-agent-shared`，当前还直接依赖 `ai-agent-infrastructure`
 - 下游：被 `ai-agent-interfaces` 控制器调用

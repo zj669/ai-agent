@@ -1,11 +1,15 @@
 package com.zj.aiagent.infrastructure.workflow.executor;
 
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.zj.aiagent.domain.workflow.config.NodeConfig;
 import com.zj.aiagent.domain.workflow.entity.Node;
 import com.zj.aiagent.domain.workflow.port.NodeExecutorStrategy;
 import com.zj.aiagent.domain.workflow.port.StreamPublisher;
+import com.zj.aiagent.domain.workflow.valobj.ExecutionContext;
 import com.zj.aiagent.domain.workflow.valobj.NodeExecutionResult;
 import com.zj.aiagent.domain.workflow.valobj.NodeType;
+import com.zj.aiagent.infrastructure.workflow.template.PromptTemplateResolver;
 
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Qualifier;
@@ -31,12 +35,18 @@ public class HttpNodeExecutorStrategy implements NodeExecutorStrategy {
 
     private final WebClient.Builder webClientBuilder;
     private final Executor executor;
+    private final ObjectMapper objectMapper;
+    private final PromptTemplateResolver promptTemplateResolver;
 
     public HttpNodeExecutorStrategy(
             WebClient.Builder webClientBuilder,
-            @Qualifier("nodeExecutorThreadPool") Executor executor) {
+            @Qualifier("nodeExecutorThreadPool") Executor executor,
+            ObjectMapper objectMapper,
+            PromptTemplateResolver promptTemplateResolver) {
         this.webClientBuilder = webClientBuilder;
         this.executor = executor;
+        this.objectMapper = objectMapper;
+        this.promptTemplateResolver = promptTemplateResolver;
     }
 
     @Override
@@ -50,8 +60,15 @@ public class HttpNodeExecutorStrategy implements NodeExecutorStrategy {
                 NodeConfig config = node.getConfig();
 
                 // 解析 URL
-                String url = resolveTemplate(config.getString("url"), resolvedInputs);
-                String methodStr = config.getString("method", "GET");
+                String url = resolveTemplate(firstNonBlank(
+                        config.getString("http_url"),
+                        config.getString("url")
+                ), resolvedInputs);
+                String methodStr = firstNonBlank(
+                        config.getString("http_method"),
+                        config.getString("method"),
+                        "GET"
+                );
                 HttpMethod method = HttpMethod.valueOf(methodStr.toUpperCase());
 
                 log.info("[HTTP Node {}] {} {}", node.getNodeId(), method, url);
@@ -59,13 +76,19 @@ public class HttpNodeExecutorStrategy implements NodeExecutorStrategy {
                 // 设置超时
                 Long timeout = config.getLong("readTimeout");
                 if (timeout == null) {
+                    timeout = config.getLong("timeout");
+                }
+                if (timeout == null) {
                     timeout = 30000L;
                 }
                 Duration requestTimeout = Duration.ofMillis(timeout);
 
                 // 获取 Headers
-                Map<String, Object> headers = config.getMap("headers");
-                String bodyTemplate = config.getString("bodyTemplate");
+                Map<String, Object> headers = resolveHeaders(config, resolvedInputs);
+                String bodyTemplate = firstNonBlank(
+                        config.getString("http_body"),
+                        config.getString("bodyTemplate")
+                );
 
                 // 使用 exchangeToMono 获取状态码
                 WebClient webClient = webClientBuilder.build();
@@ -130,6 +153,14 @@ public class HttpNodeExecutorStrategy implements NodeExecutorStrategy {
                 outputs.put("response", response);
                 outputs.put("body", response);
                 outputs.put("statusCode", statusCode);
+                outputs.put(
+                        "http_response",
+                        Map.of(
+                                "statusCode", statusCode,
+                                "body", response,
+                                "response", response
+                        )
+                );
 
                 return NodeExecutionResult.success(outputs);
 
@@ -154,18 +185,51 @@ public class HttpNodeExecutorStrategy implements NodeExecutorStrategy {
         if (template == null)
             return null;
 
-        String result = template;
-        for (Map.Entry<String, Object> entry : resolvedInputs.entrySet()) {
-            // 跳过 __ 前缀的内部变量
-            if (entry.getKey().startsWith("__")) continue;
-            // null 值跳过替换，保留原始占位符
-            if (entry.getValue() != null) {
-                String value = entry.getValue().toString();
-                result = result.replace("#{" + entry.getKey() + "}", value);
-                // 支持 {{key}} Mustache 风格占位符
-                result = result.replace("{{" + entry.getKey() + "}}", value);
+        ExecutionContext context =
+                (ExecutionContext) resolvedInputs.get("__context__");
+        return promptTemplateResolver.resolve(template, resolvedInputs, context);
+    }
+
+    private Map<String, Object> resolveHeaders(
+            NodeConfig config,
+            Map<String, Object> resolvedInputs) {
+        Map<String, Object> headers = config.getMap("headers");
+        if (headers == null) {
+            headers = config.getMap("http_headers");
+        }
+        if (headers != null) {
+            return headers;
+        }
+
+        String headerText = firstNonBlank(
+                config.getString("http_headers"),
+                config.getString("headers")
+        );
+        if (headerText == null) {
+            return null;
+        }
+
+        String resolvedHeaderText = resolveTemplate(headerText, resolvedInputs);
+        try {
+            return objectMapper.readValue(
+                    resolvedHeaderText,
+                    new TypeReference<Map<String, Object>>() {}
+            );
+        } catch (Exception e) {
+            log.warn(
+                    "[HTTP Node] Failed to parse headers as JSON, headerText={}",
+                    resolvedHeaderText
+            );
+            return null;
+        }
+    }
+
+    private String firstNonBlank(String... values) {
+        for (String value : values) {
+            if (value != null && !value.isBlank()) {
+                return value;
             }
         }
-        return result;
+        return null;
     }
 }

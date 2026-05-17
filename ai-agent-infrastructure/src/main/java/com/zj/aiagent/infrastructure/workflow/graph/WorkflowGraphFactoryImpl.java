@@ -90,6 +90,7 @@ public class WorkflowGraphFactoryImpl {
                 .type(type)
                 .config(config)
                 .inputs(extractInputs(dto.getInputSchema()))
+                .outputSchema(convertFieldSchemas(dto.getOutputSchema()))
                 .position(convertPosition(dto.getPosition()))
                 .build();
     }
@@ -150,6 +151,26 @@ public class WorkflowGraphFactoryImpl {
             }
         }
         return inputs;
+    }
+
+    private List<FieldSchema> convertFieldSchemas(List<FieldSchemaDTO> fieldSchemas) {
+        if (fieldSchemas == null || fieldSchemas.isEmpty()) {
+            return List.of();
+        }
+
+        return fieldSchemas.stream()
+                .map(field -> FieldSchema.builder()
+                        .key(field.getKey())
+                        .label(field.getLabel())
+                        .type(field.getType())
+                        .description(field.getDescription())
+                        .required(field.getRequired())
+                        .defaultValue(field.getDefaultValue())
+                        .sourceRef(field.getSourceRef())
+                        .reducerType(field.getReducerType())
+                        .system(field.getSystem())
+                        .build())
+                .toList();
     }
 
     /**
