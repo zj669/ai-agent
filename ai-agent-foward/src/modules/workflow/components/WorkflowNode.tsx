@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef } from "react";
-import { Handle, Position, useReactFlow } from "@xyflow/react";
+import { Handle, Position, useReactFlow, type Edge, type Node } from "@xyflow/react";
 import { cn } from "../../../lib/utils";
 import { useEditorStore } from "../stores/useEditorStore";
 import { NodeTargetHandle, NodeSourceHandle } from "./NodeHandle";

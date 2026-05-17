@@ -87,6 +87,10 @@ function TemplateTextControl({
     setTrigger(getTemplateTrigger(input.value, cursor))
   }
 
+  const setInputRef = (node: HTMLInputElement | HTMLTextAreaElement | null) => {
+    inputRef.current = node
+  }
+
   const handleChange = (nextValue: string, cursor: number) => {
     selectionRef.current = { start: cursor, end: cursor }
     onChange(nextValue)
@@ -112,7 +116,6 @@ function TemplateTextControl({
 
   const commonProps = {
     id,
-    ref: inputRef,
     className: multiline ? `${inputClass} min-h-[80px] resize-y` : inputClass,
     placeholder,
     value,
@@ -142,7 +145,11 @@ function TemplateTextControl({
 
   return (
     <div className="relative">
-      {multiline ? <textarea {...commonProps} /> : <input {...commonProps} type="text" />}
+      {multiline ? (
+        <textarea {...commonProps} ref={(node) => setInputRef(node)} />
+      ) : (
+        <input {...commonProps} ref={(node) => setInputRef(node)} type="text" />
+      )}
 
       {trigger && (
         <div className="absolute left-0 top-full z-50 mt-1 max-h-56 w-72 overflow-y-auto rounded-md border border-slate-200 bg-white shadow-lg">

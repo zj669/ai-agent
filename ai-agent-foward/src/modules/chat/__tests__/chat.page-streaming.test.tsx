@@ -377,11 +377,13 @@ describe("chat page streaming", () => {
     if (!resumeHandlers || !completeResumeStream) {
       throw new Error("resume stream handlers were not captured");
     }
+    const capturedResumeHandlers = resumeHandlers;
+    const resolveResumeStream = completeResumeStream;
 
     await act(async () => {
-      resumeHandlers.onDelta?.("恢复后的结果");
-      resumeHandlers.onFinish?.();
-      completeResumeStream();
+      capturedResumeHandlers.onDelta?.("恢复后的结果");
+      capturedResumeHandlers.onFinish?.();
+      resolveResumeStream();
     });
 
     expect(

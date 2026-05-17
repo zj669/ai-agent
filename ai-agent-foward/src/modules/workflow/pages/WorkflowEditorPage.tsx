@@ -374,7 +374,7 @@ function buildConditionConfigFromBackend(
   const usedEdgeIds = new Set<string>();
 
   const branches = branchesRaw
-    .map((raw) => {
+    .map((raw): UiConditionBranch | null => {
       if (!isRecord(raw)) return null;
       const isDefault = raw.isDefault === true;
       const targetNodeId =
@@ -397,7 +397,7 @@ function buildConditionConfigFromBackend(
         ? conditionItemsToUiConditions(firstGroup.conditions)
         : [];
 
-      return {
+      const branch: UiConditionBranch = {
         id:
           typeof edge?.sourceHandle === "string" && edge.sourceHandle
             ? edge.sourceHandle
@@ -429,9 +429,13 @@ function buildConditionConfigFromBackend(
                   valueType: "literal",
                 },
               ],
-        description:
-          typeof raw.description === "string" ? raw.description : undefined,
-      } satisfies UiConditionBranch;
+      };
+
+      if (typeof raw.description === "string") {
+        branch.description = raw.description;
+      }
+
+      return branch;
     })
     .filter((item): item is UiConditionBranch => item !== null);
 
