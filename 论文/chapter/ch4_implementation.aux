@@ -1,18 +1,87 @@
 \relax 
 \providecommand\hyper@newdestlabel[2]{}
+\@writefile{toc}{\contentsline {chapter}{\numberline {第4章\hspace  {.3em}}智能体编排系统详细设计与实现}{15}{chapter.4}\protected@file@percent }
 \@writefile{lof}{\addvspace {10.0pt}}
 \@writefile{lot}{\addvspace {10.0pt}}
-\newlabel{fig:auth_ui}{{\rEfLiNK{x1-36046r1}{\csname :autoref\endcsname{figure}4-1}}{\rEfLiNK{x1-36046r1}{\csname :autoref\endcsname{figure}53}}{\rEfLiNK{x1-36046r4.1.1}{\csname :autoref\endcsname{figure}用户认证界面}}{figure.1}{}}
-\newlabel{fig:agent_editor}{{\rEfLiNK{x1-38012r2}{\csname :autoref\endcsname{figure}4-2}}{\rEfLiNK{x1-38012r2}{\csname :autoref\endcsname{figure}56}}{\rEfLiNK{x1-38012r4.2.1}{\csname :autoref\endcsname{figure}Agent 可视化编排界面}}{figure.1}{}}
-\newlabel{fig:agent_list}{{\rEfLiNK{x1-39025r3}{\csname :autoref\endcsname{figure}4-3}}{\rEfLiNK{x1-39025r3}{\csname :autoref\endcsname{figure}59}}{\rEfLiNK{x1-39025r4.2.2}{\csname :autoref\endcsname{figure}Agent 列表与版本管理界面}}{figure.1}{}}
-\newlabel{fig:wf_exec}{{\rEfLiNK{x1-41016r4}{\csname :autoref\endcsname{figure}4-4}}{\rEfLiNK{x1-41016r4}{\csname :autoref\endcsname{figure}62}}{\rEfLiNK{x1-41016r4.3.1}{\csname :autoref\endcsname{figure}工作流执行界面}}{figure.1}{}}
-\newlabel{tab:trigger_phase}{{\rEfLiNK{x1-45001r1}{\csname :autoref\endcsname{table}4-1}}{\rEfLiNK{x1-45001r1}{\csname :autoref\endcsname{table}66}}{\rEfLiNK{x1-45001r4.4.1}{\csname :autoref\endcsname{table}人工检查点两种触发阶段对比}}{table.1}{}}
-\newlabel{fig:review_panel}{{\rEfLiNK{x1-45026r5}{\csname :autoref\endcsname{figure}4-5}}{\rEfLiNK{x1-45026r5}{\csname :autoref\endcsname{figure}69}}{\rEfLiNK{x1-45026r4.4.1}{\csname :autoref\endcsname{figure}人工检查点审批界面}}{figure.1}{}}
-\newlabel{fig:resume_ui}{{\rEfLiNK{x1-46025r6}{\csname :autoref\endcsname{figure}4-6}}{\rEfLiNK{x1-46025r6}{\csname :autoref\endcsname{figure}72}}{\rEfLiNK{x1-46025r4.4.2}{\csname :autoref\endcsname{figure}人工检查点准备审核界面}}{figure.1}{}}
-\newlabel{fig:knowledge_ui}{{\rEfLiNK{x1-48022r7}{\csname :autoref\endcsname{figure}4-7}}{\rEfLiNK{x1-48022r7}{\csname :autoref\endcsname{figure}75}}{\rEfLiNK{x1-48022r4.5.1}{\csname :autoref\endcsname{figure}知识库管理界面}}{figure.1}{}}
-\newlabel{tab:dev_challenges}{{\rEfLiNK{x1-55001r2}{\csname :autoref\endcsname{table}4-2}}{\rEfLiNK{x1-55001r2}{\csname :autoref\endcsname{table}81}}{\rEfLiNK{x1-55001r4.6.5}{\csname :autoref\endcsname{table}主要开发难点与解决方案汇总}}{table.1}{}}
+\@writefile{toc}{\contentsline {section}{\numberline {4.1}用户认证与系统安全支撑实现}{15}{section.4.1}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {4.1.1}注册、登录与密码找回流程}{15}{subsection.4.1.1}\protected@file@percent }
+\@writefile{lol}{\contentsline {lstlisting}{\numberline {4.1}{\ignorespaces UserAuthenticationDomainService 用户认证核心逻辑}}{15}{lstlisting.4.1}\protected@file@percent }
+\newlabel{fig:auth_flow_a}{{4-1a}{16}{邮箱验证码注册}{figure.caption.8}{}}
+\newlabel{sub@fig:auth_flow_a}{{a}{16}{邮箱验证码注册}{figure.caption.8}{}}
+\newlabel{fig:auth_flow_b}{{4-1b}{16}{登录与令牌签发}{figure.caption.8}{}}
+\newlabel{sub@fig:auth_flow_b}{{b}{16}{登录与令牌签发}{figure.caption.8}{}}
+\@writefile{lof}{\contentsline {figure}{\numberline {4-1}{\ignorespaces 用户注册与登录流程图}}{16}{figure.caption.8}\protected@file@percent }
+\newlabel{fig:auth_flow}{{4-1}{16}{用户注册与登录流程图}{figure.caption.8}{}}
+\@writefile{lol}{\contentsline {lstlisting}{\numberline {4.2}{\ignorespaces EmailServiceImpl 验证码异步发送}}{16}{lstlisting.4.2}\protected@file@percent }
+\@writefile{toc}{\contentsline {section}{\numberline {4.2}Agent 管理与可视化编排实现}{17}{section.4.2}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {4.2.1}Agent 创建与版本管理}{17}{subsection.4.2.1}\protected@file@percent }
+\@writefile{lof}{\contentsline {figure}{\numberline {4-2}{\ignorespaces 用户认证界面}}{18}{figure.caption.9}\protected@file@percent }
+\newlabel{fig:auth_ui}{{4-2}{18}{用户认证界面}{figure.caption.9}{}}
+\newlabel{fig:agent_create_draft_flow}{{4-3a}{18}{创建与草稿保存}{figure.caption.10}{}}
+\newlabel{sub@fig:agent_create_draft_flow}{{a}{18}{创建与草稿保存}{figure.caption.10}{}}
+\newlabel{fig:agent_publish_flow}{{4-3b}{18}{发布与版本管理}{figure.caption.10}{}}
+\newlabel{sub@fig:agent_publish_flow}{{b}{18}{发布与版本管理}{figure.caption.10}{}}
+\@writefile{lof}{\contentsline {figure}{\numberline {4-3}{\ignorespaces Agent 创建与发布流程图}}{18}{figure.caption.10}\protected@file@percent }
+\newlabel{fig:agent_create_flow}{{4-3}{18}{Agent 创建与发布流程图}{figure.caption.10}{}}
+\@writefile{lol}{\contentsline {lstlisting}{\numberline {4.3}{\ignorespaces AgentApplicationService Agent 发布关键代码}}{18}{lstlisting.4.3}\protected@file@percent }
+\@writefile{lof}{\contentsline {figure}{\numberline {4-4}{\ignorespaces Agent 可视化编排界面}}{19}{figure.caption.11}\protected@file@percent }
+\newlabel{fig:agent_editor}{{4-4}{19}{Agent 可视化编排界面}{figure.caption.11}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {4.2.2}工作流图定义与运行时衔接}{19}{subsection.4.2.2}\protected@file@percent }
+\@writefile{lol}{\contentsline {lstlisting}{\numberline {4.4}{\ignorespaces SchedulerService graphJson 装载与工作流图解析}}{20}{lstlisting.4.4}\protected@file@percent }
+\@writefile{lof}{\contentsline {figure}{\numberline {4-5}{\ignorespaces Agent 列表与版本管理界面}}{21}{figure.caption.12}\protected@file@percent }
+\newlabel{fig:agent_list}{{4-5}{21}{Agent 列表与版本管理界面}{figure.caption.12}{}}
+\@writefile{toc}{\contentsline {section}{\numberline {4.3}工作流调度执行实现}{21}{section.4.3}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {4.3.1}工作流执行启动模块}{21}{subsection.4.3.1}\protected@file@percent }
+\@writefile{lol}{\contentsline {lstlisting}{\numberline {4.5}{\ignorespaces SchedulerService startExecution 启动流程关键代码}}{21}{lstlisting.4.5}\protected@file@percent }
+\@writefile{lof}{\contentsline {figure}{\numberline {4-6}{\ignorespaces 工作流执行流程图}}{22}{figure.caption.13}\protected@file@percent }
+\newlabel{fig:exec_flow}{{4-6}{22}{工作流执行流程图}{figure.caption.13}{}}
+\@writefile{lof}{\contentsline {figure}{\numberline {4-7}{\ignorespaces 工作流执行界面}}{22}{figure.caption.14}\protected@file@percent }
+\newlabel{fig:wf_exec}{{4-7}{22}{工作流执行界面}{figure.caption.14}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {4.3.2}DAG 调度核心模块}{23}{subsection.4.3.2}\protected@file@percent }
+\@writefile{lol}{\contentsline {lstlisting}{\numberline {4.6}{\ignorespaces Execution.advance() DAG 调度推进关键代码}}{23}{lstlisting.4.6}\protected@file@percent }
+\@writefile{lol}{\contentsline {lstlisting}{\numberline {4.7}{\ignorespaces Execution.skipNodeRecursively() 条件分支路径剪枝}}{24}{lstlisting.4.7}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {4.3.3}节点执行器策略模式}{24}{subsection.4.3.3}\protected@file@percent }
+\@writefile{lol}{\contentsline {lstlisting}{\numberline {4.8}{\ignorespaces NodeExecutorStrategy 接口定义}}{24}{lstlisting.4.8}\protected@file@percent }
+\@writefile{toc}{\contentsline {section}{\numberline {4.4}人工检查点与工作流恢复机制}{25}{section.4.4}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {4.4.1}人工检查点触发模块}{25}{subsection.4.4.1}\protected@file@percent }
+\@writefile{lof}{\contentsline {figure}{\numberline {4-8}{\ignorespaces 人工检查点审批流程图}}{25}{figure.caption.15}\protected@file@percent }
+\newlabel{fig:review_flow}{{4-8}{25}{人工检查点审批流程图}{figure.caption.15}{}}
+\@writefile{lot}{\contentsline {table}{\numberline {4-1}{\ignorespaces 人工检查点两种触发阶段对比}}{26}{table.caption.16}\protected@file@percent }
+\newlabel{tab:trigger_phase}{{4-1}{26}{人工检查点两种触发阶段对比}{table.caption.16}{}}
+\@writefile{lol}{\contentsline {lstlisting}{\numberline {4.9}{\ignorespaces SchedulerService.checkPause() 人工检查点触发判断}}{26}{lstlisting.4.9}\protected@file@percent }
+\@writefile{lof}{\contentsline {figure}{\numberline {4-9}{\ignorespaces 人工检查点审批界面}}{27}{figure.caption.17}\protected@file@percent }
+\newlabel{fig:review_panel}{{4-9}{27}{人工检查点审批界面}{figure.caption.17}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {4.4.2}工作流恢复模块}{27}{subsection.4.4.2}\protected@file@percent }
+\@writefile{lol}{\contentsline {lstlisting}{\numberline {4.10}{\ignorespaces SchedulerService.resumeExecution() 工作流恢复关键代码}}{27}{lstlisting.4.10}\protected@file@percent }
+\@writefile{lof}{\contentsline {figure}{\numberline {4-10}{\ignorespaces 人工检查点准备审核界面}}{28}{figure.caption.18}\protected@file@percent }
+\newlabel{fig:resume_ui}{{4-10}{28}{人工检查点准备审核界面}{figure.caption.18}{}}
+\@writefile{toc}{\contentsline {section}{\numberline {4.5}知识库与检索增强实现}{28}{section.4.5}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {4.5.1}知识数据集与文档接入流程}{28}{subsection.4.5.1}\protected@file@percent }
+\newlabel{fig:knowledge_flow_a}{{4-11a}{29}{上传与向量化（异步处理）}{figure.caption.19}{}}
+\newlabel{sub@fig:knowledge_flow_a}{{a}{29}{上传与向量化（异步处理）}{figure.caption.19}{}}
+\newlabel{fig:knowledge_flow_b}{{4-11b}{29}{工作流执行时的检索增强}{figure.caption.19}{}}
+\newlabel{sub@fig:knowledge_flow_b}{{b}{29}{工作流执行时的检索增强}{figure.caption.19}{}}
+\@writefile{lof}{\contentsline {figure}{\numberline {4-11}{\ignorespaces 知识库检索增强流程图}}{29}{figure.caption.19}\protected@file@percent }
+\newlabel{fig:knowledge_flow}{{4-11}{29}{知识库检索增强流程图}{figure.caption.19}{}}
+\@writefile{lol}{\contentsline {lstlisting}{\numberline {4.11}{\ignorespaces KnowledgeApplicationService 文档上传与异步处理}}{29}{lstlisting.4.11}\protected@file@percent }
+\@writefile{lof}{\contentsline {figure}{\numberline {4-12}{\ignorespaces 知识库管理界面}}{30}{figure.caption.20}\protected@file@percent }
+\newlabel{fig:knowledge_ui}{{4-12}{30}{知识库管理界面}{figure.caption.20}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {4.5.2}异步分块、向量化与检索增强}{30}{subsection.4.5.2}\protected@file@percent }
+\@writefile{lol}{\contentsline {lstlisting}{\numberline {4.12}{\ignorespaces AsyncDocumentProcessor 文档分块与向量化处理}}{31}{lstlisting.4.12}\protected@file@percent }
+\@writefile{lol}{\contentsline {lstlisting}{\numberline {4.13}{\ignorespaces MilvusVectorStoreAdapter 知识检索接口}}{31}{lstlisting.4.13}\protected@file@percent }
+\@writefile{toc}{\contentsline {section}{\numberline {4.6}系统开发难点与解决方案}{32}{section.4.6}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {4.6.1}DAG 环检测与死锁防护}{32}{subsection.4.6.1}\protected@file@percent }
+\@writefile{lol}{\contentsline {lstlisting}{\numberline {4.14}{\ignorespaces WorkflowGraph.hasCycle() DFS 递归栈环检测}}{32}{lstlisting.4.14}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {4.6.2}人工审批并发一致性保障}{33}{subsection.4.6.2}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {4.6.3}BEFORE\_EXECUTION 审批后防重复暂停}{33}{subsection.4.6.3}\protected@file@percent }
+\@writefile{lol}{\contentsline {lstlisting}{\numberline {4.15}{\ignorespaces checkPause() 已审批节点跳过逻辑}}{33}{lstlisting.4.15}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {4.6.4}SSE 长连接稳定性与心跳保活}{34}{subsection.4.6.4}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {4.6.5}文档向量化阻塞上传接口}{34}{subsection.4.6.5}\protected@file@percent }
+\@writefile{lot}{\contentsline {table}{\numberline {4-2}{\ignorespaces 主要开发难点与解决方案汇总}}{35}{table.caption.21}\protected@file@percent }
+\newlabel{tab:dev_challenges}{{4-2}{35}{主要开发难点与解决方案汇总}{table.caption.21}{}}
+\@writefile{toc}{\contentsline {section}{\numberline {4.7}本章小结}{35}{section.4.7}\protected@file@percent }
 \@setckpt{chapter/ch4_implementation}{
-\setcounter{page}{84}
+\setcounter{page}{36}
 \setcounter{equation}{0}
 \setcounter{enumi}{0}
 \setcounter{enumii}{0}
@@ -27,7 +96,7 @@
 \setcounter{subsubsection}{0}
 \setcounter{paragraph}{0}
 \setcounter{subparagraph}{0}
-\setcounter{figure}{7}
+\setcounter{figure}{12}
 \setcounter{table}{2}
 \setcounter{parentequation}{0}
 \setcounter{lstnumber}{4}
@@ -37,6 +106,10 @@
 \setcounter{lotdepth}{1}
 \setcounter{NAT@ctr}{0}
 \setcounter{section@level}{0}
+\setcounter{Item}{0}
+\setcounter{Hfootnote}{0}
+\setcounter{Hy@AnnotLevel}{0}
+\setcounter{bookmark@seq@number}{56}
 \setcounter{theorem}{0}
 \setcounter{definition}{0}
 \setcounter{example}{0}

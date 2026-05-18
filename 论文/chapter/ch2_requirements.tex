@@ -102,26 +102,6 @@ Agent 管理是系统的入口能力。
 保证后续工作流执行时不会受到草稿继续编辑的影响。
 当业务流程调整出现问题时，应用构建者应能够查看历史版本并回滚到稳定版本。
 
-Agent 创建、草稿保存、发布与版本管理流程如图~\ref{fig:agent_create_draft_flow}~和图~\ref{fig:agent_publish_flow}~所示。
-
-\begin{figure}[!htbp]
-  \centering
-  \begin{subfigure}[b]{0.48\textwidth}
-    \centering
-    \includegraphics[width=\textwidth]{figures/fig_agent_create_draft_flow.png}
-    \caption{创建与草稿保存}
-    \label{fig:agent_create_draft_flow}
-  \end{subfigure}
-  \begin{subfigure}[b]{0.48\textwidth}
-    \centering
-    \includegraphics[width=\textwidth]{figures/fig_agent_publish_flow.png}
-    \caption{发布与版本管理}
-    \label{fig:agent_publish_flow}
-  \end{subfigure}
-  \caption{Agent 创建与发布流程图}
-  \label{fig:agent_create_flow}
-\end{figure}
-
 \subsection{工作流调度执行需求}
 
 工作流执行是业务使用者直接感知系统价值的核心链路。
@@ -139,29 +119,11 @@ Agent 创建、草稿保存、发布与版本管理流程如图~\ref{fig:agent_c
 系统还应持久化执行记录和关键节点日志，
 为后续复盘、审计和优化提供依据。
 
-工作流执行的完整流程如图~\ref{fig:exec_flow}~所示。
-
-\begin{figure}[!htbp]
-  \centering
-  \includegraphics[width=0.42\textwidth]{figures/fig_exec_flow.png}
-  \caption{工作流执行流程图}
-  \label{fig:exec_flow}
-\end{figure}
-
 \subsection{人工审核与流程恢复需求}
 
 人工审核是本系统区别于普通自动化 Agent 平台的重要能力。应用构建者可以在关键节点配置人工检查点，检查点可设置在节点执行前或执行后。当工作流运行到检查点时，系统应暂停当前执行，保存执行上下文和待审核内容，并向前端推送暂停事件。
 
 业务使用者在审批界面中查看当前节点的输入、输出和上下文信息，并根据业务要求选择直接通过、修改中间结果后通过，或拒绝并终止工作流。系统在审批提交时需要校验执行状态和版本号，防止多人同时审批造成状态覆盖，同时记录审批人、审批时间、审批结果、修改内容和备注，以满足业务追溯要求。
-
-人工检查点审批流程如图~\ref{fig:review_flow}~所示。
-
-\begin{figure}[H]
-  \centering
-  \includegraphics[width=0.54\textwidth]{figures/fig_humen_review.png}
-  \caption{人工检查点审批流程图}
-  \label{fig:review_flow}
-\end{figure}
 
 \subsection{知识库与检索增强需求}
 
@@ -177,26 +139,6 @@ Agent 创建、草稿保存、发布与版本管理流程如图~\ref{fig:agent_c
 当向量检索服务不可用时，系统应记录异常并支持降级执行，
 避免知识检索失败直接阻断非关键业务链路。
 
-知识库从文档上传入库到运行时检索增强的流程如图~\ref{fig:knowledge_flow}~所示。
-
-\begin{figure}[!htbp]
-  \centering
-  \begin{subfigure}[b]{0.48\textwidth}
-    \centering
-    \includegraphics[width=\textwidth]{figures/fig_knowledge_upload.png}
-    \caption{上传与向量化（异步处理）}
-    \label{fig:knowledge_flow_a}
-  \end{subfigure}
-  \begin{subfigure}[b]{0.48\textwidth}
-    \centering
-    \includegraphics[width=\textwidth]{figures/fig_knowledge_exec.png}
-    \caption{工作流执行时的检索增强}
-    \label{fig:knowledge_flow_b}
-  \end{subfigure}
-  \caption{知识库检索增强流程图}
-  \label{fig:knowledge_flow}
-\end{figure}
-
 \subsection{用户认证与安全支撑需求}
 
 用户认证是系统所有业务功能的访问基础。
@@ -209,26 +151,6 @@ Agent 创建、草稿保存、发布与版本管理流程如图~\ref{fig:agent_c
 后端根据令牌识别用户身份并进行访问控制。
 对于 Agent 管理、工作流执行、审批决策、知识库维护等业务接口，
 系统应拒绝未认证请求。
-
-用户注册与登录流程如图~\ref{fig:auth_flow}~所示。
-
-\begin{figure}[!htbp]
-  \centering
-  \begin{subfigure}[b]{0.48\textwidth}
-    \centering
-    \includegraphics[width=\textwidth]{figures/fig_user_register_mail.png}
-    \caption{邮箱验证码注册}
-    \label{fig:auth_flow_a}
-  \end{subfigure}
-  \begin{subfigure}[b]{0.48\textwidth}
-    \centering
-    \includegraphics[width=\textwidth]{figures/fig_user_register_token.png}
-    \caption{登录与令牌签发}
-    \label{fig:auth_flow_b}
-  \end{subfigure}
-  \caption{用户注册与登录流程图}
-  \label{fig:auth_flow}
-\end{figure}
 
 \section{非功能需求}
 
