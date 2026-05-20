@@ -1,4 +1,0 @@
-{"file": ".claude/commands/trellis/finish-work.md", "reason": "Finish work checklist"}
-{"file": ".claude/commands/trellis/check-frontend.md", "reason": "Frontend check spec"}
-{"file": "ai-agent-foward/src/modules/chat/pages/ChatPage.tsx", "reason": "主要修改文件"}
-{"file": "ai-agent-foward/src/index.css", "reason": "新增动画和样式"}

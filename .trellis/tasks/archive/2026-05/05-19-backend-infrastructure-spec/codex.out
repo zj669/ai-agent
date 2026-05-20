@@ -1,0 +1,41 @@
+已完成 `.trellis/tasks/05-19-backend-infrastructure-spec/` PRD 要求的后端基础设施规范任务。
+
+**创建/修改文件**
+- 新建：[infrastructure-layer.md](/home/zj669/repo/ai-agent/.trellis/spec/backend/infrastructure-layer.md:1)  
+  行数：`496`
+- 重写：[database-guidelines.md](/home/zj669/repo/ai-agent/.trellis/spec/backend/database-guidelines.md:1)  
+  行数：`587`
+
+**执行情况**
+- 已完整读取 PRD：[prd.md](/home/zj669/repo/ai-agent/.trellis/tasks/05-19-backend-infrastructure-spec/prd.md:1)。
+- 已按 Trellis 前置流程读取项目入口、backend spec 索引、shared thinking guides。
+- 已使用 GitNexus：
+  - 确认 `ai-agent` 索引可用。
+  - 枚举 `ai-agent-infrastructure` 下的 adapter/repository 实现。
+  - 读取 `MilvusVectorStoreAdapter`、`RedisExecutionRepository`、`RedisSsePublisher`、`RedisSseStreamPublisherFactory`、`IRedisService` 上下文。
+  - 对 `IRedisService` 执行 upstream impact，结果为 `MEDIUM`，直接影响 `8` 个文件，用于确认 Redis wrapper 扩散范围。
+- ABCoder MCP 已按要求尝试调用，但 `list_repos` 与 `get_repo_structure` 均返回 `user cancelled MCP tool call`；PRD 同时注明 “Java parse skipped. Use GitNexus + direct file reads.”，因此后续按 GitNexus + 只读源码/DDL 证据执行。
+- 未运行任何 `git` 命令。
+- 未修改 `ai-agent-*/` 下任何源码；用 `find ai-agent-* -type f -mmin -10` 校验未发现本轮近期源码文件改动。
+- 未修改其他任务目录。
+- 本轮通过 `apply_patch` 实际创建/修改的文件仅为上述两个 PRD 授权文件。
+
+**验收校验**
+- 两个文件均存在且超过 `100` 行：`496` / `587`。
+- `infrastructure-layer.md` 包含真实 adapter walkthrough：
+  - `ExecutionRepository -> RedisExecutionRepository`
+  - `WorkflowNodeExecutionLogRepository -> WorkflowNodeExecutionLogRepositoryImpl`
+  - 同时覆盖 Milvus、MinIO、Redis SSE、Spring AI 动态模型配置。
+- `database-guidelines.md` 包含真实 DDL 示例：
+  - `agent_info`
+  - `workflow_node_execution_log`
+  - `llm_provider_config`
+- 已明确记录：
+  - MySQL 8.x + MyBatis Plus，不使用 JPA。
+  - 单一 schema 文件：`docker/init/mysql/01_init_schema.sql`。
+  - `NO Flyway / Liquibase` 约束。
+  - `IRedisService` / `RedissonService` 是当前代码事实中的 Redis wrapper；并注明 PRD/CLAUDE.md 中 “RedisService” 是 wrapper 约束表述，当前实现名为 `IRedisService`。
+  - Spring AI auto-config 被禁用，模型按用户配置动态构建。
+  - 当前代码没有 `ChatModelPort` / `OpenAiChatModelAdapter` 类，文档没有伪造该实现，而是记录真实入口：`LlmConfigService`、`LlmNodeExecutorStrategy`、`ConditionNodeExecutorStrategy`、`SwarmLlmCaller`。
+- 已检查无模板残留：未发现 `To be filled`、`TODO`、`TBD`、`FIXME`、HTML placeholder 注释。
+- 未运行 Maven/前端测试；本任务只改 Trellis 文档，已执行文档范围校验、行数校验、章节关键词校验、placeholder 校验与源码目录未改动校验。

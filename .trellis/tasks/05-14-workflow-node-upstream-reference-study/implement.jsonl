@@ -1,9 +1,0 @@
-{"file": ".trellis/workflow.md", "reason": "Project workflow and conventions"}
-{"file": ".trellis/spec/backend/index.md", "reason": "Backend development guide"}
-{"file": ".trellis/spec/frontend/index.md", "reason": "Frontend development guide"}
-{"file": "ai-agent-foward/src/modules/workflow/components/WorkflowNode.tsx", "reason": "Builds direct upstream variable options from incoming edges and outputSchema"}
-{"file": "ai-agent-foward/src/modules/workflow/components/NodeConfigTabs.tsx", "reason": "Persists selected sourceRef on inputSchema fields"}
-{"file": "ai-agent-foward/src/modules/workflow/pages/WorkflowEditorPage.tsx", "reason": "Normalizes schemas and serializes graphJson payload"}
-{"file": "ai-agent-infrastructure/src/main/java/com/zj/aiagent/infrastructure/workflow/graph/WorkflowGraphFactoryImpl.java", "reason": "Extracts inputSchema sourceRef/defaultValue into Node.inputs"}
-{"file": "ai-agent-infrastructure/src/main/java/com/zj/aiagent/infrastructure/workflow/expression/ExpressionResolver.java", "reason": "Resolves node output references and legacy backend references"}
-{"file": "ai-agent-application/src/main/java/com/zj/aiagent/application/workflow/SchedulerService.java", "reason": "Resolves node inputs before executor and writes outputs to context"}

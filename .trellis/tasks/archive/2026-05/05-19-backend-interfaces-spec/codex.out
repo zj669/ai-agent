@@ -1,0 +1,37 @@
+已完成 `.trellis/tasks/05-19-backend-interfaces-spec/` 的 PRD 执行，未运行任何 `git` 命令，未修改 `ai-agent-*/` 下源码。
+
+主要结果：
+
+- 新增 [interfaces-layer.md](/home/zj669/repo/ai-agent/.trellis/spec/backend/interfaces-layer.md)
+- 文档为英文，符合 `.trellis/spec/backend/index.md` 对 backend spec 文档语言的要求。
+- 内容覆盖 PRD 要求的全部章节：
+  - `Purpose And Boundaries`
+  - `Controller Naming And Layout`
+  - `Path Conventions`
+  - `REST Controller Pattern`
+  - `SSE And Streaming`
+  - `Error Translation`
+  - `Spring Configuration Beans`
+  - `Auth And Security`
+  - `Anti-Patterns`
+- 已明确记录 `/client/user` 是 `UserController` 的真实前缀，并明确禁止写成 `/api/user`。
+- 已列出并校验 16 个 `*Controller` 的真实路径，包括 `Swarm*Controller` 的 method-level `/api/swarm/**` 路由。
+- 已加入 REST 示例：`AgentController#createAgent`。
+- 已加入 SSE 示例：`WorkflowController#startExecution`、Redis channel 订阅、`RedisSseListener`、heartbeat cleanup、`RedisSsePublisher` 经 `IRedisService` 发布的桥接模式。
+- 已记录 WebSocket 当前实现：`/ws` SockJS STOMP endpoint、`/topic`/`/queue` broker、`WebSocketMessageService` 推送路径。
+
+验证结果：
+
+- `wc -l .trellis/spec/backend/interfaces-layer.md`：`577` 行，满足 100+ 行要求。
+- 必需章节均存在。
+- 占位符检查无命中：`TODO`、`TBD`、`placeholder`、`To be filled`、`Replace with` 均未出现。
+- `ai-agent-*` 源码目录近期写入扫描无输出，本次未改源码。
+- ABCoder MCP 按要求尝试调用了 `list_repos` 与 `get_repo_structure`，但工具返回 `user cancelled MCP tool call`；PRD 同时注明 “Java parse skipped. Use GitNexus + direct reads.”，所以实际完成路径为 GitNexus + 直接只读源码校验。
+
+本次创建或修改的文件清单：
+
+| 动作 | 文件 |
+| --- | --- |
+| 创建 | `.trellis/spec/backend/interfaces-layer.md` |
+
+修改的既有文件：无。

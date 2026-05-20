@@ -1,0 +1,26 @@
+完成。已按 PRD 重建 `.trellis/spec/frontend/`，只创建/修改 PRD 授权的 frontend spec 文件；未修改 `ai-agent-foward/` 下任何源码；未运行任何 `git` 命令。
+
+执行与验证要点：
+
+- 已完整读取 `.trellis/tasks/05-19-frontend-spec/prd.md`，确认共 `132` 行；未发现 `design.md` 或 `implement.md`。
+- 已加载全局上下文：`README.md`、`docs/PROJECT_QUICK_CONTEXT.md`。
+- 已加载模块 AGENT：`workflow`、`chat`、`swarm`、`auth`。
+- 已使用 GitNexus：
+  - `cypher` 验证 `ai-agent-foward/src/` 真实文件结构。
+  - `query` 查找 frontend SSE/workflow 相关流程。
+  - `context` 查看 `useEditorStore`、`startChatStream`、`subscribeUIStream`、`WorkflowEditorPage`。
+- 已尝试 ABCoder MCP：
+  - `list_repos`、`get_repo_structure`、`get_file_structure` 均返回 `user cancelled MCP tool call`。
+  - 因 MCP 调用不可用，改用 PRD 指定的本地 AST 产物 `~/abcoder-asts/ai-agent-foward.json` 做补充核验，确认相关 TS 符号路径存在。
+- 已验证正文 spec 行数：除 `index.md` 外 5 个 substantive 文件均超过 `80` 行。
+- 已扫描占位文本：未发现 `TODO`、`TBD`、`placeholder`、`FIXME` 等占位内容。
+- 未运行前端 lint/typecheck/test，因为本次只新增 Markdown spec，没有修改 TypeScript/React 源码。
+
+创建/修改的文件如下：
+
+- [.trellis/spec/frontend/index.md](/home/zj669/repo/ai-agent/.trellis/spec/frontend/index.md)
+- [.trellis/spec/frontend/directory-structure.md](/home/zj669/repo/ai-agent/.trellis/spec/frontend/directory-structure.md)
+- [.trellis/spec/frontend/state-management.md](/home/zj669/repo/ai-agent/.trellis/spec/frontend/state-management.md)
+- [.trellis/spec/frontend/api-and-sse.md](/home/zj669/repo/ai-agent/.trellis/spec/frontend/api-and-sse.md)
+- [.trellis/spec/frontend/component-guidelines.md](/home/zj669/repo/ai-agent/.trellis/spec/frontend/component-guidelines.md)
+- [.trellis/spec/frontend/quality-guidelines.md](/home/zj669/repo/ai-agent/.trellis/spec/frontend/quality-guidelines.md)

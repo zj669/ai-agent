@@ -1,5 +1,0 @@
-{"file": ".trellis/workflow.md", "reason": "Project workflow and conventions"}
-{"file": ".trellis/spec/frontend/index.md", "reason": "Frontend development guide"}
-{"file": ".trellis/spec/frontend/directory-structure.md", "reason": "Swarm 模块文件组织规范"}
-{"file": ".trellis/spec/frontend/component-guidelines.md", "reason": "React 组件模式、API 集成、状态管理"}
-{"file": ".trellis/spec/frontend/quality-guidelines.md", "reason": "禁止模式、必需模式、提交前检查清单"}

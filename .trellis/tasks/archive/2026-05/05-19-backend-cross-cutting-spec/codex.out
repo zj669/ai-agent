@@ -1,0 +1,18 @@
+已完成 `.trellis/tasks/05-19-backend-cross-cutting-spec/` PRD 要求的 3 个后端横切规范重写。实际写入动作只作用于 PRD `Files You Own` 中列出的 3 个文件，未修改 `ai-agent-*/` 源码、未修改其他 task/spec 目录、未运行任何 git 命令。
+
+**MCP / 证据采集**
+- GitNexus 已用于定位真实代码事实：`GlobalExceptionHandler`、`Response<T>`、`AuthenticationException`、`ConditionConfigurationException`、`IRedisService`、`HttpNodeExecutorStrategy`、`SchedulerService`、`Execution` 等。
+- ABCoder MCP 已按要求尝试调用，但 `list_repos` 与 `get_repo_structure` 均返回 `user cancelled MCP tool call`；PRD 也明确写了 “Java parse skipped. Use GitNexus + direct reads.”，所以后续按 GitNexus + 精确源码读取执行。
+- 直接读取了 `CLAUDE.md` 中 `Code Reuse Requirements`、`Naming Conventions`、`Common Pitfalls`，并结合源码/SQL 实现落入文档。
+
+**已修改文件**
+- [error-handling.md](/home/zj669/repo/ai-agent/.trellis/spec/backend/error-handling.md): 重写为 303 行，覆盖异常层级、分层职责、`@RestControllerAdvice`、`Response<T>` 结构、SSE/async 特例和反模式。
+- [logging-guidelines.md](/home/zj669/repo/ai-agent/.trellis/spec/backend/logging-guidelines.md): 重写为 260 行，覆盖 SLF4J + `@Slf4j`、日志级别、MDC/结构化字段、敏感数据、domain 层 SLF4J-only 约束和反模式。
+- [quality-guidelines.md](/home/zj669/repo/ai-agent/.trellis/spec/backend/quality-guidelines.md): 重写为 382 行，覆盖复用优先、`IRedisService`/HTTP 客户端封装、命名约定表、domain purity、数据库卫生、`SKIPPED` 状态机规则、Common Pitfalls 和 Forbidden Patterns。
+
+**校验结果**
+- 行数检查通过：3 个文件均超过 PRD 要求的 80 行。
+- 占位文本检查通过：`To be filled`、`TODO`、`PLACEHOLDER`、`TBD` 等无匹配。
+- 示例检查通过：每个文件都有至少 2 个真实代码路径示例；实际 `File:` 示例数量分别为 `error-handling.md=4`、`logging-guidelines.md=6`、`quality-guidelines.md=6`。
+- 必需章节检查通过：PRD 指定的各章节均已存在，包括 `Global Exception Handler`、`Structured Logging & MDC`、`Domain Layer Constraint`、`Naming Conventions`、`Forbidden Patterns`、`State Machine Discipline` 等。
+- 未运行 Maven/后端测试：本任务只改 Trellis Markdown 规范文件，且 PRD 明确禁止修改源码；本轮做了文档结构与内容约束校验。

@@ -1,0 +1,58 @@
+已完成 `.trellis/tasks/05-19-backend-application-spec/` 子任务。
+
+选中的模块：`Trellis / Backend Application Layer Spec`  
+已加载的模块 AGENT 列表：未加载业务模块 AGENT；本任务目标是后端应用层通用规格，不属于单个 Agent/Workflow/Chat/Knowledge 业务模块。已读取全局入口 `README.md`、`docs/PROJECT_QUICK_CONTEXT.md`，以及 Trellis backend/shared 规范。
+
+**执行结果**
+- 已完整读取 PRD。
+- 已创建 [application-layer.md](/home/zj669/repo/ai-agent/.trellis/spec/backend/application-layer.md:1)。
+- 文件共 `546` 行，满足 `100+ lines`。
+- 覆盖 PRD 要求的 8 个章节：
+  - `Purpose & Boundaries`
+  - `Application Services`
+  - `Commands & DTOs`
+  - `Transaction Management`
+  - `Orchestration Patterns`
+  - `Event Handling`
+  - `Dependency Direction`
+  - `Anti-patterns`
+- 包含多个真实代码路径与代码块，覆盖：
+  - `AgentApplicationService`
+  - `ChatApplicationService`
+  - `KnowledgeApplicationService`
+  - `SchedulerService`
+  - `AgentCommand`
+  - `AgentDetailResult`
+  - `SwarmMessageService` / `SwarmMessageEventListener`
+- 已记录 `SchedulerService` 的 canonical workflow orchestration：
+  `WorkflowController.startExecution -> SchedulerService.startExecution -> hydrateMemory -> Execution.start -> scheduleNode -> NodeExecutorStrategy -> StreamPublisher -> Execution.advance -> onExecutionComplete -> ChatApplicationService.finalizeMessage`。
+- 已写入事务边界约定，并引用真实 `@Transactional` 示例。
+- 已写入依赖方向约定，并明确标注当前代码存在 application 直接 import infrastructure 的架构漂移，作为 anti-pattern/legacy exception 处理。
+
+**工具使用情况**
+- GitNexus 已使用：
+  - `list_repos`
+  - `repo context resource`
+  - `query`
+  - `context`
+  - `cypher`
+  - `impact`
+- ABCoder 已按要求尝试：
+  - `list_repos`
+  - `get_repo_structure`
+  - 两次均返回 `user cancelled MCP tool call`
+  - PRD 本身注明 `Java parse skipped. Use GitNexus + direct reads.`，因此后续按 GitNexus + 直接读取源码完成。
+- 未运行任何 `git` 命令。
+- 未修改任何 `ai-agent-*/` 源码。
+- 未修改其他 task 或 spec 目录。
+
+**验证**
+- `wc -l`：`546 .trellis/spec/backend/application-layer.md`
+- 必需章节检查：全部存在。
+- 占位文本检查：未发现 `TODO`、`TBD`、`FIXME`、`placeholder`、`To be filled`、`Replace with` 等占位内容。
+- 源码目录最近修改检查：`ai-agent-*` 下未发现本次修改产生的文件。
+- `.trellis/spec` 最近修改检查：仅发现 `.trellis/spec/backend/application-layer.md`。
+- `trellis-check` 技能要求执行 `git diff` / `git status`，但 PRD 明确禁止 git 命令，因此我只执行了非 git 的只读校验。
+
+**文件创建/修改清单**
+- 创建并修改：[application-layer.md](/home/zj669/repo/ai-agent/.trellis/spec/backend/application-layer.md:1)

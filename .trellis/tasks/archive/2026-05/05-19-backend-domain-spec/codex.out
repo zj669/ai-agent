@@ -1,0 +1,40 @@
+已完成 `.trellis/tasks/05-19-backend-domain-spec/` 子任务。
+
+选中的模块：`Backend Domain Layer / 跨 domain bounded contexts`  
+已加载的模块 AGENT：`workflow`、`agent`、`chat`、`knowledge`、`auth`、`user`、`swarm`、`llm`、`dashboard`。同时读取了 `README.md`、`docs/PROJECT_QUICK_CONTEXT.md`、`.trellis/spec/backend/index.md`、`.trellis/spec/guides/index.md` 及相关 thinking guides。
+
+执行情况：
+
+- 已完整读取 PRD。
+- 已使用 GitNexus：
+  - `list_repos`
+  - `gitnexus://repo/ai-agent/context`
+  - `cypher` 枚举 domain classes、repositories/ports、enums、domain services
+  - `context` 查看 `Execution`、`Agent`、`Conversation`、`KnowledgeDataset`、`WorkflowGraph`
+- 已尝试使用 ABCoder MCP：
+  - `list_repos`
+  - `get_repo_structure`
+  - 两次均由环境返回 `user cancelled MCP tool call`。PRD 技术备注也说明 Java AST parse was skipped，因此后续按 PRD 推荐路径使用 GitNexus + 直接源码读取完成验证。
+- 未运行任何 `git` 命令。
+- 未修改 `ai-agent-*/` 下任何源码。
+- 未修改其他 task 或 spec 目录。
+
+创建/修改的文件：
+
+- [domain-layer.md](/home/zj669/repo/ai-agent/.trellis/spec/backend/domain-layer.md)
+
+验证结果：
+
+- 文件行数：`660` 行，满足 `100+` 行要求。
+- 必需章节齐全：
+  - `Purpose & Dependency Rules`
+  - `Aggregate Roots`
+  - `Value Objects`
+  - `Domain Services`
+  - `Repository Interfaces`
+  - `Ports & Adapters`
+  - `State Machines`
+  - `Anti-Patterns`
+- 包含 `3+` 个来自 `ai-agent-domain/` 的真实源码路径示例，实际包含 `10` 处 domain 源码路径示例。
+- 无 `TODO`、`TBD`、`placeholder` 等占位内容。
+- 文档明确记录了一个重要代码事实：PRD 声明 domain 应 framework-pure，但当前源码和 `ai-agent-domain/pom.xml` 仍存在 Spring/Jackson/Security 依赖与 Spring import，因此文档将其列为现存技术债/反模式，而不是伪造成已完全纯净。

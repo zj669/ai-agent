@@ -1,6 +1,0 @@
-{"file": ".trellis/workflow.md", "reason": "Project workflow and conventions"}
-{"file": ".trellis/spec/backend/index.md", "reason": "Backend development guide"}
-{"file": ".trellis/spec/frontend/index.md", "reason": "Frontend development guide"}
-{"file": ".trellis/spec/backend/database-guidelines.md", "reason": "数据库变更规范、MyBatis Plus 模式"}
-{"file": ".trellis/spec/backend/directory-structure.md", "reason": "DDD 层结构、模块组织"}
-{"file": ".trellis/spec/frontend/component-guidelines.md", "reason": "前端组件模式"}

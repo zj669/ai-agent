@@ -1,9 +1,0 @@
-{"file": ".trellis/workflow.md", "reason": "Project workflow and conventions"}
-{"file": ".trellis/spec/backend/index.md", "reason": "Backend development guide"}
-{"file": ".trellis/spec/backend/directory-structure.md", "reason": "DDD 模块布局和层依赖规则"}
-{"file": ".trellis/spec/backend/quality-guidelines.md", "reason": "禁止模式、命名规范、DDD 纯度规则"}
-{"file": "ai-agent-application/src/main/java/com/zj/aiagent/application/swarm/tool/SwarmToolFilter.java", "reason": "修改目标：isAllowed() 增加 mcp__ 前缀放行"}
-{"file": "ai-agent-infrastructure/src/main/java/com/zj/aiagent/infrastructure/mcp/adapter/McpToolCallbackAdapter.java", "reason": "修改目标：增加动态策略方法"}
-{"file": "ai-agent-application/src/main/java/com/zj/aiagent/application/swarm/prompt/SwarmPromptService.java", "reason": "修改目标：集成 MCP 工具到 prompt"}
-{"file": "ai-agent-domain/src/main/java/com/zj/aiagent/domain/mcp/port/IMcpToolRegistry.java", "reason": "修改目标：新增 getToolsByUserId 接口"}
-{"file": ".trellis/tasks/04-02-04-02-swarm-mcp-dynamic/prd.md", "reason": "任务需求文档，所有修改必须符合此规格"}

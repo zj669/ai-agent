@@ -1,4 +1,0 @@
-{"file": ".claude/commands/trellis/check-backend.md", "reason": "Backend check spec"}
-{"file": ".claude/commands/trellis/check-frontend.md", "reason": "Frontend check spec"}
-{"file": "ai-agent-interfaces/logs/log_info.log", "reason": "最近一次失败执行日志，包含 Executing MCP tool: null"}
-{"file": "ai-agent-interfaces/logs/log_warn.log", "reason": "SSE 后续异常和 LLM 配置测试噪声，用于区分非根因日志"}

@@ -1,4 +1,0 @@
-{"file": ".trellis/workflow.md", "reason": "Project workflow and conventions"}
-{"file": ".trellis/spec/backend/index.md", "reason": "Backend development guide"}
-{"file": ".trellis/spec/backend/directory-structure.md", "reason": "DDD module layout, naming conventions for infrastructure adapters"}
-{"file": ".trellis/spec/backend/quality-guidelines.md", "reason": "Forbidden patterns, required patterns, constructor injection, logging conventions"}
