@@ -70,3 +70,15 @@ export async function register(input: RegisterRequest, client: ApiClientLike = a
   const response = await client.post<ApiResponse<LoginDataDTO>>('/client/user/email/register', input)
   return unwrapResponse(response)
 }
+
+interface ResetPasswordRequest {
+  email: string
+  code: string
+  newPassword: string
+  confirmPassword: string
+}
+
+export async function resetPassword(input: ResetPasswordRequest, client: ApiClientLike = apiClient): Promise<void> {
+  const response = await client.post<ApiResponse<null>>('/client/user/resetPassword', input)
+  unwrapResponse(response)
+}

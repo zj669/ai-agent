@@ -4,6 +4,7 @@ import { Form, Input, Button, Typography, message, Steps } from 'antd'
 import { LockOutlined, MailOutlined, RobotOutlined, UserOutlined, SafetyOutlined } from '@ant-design/icons'
 import { isAuthenticated, saveAccessToken } from '../auth'
 import { sendEmailCode, register } from '../../shared/api/adapters/authAdapter'
+import { getApiErrorMessage } from '../../shared/api/errorMapper'
 import WorkflowAnimation from '../components/WorkflowAnimation'
 
 const { Title, Text } = Typography
@@ -53,24 +54,32 @@ export default function RegisterPage() {
   }
 
   const handleSendCode = async () => {
-    const emailValue = form.getFieldValue('email')
+    let emailValue = step === 0 ? form.getFieldValue('email') : email
+    if (step === 0) {
+      try {
+        const values = await form.validateFields(['email'])
+        emailValue = values.email
+      } catch {
+        return
+      }
+    }
+
     if (!emailValue) {
       message.warning('请输入邮箱')
       return
     }
 
-    // 方案A：点击后立即进入第二步并启动倒计时，避免卡在发送阶段
-    setEmail(emailValue)
-    setStep(1)
-    startCountdown()
-
     setSendingCode(true)
     try {
       await sendEmailCode(emailValue)
+      setEmail(emailValue)
+      if (step === 0) {
+        setStep(1)
+      }
+      startCountdown()
       message.success('验证码已发送')
     } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : '发送失败，请重试'
-      message.error(msg)
+      message.error(getApiErrorMessage(err, '发送失败，请重试'))
     } finally {
       setSendingCode(false)
     }
@@ -94,8 +103,7 @@ export default function RegisterPage() {
       message.success('注册成功')
       navigate('/dashboard', { replace: true })
     } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : '注册失败，请重试'
-      message.error(msg)
+      message.error(getApiErrorMessage(err, '注册失败，请重试'))
     } finally {
       setLoading(false)
     }

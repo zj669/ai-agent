@@ -3,6 +3,8 @@ import { Card, Form, Input, Button, message, Spin, Descriptions, Tabs, Typograph
 import { UserOutlined, LockOutlined } from '@ant-design/icons'
 import { apiClient } from '../../../shared/api/client'
 import { unwrapResponse, type ApiResponse } from '../../../shared/api/response'
+import { resetPassword } from '../../../shared/api/adapters/authAdapter'
+import { getApiErrorMessage } from '../../../shared/api/errorMapper'
 
 const { Title } = Typography
 
@@ -24,10 +26,6 @@ async function getUserInfo(): Promise<UserInfo> {
 async function updateProfile(data: { username?: string; phone?: string }): Promise<UserInfo> {
   const res = await apiClient.post<ApiResponse<UserInfo>>('/client/user/profile', data)
   return unwrapResponse(res)
-}
-
-async function resetPassword(data: { email: string; newPassword: string; code: string }): Promise<void> {
-  await apiClient.post<ApiResponse<null>>('/client/user/resetPassword', data)
 }
 
 export default function SettingsPage() {
@@ -54,22 +52,27 @@ export default function SettingsPage() {
       setUserInfo(updated)
       localStorage.setItem('userInfo', JSON.stringify(updated))
       message.success('个人信息已更新')
-    } catch {
-      message.error('更新失败')
+    } catch (err: unknown) {
+      message.error(getApiErrorMessage(err, '更新失败'))
     } finally {
       setSaving(false)
     }
   }
 
-  const handlePasswordReset = async (values: { code: string; newPassword: string; confirm: string }) => {
+  const handlePasswordReset = async (values: { code: string; newPassword: string; confirmPassword: string }) => {
     if (!userInfo) return
     setSaving(true)
     try {
-      await resetPassword({ email: userInfo.email, newPassword: values.newPassword, code: values.code })
+      await resetPassword({
+        email: userInfo.email,
+        code: values.code,
+        newPassword: values.newPassword,
+        confirmPassword: values.confirmPassword,
+      })
       message.success('密码已重置')
       passwordForm.resetFields()
-    } catch {
-      message.error('重置密码失败')
+    } catch (err: unknown) {
+      message.error(getApiErrorMessage(err, '重置密码失败'))
     } finally {
       setSaving(false)
     }
@@ -112,11 +115,18 @@ export default function SettingsPage() {
             <Form.Item name="code" label="邮箱验证码" rules={[{ required: true, message: '请输入验证码' }]}>
               <Input placeholder="请输入邮箱验证码" />
             </Form.Item>
-            <Form.Item name="newPassword" label="新密码" rules={[{ required: true, min: 6, message: '密码至少 6 位' }]}>
+            <Form.Item
+              name="newPassword"
+              label="新密码"
+              rules={[
+                { required: true, message: '请输入新密码' },
+                { min: 8, message: '密码至少 8 位' },
+              ]}
+            >
               <Input.Password placeholder="请输入新密码" />
             </Form.Item>
             <Form.Item
-              name="confirm"
+              name="confirmPassword"
               label="确认密码"
               dependencies={['newPassword']}
               rules={[

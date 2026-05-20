@@ -1,4 +1,5 @@
 import { fireEvent, render, screen, waitFor } from '@testing-library/react'
+import { message } from 'antd'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { TestRouter } from '../../../app/router'
 import { login } from '../../../shared/api/adapters/authAdapter'
@@ -40,6 +41,7 @@ describe('remember me', () => {
 
   afterEach(() => {
     vi.useRealTimers()
+    vi.restoreAllMocks()
   })
 
   it('勾选记住我后登录会持久化登录并保存邮箱', async () => {
@@ -122,5 +124,24 @@ describe('remember me', () => {
     fireEvent.click(screen.getByRole('button', { name: /登\s*录/ }))
 
     expect(await screen.findByRole('heading', { name: '欢迎回来，管理员' })).toBeInTheDocument()
+  })
+
+  it('登录失败时展示后端返回的具体错误', async () => {
+    localStorage.clear()
+    sessionStorage.clear()
+    vi.mocked(login).mockRejectedValueOnce({ code: 'UNAUTHORIZED', message: '用户名或密码错误' })
+    const errorSpy = vi.spyOn(message, 'error').mockImplementation(() => undefined as never)
+
+    render(<TestRouter initialEntries={['/login']} />)
+
+    fireEvent.change(screen.getByPlaceholderText('请输入邮箱'), { target: { value: 'user@example.com' } })
+    fireEvent.change(screen.getByPlaceholderText('请输入密码'), { target: { value: 'wrong-password' } })
+    fireEvent.click(screen.getByRole('button', { name: /登\s*录/ }))
+
+    await waitFor(() => {
+      expect(errorSpy).toHaveBeenCalledWith('用户名或密码错误')
+      expect(localStorage.getItem('accessToken')).toBeNull()
+      expect(sessionStorage.getItem('accessToken')).toBeNull()
+    })
   })
 })

@@ -4,6 +4,7 @@ import { Form, Input, Button, Checkbox, Typography, message } from 'antd'
 import { LockOutlined, MailOutlined, RobotOutlined } from '@ant-design/icons'
 import { isAuthenticated, saveAccessToken } from '../auth'
 import { login } from '../../shared/api/adapters/authAdapter'
+import { getApiErrorMessage } from '../../shared/api/errorMapper'
 import WorkflowAnimation from '../components/WorkflowAnimation'
 
 const { Title, Text } = Typography
@@ -47,8 +48,7 @@ export default function LoginPage() {
       const target = redirect && redirect.startsWith('/') ? redirect : '/dashboard'
       navigate(target, { replace: true })
     } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : '登录失败，请重试'
-      message.error(msg)
+      message.error(getApiErrorMessage(err, '登录失败，请重试'))
     } finally {
       setLoading(false)
     }

@@ -47,6 +47,7 @@ public class WebMvcConfig implements WebMvcConfigurer {
                         "/client/user/send-code", // 排除发送验证码
                         "/client/user/email/sendCode", // 排除发送邮箱验证码
                         "/client/user/email/register", // 排除邮箱注册
+                        "/client/user/refresh", // 排除 Token 刷新
                         "/client/user/resetPassword", // 排除重置密码
                         "/api/meta/**" // 排除元数据接口（无需认证）
                 );
