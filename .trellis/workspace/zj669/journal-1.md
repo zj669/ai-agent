@@ -38,3 +38,36 @@
 ### Next Steps
 
 - None - task complete
+
+
+## Session 2: Fix chat stream resume recovery
+
+**Date**: 2026-05-20
+**Task**: Fix chat stream resume recovery
+**Branch**: `main`
+
+### Summary
+
+Fixed chat SSE recovery after route changes by persisting run metadata, reconciling execution status, recovering paused review state, and refreshing terminal blank assistant messages.
+
+### Main Changes
+
+(Add details)
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `55f8799` | (see git log) |
+
+### Testing
+
+- [OK] (Add test results)
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete
