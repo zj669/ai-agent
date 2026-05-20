@@ -1,12 +1,34 @@
 # Directory Structure
 
-> DDD layered architecture for the AI Agent Platform backend (Java 21 + Spring Boot 3.4.9 + Spring AI 1.0.1).
+> How the backend code is organized in this Spring Boot DDD repository.
+
+This file is repo-wide: it shows the **Maven module map** (which corresponds to DDD layers), the **bounded contexts** inside `ai-agent-domain`, and how to navigate to the layer-specific spec for any code area.
 
 ---
 
-## Overview
+## Repository Root
 
-The backend follows a strict **Domain-Driven Design (DDD)** multi-module Maven architecture. Dependency direction is unidirectional:
+```
+ai-agent/
+├── ai-agent-shared/          # Layer 0: Pure utilities (no Spring/MyBatis)
+├── ai-agent-domain/          # Layer 1: Business core (depends only on shared)
+├── ai-agent-application/     # Layer 2: Use-case orchestration
+├── ai-agent-infrastructure/  # Layer 3: Adapters for ports (DB, Redis, Milvus, ...)
+├── ai-agent-interfaces/      # Layer 4: REST / SSE / WebSocket + Spring Boot entry
+├── ai-agent-foward/          # React 19 frontend (see ../frontend/)
+├── docker/                   # docker-compose + MySQL init schema
+├── docs/                     # Long-form architecture notes (.blueprint mirror)
+├── .blueprint/               # Module-by-module blueprint docs
+└── .trellis/                 # This workflow + specs you're reading
+```
+
+`ai-agent-foward/` is the **active** frontend. `app/frontend/` (if present) is a legacy skeleton — ignore it.
+
+---
+
+## DDD Layer ↔ Maven Module
+
+Dependency direction (strict):
 
 ```
 interfaces → application → domain ← infrastructure
@@ -14,253 +36,80 @@ interfaces → application → domain ← infrastructure
                           shared
 ```
 
-**Critical Rule**: The `domain` layer is pure — it has ZERO dependencies on Spring, MyBatis, or any framework. Only depends on `shared`.
+| Module | Layer | Allowed Frameworks | Spec |
+|--------|-------|---------------------|------|
+| `ai-agent-shared` | Layer 0 (utilities) | Lombok, Hutool, Guava, Commons Lang3, Fastjson, SLF4J API | (covered by Domain spec) |
+| `ai-agent-domain` | Layer 1 (business core) | Same as shared + ports as Java interfaces. **No Spring, MyBatis, Redisson, Milvus SDK, etc.** | [domain-layer.md](./domain-layer.md) |
+| `ai-agent-application` | Layer 2 (orchestration) | Spring stereotypes (`@Service`, `@Transactional`), event publishing | [application-layer.md](./application-layer.md) |
+| `ai-agent-infrastructure` | Layer 3 (adapters) | MyBatis Plus, Redisson, Milvus SDK, MinIO SDK, Spring AI, any 3rd-party SDK | [infrastructure-layer.md](./infrastructure-layer.md), [database-guidelines.md](./database-guidelines.md) |
+| `ai-agent-interfaces` | Layer 4 (delivery) | `@RestController`, `SseEmitter`, Spring Security, STOMP/SockJS, `@Configuration` beans | [interfaces-layer.md](./interfaces-layer.md) |
+
+> Reality note: domain currently has some Spring/Jackson/Security imports leaking in (technical debt; see Anti-Patterns in `domain-layer.md`). The dependency rule is the **direction we move toward** when modifying domain code, not a claim about today's state.
 
 ---
 
-## Top-Level Module Layout
+## Bounded Contexts inside `ai-agent-domain`
 
-```
-ai-agent/                          # Parent POM (Maven multi-module)
-├── ai-agent-shared/               # Common utilities, design patterns, constants
-├── ai-agent-domain/               # Core business logic (PURE, NO framework deps)
-├── ai-agent-application/          # Use case orchestration, DTOs, commands
-├── ai-agent-infrastructure/       # Technical implementations, adapters
-├── ai-agent-interfaces/           # REST controllers, configs, entry point
-└── ai-agent-foward/               # Frontend (React 19 + Vite)
-```
+Located under `ai-agent-domain/src/main/java/com/zj/aiagent/domain/`:
 
----
-
-## Module Details
-
-### ai-agent-shared
-
-Shared utilities with NO framework dependencies (NO Spring, NO MyBatis).
-
-```
-shared/
-├── constants/               # Business constants
-├── context/                 # UserContext (ThreadLocal-based)
-│   └── UserContext.java
-├── design/                  # Reusable design patterns
-│   ├── dag/                 # DAG execution framework
-│   │   ├── DagContext.java
-│   │   ├── DagNode.java
-│   │   ├── ConditionalDagNode.java
-│   │   ├── NodeRouteDecision.java
-│   │   └── DagNodeExecutionException.java
-│   └── ruletree/            # Strategy/rule tree pattern
-│       ├── AbstractStrategyRouter.java
-│       ├── StrategyHandler.java
-│       └── factory/
-├── model/                   # Shared data models
-├── response/                # Unified API response wrapper
-│   └── Response.java        # Response<T> with success()/error()
-└── util/                    # Common utilities
-```
-
-**Dependencies**: Lombok, Hutool, Guava, Commons Lang3, Fastjson, SLF4J API
-
-### ai-agent-domain
-
-Core business logic. **MUST remain pure** — POJO entities with business logic, NO annotations from Spring/MyBatis.
-
-```
-domain/
-├── agent/                   # Agent bounded context
-│   ├── entity/              # Aggregate roots & entities
-│   │   ├── Agent.java       # Aggregate root
-│   │   └── AgentVersion.java
-│   ├── repository/          # Repository interfaces (ports)
-│   │   └── AgentRepository.java
-│   ├── service/             # Domain services
-│   │   └── GraphValidator.java
-│   └── valobj/              # Value objects & enums
-│       ├── AgentStatus.java
-│       └── AgentSummary.java
-├── workflow/                # Workflow bounded context
-│   ├── entity/              # Execution, WorkflowGraph, Node, Edge
-│   ├── config/              # NodeConfig, RetryPolicy, HumanReviewConfig
-│   ├── service/             # WorkflowGraphFactory
-│   ├── valobj/              # ExecutionStatus, Checkpoint, ExecutionContext
-│   └── port/                # Ports (ChatModelPort, StreamPublisher, etc.)
-├── chat/                    # Chat bounded context
-├── knowledge/               # Knowledge bounded context
-├── user/                    # User bounded context
-│   ├── entity/
-│   ├── repository/          # IUserRepository, IVerificationCodeRepository
-│   ├── service/             # UserAuthenticationDomainService
-│   ├── valobj/              # Email, Credential, UserStatus
-│   └── exception/           # AuthenticationException
-├── auth/                    # Auth bounded context
-│   └── service/             # ITokenService, RateLimiter
-├── llm/                     # LLM configuration
-├── memory/                  # Memory (LTM/STM)
-├── swarm/                   # Multi-agent swarm
-├── dashboard/               # Dashboard projections
-└── writing/                 # Writing sessions
-```
-
-**Dependencies**: ONLY `ai-agent-shared`
-
-### ai-agent-application
-
-Use case orchestration layer. Coordinates domain objects to fulfill business use cases.
-
-```
-application/
-├── agent/
-│   ├── cmd/                 # Command objects (CreateAgentCmd, UpdateAgentCmd)
-│   ├── dto/                 # DTOs (AgentDetailResult, AgentRequest)
-│   └── service/             # AgentApplicationService, MetadataApplicationService
-├── workflow/
-│   └── SchedulerService.java  # Workflow execution orchestrator
-├── chat/
-│   ├── ChatApplicationService.java
-│   ├── event/               # Application events (MessageAppendedEvent)
-│   └── listener/            # Event listeners
-├── user/
-│   ├── UserApplicationService.java
-│   └── dto/                 # UserLoginResponse, TokenRefreshResponse
-├── knowledge/
-├── llm/
-├── swarm/
-├── dashboard/
-└── writing/
-```
-
-**Dependencies**: `domain`, `shared`, Spring Framework
-
-### ai-agent-infrastructure
-
-Technical implementations — adapters for domain ports.
-
-```
-infrastructure/
-├── agent/
-│   ├── mapper/              # MyBatis Plus mappers (AgentMapper, AgentVersionMapper)
-│   ├── po/                  # Persistence objects (AgentPO, AgentVersionPO)
-│   └── repository/          # AgentRepositoryImpl (implements domain interface)
-├── workflow/
-│   ├── adapter/             # Port adapters (RedisHumanReviewQueueAdapter)
-│   ├── executor/            # Node executor strategies (LlmNodeExecutor, etc.)
-│   ├── mapper/              # MyBatis mappers
-│   ├── persistence/         # Repository implementations
-│   ├── stream/              # RedisSseStreamPublisher
-│   └── template/            # PromptTemplateResolver
-├── config/                  # Infrastructure configs (Redis, MinIO, WebSocket)
-├── redis/                   # Redis utilities (RedisService wrapper)
-├── auth/
-│   ├── token/               # JwtTokenService
-│   └── redis/               # RedisSlidingWindowRateLimiter
-├── user/
-├── chat/
-├── knowledge/
-├── llm/
-├── memory/
-├── swarm/
-├── email/
-├── meta/
-└── dashboard/
-```
-
-**Dependencies**: `domain`, `shared`, Spring, MyBatis Plus, Redisson, Milvus SDK, MinIO SDK
-
-### ai-agent-interfaces
-
-API layer — REST controllers, interceptors, Spring Boot entry point.
-
-```
-interfaces/
-├── AiAgentApplication.java         # @SpringBootApplication entry point
-├── config/                          # Global configurations
-│   ├── ThreadPoolConfig.java
-│   ├── EmbeddingModelConfig.java
-│   ├── MybatisPlusConfig.java
-│   ├── DataSourceConfig.java
-│   └── WebClientConfig.java
-├── common/
-│   ├── interceptor/                 # Auth interceptors (JWT, Debug strategies)
-│   ├── config/                      # WebMvcConfig
-│   └── advice/                      # GlobalExceptionHandler
-├── agent/                           # AgentController
-├── workflow/                        # WorkflowController, HumanReviewController
-├── chat/                            # ChatController
-├── knowledge/web/                   # KnowledgeController
-├── user/                            # UserController
-├── llm/                             # LlmConfigController
-├── swarm/                           # SwarmWorkspaceController, SwarmSseController
-├── meta/                            # MetadataController
-├── dashboard/web/                   # DashboardController
-└── writing/                         # WritingController
-```
-
-**Dependencies**: `application`, `infrastructure`, `domain`, `shared`, Spring Boot starters
+| Context | Purpose | Cross-layer notes |
+|---------|---------|--------------------|
+| `workflow` | Workflow execution engine. `Execution` aggregate root, `WorkflowGraph`, `ExecutionContext`, 7 `NodeExecutorStrategy` impls (Start/End/LLM/Condition/Http/Tool/Knowledge). | May depend on `agent`, `knowledge`, `memory`. |
+| `agent` | Agent management — model configuration, MCP tool binding. | No cross-domain deps. |
+| `chat` | Conversation management — `Conversation`, `Message`, SSE-backed streaming. | Cooperates with `workflow` for streaming. |
+| `knowledge` | Knowledge base — `KnowledgeDataset`, `KnowledgeDocument`, vector storage via Milvus. | Read by workflow's `KnowledgeNodeExecutorStrategy`. |
+| `user` | User account / profile. REST prefix is `/client/user` (**not** `/api/user` — see `interfaces-layer.md`). | — |
+| `auth` | Auth + token handling. | — |
+| `swarm` | Multi-agent workspace: groups, graph, SSE (`/api/swarm/**`). | — |
+| `writing` | Writing-assistant flows. | — |
+| `mcp` | MCP server registry + tool metadata. | Used by `agent` for tool binding. |
+| `llm` | LLM provider configuration. | Used by `workflow` LLM nodes. |
+| `dashboard` | Aggregated metrics. | Read-only across domains. |
+| `memory` | LTM (vector store) + STM (recent conversation) ports. | Hydrated into `ExecutionContext` by `SchedulerService`. |
 
 ---
 
-## Module Organization Rules
+## Where Things Live (Quick Lookup)
 
-### Adding a New Bounded Context (e.g., `notification`)
-
-1. **domain**: Create `domain/notification/` with `entity/`, `repository/`, `service/`, `valobj/`
-2. **infrastructure**: Create `infrastructure/notification/` with `mapper/`, `po/`, `repository/`
-3. **application**: Create `application/notification/` with `service/`, `dto/`, `cmd/`
-4. **interfaces**: Create `interfaces/notification/` with controller
-
-### Within Each Bounded Context
-
-| Sub-package | Contains | Example |
-|-------------|----------|---------|
-| `entity/` | Aggregate roots, entities | `Agent.java`, `Execution.java` |
-| `valobj/` | Value objects, enums | `AgentStatus.java`, `Email.java` |
-| `repository/` | Repository interfaces (ports) | `AgentRepository.java` |
-| `service/` | Domain services | `GraphValidator.java` |
-| `port/` | Other ports (non-repository) | `ChatModelPort.java` |
-| `config/` | Domain configuration VOs | `RetryPolicy.java` |
-| `exception/` | Domain-specific exceptions | `AuthenticationException.java` |
+| What you're looking for | Where |
+|--------------------------|-------|
+| Aggregate roots, value objects | `ai-agent-domain/src/main/java/com/zj/aiagent/domain/<ctx>/` |
+| Domain ports (interfaces) | Same as above, files like `*Repository.java`, `*Port.java`, `VectorStore.java`, `StreamPublisher.java` |
+| Application services / orchestration | `ai-agent-application/src/main/java/com/zj/aiagent/application/<ctx>/` |
+| Adapters / repository impls | `ai-agent-infrastructure/src/main/java/com/zj/aiagent/infrastructure/<area>/` |
+| PO classes + Mappers (MyBatis Plus) | `ai-agent-infrastructure/.../persistence/` |
+| REST controllers | `ai-agent-interfaces/src/main/java/com/zj/aiagent/interfaces/<ctx>/` |
+| SSE / WebSocket endpoints | `ai-agent-interfaces/.../` (e.g. `WorkflowController`, `ChatController`, `/ws` STOMP) |
+| Spring `@Configuration` beans | `ai-agent-interfaces/.../config/` |
+| DB schema (single source of truth) | `docker/init/mysql/01_init_schema.sql` |
+| Application entry point | `ai-agent-interfaces` main class |
 
 ---
 
-## Naming Conventions
+## Module Boundaries — Rules of Thumb
 
-| Type | Pattern | Example |
-|------|---------|---------|
-| Entity / Aggregate Root | `{Name}.java` | `Agent.java`, `Execution.java` |
-| Value Object | `{Name}.java` | `Email.java`, `Credential.java` |
-| Enum | `{Name}Status.java` / `{Name}Type.java` | `AgentStatus.java`, `NodeType.java` |
-| Repository Interface | `{Name}Repository.java` | `AgentRepository.java` |
-| Repository Impl | `{Name}RepositoryImpl.java` | `AgentRepositoryImpl.java` |
-| Domain Service | `{Name}DomainService.java` | `UserAuthenticationDomainService.java` |
-| Application Service | `{Name}ApplicationService.java` | `AgentApplicationService.java` |
-| Command | `{Name}Cmd.java` or nested in `{Name}Command.java` | `CreateAgentCmd` |
-| DTO | `{Name}DTO.java` or `{Name}Result.java` | `AgentDetailResult.java` |
-| PO (Persistence Object) | `{Name}PO.java` | `AgentPO.java` |
-| Mapper (MyBatis) | `{Name}Mapper.java` | `AgentMapper.java` |
-| Controller | `{Name}Controller.java` | `AgentController.java` |
-| Port (Domain) | `{Name}Port.java` | `ChatModelPort.java` |
-| Adapter (Infrastructure) | `{Name}Adapter.java` | `OpenAiChatModelAdapter.java` |
-| Config | `{Name}Config.java` | `RedisListenerConfig.java` |
+When adding a new feature:
+
+1. **Start in domain.** Model the entity / VO / port first. No framework imports.
+2. **Wire orchestration in application.** Add or extend a `*ApplicationService`. Transactions live here.
+3. **Provide adapters in infrastructure.** Implement domain ports. Use existing wrappers (`IRedisService`, `HttpService`) over raw `RedisTemplate` / `RestTemplate`.
+4. **Expose in interfaces.** Add `@RestController` or extend an existing one. Translate exceptions via `GlobalExceptionHandler`. Use `SseEmitter` for streaming.
+5. **Update the spec.** When the convention you established differs from any spec file, update that file in the same PR.
 
 ---
 
-## Domain Boundary Dependencies
+## When NOT to Create New Tables / Files
 
-```
-workflow ──→ agent (read graph definition)
-workflow ──→ knowledge (retrieval)
-agent, knowledge, user/auth → NO cross-domain deps
-```
+- **Search before creating tables.** `WorkflowNodeExecution` already exists — don't create `WorkflowExecution` as a parallel concept (see `quality-guidelines.md`).
+- **Search before adding utility services.** `IRedisService`, HTTP wrappers, and structured-logging helpers already exist; reusing them avoids ramp drift.
+- **Search before defining new exceptions.** A small set of typed exceptions is wired into `GlobalExceptionHandler` already; extend rather than reinvent.
 
-Cross-domain coordination MUST happen in the **application layer** (e.g., `SchedulerService`).
+See [Code Reuse Thinking Guide](../guides/code-reuse-thinking-guide.md) for the discipline behind this.
 
 ---
 
-## Examples
+## See Also
 
-| Well-structured module | Path |
-|------------------------|------|
-| Agent (complete DDD) | `domain/agent/`, `infrastructure/agent/`, `application/agent/`, `interfaces/agent/` |
-| User/Auth | `domain/user/`, `domain/auth/`, `infrastructure/user/`, `infrastructure/auth/` |
-| Workflow | `domain/workflow/`, `infrastructure/workflow/`, `application/workflow/` |
+- [Backend Index](./index.md) — full spec list and reading order.
+- [Cross-Layer Thinking Guide](../guides/cross-layer-thinking-guide.md) — when your work touches 3+ layers.
+- [Cross-Layer Specs](../cross-layer/index.md) — end-to-end data flow contracts (when written).

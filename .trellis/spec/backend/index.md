@@ -1,58 +1,60 @@
 # Backend Development Guidelines
 
-> Best practices for backend development in the AI Agent Platform (Java 21 + Spring Boot 3.4.9 + Spring AI 1.0.1).
+> Project-specific conventions for the AI Agent Platform backend (Spring Boot 3.4.9 / Java 21 / Maven).
+
+This index is the entry point for backend specs. The repository follows a strict DDD layered architecture (`interfaces → application → domain ← infrastructure`, with `shared` underneath). Specs are organized **by layer** plus a small number of cross-cutting and topic-specific guides.
 
 ---
 
-## Overview
+## Layered Specs
 
-This directory contains guidelines for backend development. The backend follows a strict **DDD (Domain-Driven Design)** multi-module Maven architecture with separated bounded contexts.
-
----
-
-## Guidelines Index
-
-| Guide | Description | Status |
-|-------|-------------|--------|
-| [Directory Structure](./directory-structure.md) | DDD module organization, package layout, naming rules | ✅ Filled |
-| [Database Guidelines](./database-guidelines.md) | MyBatis Plus, PO patterns, schema management, transactions | ✅ Filled |
-| [Error Handling](./error-handling.md) | Exception types, GlobalExceptionHandler, Response<T> | ✅ Filled |
-| [Quality Guidelines](./quality-guidelines.md) | Forbidden patterns, required patterns, naming, testing | ✅ Filled |
-| [Logging Guidelines](./logging-guidelines.md) | SLF4J, log levels, module tags, structured logging | ✅ Filled |
+| Spec | Maven Module(s) | Purpose |
+|------|-----------------|---------|
+| [Domain Layer](./domain-layer.md) | `ai-agent-domain`, `ai-agent-shared` | Aggregate roots, value objects, domain services, repository interfaces, ports, state machines. Must remain framework-pure. |
+| [Application Layer](./application-layer.md) | `ai-agent-application` | Use-case orchestration, application services, commands/DTOs, transaction boundaries, cross-domain coordination (e.g. `SchedulerService`). |
+| [Infrastructure Layer](./infrastructure-layer.md) | `ai-agent-infrastructure` | Adapters for domain ports: MyBatis Plus repos, `IRedisService`, Milvus, MinIO, SSE pub/sub, Spring AI dynamic models. |
+| [Interfaces Layer](./interfaces-layer.md) | `ai-agent-interfaces` | REST controllers, SSE endpoints, WebSocket (`/ws` STOMP), Spring config beans, auth filter chain. |
 
 ---
 
-## Pre-Development Checklist
+## Cross-Cutting Specs
 
-Before starting backend work, read these files in order:
-
-1. **Always read first**: `directory-structure.md` — understand DDD layers and module layout
-2. **Database work**: `database-guidelines.md` — MyBatis Plus patterns, schema location
-3. **Error handling**: `error-handling.md` — exception hierarchy, Response<T>
-4. **Code standards**: `quality-guidelines.md` — forbidden patterns, naming, review checklist
-5. **Adding logging**: `logging-guidelines.md` — log levels, format, what to log
+| Spec | Scope | Highlights |
+|------|-------|------------|
+| [Error Handling](./error-handling.md) | All layers | Exception hierarchy, layer responsibilities, `GlobalExceptionHandler` (`@RestControllerAdvice`), unified `Response<T>` shape. |
+| [Logging Guidelines](./logging-guidelines.md) | All layers | SLF4J + Lombok `@Slf4j`, log levels, MDC, sensitive-data rules, domain-layer SLF4J-only constraint. |
+| [Quality Guidelines](./quality-guidelines.md) | All layers | Code reuse first (must-use wrappers like `IRedisService`), naming conventions, domain purity, common pitfalls, forbidden patterns. |
 
 ---
 
-## Quick Reference
+## Topic-Specific Specs
 
-### Build Commands
-
-```bash
-mvn clean install                                    # Full build
-mvn clean install -DskipTests                        # Fast build (skip tests)
-mvn clean install -pl ai-agent-interfaces -am         # Build specific module with dependencies
-mvn spring-boot:run -pl ai-agent-interfaces -Dspring-boot.run.profiles=local  # Run locally
-mvn test                                             # Run all tests
-```
-
-### Key Architectural Rules
-
-1. **Domain layer is PURE** — NO Spring, MyBatis, or framework dependencies
-2. **Constructor injection** — `@RequiredArgsConstructor` + `final` fields, NO `@Autowired`
-3. **Spring AI auto-config is DISABLED** — models created dynamically via `ChatModelPort`
-4. **Schema management is MANUAL** — `docker/init/mysql/01_init_schema.sql`, NO Flyway
+| Spec | Scope | Highlights |
+|------|-------|-----------|
+| [Database Guidelines](./database-guidelines.md) | Infrastructure depth | MySQL 8 + MyBatis Plus, schema in `docker/init/mysql/01_init_schema.sql`, **no Flyway/Liquibase**, snake_case tables, logical-delete & timestamp conventions. |
+| [Directory Structure](./directory-structure.md) | Repo-wide | Maven module map, DDD layer ↔ module mapping, domain bounded-context list. |
 
 ---
 
-**Language**: All documentation should be written in **English**.
+## Reading Order
+
+When starting work in this codebase:
+
+1. [Directory Structure](./directory-structure.md) — get the lay of the land.
+2. The **layer spec** that matches your work area (domain / application / infrastructure / interfaces).
+3. [Quality Guidelines](./quality-guidelines.md) — mandatory reuse rules and forbidden patterns.
+4. Topic-specific specs as the work demands (Database / Error Handling / Logging).
+5. For end-to-end feature work that crosses layers (HTTP → service → port → adapter → external service → SSE back), also consult the project's [Cross-Layer Specs](../cross-layer/index.md) and the [Cross-Layer Thinking Guide](../guides/cross-layer-thinking-guide.md).
+
+---
+
+## Provenance & Maintenance
+
+These specs were initially populated from the real codebase via the
+`cc-codex-spec-bootstrap` pipeline (GitNexus + ABCoder MCP code intelligence). Each
+file:line reference inside them was verified against the codebase at that point.
+**When the code changes, update the spec the same PR** — stale specs mislead the next AI agent or contributor.
+
+---
+
+**Language**: All spec documentation is written in **English**.

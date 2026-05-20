@@ -1,0 +1,4 @@
+{"file": ".claude/commands/trellis/finish-work.md", "reason": "Finish work checklist"}
+{"file": ".claude/commands/trellis/check-backend.md", "reason": "Backend check spec"}
+{"file": "ai-agent-application/src/test/java/com/zj/aiagent/application/swarm/tool/SwarmToolFilterTest.java", "reason": "工具过滤器测试 - HUMAN 相关用例需移除"}
+{"file": "ai-agent-application/src/test/java/com/zj/aiagent/application/swarm/prompt/SwarmPromptServiceTest.java", "reason": "Prompt 测试 - humanAgentId 和 ROOT 相关用例需更新"}

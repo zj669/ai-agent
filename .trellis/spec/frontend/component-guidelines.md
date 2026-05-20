@@ -1,314 +1,331 @@
 # Frontend Component Guidelines
 
-> React component patterns and conventions for the AI Agent Platform.
+The frontend is a React 19, Vite, Ant Design, Tailwind, and `@xyflow/react`
+application organized around feature modules.
 
----
+## Component Placement
 
-## Overview
+Put components where their ownership is clearest.
 
-- **React**: 19.2 (latest features: use(), actions, etc.)
-- **UI Library**: Ant Design 6.3 (primary component library)
-- **State**: Zustand 5.0 (global), React state (local)
-- **Styling**: Tailwind CSS 3.4 + `clsx` + `tailwind-merge` for conditional classes
-- **Flow Editor**: @xyflow/react 12.10
-- **Forms**: react-hook-form (where used)
+Use `src/app` for app shell and route infrastructure:
 
----
+- `src/app/App.tsx`
+- `src/app/AppShell.tsx`
+- `src/app/AuthGuard.tsx`
+- `src/app/router.tsx`
+- `src/app/pages/LoginPage.tsx`
+- `src/app/pages/RegisterPage.tsx`
+- `src/app/components/WorkflowAnimation.tsx`
 
-## Component Patterns
+Use `src/modules/<module>` for business feature UI:
 
-### Functional Components Only
+- `src/modules/workflow/pages/WorkflowEditorPage.tsx`
+- `src/modules/workflow/components/WorkflowNode.tsx`
+- `src/modules/chat/pages/ChatPage.tsx`
+- `src/modules/swarm/pages/SwarmMainPage.tsx`
+- `src/modules/mcp/components/*`
 
-All components are functional with hooks. No class components.
+Use `src/shared` for shared infrastructure, not for feature-specific widgets.
 
-```tsx
-// ✅ Correct — functional component
-import { useState, useEffect } from 'react'
+## Naming
 
-export default function AgentListPage() {
-  const [agents, setAgents] = useState<AgentSummary[]>([])
-  // ...
-}
-```
+Components use PascalCase.
 
-### Page Component Pattern
+Examples:
 
-Pages are top-level route components in `modules/{mod}/pages/`:
+- `WorkflowEditorPage`
+- `WorkflowNode`
+- `NodeSelector`
+- `NodeConfigTabs`
+- `CanvasToolbar`
+- `LoginPage`
+- `RegisterPage`
+- `SwarmMainPage`
 
-```tsx
-// modules/agent/pages/AgentListPage.tsx
-import { useEffect, useMemo, useState } from 'react'
-import { useNavigate } from 'react-router-dom'
-import { Button, Card, Tag, Space, Row, Col, Empty, Spin, message } from 'antd'
-import { PlusOutlined, EditOutlined } from '@ant-design/icons'
-import { getAgentList, createAgent, type AgentSummary } from '../../../shared/api/adapters/agentAdapter'
+The file name should match the default exported component when a file's primary
+purpose is one component. Example:
 
-export default function AgentListPage() {
-  const navigate = useNavigate()
-  const [loading, setLoading] = useState(true)
-  const [agents, setAgents] = useState<AgentSummary[]>([])
-
-  useEffect(() => {
-    loadAgents()
-  }, [])
-
-  async function loadAgents() {
-    setLoading(true)
-    try {
-      const list = await getAgentList()
-      setAgents(list)
-    } finally {
-      setLoading(false)
-    }
-  }
-
-  return (
-    <div>
-      {/* Ant Design components */}
-    </div>
-  )
-}
-```
-
----
-
-## State Management
-
-### Local State (React useState)
-
-For component-scoped state — loading, form inputs, UI toggles:
-
-```tsx
-const [loading, setLoading] = useState(false)
-const [searchTerm, setSearchTerm] = useState('')
-```
-
-### Global State (Zustand)
-
-For cross-component shared state. Store files in `modules/{mod}/stores/`:
-
-```tsx
-// modules/workflow/stores/useEditorStore.ts
-import { create } from 'zustand'
-
-interface EditorState {
-  nodes: Node[]
-  edges: Edge[]
-  selectedNodeId: string | null
-  setSelectedNode: (id: string | null) => void
-  // ...
+```ts
+function WorkflowEditorPage() {
+  ...
 }
 
-export const useEditorStore = create<EditorState>((set) => ({
-  nodes: [],
-  edges: [],
-  selectedNodeId: null,
-  setSelectedNode: (id) => set({ selectedNodeId: id }),
-}))
+export default WorkflowEditorPage
 ```
 
-Usage:
+Avoid files named `index.tsx` for major route pages because they make search
+results and stack traces less useful.
+
+## Page Components
+
+Route targets should end in `Page`.
+
+Examples:
+
+- `LoginPage.tsx`
+- `RegisterPage.tsx`
+- `DashboardPage.tsx`
+- `WorkflowEditorPage.tsx`
+- `ReviewDetailPage.tsx`
+
+Route wiring belongs in `src/app/router.tsx`. Feature pages should not create
+their own top-level routers.
+
+## Hooks
+
+Hook names must start with `use`.
+
+Observed examples:
+
+- `useEditorStore` in `workflow/stores/useEditorStore.ts`
+- `useUIStream` in `swarm/hooks/useUIStream.ts`
+- `useAgentStream` in `swarm/hooks/useUIStream.ts`
+
+Place feature hooks under `src/modules/<module>/hooks/` unless they are
+framework-level shared hooks. Keep hooks focused on behavior and side effects;
+rendering should remain in components.
+
+When a hook subscribes to an external resource, it must clean up in `useEffect`.
+`useUIStream` and `useAgentStream` close EventSource instances in cleanup.
+
+## Ant Design Usage
+
+Ant Design is the primary UI component library.
+
+Observed usage:
+
+- `src/app/App.tsx` wraps the app in `ConfigProvider`.
+- `LoginPage.tsx` uses `Form`, `Input`, `Button`, `Checkbox`, `Typography`,
+  `message`, and Ant Design icons.
+- `RegisterPage.tsx` uses `Form`, `Input`, `Button`, `Typography`, `message`,
+  `Steps`, and icons.
+
+Use AntD for standard controls:
+
+- Forms
+- Inputs
+- Buttons
+- Checkboxes
+- Steps
+- Typography
+- Feedback messages
+- Icons from `@ant-design/icons`
+
+Use the existing `ConfigProvider` theme token instead of local color systems for
+basic AntD primary behavior. Current primary token is `#1677ff`.
+
+## AntD Form Pattern
+
+The current code uses AntD Form, not `react-hook-form`.
+
+Observed pattern in `LoginPage.tsx`:
+
+```ts
+const [form] = Form.useForm<LoginFormValues>()
+
+<Form
+  form={form}
+  onFinish={handleFinish}
+  initialValues={{ ... }}
+  size="large"
+  layout="vertical"
+  requiredMark={false}
+>
+```
+
+Observed validation uses `rules` on `Form.Item`.
+
+Use typed form values where practical. For quick pages that have not yet been
+typed, prefer adding a local form value interface before wiring more fields.
+
+## When To Wrap AntD Components
+
+Wrap AntD components only when one of these is true:
+
+1. The wrapper enforces a project-wide convention used in several modules.
+2. The wrapper hides a backend or domain-specific mapping.
+3. The wrapper adds tested behavior that would otherwise be duplicated.
+4. The wrapper composes several AntD primitives into one reusable feature unit.
+
+Do not wrap AntD just to rename props or add one-off styling.
+
+Feature-specific wrappers should live in the owning module. Shared wrappers
+should live under `src/shared` only after at least two modules need them.
+
+## Tailwind And AntD Coexistence
+
+Tailwind is enabled through `src/index.css` and `tailwind.config.ts`.
+
+Observed Tailwind usage:
+
+- `WorkflowEditorPage.tsx` uses layout utility classes such as
+  `flex h-screen flex-col bg-slate-50`.
+- React Flow controls and minimap use AntD-like override classes with `!`.
+- `src/index.css` imports Tailwind base, components, and utilities.
+
+Use Tailwind for:
+
+- Page layout
+- Spacing
+- Flex/grid utilities
+- Lightweight text and border utilities
+- Feature-specific canvas/layout framing
+
+Use AntD tokens and component props for:
+
+- Standard control sizing
+- Form layout and validation
+- Button intent
+- Message feedback
+- Modal/table/form conventions when introduced
+
+Avoid fighting AntD internal styles with large blocks of `!important` utilities.
+Small targeted overrides are acceptable when integrating with third-party
+surfaces such as React Flow.
+
+## Global CSS
+
+`src/index.css` currently owns:
+
+- Tailwind imports.
+- Shared markdown body styles for Swarm and Chat.
+- Highlight.js code block overrides.
+- Swarm message animations.
+- Streaming cursor styles.
+- CSS variables for background, foreground, and muted foreground.
+- Base body font and background.
+
+Do not put module-specific page layout rules into global CSS unless the style is
+intentionally shared across modules.
+
+## `@xyflow/react` Canvas Wiring
+
+The workflow canvas is implemented in:
+
+- `src/modules/workflow/pages/WorkflowEditorPage.tsx`
+
+Observed imports include:
+
+- `ReactFlow`
+- `Controls`
+- `MiniMap`
+- `Background`
+- `BackgroundVariant`
+- `addEdge`
+- `useNodesState`
+- `useEdgesState`
+- `type ReactFlowInstance`
+
+The page owns canvas state:
+
+```ts
+const [nodes, setNodes, onNodesChange] = useNodesState(INITIAL_NODES)
+const [edges, setEdges, onEdgesChange] = useEdgesState<Edge>([])
+const [rfInstance, setRfInstance] = useState<ReactFlowInstance | null>(null)
+```
+
+The rendered canvas passes custom node and edge types:
 
 ```tsx
-function NodeSelector() {
-  const selectedNodeId = useEditorStore((s) => s.selectedNodeId)
-  // Use selector for optimal re-renders
-}
+<ReactFlow
+  nodes={nodes}
+  edges={edges}
+  onNodesChange={handleNodesChange}
+  onEdgesChange={handleEdgesChange}
+  onConnect={onConnect}
+  onInit={setRfInstance}
+  onDragOver={onDragOver}
+  onDrop={onDrop}
+  nodeTypes={nodeTypes}
+  edgeTypes={edgeTypes}
+  defaultEdgeOptions={{ type: 'custom' }}
+  connectionLineComponent={CustomConnectionLine}
+  fitView
+>
 ```
 
----
+Keep React Flow state close to the canvas. Use Zustand for shared editor
+metadata and UI flags, not for every node drag event.
 
-## API Integration
+## Canvas Components
 
-### Layered API Architecture
+Workflow canvas components live under:
 
-```
-Component → Module API Service → Shared Adapter → HTTP Client → Backend
-```
+- `src/modules/workflow/components/`
 
-### Shared API Adapter Pattern
+Observed components:
 
-Adapters in `shared/api/adapters/` handle request/response mapping:
+- `WorkflowNode`
+- `NodeHandle`
+- `CustomEdge`
+- `CustomConnectionLine`
+- `CanvasToolbar`
+- `NodeSelector`
+- `NodeConfigTabs`
+- `FieldRenderer`
+- `ConditionBranchEditor`
+- `AgentConfigPanel`
+- `EditorHeader`
 
-```tsx
-// shared/api/adapters/dashboardAdapter.ts
-import { apiClient, type ApiClientLike } from '../client'
-import { unwrapResponse, type ApiResponse } from '../response'
+Canvas-specific components may import from `@xyflow/react`. Non-canvas business
+components should not depend on React Flow types.
 
-export interface DashboardStats {
-  agentCount: number
-  publishedAgentCount: number
-  conversationCount: number
-}
+## Props
 
-export async function getDashboardStats(
-  client: ApiClientLike = apiClient
-): Promise<DashboardStats> {
-  const response = await client.get<ApiResponse<DashboardStats>>('/api/dashboard/stats')
-  return unwrapResponse(response)
-}
-```
+Prefer explicit prop interfaces for components with non-trivial props.
 
-### Key Patterns:
-- **Default client parameter** — enables dependency injection for testing
-- **`unwrapResponse()`** — extracts `data` from `{ code, message, data }` wrapper
-- **TypeScript interfaces** — for request/response types
+Rules:
 
-### Module API Service Pattern
+1. Name the props interface `<ComponentName>Props`.
+2. Keep callback names action-oriented, such as `onSave`, `onPublish`,
+   `onToggle`, `onChange`.
+3. Avoid passing large store objects as props.
+4. Avoid accepting `any` for node data, API data, or form values.
+5. Keep backend DTOs out of leaf components when the UI needs a mapped shape.
 
-Thin wrapper in `modules/{mod}/api/` if needed:
+## Icons
 
-```tsx
-// modules/agent/api/agentService.ts
-import { createAgent as createAgentApi, getAgentList } from '../../../shared/api/adapters/agentAdapter'
+The app already depends on `@ant-design/icons`. Use it for common UI icons
+inside AntD surfaces.
 
-export async function fetchAgentList() {
-  return getAgentList()
-}
+Observed examples:
 
-export async function createAgent() {
-  const id = await createAgentApi({ name: '未命名 Agent' })
-  return { id: String(id) }
-}
-```
+- `LockOutlined`
+- `MailOutlined`
+- `RobotOutlined`
+- `UserOutlined`
+- `SafetyOutlined`
 
----
+Do not add a second icon library without a concrete need.
 
-## Error Handling (Frontend)
+## Tests For Components
 
-### API Error Normalization
+Component tests are colocated near owners.
 
-All API errors go through `shared/api/errorMapper.ts`:
+Observed tests:
 
-```tsx
-export type NormalizedErrorCode =
-  | 'TOKEN_EXPIRED'
-  | 'UNAUTHORIZED'
-  | 'FORBIDDEN'
-  | 'RATE_LIMITED'
-  | 'TIMEOUT'
-  | 'NETWORK_ERROR'
-  | 'UNKNOWN_ERROR'
+- `workflow/components/__tests__/WorkflowNode.test.tsx`
+- `workflow/components/__tests__/CanvasToolbar.test.tsx`
+- `workflow/components/__tests__/CustomEdge.test.tsx`
+- `workflow/__tests__/workflow.editor-interaction.test.tsx`
+- `auth/__tests__/authRoutes.test.tsx`
+- `dashboard/__tests__/dashboard.new-agent-route.test.tsx`
 
-export interface NormalizedApiError {
-  code: NormalizedErrorCode
-  message: string
-  status?: number
-}
-```
+When touching React Flow components, tests often mock `@xyflow/react`. Keep
+those mocks aligned with the callbacks used by the component.
 
-### HTTP Client Interceptors
+## Component Anti-Patterns
 
-`shared/api/httpClient.ts` handles:
-- **Request**: Attach JWT token from localStorage/sessionStorage
-- **Response**: Auto-clear token + redirect on 401
+Avoid these patterns:
 
-```tsx
-instance.interceptors.request.use((config) => {
-  const token = localStorage.getItem('accessToken') || sessionStorage.getItem('accessToken')
-  if (token) {
-    config.headers.set('Authorization', `Bearer ${token}`)
-  }
-  return config
-})
-```
-
-### Toast Notifications
-
-Use `shared/feedback/toast.ts` for lightweight toasts:
-
-```tsx
-import { showToast } from '../../../shared/feedback/toast'
-
-showToast('保存成功', 'success')
-showToast('操作失败', 'error')
-```
-
-Or Ant Design's `message` API for heavier notifications.
-
----
-
-## Styling
-
-### Tailwind CSS + Ant Design
-
-- **Layout/spacing**: Tailwind utilities
-- **UI components**: Ant Design (Button, Card, Table, Modal, etc.)
-- **Conditional classes**: `clsx` + `tailwind-merge`
-
-```tsx
-import clsx from 'clsx'
-
-<div className={clsx('p-4 rounded-lg', isActive && 'bg-blue-50 border-blue-200')}>
-```
-
-### Constants for Dynamic Styles
-
-```tsx
-const AVATAR_COLORS = [
-  '#1677ff', '#52c41a', '#faad14', '#eb2f96',
-  '#722ed1', '#13c2c2', '#fa541c', '#2f54eb',
-]
-
-const statusMap: Record<string, { label: string; color: string }> = {
-  DRAFT: { label: '草稿', color: 'default' },
-  PUBLISHED: { label: '已发布', color: 'green' },
-}
-```
-
----
-
-## Testing
-
-### Unit Tests (Vitest)
-
-Test files co-located in `__tests__/` directories:
-
-```tsx
-// modules/agent/__tests__/agent.create-to-workflow.test.tsx
-import { render, screen, waitFor } from '@testing-library/react'
-import { vi } from 'vitest'
-
-vi.mock('../../../shared/api/adapters/agentAdapter', () => ({
-  createAgent: mockCreateAgent,
-  getAgentList: () => mockGetAgentList(),
-}))
-
-describe('agent create to workflow', () => {
-  it('navigates to workflow after creation', async () => {
-    // ...
-  })
-})
-```
-
-### Key Testing Patterns:
-- **Mock API adapters** — never hit real APIs in unit tests
-- **Use `vi.mock()` with `vi.hoisted()`** — for clean mock setup
-- **Inject mock clients** — adapters accept optional `client` parameter
-- **Use `@testing-library/react`** — for component testing
-
----
-
-## SSE / Streaming
-
-For real-time features (chat, workflow execution, swarm), use custom hooks:
-
-```tsx
-// modules/swarm/hooks/useAgentStream.ts
-export function useAgentStream(agentId: number) {
-  // EventSource-based SSE connection
-  // Handles reconnection, error states
-}
-```
-
----
-
-## Common Mistakes
-
-1. **❌ Importing from `app/frontend/`** — Use `ai-agent-foward/` only
-2. **❌ Direct Axios calls in components** — Use shared API adapters
-3. **❌ Missing TypeScript types** — Always type API responses and props
-4. **❌ Storing auth tokens insecurely** — Use httpClient's built-in interceptors
-5. **❌ Not using Ant Design components** — Don't reinvent basic UI patterns
-6. **❌ Global state for local concerns** — Use `useState` for component-scoped state
-7. **❌ Missing error handling on API calls** — Always handle loading/error states
+1. Creating a new flat `src/components` directory for feature UI.
+2. Mixing route definitions inside module page components.
+3. Adding one-off global CSS for module-only presentation.
+4. Wrapping AntD components without repeated usage or behavior.
+5. Passing store objects deep through props.
+6. Using `any` for React Flow node data when a specific shape exists.
+7. Keeping EventSource or stream parsing logic inside visual components.
+8. Importing backend adapters directly into deeply nested leaf components.
+9. Duplicating AntD validation rules across pages when a shared validator is
+   warranted.
+10. Replacing AntD controls with raw HTML controls for standard form behavior.

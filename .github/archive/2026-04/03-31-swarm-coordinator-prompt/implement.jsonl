@@ -1,0 +1,10 @@
+{"file": ".trellis/workflow.md", "reason": "Project workflow and conventions"}
+{"file": ".trellis/spec/backend/index.md", "reason": "Backend development guide"}
+{"file": ".trellis/spec/frontend/index.md", "reason": "Frontend development guide"}
+{"file": "ai-agent-domain/src/main/java/com/zj/aiagent/domain/swarm/entity/SwarmAgent.java", "reason": "Swarm Agent entity - add systemPrompt support"}
+{"file": "ai-agent-application/src/main/java/com/zj/aiagent/application/swarm/runtime/SwarmAgentRunner.java", "reason": "Agent execution loop - inject Phase context, task-notification"}
+{"file": "ai-agent-application/src/main/java/com/zj/aiagent/application/swarm/runtime/SwarmTools.java", "reason": "Tools - add structured message templates, JSON Schema output"}
+{"file": "ai-agent-infrastructure/src/main/java/com/zj/aiagent/infrastructure/swarm/sse/SwarmAgentEventBus.java", "reason": "SSE events - add task-notification event type"}
+{"file": "ai-agent-foward/src/modules/swarm/components/sidebar/AgentTreeList.tsx", "reason": "Existing agent tree - extend with WorkerCard/Coordinator panel"}
+{"file": "ai-agent-foward/src/modules/swarm/hooks/useUIStream.ts", "reason": "SSE hook - add task-notification parsing"}
+{"file": "docs/claude-code-multi-agent-patterns.md", "reason": "Claude-Code patterns reference - Coordinator mode, Phase workflow"}

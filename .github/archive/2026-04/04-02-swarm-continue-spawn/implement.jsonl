@@ -1,0 +1,8 @@
+{"file": ".trellis/workflow.md", "reason": "Project workflow and conventions"}
+{"file": ".trellis/spec/backend/index.md", "reason": "Backend development guide"}
+{"file": "ai-agent-application/src/main/java/com/zj/aiagent/application/swarm/runtime/SwarmAgentRunner.java", "reason": "核心执行器，Phase 追踪和上下文收集的核心文件"}
+{"file": "ai-agent-application/src/main/java/com/zj/aiagent/application/swarm/prompt/SwarmPromptSection.java", "reason": "提示词 Section 定义，包含 Continue vs Spawn 矩阵"}
+{"file": "ai-agent-application/src/main/java/com/zj/aiagent/application/swarm/prompt/SwarmPromptService.java", "reason": "提示词服务，变量注入和上下文构建"}
+{"file": "ai-agent-application/src/main/java/com/zj/aiagent/application/swarm/runtime/SwarmTools.java", "reason": "工具定义，create_worker 和 delegate_task 的 Spawn/Continue 机制"}
+{"file": "ai-agent-application/src/main/java/com/zj/aiagent/application/swarm/SwarmAgentRuntimeService.java", "reason": "Agent 生命周期管理，wakeAgent 和状态切换"}
+{"file": "ai-agent-infrastructure/src/main/java/com/zj/aiagent/infrastructure/swarm/sse/SwarmAgentEventBus.java", "reason": "事件总线，TaskNotification 和上下文更新广播"}

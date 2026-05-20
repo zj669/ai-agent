@@ -1,228 +1,319 @@
 # Frontend Quality Guidelines
 
-> Code quality standards for the AI Agent Platform frontend.
+This spec defines frontend quality rules for `ai-agent-foward/`.
 
----
+## Tooling Facts
 
-## Overview
+Current package scripts in `ai-agent-foward/package.json`:
 
-- **Language**: TypeScript ~5.9 (strict mode)
-- **Framework**: React 19.2 + Vite 7.1
-- **UI Library**: Ant Design 6.3
-- **Linting**: ESLint 9 + eslint-plugin-react-hooks + react-refresh
-- **Testing**: Vitest 3.2 (unit) + Playwright 1.55 (E2E)
-- **Styling**: Tailwind CSS 3.4
-
----
-
-## Build & Quality Commands
-
-```bash
-cd ai-agent-foward
-
-# Development
-npm run dev          # Start dev server (http://localhost:5173)
-
-# Quality checks
-npm run lint         # ESLint
-npm run typecheck    # TypeScript (tsc --noEmit)
-npm run test         # Unit tests (Vitest)
-npm run test:watch   # Unit tests in watch mode
-npm run test:e2e     # E2E tests (Playwright)
-
-# Production
-npm run build        # tsc -b && vite build
-npm run preview      # Preview production build
-```
-
-**All of these must pass before commit.**
-
----
-
-## Forbidden Patterns
-
-### ❌ NEVER Do These
-
-| Pattern | Why | Correct Alternative |
-|---------|-----|---------------------|
-| Class components | Outdated, no hooks support | Functional components with hooks |
-| Direct `axios.get/post` in components | Bypasses error handling, untestable | Use `shared/api/adapters/` |
-| `any` type | Defeats TypeScript purpose | Use proper types or `unknown` |
-| `localStorage` for auth directly | Bypass interceptors | Use httpClient's built-in token management |
-| `console.log` in committed code | Noise in production | Remove or use proper logging |
-| CSS-in-JS (styled-components) | Not used in this project | Tailwind CSS + Ant Design |
-| Barrel exports (`index.ts`) | Not used in this codebase | Direct file imports |
-| `app/frontend/` directory | Legacy skeleton | Use `ai-agent-foward/` |
-| Inline styles for complex layouts | Hard to maintain | Tailwind utilities |
-| Non-typed API responses | Runtime errors | Type all API response interfaces |
-
----
-
-## Required Patterns
-
-### ✅ ALWAYS Do These
-
-| Pattern | Where | Example |
-|---------|-------|---------|
-| TypeScript strict types | All files | Interface for API responses, component props |
-| Ant Design for UI | All UI components | `Button`, `Card`, `Table`, `Modal`, `message` |
-| API adapter layer | API calls | `shared/api/adapters/{mod}Adapter.ts` |
-| Loading/error states | Any data fetch | `useState<boolean>(true)` + try/finally |
-| `useNavigate()` for routing | Navigation | `const navigate = useNavigate()` |
-| `clsx` for conditional classes | Dynamic styling | `clsx('base', condition && 'active')` |
-| Test co-location | Tests | `__tests__/` inside each module |
-| Mock API in tests | Unit tests | `vi.mock()` with `vi.hoisted()` |
-| Default client DI | Adapters | `client: ApiClientLike = apiClient` parameter |
-
----
-
-## TypeScript Conventions
-
-### API Types
-
-```tsx
-// shared/api/response.ts
-export interface ApiResponse<T> {
-  code: number
-  message: string
-  data: T
+```json
+{
+  "dev": "vite",
+  "build": "tsc -b && vite build",
+  "preview": "vite preview",
+  "test": "vitest run",
+  "test:watch": "vitest",
+  "test:e2e": "playwright test",
+  "lint": "eslint .",
+  "typecheck": "tsc --noEmit"
 }
 ```
 
-### Component Props
+Current TypeScript config is split:
 
-```tsx
-interface AgentCardProps {
-  agent: AgentSummary
-  onEdit: (id: string) => void
-  onDelete: (id: string) => void
+- `tsconfig.json` references `tsconfig.app.json` and `tsconfig.node.json`.
+- `tsconfig.app.json` includes `src`.
+- `tsconfig.node.json` includes `vite.config.ts`.
+
+## TypeScript Strictness
+
+`tsconfig.app.json` enables:
+
+- `strict: true`
+- `isolatedModules: true`
+- `noUnusedLocals: true`
+- `noUnusedParameters: true`
+- `noFallthroughCasesInSwitch: true`
+- `resolveJsonModule: true`
+- `moduleResolution: Bundler`
+- `jsx: react-jsx`
+
+All frontend code should compile under these settings. Do not relax strictness
+for a feature-local shortcut.
+
+## Type Rules
+
+Use explicit types at boundaries:
+
+1. API request payloads.
+2. API response DTOs.
+3. Stream event payloads.
+4. Form values.
+5. React Flow node data.
+6. Store state and actions.
+7. Route params after parsing.
+
+Observed good examples:
+
+- `AgentSummary`, `AgentDetail`, and payload interfaces in `agentAdapter.ts`.
+- `MessageDTO`, `ThoughtStepDTO`, and `ExecutionData` in `chatAdapter.ts`.
+- `EditorState` in `useEditorStore.ts`.
+- `WorkflowDetail` and `SaveWorkflowInput` in `workflowService.ts`.
+- `StartExecutionHandlers` and `StartExecutionEvent` in `chatService.ts`.
+
+## Avoid `any`
+
+Do not introduce `any` for convenience.
+
+Allowed alternatives:
+
+- `unknown` for untrusted data before narrowing.
+- `Record<string, unknown>` for dynamic payload objects.
+- Specific DTO interfaces for backend responses.
+- Union types for known status and event names.
+- Type guards for runtime narrowing.
+
+Existing code still has some `as Record<string, unknown>` casts around dynamic
+workflow payloads. New code should narrow values close to where they enter the
+frontend and avoid spreading casts through components.
+
+## Boundary Validation
+
+Validate data at boundaries:
+
+1. Backend API responses.
+2. JSON strings such as `graphJson`.
+3. SSE payloads.
+4. Route params.
+5. Form submissions.
+6. React Flow graph serialization/deserialization.
+
+Observed current patterns:
+
+- `workflowService.ts` parses `graphJson` in `parseGraphJson` and returns
+  `null` on parse failure.
+- `chatService.ts` parses SSE `data:` JSON and falls back to `{ raw }`.
+- `WorkflowEditorPage.tsx` normalizes workflow graph nodes before saving.
+- `validateWorkflowGraph.ts` checks missing/invalid edges.
+- `validateConnection.ts` rejects self-loops.
+- AntD `Form.Item` rules validate login and registration inputs.
+
+## Zod Status And Policy
+
+`zod` is not currently present in `ai-agent-foward/package.json`, and no direct
+usage was found under `ai-agent-foward/src`.
+
+Do not claim the current source already uses Zod.
+
+If a future task adds Zod, use it at boundaries rather than inside every
+component:
+
+1. Parse backend DTOs when an endpoint returns dynamic or weakly typed payloads.
+2. Parse persisted local/session storage values before using them.
+3. Parse SSE JSON payloads before dispatching callbacks.
+4. Parse route/search params when a page depends on structured values.
+5. Parse workflow graph JSON before mapping to React Flow nodes.
+
+Keep Zod schemas close to the boundary owner:
+
+- Shared API response schemas under `src/shared/api` when reused.
+- Module-specific schemas under `src/modules/<module>/validation` or `api`.
+- Form schemas near the page/hook that owns the form unless reused.
+
+Do not duplicate Zod schemas and TypeScript interfaces manually. Infer types
+from schemas where Zod is the source of truth.
+
+## Form Validation
+
+The current frontend uses AntD Form, not `react-hook-form`.
+
+Observed files:
+
+- `src/app/pages/LoginPage.tsx`
+- `src/app/pages/RegisterPage.tsx`
+
+Current pattern:
+
+- Use `Form.useForm`.
+- Use `layout="vertical"`.
+- Use `requiredMark={false}`.
+- Attach validation rules to `Form.Item`.
+- Use `onFinish` or explicit `form.validateFields()`.
+- Show submit errors through AntD `message`.
+
+Do not document `react-hook-form` as current implementation.
+
+## React Hook Form Policy
+
+`react-hook-form` is not currently present in `ai-agent-foward/package.json`,
+and no direct usage was found under `ai-agent-foward/src`.
+
+If a future task introduces `react-hook-form`, use it only when it solves a
+real problem that AntD Form is not handling well, such as highly dynamic forms
+with complex field arrays or shared schema resolver integration.
+
+When using it with AntD in the future:
+
+1. Keep one form ownership model per form.
+2. Do not mix AntD Form state and react-hook-form state for the same fields.
+3. Use a resolver when paired with Zod.
+4. Keep submit DTO mapping explicit.
+5. Add tests for validation, default values, and submit payload mapping.
+
+Until the dependency is actually added, prefer existing AntD Form conventions.
+
+## Runtime Parsing
+
+Use safe parsing for dynamic values.
+
+Examples to follow:
+
+- `parseGraphJson` catches JSON parse errors.
+- `parseSseBlock` catches SSE JSON parse errors.
+- `getSavedUserInfo` catches local storage JSON parse errors.
+- `useUIStream` catches malformed task notification payloads.
+
+When catching parse errors, return a safe fallback and keep UI behavior stable.
+Do not let malformed backend or storage data crash the entire route.
+
+## Tests
+
+Vitest and React Testing Library are configured.
+
+Observed setup:
+
+- `src/test/setup.ts`
+- `@testing-library/jest-dom`
+- `cleanup()` after each test
+- `matchMedia` mock
+- `ResizeObserver` mock
+- `scrollIntoView` no-op
+- canvas `getContext` handling
+
+Observed test placement:
+
+- App/router tests under `src/app/__tests__`
+- Module behavior tests under `src/modules/<module>/__tests__`
+- API tests under `src/modules/<module>/api/__tests__`
+- Component tests under `src/modules/<module>/components/__tests__`
+- Store tests under `src/modules/<module>/stores/__tests__`
+- Validation tests under `src/modules/<module>/validation/__tests__`
+
+Add tests close to the code being changed.
+
+## What To Test
+
+For API adapters:
+
+- Request path.
+- Request params/body.
+- Envelope unwrapping.
+- Raw response exceptions.
+- Error propagation when relevant.
+
+For SSE parsers:
+
+- Event name parsing.
+- Multi-line data.
+- JSON fallback.
+- Finish behavior.
+- Error event behavior.
+- Abort/cleanup behavior.
+
+For stores:
+
+- Initial state.
+- Each action.
+- Reset behavior.
+- Dirty state transitions.
+
+For components:
+
+- User-visible behavior.
+- Important callbacks.
+- Form validation.
+- Route navigation.
+- Integration with mocked shared adapters.
+
+For workflow canvas:
+
+- Connection validation.
+- Dirty marking.
+- Node/edge callbacks.
+- Save/publish validation.
+- React Flow mocks matching the required callback surface.
+
+## Linting
+
+`eslint.config.js` uses:
+
+- `@eslint/js`
+- `typescript-eslint`
+- `eslint-plugin-react-hooks`
+- `eslint-plugin-react-refresh`
+- browser globals
+
+React Hooks recommended rules are enabled. Do not suppress hook dependency
+warnings without a narrow reason and a local comment.
+
+## Build And Typecheck
+
+The build script runs `tsc -b` before `vite build`. A change that passes Vite
+but fails TypeScript is not acceptable.
+
+Use `npm run typecheck` for type-only verification and `npm run build` when the
+change can affect bundling, Vite config, CSS imports, or generated output.
+
+## Error Handling
+
+Feature code should catch `unknown` errors and map to user-facing text.
+
+Observed pattern:
+
+```ts
+} catch (err: unknown) {
+  const msg = err instanceof Error ? err.message : '登录失败，请重试'
+  message.error(msg)
 }
-
-export default function AgentCard({ agent, onEdit, onDelete }: AgentCardProps) {
-  // ...
-}
 ```
 
-### Enum-like Maps
+Use normalized API errors from the shared client where possible. Avoid assuming
+`err.response.data.message` exists in component code.
 
-```tsx
-const statusMap: Record<string, { label: string; color: string }> = {
-  DRAFT: { label: '草稿', color: 'default' },
-  PUBLISHED: { label: '已发布', color: 'green' },
-}
-```
+## Storage
 
----
+Access token storage keys are shared:
 
-## File Organization Rules
+- `localStorage.accessToken`
+- `sessionStorage.accessToken`
 
-### Import Order
+User info is stored as:
 
-1. React / React DOM
-2. Third-party libraries (react-router-dom, antd, zustand)
-3. Shared utilities (`../../../shared/...`)
-4. Module-local imports (`../components/...`)
-5. Types (if separate)
+- `localStorage.userInfo`
 
-```tsx
-import { useEffect, useState } from 'react'
-import { useNavigate } from 'react-router-dom'
-import { Button, Card, message } from 'antd'
-import { PlusOutlined } from '@ant-design/icons'
-import { getAgentList } from '../../../shared/api/adapters/agentAdapter'
-import AgentCard from '../components/AgentCard'
-```
+Remembered login email is stored as:
 
-### Export Pattern
+- `localStorage.rememberedEmail`
 
-- **Page components**: `export default function {Name}Page()`
-- **Utility functions**: Named exports `export function {name}()`
-- **Types**: Named exports `export interface {Name}`
+Parse storage values defensively. Clear both token stores on auth expiry or
+logout.
 
----
+## Anti-Patterns
 
-## Testing Standards
+Avoid these patterns:
 
-### Unit Test Pattern
-
-```tsx
-import { render, screen, fireEvent, waitFor } from '@testing-library/react'
-import { vi, describe, it, expect, beforeEach } from 'vitest'
-
-// Hoisted mocks
-const { mockFn } = vi.hoisted(() => ({
-  mockFn: vi.fn()
-}))
-
-// Module mocks
-vi.mock('../../../shared/api/adapters/agentAdapter', () => ({
-  getAgentList: mockFn,
-}))
-
-describe('AgentListPage', () => {
-  beforeEach(() => {
-    mockFn.mockReset()
-  })
-
-  it('renders agent list', async () => {
-    mockFn.mockResolvedValue([{ id: 1, name: 'Test Agent' }])
-    render(<AgentListPage />)
-    await waitFor(() => expect(screen.getByText('Test Agent')).toBeInTheDocument())
-  })
-})
-```
-
-### Adapter Test Pattern (DI-based)
-
-```tsx
-import { vi } from 'vitest'
-
-describe('dashboardAdapter', () => {
-  it('returns stats', async () => {
-    const client = {
-      get: vi.fn().mockResolvedValue({
-        data: { code: 200, message: 'ok', data: { agentCount: 5 } }
-      })
-    }
-
-    const result = await getDashboardStats(client)
-    expect(result.agentCount).toBe(5)
-  })
-})
-```
-
-### What to Test
-
-| Priority | What | How |
-|----------|------|-----|
-| 🔴 Must | API adapters | Mock HTTP client, verify request/response mapping |
-| 🔴 Must | Validation logic | Pure function tests |
-| 🟡 Should | Key page components | Mock APIs, render, verify UI state |
-| 🟡 Should | Zustand stores | Test actions and state changes |
-| 🟢 Nice | UI interactions | fireEvent + waitFor |
-
----
-
-## Pre-Commit Checklist
-
-- [ ] `npm run lint` — no ESLint errors
-- [ ] `npm run typecheck` — no TypeScript errors
-- [ ] `npm run test` — all unit tests pass
-- [ ] No `console.log` in committed code
-- [ ] No `any` types (use `unknown` if truly needed)
-- [ ] API calls go through adapter layer
-- [ ] Loading/error states handled
-- [ ] New routes added to `app/router.tsx`
-- [ ] New modules follow `modules/{name}/` structure
-
----
-
-## Common Mistakes
-
-1. **❌ Not handling loading states** — Users see blank screens
-2. **❌ Missing TypeScript types on API responses** — Runtime crashes
-3. **❌ Testing implementation details** — Test behavior, not structure
-4. **❌ Forgetting `mockReset()` in `beforeEach`** — Test pollution
-5. **❌ Not using `unwrapResponse()`** — Manually extracting `.data.data`
-6. **❌ Creating new UI components when Ant Design has one** — Check antd docs first
-7. **❌ Large component files** — Extract sub-components, hooks, or stores
+1. Relaxing TypeScript strictness.
+2. Casting API responses to `any`.
+3. Putting raw backend DTOs directly into deep UI components when mapping is
+   needed.
+4. Duplicating token handling across normal Axios adapters.
+5. Forgetting cleanup for timers, readers, or EventSource connections.
+6. Swallowing stream errors without surfacing callback or UI state.
+7. Mixing AntD Form with another form state library for the same form.
+8. Adding Zod or react-hook-form docs as if they already exist in source.
+9. Adding broad global CSS for a single module.
+10. Moving tests away from their owning module.
+11. Ignoring `noUnusedLocals` and `noUnusedParameters`.
+12. Parsing route params without checking `Number.isFinite` when numbers are
+    required.
+13. Hard-coding backend host names instead of using Vite proxy paths.

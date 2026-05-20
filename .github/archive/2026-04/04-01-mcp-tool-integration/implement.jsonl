@@ -1,0 +1,7 @@
+{"file": ".trellis/workflow.md", "reason": "Project workflow and conventions"}
+{"file": ".trellis/spec/backend/index.md", "reason": "Backend development guide"}
+{"file": ".trellis/spec/frontend/index.md", "reason": "Frontend development guide"}
+{"file": ".trellis/spec/backend/database-guidelines.md", "reason": "MyBatis Plus patterns, PO/Mapper/Repository, schema management"}
+{"file": ".trellis/spec/backend/error-handling.md", "reason": "Response<T>, GlobalExceptionHandler, domain exception patterns"}
+{"file": ".trellis/spec/frontend/component-guidelines.md", "reason": "React patterns, API adapters, Zustand, Ant Design"}
+{"file": ".trellis/spec/guides/cross-layer-thinking-guide.md", "reason": "Cross-layer data flow, boundaries, contracts"}

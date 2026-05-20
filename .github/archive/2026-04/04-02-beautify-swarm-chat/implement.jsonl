@@ -1,0 +1,4 @@
+{"file": ".trellis/workflow.md", "reason": "Project workflow and conventions"}
+{"file": ".trellis/spec/frontend/index.md", "reason": "Frontend development guide"}
+{"file": "ai-agent-foward/src/modules/chat/pages/ChatPage.tsx", "reason": "chat 模块已用 ReactMarkdown 实现 Markdown 渲染，参考其用法"}
+{"file": "ai-agent-foward/src/modules/swarm/components/chat/", "type": "directory", "reason": "本次改动的核心组件目录"}

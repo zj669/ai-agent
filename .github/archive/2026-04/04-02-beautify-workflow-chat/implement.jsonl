@@ -1,0 +1,5 @@
+{"file": ".trellis/workflow.md", "reason": "Project workflow and conventions"}
+{"file": ".trellis/spec/frontend/index.md", "reason": "Frontend development guide"}
+{"file": "ai-agent-foward/src/modules/swarm/styles/swarm-colors.ts", "reason": "颜色系统，参考引入到 workflow chat"}
+{"file": "ai-agent-foward/src/modules/swarm/components/chat/MarkdownRenderer.tsx", "reason": "Markdown 渲染组件，复用到 workflow chat"}
+{"file": "ai-agent-foward/src/modules/swarm/components/chat/SwarmMessageBubble.tsx", "reason": "消息气泡样式参考"}

@@ -1,170 +1,260 @@
 # Logging Guidelines
 
-> How logging is done in the AI Agent Platform backend.
+> Logging conventions for backend code.
 
 ---
 
-## Overview
+## Scope
 
-- **Library**: SLF4J API + Logback (via Spring Boot)
-- **Structured Logging**: Logstash Logback Encoder (`logstash-logback-encoder:7.3`) for JSON output
-- **Annotation**: Lombok `@Slf4j` on all classes that need logging
-- **Output**: Console (dev), JSON (production) via Logback configuration
+The backend uses SLF4J as the logging facade. Spring Boot provides Logback at
+runtime from the application side, but domain code must not depend on Logback or
+any Logback-specific API.
+
+Most classes use Lombok `@Slf4j`. Keep that convention unless a class cannot use
+Lombok for a concrete reason.
 
 ---
 
-## Log Framework Setup
+## Facade & Idiom
 
-Every class that needs logging uses Lombok's `@Slf4j`:
+Use:
+
+- `lombok.extern.slf4j.Slf4j`
+- parameterized SLF4J messages with `{}` placeholders
+- structured identifiers in message fields, such as `executionId`, `nodeId`,
+  `documentId`, `datasetId`, `agentId`, and `userId`
+
+Do not use:
+
+- `System.out.println`
+- `Throwable#printStackTrace()`
+- `java.util.logging`
+- Logback classes in domain/application code
+- string concatenation for normal log fields
+
+### Real Example: Standard `@Slf4j` Service Logging
+
+File:
+`ai-agent-application/src/main/java/com/zj/aiagent/application/workflow/SchedulerService.java`
 
 ```java
 @Slf4j
 @Service
 @RequiredArgsConstructor
-public class AgentApplicationService {
-    public Long createAgent(CreateAgentCmd cmd) {
-        log.info("[AgentService] Creating agent: name={}, userId={}", cmd.getName(), cmd.getUserId());
-        // ...
+public class SchedulerService {
+
+    public void startExecution(...) {
+        log.info(
+            "[Scheduler] Starting execution for agent: {}, version: {}, mode: {}",
+            agentId,
+            versionId,
+            mode
+        );
     }
 }
 ```
 
-**⚠️ NEVER** use `System.out.println()` or `java.util.logging` — always use `@Slf4j` + `log.xxx()`.
+This is the default style: prefix the subsystem, use placeholders, and pass
+fields as arguments.
+
+### Real Example: Progress Logs With Stable IDs
+
+File:
+`ai-agent-application/src/main/java/com/zj/aiagent/application/knowledge/AsyncDocumentProcessor.java`
+
+```java
+log.info(
+    "文档处理进度: documentId={}, progress={}/{}",
+    document.getDocumentId(),
+    processedCount,
+    chunks.size()
+);
+```
+
+Long-running background jobs must include stable identifiers and progress
+numbers so failures can be correlated with persisted state.
 
 ---
 
 ## Log Levels
 
-| Level | When to Use | Example |
-|-------|-------------|---------|
-| `ERROR` | System failures, unrecoverable errors, data corruption | `log.error("Unexpected error", e)` |
-| `WARN` | Recoverable issues, degraded behavior, auth failures | `log.warn("Authentication error: {}", e.getMessage())` |
-| `INFO` | Business milestones, service lifecycle, key operations | `log.info("[AgentService] Loaded initial graph template")` |
-| `DEBUG` | Detailed flow tracing, async timeouts, intermediate states | `log.debug("Async request timed out: {}", e.getMessage())` |
-| `TRACE` | Low-level details (rarely used) | Serialized payloads, raw SQL |
+| Level | Use for | Examples in this project |
+| --- | --- | --- |
+| `DEBUG` | Developer diagnostics, verbose request/response details, cache or vector hit counts. | `RedisVerificationCodeRepository` logs code existence and removal at debug level. |
+| `INFO` | Lifecycle events and successful state transitions. | Workflow start, document processing milestones, RestClient request/response timing. |
+| `WARN` | Expected but abnormal recoverable behavior. | Validation/auth failures, disabled Milvus fallback, memory hydration failure that does not stop workflow. |
+| `ERROR` | Failed operation requiring attention, especially when the current layer handles or wraps the failure. | Unexpected global exceptions, failed HTTP node execution, failed SSE publish serialization. |
+
+Guidance:
+
+- Use `INFO` sparingly for events operators would search for.
+- Use `WARN` when the request can continue but quality or security is affected.
+- Use `ERROR` with the exception object when stack trace matters.
+- Do not log and rethrow at every layer. Log at the layer that has unique
+  context, then let upstream handlers own their own boundary logs.
 
 ---
 
-## Log Message Format Convention
+## Structured Logging & MDC
 
-### Module Tag Pattern
+The current codebase mostly uses structured message fields rather than a
+centralized MDC interceptor. New request/execution boundary code should move
+toward MDC while preserving the existing explicit identifiers in critical
+messages.
 
-Prefix log messages with a bracketed module/class tag for easy grep:
+Correlation keys:
+
+| Key | Source |
+| --- | --- |
+| `traceId` | HTTP ingress header or generated request ID. |
+| `executionId` | Workflow execution lifecycle, SSE stream, Redis channel, node logs. |
+| `nodeId` | Workflow node executor and review operations. |
+| `userId` | Authenticated user from `UserContext`. |
+| `agentId` | Agent-scoped workflow or memory operations. |
+| `conversationId` | Chat-linked workflow execution. |
+
+When adding MDC:
 
 ```java
-log.info("[AgentService] Creating agent: name={}", cmd.getName());
-log.info("[SchedulerService] Execution started: executionId={}", executionId);
-log.error("[AgentService] Failed to load initial graph template", e);
-log.info("[SwarmAPI] Create workspace request received: userId={}, name={}", userId, name);
-```
-
-### Parameter Placeholders
-
-- **Always use SLF4J `{}` placeholders** — NEVER string concatenation
-- **Pass exception as the last argument** (SLF4J auto-extracts stack trace)
-
-```java
-// ✅ Correct
-log.info("[Module] Operation completed: id={}, status={}", id, status);
-log.error("[Module] Operation failed: id={}", id, exception);
-
-// ❌ Wrong — string concatenation
-log.info("[Module] Operation completed: id=" + id);
-
-// ❌ Wrong — exception not last arg
-log.error("[Module] Failed: " + exception.getMessage());
-```
-
----
-
-## What to Log
-
-### MUST Log
-
-| Event | Level | Example |
-|-------|-------|---------|
-| Service initialization / template loading | `INFO` | `[AgentService] Loaded initial graph template` |
-| Key business operations | `INFO` | `[SchedulerService] Execution started: executionId=xxx` |
-| External API calls (request/response summary) | `INFO` / `DEBUG` | `[SwarmAPI] Create workspace: userId={}, llmConfigId={}` |
-| Authentication failures | `WARN` | `Authentication error: Invalid credentials` |
-| Unexpected exceptions (catch-all) | `ERROR` | With full stack trace |
-| Workflow node execution results | `INFO` | Node ID, status, duration |
-| SSE/streaming lifecycle events | `DEBUG` | Connection opened, closed, timeout |
-
-### SHOULD Log
-
-| Event | Level |
-|-------|-------|
-| Repository save/delete operations | `DEBUG` |
-| Cache hit/miss ratios | `DEBUG` |
-| Configuration values on startup | `INFO` |
-
----
-
-## What NOT to Log
-
-| Data Type | Reason |
-|-----------|--------|
-| ❌ User passwords (even hashed) | Security |
-| ❌ JWT tokens | Security |
-| ❌ Complete request/response bodies with PII | Privacy (GDPR) |
-| ❌ API keys / Secret keys | Credential exposure |
-| ❌ Full `graphJson` in INFO level | Too verbose — use DEBUG |
-| ❌ Email verification codes | Security |
-
----
-
-## Structured Logging (Production)
-
-Production uses `logstash-logback-encoder` for JSON formatting:
-
-```xml
-<!-- logback-spring.xml -->
-<appender name="JSON" class="ch.qos.logback.core.ConsoleAppender">
-    <encoder class="net.logstash.logback.encoder.LogstashEncoder"/>
-</appender>
-```
-
-This outputs structured JSON logs compatible with ELK/Grafana stacks.
-
----
-
-## Controller Layer Logging Pattern
-
-Controllers log the **API entry point** with request parameters:
-
-```java
-@PostMapping
-public Response<WorkspaceDefaultsDTO> createWorkspace(@RequestBody CreateWorkspaceRequest request) {
-    Long userId = UserContext.getUserId();
-    log.info("[SwarmAPI] Create workspace request received: userId={}, name={}, llmConfigId={}",
-        userId, request.getName(), request.getLlmConfigId());
-    return Response.success(workspaceService.createWorkspace(userId, request));
+try {
+    MDC.put("traceId", traceId);
+    MDC.put("userId", String.valueOf(userId));
+    // invoke downstream work
+} finally {
+    MDC.clear();
 }
 ```
 
----
+MDC must be set at the boundary and cleared in `finally`. For async execution,
+copy or rebuild context explicitly; do not assume worker threads inherit MDC.
 
-## Exception Logging in GlobalExceptionHandler
+### Real Example: Execution ID in Logs and Payload
+
+File:
+`ai-agent-application/src/main/java/com/zj/aiagent/application/workflow/SchedulerService.java`
 
 ```java
-// WARN for expected business errors
-log.warn("Authentication error: {}", e.getMessage());
+log.info(
+    "[Scheduler] Starting execution: {}, mode: {}",
+    execution.getExecutionId(),
+    mode
+);
 
-// DEBUG for async/SSE timeouts (noise reduction)
-log.debug("Async request timed out: {}", e.getMessage());
-
-// ERROR for unexpected/catch-all with full stack trace
-log.error("Unexpected error", e);
+payload.put("executionId", executionId);
+publisher.publishEvent("workflow_resumed", payload);
 ```
+
+Workflow code must make `executionId` visible in logs and emitted events.
+
+### Real Example: SSE Channel Logging
+
+File:
+`ai-agent-infrastructure/src/main/java/com/zj/aiagent/infrastructure/workflow/event/RedisSsePublisher.java`
+
+```java
+String channel = CHANNEL_PREFIX + payload.getExecutionId();
+String message = objectMapper.writeValueAsString(payload);
+redisService.publish(channel, message);
+
+log.debug("[SSE-Pub] Published to {}: {}", channel, message);
+```
+
+This is useful for local debugging, but full SSE payloads can be large or
+sensitive. Keep such logs at `DEBUG`; do not promote payload bodies to `INFO`.
 
 ---
 
-## Common Mistakes
+## Sensitive Data
 
-1. **❌ Using `System.out.println`** — Use `@Slf4j` + `log.xxx()`
-2. **❌ Logging sensitive data** — No passwords, tokens, API keys
-3. **❌ String concatenation in log messages** — Use `{}` placeholders
-4. **❌ Missing module tag** — Always use `[ModuleName]` prefix
-5. **❌ Logging full exception message without stack** — Pass exception object as last arg
-6. **❌ Too verbose INFO logging** — Use DEBUG for detailed traces, keep INFO for business milestones
+Never log:
+
+- credentials or password hashes
+- JWT access or refresh tokens
+- API keys, provider secrets, or Authorization headers
+- email verification codes
+- full LLM prompts, completions, or SSE payloads at `INFO`
+- full uploaded document content or vector chunks
+- raw request/response bodies from third-party HTTP calls
+
+Mask or omit sensitive values. If the value is needed for debugging, log a
+stable id, length, hash, status, or last four characters only.
+
+### Real Example: Filtering Authorization Headers
+
+File:
+`ai-agent-interfaces/src/main/java/com/zj/aiagent/config/RestClientConfig.java`
+
+```java
+Arrays.stream(request.getHeaders())
+    .filter(header ->
+        !header
+            .getName()
+            .toLowerCase()
+            .contains("authorization")
+    )
+    .forEach(header ->
+        log.debug("Request Header: {}: {}", header.getName(), header.getValue())
+    );
+```
+
+This is the correct direction: sensitive headers are excluded before debug
+logging.
+
+### Existing Deviation To Avoid
+
+File:
+`ai-agent-infrastructure/src/main/java/com/zj/aiagent/infrastructure/auth/token/JwtTokenService.java`
+
+`invalidateToken` logs the full token when blacklisting it. Do not copy this
+pattern. New token logs should identify only the token id (`jti`), user id,
+expiration, or a masked token suffix.
+
+---
+
+## Domain Layer Constraint
+
+Domain code may use the SLF4J API through Lombok `@Slf4j`, but it must not
+declare or import Logback runtime APIs.
+
+Current evidence:
+
+- `ai-agent-domain/pom.xml` declares `lombok` but does not declare Logback.
+- Domain classes such as
+  `ai-agent-domain/src/main/java/com/zj/aiagent/domain/user/service/UserAuthenticationDomainService.java`
+  use `@Slf4j`.
+- Runtime logging configuration belongs to `ai-agent-interfaces`, where
+  `application.yml` points to `classpath:logback-spring.xml`.
+
+Domain entities and value objects should be quiet by default. If a domain service
+logs, it should log business events or rejected invariants with identifiers, not
+transport details.
+
+---
+
+## Anti-Patterns
+
+| Anti-pattern | Why it is wrong | Replacement |
+| --- | --- | --- |
+| `System.out.println(...)` | Bypasses log levels, appenders, formatting, and production routing. | Use `log.debug/info/warn/error`. |
+| `printStackTrace()` | Bypasses structured logging and loses correlation fields. | Use `log.error("message", e)`. |
+| String concatenation in logs | Eagerly builds strings and obscures fields. | Use SLF4J placeholders. |
+| Logging credentials/tokens/API keys | Creates credential leakage in persistent logs. | Mask or omit; log ids and status only. |
+| Logging full SSE or LLM payloads at `INFO` | Payloads can be huge and sensitive. | Log length, ids, or short previews at `DEBUG`. |
+| Logging then rethrowing at every layer | Produces duplicate stack traces and noisy alerts. | Log where context is added; otherwise rethrow. |
+| Importing Logback classes in domain | Couples pure/domain code to runtime logging implementation. | Use SLF4J facade only. |
+| Logging recoverable user mistakes as `ERROR` | Inflates operational alerts. | Use `WARN` for expected bad input/auth/business failures. |
+
+---
+
+## Checklist
+
+- [ ] Does the class use `@Slf4j` or an existing project logging wrapper?
+- [ ] Are log fields passed as `{}` arguments?
+- [ ] Does every workflow log include `executionId` when available?
+- [ ] Does every node executor log include `nodeId` when available?
+- [ ] Does async code carry or rebuild MDC/correlation context explicitly?
+- [ ] Are secrets, tokens, headers, verification codes, prompts, and document
+      bodies omitted or masked?
+- [ ] Is the level correct for the operator impact?
+- [ ] Is the exception logged only where useful context is added?
+- [ ] Did you avoid `System.out.println` and `printStackTrace()`?
