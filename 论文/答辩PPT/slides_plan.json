@@ -1,0 +1,106 @@
+{
+  "title": "基于 Spring Boot 的 AI Agent 智能体编排系统的设计与实现",
+  "total_slides": 20,
+  "slides": [
+    {
+      "slide_number": 1,
+      "page_type": "cover",
+      "content": "基于 Spring Boot 的 AI Agent 智能体编排系统\n\n副标题：本科毕业设计答辩\n学院：西南科技大学 计算机科学与技术学院\n答辩人：zj669　　指导教师：（请填写）\n2026 年 5 月"
+    },
+    {
+      "slide_number": 2,
+      "page_type": "content",
+      "content": "汇报提纲\n\n01　选题背景与研究意义\n02　国内外现状与核心问题\n03　需求分析与系统设计\n04　核心模块实现\n05　主要创新点\n06　测试与部署\n07　总结与展望"
+    },
+    {
+      "slide_number": 3,
+      "page_type": "content",
+      "content": "选题背景与研究意义\n\n大模型推动 AI 应用从单轮问答走向流程化任务执行。\n\n企业业务场景的新诉求\n过程可观察　结果可校验　操作可追溯\n\n研究意义\n为 Java 业务系统提供可视化 Agent 编排参考方案\n为高风险流程提供 \"自动执行 + 人工把关\" 的工程范式"
+    },
+    {
+      "slide_number": 4,
+      "page_type": "content",
+      "content": "国内外现状与核心问题\n\n现状梳理\n低代码平台　Dify / Coze　配置直观，运行时托管在平台侧\n开发框架　LangGraph / AutoGen　图结构编排成熟，但生态在 Python\nJava 生态　模型调用齐全，可视化编排实践相对较少\n\n两个核心问题\n一　Java 业务系统缺少图结构 Agent 编排与状态恢复的配套实现\n二　多数工作流 \"一启动跑到底\"，关键节点缺少人工把关闸门"
+    },
+    {
+      "slide_number": 5,
+      "page_type": "content",
+      "content": "研究目标与主要工作\n\n目标\n在 Spring Boot 体系下构建可视化、可控、可追溯的 Agent 编排原型\n\n主要工作（五项）\n一　可视化 Agent 编排（草稿、发布、回滚）\n二　DAG 工作流调度（节点状态机、条件分支）\n三　人工检查点（执行前后两类暂停 + 审批恢复）\n四　知识库与检索增强（异步分块 + 向量化）\n五　用户认证与基本安全支撑"
+    },
+    {
+      "slide_number": 6,
+      "page_type": "content",
+      "content": "需求分析\n\n用户角色（两类）\n应用构建者　配置流程、维护知识库、发布版本\n业务使用者　发起任务、查看进度、参与人工审核\n\n功能模块（五大）\nAgent 管理　工作流调度　人工审核　知识库　用户认证\n\n非功能指标（原型级）\n核心接口 P95 ≤ 200ms　SSE 推流 P95 ≤ 500ms　并发工作流 ≥ 5 路"
+    },
+    {
+      "slide_number": 7,
+      "page_type": "content",
+      "content": "系统总体架构\n\n四层后端 + 前后端分离\n\n接口层　REST 控制器　SSE 通道　参数校验\n应用层　Agent / 调度 / 知识 / 用户 服务编排\n领域层　Execution 聚合根　WorkflowGraph　端口接口\n基础设施层　MySQL　Redis　Milvus　MinIO　节点执行器\n\n前端\nReact 19 + TypeScript + React Flow 画布 + SSE 事件接收\n\n设计原则\ndomain 层零框架依赖　跨域协调放在 application 层"
+    },
+    {
+      "slide_number": 8,
+      "page_type": "content",
+      "content": "工作流执行状态机\n\n六个状态\nPENDING　RUNNING　PAUSED_FOR_REVIEW　SUCCEEDED　FAILED　CANCELLED\n\n关键转换\n启动　PENDING → RUNNING\n人工审核　RUNNING → PAUSED_FOR_REVIEW\n审批通过　PAUSED_FOR_REVIEW → RUNNING\n审批拒绝　PAUSED_FOR_REVIEW → FAILED\n节点全部完成　RUNNING → SUCCEEDED"
+    },
+    {
+      "slide_number": 9,
+      "page_type": "content",
+      "content": "数据库与技术选型\n\n最小核心数据表（8 张）\nuser_info / agent_info / agent_version\nworkflow_execution / workflow_node_execution_log\nworkflow_human_review_record\nknowledge_dataset / knowledge_document\n\n技术选型\n后端　Java 21 + Spring Boot 3.4.9 + Spring AI 1.0.1\n存储　MySQL 8.0　Redis 7　Milvus 2.3.3　MinIO\n前端　React 19 + React Flow 12 + Vite 7\n部署　Docker Compose 容器化"
+    },
+    {
+      "slide_number": 10,
+      "page_type": "content",
+      "content": "实现一　Agent 可视化编排\n\n画布编排\nReact Flow 拖拽节点 → 序列化为 graphJson\n\n版本管理（草稿 + 发布快照 + 回滚）\n草稿　仅更新编辑态，不影响运行\n发布　图校验 → 写入 agent_version 快照 → 更新已发布指针\n回滚　按版本号读取快照恢复\n\n衔接运行时\n执行优先读取已发布版本，草稿修改不影响在跑实例"
+    },
+    {
+      "slide_number": 11,
+      "page_type": "content",
+      "content": "实现二　DAG 调度执行\n\n核心聚合根　Execution\n\n调度流程\n1　hydrateMemory 注入会话历史与检索结果\n2　Execution.start 校验图结构与环路\n3　调度器异步派发首批就绪节点\n4　节点完成 → advance 推进状态\n5　条件分支 → 递归剪枝未选中路径\n\n节点执行器（策略模式）\nLLM　CONDITION　KNOWLEDGE　TOOL　HTTP　START　END"
+    },
+    {
+      "slide_number": 12,
+      "page_type": "content",
+      "content": "实现三　人工检查点（核心）\n\n两种触发阶段\n\nBEFORE_EXECUTION（节点执行前）\n审批人修改节点输入\n通过后重新执行节点\n场景　高风险操作预审\n\nAFTER_EXECUTION（节点执行后）\n审批人修改节点输出\n通过后跳过执行，直接推进\n场景　AI 输出内容人工校正\n\n触发链路\ncheckPause → 分布式锁内置 PAUSED_FOR_REVIEW\n写入 Redis 待审批队列 → SSE 推送暂停事件"
+    },
+    {
+      "slide_number": 13,
+      "page_type": "content",
+      "content": "实现四　知识库与检索增强\n\n文档接入（异步解耦）\n上传 → MinIO 存储 → PENDING 文档\n@Async 处理器　解析 → 分块 → 向量化 → 写入 Milvus\n\n文档状态机\nPENDING → PROCESSING → COMPLETED / FAILED\n\n运行时检索\n工作流知识节点拼接查询\n嵌入模型生成查询向量\nMilvus 语义召回片段注入 LLM 上下文"
+    },
+    {
+      "slide_number": 14,
+      "page_type": "content",
+      "content": "主要创新点\n\n一　Java 栈 × 可视化编排 × 人工审核三位一体\n将 LangGraph 风格的图结构编排在 Spring Boot 中工程化落地\n\n二　双触发阶段的人工检查点\nBEFORE_EXECUTION 改输入重执行　AFTER_EXECUTION 改输出直接放行\n两种语义覆盖 \"预审\" 与 \"校正\" 两类典型业务\n\n三　工作流恢复的双层并发保护\nRedis 分布式锁保证临界区独占\nExecution.version 乐观锁兜底，并发审批返回 409\n\n四　知识接入异步化\n上传接口响应缩至 500ms 内，向量化解析在后台完成"
+    },
+    {
+      "slide_number": 15,
+      "page_type": "content",
+      "content": "系统功能演示\n\n界面与流程截图\nAgent 可视化编排画布　工作流执行实时画布\n人工审核面板　知识库管理页\n\n演示要点\n节点拖拽与参数配置\n执行实时状态推送\n节点暂停 → 审批 → 恢复\n知识检索测试\n\n（答辩现场可切换至系统真机演示 1-2 分钟）"
+    },
+    {
+      "slide_number": 16,
+      "page_type": "content",
+      "content": "开发难点与解决方案\n\nDAG 环路死锁　start 前 DFS 递归栈判环（O(V+E)）\n并发审批冲突　Redis 分布式锁 + 乐观锁双保险\n重复暂停　reviewedNodes 集合标记已审节点\nSSE 长连接中断　服务端 15 秒心跳 ping\n向量化阻塞上传　@Async 异步解耦 + 状态回写"
+    },
+    {
+      "slide_number": 17,
+      "page_type": "content",
+      "content": "系统测试方案\n\n单元测试（JUnit 5 + Mockito）\n42 个用例　行覆盖 78%　分支覆盖 71%\n\n功能测试（黑盒）\n35 个用例覆盖五大模块　全部通过\nAgent 5　工作流 7　人工审核 9　知识库 6　认证 8\n\n接口与前端\nPostman 验证 REST 与 SSE\n浏览器 DevTools 验证画布与事件流"
+    },
+    {
+      "slide_number": 18,
+      "page_type": "data",
+      "content": "关键性能数据\n\n142\nSSE 推流平均延迟（毫秒）\n\n核心 API（50 并发）\nGET 待审列表　P95 45ms\nPOST 审批恢复　P95 120ms\nPOST 登录　P95 96ms\nGET 执行详情　P95 52ms\n\nSSE 推流（100 样本）\n平均 142ms　P95 298ms　最大 387ms　零中断\n\n并发执行　5 路工作流互不串扰，全部成功\n\n均达到第 2 章设定的性能指标"
+    },
+    {
+      "slide_number": 19,
+      "page_type": "content",
+      "content": "总结、不足与展望\n\n主要工作\n打通　可视化编排 → 工作流执行 → 人工审核 → 知识增强 → 安全访问　闭环\n42 单测 + 35 功能用例全部通过\nDocker Compose 一键部署演示\n\n不足\n单工作流为主，缺少子流程复用与跨 Agent 协同\n分块策略与召回机制基础，无重排\n审批 UI 以 JSON 为主，对非技术用户不友好\n\n未来工作\n子工作流与流程模板\n自适应分块与召回重排\n字段级渲染审批界面\n多智能体协同与工具生态扩展"
+    },
+    {
+      "slide_number": 20,
+      "page_type": "cover",
+      "content": "谢谢聆听\n\n敬请各位老师批评指正\nzj669　西南科技大学\n2026 年 5 月"
+    }
+  ]
+}
