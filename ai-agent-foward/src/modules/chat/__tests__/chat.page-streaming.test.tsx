@@ -15,6 +15,7 @@ const {
   startChatStreamMock,
   resumeChatStreamMock,
   stopChatExecutionMock,
+  fetchExecutionMock,
   fetchReviewDetailMock,
   submitResumeExecutionMock,
   submitRejectExecutionMock,
@@ -25,6 +26,7 @@ const {
   startChatStreamMock: vi.fn(),
   resumeChatStreamMock: vi.fn(),
   stopChatExecutionMock: vi.fn(),
+  fetchExecutionMock: vi.fn(),
   fetchReviewDetailMock: vi.fn(),
   submitResumeExecutionMock: vi.fn(),
   submitRejectExecutionMock: vi.fn(),
@@ -74,6 +76,7 @@ vi.mock("../api/chatService", () => ({
   startChatStream: (...args: unknown[]) => startChatStreamMock(...args),
   resumeChatStream: (...args: unknown[]) => resumeChatStreamMock(...args),
   stopChatExecution: (...args: unknown[]) => stopChatExecutionMock(...args),
+  fetchExecution: (...args: unknown[]) => fetchExecutionMock(...args),
   fetchReviewDetail: (...args: unknown[]) => fetchReviewDetailMock(...args),
   submitResumeExecution: (...args: unknown[]) =>
     submitResumeExecutionMock(...args),
@@ -100,12 +103,15 @@ vi.mock("rehype-highlight", () => ({ default: () => {} }));
 describe("chat page streaming", () => {
   beforeEach(() => {
     vi.useRealTimers();
+    localStorage.clear();
+    sessionStorage.clear();
     createChatConversationMock.mockReset();
     fetchConversationListMock.mockReset();
     fetchConversationMessagesMock.mockReset();
     startChatStreamMock.mockReset();
     resumeChatStreamMock.mockReset();
     stopChatExecutionMock.mockReset();
+    fetchExecutionMock.mockReset();
     fetchReviewDetailMock.mockReset();
     submitResumeExecutionMock.mockReset();
     submitRejectExecutionMock.mockReset();
@@ -131,6 +137,12 @@ describe("chat page streaming", () => {
 
     fetchConversationMessagesMock.mockResolvedValue([]);
     createChatConversationMock.mockResolvedValue("conv-1");
+    fetchExecutionMock.mockResolvedValue({
+      executionId: "exec-1",
+      status: "RUNNING",
+      conversationId: "conv-1",
+      nodeStatuses: {},
+    });
     fetchReviewDetailMock.mockResolvedValue({
       executionId: "exec-1",
       nodeId: "node-1",
@@ -266,6 +278,108 @@ describe("chat page streaming", () => {
     });
   });
 
+  it("assistant 空白失败占位会从历史消息刷新为后端终态内容", async () => {
+    fetchConversationMessagesMock
+      .mockResolvedValueOnce([])
+      .mockResolvedValueOnce([
+        {
+          id: "user-1",
+          conversationId: "conv-1",
+          role: "USER",
+          content: "hi",
+          thoughtProcess: null,
+          metadata: { executionId: "exec-failed" },
+          status: "COMPLETED",
+          createdAt: "2026-05-20T14:49:31",
+        },
+        {
+          id: "assistant-1",
+          conversationId: "conv-1",
+          role: "ASSISTANT",
+          content:
+            "[tool-csdn-send-发送 CSDN 文章]: 执行失败: Missing CSDN_COOKIE",
+          thoughtProcess: null,
+          metadata: { runId: "exec-failed" },
+          status: "FAILED",
+          createdAt: "2026-05-20T14:49:31",
+        },
+      ]);
+    startChatStreamMock.mockImplementation(
+      async (
+        _input: unknown,
+        handlers: {
+          onConnected?: (executionId: string) => void;
+          onError?: (message: string) => void;
+        },
+      ) => {
+        handlers.onConnected?.("exec-failed");
+        handlers.onError?.("Missing CSDN_COOKIE");
+      },
+    );
+
+    await selectAgentAndConversation();
+
+    const input = screen.getByPlaceholderText("输入消息...");
+    fireEvent.change(input, { target: { value: "hi" } });
+
+    await act(async () => {
+      fireEvent.click(screen.getByRole("button", { name: /发送/ }));
+    });
+
+    await waitFor(() => {
+      expect(startChatStreamMock).toHaveBeenCalled();
+    });
+
+    await waitFor(() => {
+      expect(fetchConversationMessagesMock).toHaveBeenCalledTimes(2);
+    });
+    expect(
+      await screen.findByText(/Missing CSDN_COOKIE/),
+    ).toBeInTheDocument();
+  });
+
+  it("在途流漏掉暂停 SSE 时会通过 execution 状态对账进入审核", async () => {
+    let completeStream: (() => void) | null = null;
+    startChatStreamMock.mockImplementation(
+      async (
+        _input: unknown,
+        handlers: { onConnected?: (executionId: string) => void },
+      ) => {
+        handlers.onConnected?.("exec-paused-live");
+        return new Promise<void>((resolve) => {
+          completeStream = resolve;
+        });
+      },
+    );
+    fetchExecutionMock.mockResolvedValue({
+      executionId: "exec-paused-live",
+      status: "PAUSED_FOR_REVIEW",
+      conversationId: "conv-1",
+      nodeStatuses: { "node-1": "PAUSED_FOR_REVIEW" },
+    });
+
+    await selectAgentAndConversation();
+
+    const input = screen.getByPlaceholderText("输入消息...");
+    fireEvent.change(input, { target: { value: "需要审核" } });
+
+    await act(async () => {
+      fireEvent.click(screen.getByRole("button", { name: /发送/ }));
+    });
+
+    await waitFor(() => {
+      expect(fetchExecutionMock).toHaveBeenCalledWith("exec-paused-live");
+    }, { timeout: 5000 });
+    await waitFor(() => {
+      expect(fetchReviewDetailMock).toHaveBeenCalledWith("exec-paused-live");
+    });
+    expect(await screen.findByText("人工审核检查点")).toBeInTheDocument();
+
+    await act(async () => {
+      completeStream?.();
+    });
+  }, 8000);
+
   it("executionId 延迟到达时中断请求会在 connected 后补发", async () => {
     await selectAgentAndConversation();
     expect(screen.getByText("默认会话")).toBeInTheDocument();
@@ -389,5 +503,164 @@ describe("chat page streaming", () => {
     expect(
       await screen.findByText("恢复后的结果", {}, { timeout: 5000 }),
     ).toBeInTheDocument();
+  }, 8000);
+
+  it("加载到未完成 assistant 消息时按 runId 自动重连原执行流", async () => {
+    let resumeHandlers: ResumeStreamHandlers | null = null;
+    let completeResumeStream: (() => void) | null = null;
+    fetchConversationMessagesMock.mockResolvedValue([
+      {
+        id: "user-1",
+        conversationId: "conv-1",
+        role: "USER",
+        content: "继续输出",
+        thoughtProcess: null,
+        metadata: { executionId: "exec-running" },
+        status: "COMPLETED",
+        createdAt: "2026-02-21T10:00:00",
+      },
+      {
+        id: "assistant-1",
+        conversationId: "conv-1",
+        role: "ASSISTANT",
+        content: "",
+        thoughtProcess: null,
+        metadata: { runId: "exec-running" },
+        status: "PENDING",
+        createdAt: "2026-02-21T10:00:01",
+      },
+    ]);
+    resumeChatStreamMock.mockImplementation(
+      async (_executionId: string, handlers: ResumeStreamHandlers) => {
+        resumeHandlers = handlers;
+        handlers.onConnected?.("exec-running");
+        return new Promise<void>((resolve) => {
+          completeResumeStream = resolve;
+        });
+      },
+    );
+
+    await selectAgentAndConversation();
+
+    await waitFor(() => {
+      expect(resumeChatStreamMock).toHaveBeenCalledWith(
+        "exec-running",
+        expect.any(Object),
+        expect.any(AbortSignal),
+      );
+    });
+    expect(startChatStreamMock).not.toHaveBeenCalled();
+
+    await waitFor(() => {
+      expect(resumeHandlers).not.toBeNull();
+      expect(completeResumeStream).not.toBeNull();
+    });
+    if (!resumeHandlers || !completeResumeStream) {
+      throw new Error("resume stream handlers were not captured");
+    }
+    const capturedResumeHandlers = resumeHandlers;
+    const resolveResumeStream = completeResumeStream;
+
+    await act(async () => {
+      capturedResumeHandlers.onDelta?.("AI 继续输出");
+      capturedResumeHandlers.onFinish?.();
+      resolveResumeStream();
+    });
+
+    expect(await screen.findByText("AI 继续输出")).toBeInTheDocument();
+    expect(resumeChatStreamMock).toHaveBeenCalledTimes(1);
+  }, 8000);
+
+  it("返回时如果历史消息是审核暂停摘要，则打开审核而不是继续挂起 SSE", async () => {
+    sessionStorage.setItem("ai-agent.chat.activeAgentId", "1");
+    sessionStorage.setItem("ai-agent.chat.activeConversationId", "conv-1");
+    fetchConversationMessagesMock.mockResolvedValue([
+      {
+        id: "assistant-1",
+        conversationId: "conv-1",
+        role: "ASSISTANT",
+        content:
+          "⏸️ 工作流已在节点「LLM 节点」执行前暂停，等待人工审核。\n\n**开始**: 你是谁？",
+        thoughtProcess: null,
+        metadata: { runId: "exec-paused" },
+        status: "COMPLETED",
+        createdAt: "2026-02-21T10:00:01",
+      },
+    ]);
+    fetchExecutionMock.mockResolvedValue({
+      executionId: "exec-paused",
+      status: "PAUSED_FOR_REVIEW",
+      conversationId: "conv-1",
+      nodeStatuses: { "node-1": "PAUSED_FOR_REVIEW" },
+    });
+
+    render(<ChatPage />);
+
+    await waitFor(() => {
+      expect(fetchExecutionMock).toHaveBeenCalledWith("exec-paused");
+    });
+    await waitFor(() => {
+      expect(fetchReviewDetailMock).toHaveBeenCalledWith("exec-paused");
+    });
+    expect(resumeChatStreamMock).not.toHaveBeenCalled();
+    expect(await screen.findByText("人工审核检查点")).toBeInTheDocument();
+  }, 8000);
+
+  it("返回聊天页时恢复上次会话并重连未完成执行", async () => {
+    let resumeHandlers: ResumeStreamHandlers | null = null;
+    let completeResumeStream: (() => void) | null = null;
+    sessionStorage.setItem("ai-agent.chat.activeAgentId", "1");
+    sessionStorage.setItem("ai-agent.chat.activeConversationId", "conv-1");
+    fetchConversationMessagesMock.mockResolvedValue([
+      {
+        id: "assistant-1",
+        conversationId: "conv-1",
+        role: "ASSISTANT",
+        content: "",
+        thoughtProcess: null,
+        metadata: { runId: "exec-restored" },
+        status: "PENDING",
+        createdAt: "2026-02-21T10:00:01",
+      },
+    ]);
+    resumeChatStreamMock.mockImplementation(
+      async (_executionId: string, handlers: ResumeStreamHandlers) => {
+        resumeHandlers = handlers;
+        handlers.onConnected?.("exec-restored");
+        return new Promise<void>((resolve) => {
+          completeResumeStream = resolve;
+        });
+      },
+    );
+
+    render(<ChatPage />);
+
+    await waitFor(() => {
+      expect(fetchConversationListMock).toHaveBeenCalledWith(1, 1);
+    });
+    await waitFor(() => {
+      expect(fetchConversationMessagesMock).toHaveBeenCalledWith(1, "conv-1");
+    });
+    await waitFor(() => {
+      expect(resumeChatStreamMock).toHaveBeenCalledWith(
+        "exec-restored",
+        expect.any(Object),
+        expect.any(AbortSignal),
+      );
+    });
+
+    if (!resumeHandlers || !completeResumeStream) {
+      throw new Error("resume stream handlers were not captured");
+    }
+    const capturedResumeHandlers = resumeHandlers;
+    const resolveResumeStream = completeResumeStream;
+
+    await act(async () => {
+      capturedResumeHandlers.onDelta?.("回到页面后继续输出");
+      capturedResumeHandlers.onFinish?.();
+      resolveResumeStream();
+    });
+
+    expect(await screen.findByText("回到页面后继续输出")).toBeInTheDocument();
   }, 8000);
 });

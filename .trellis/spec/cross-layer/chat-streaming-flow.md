@@ -162,6 +162,121 @@ between chat UI, workflow execution, message persistence, and SSE updates.
    the execution is already terminal:
    `ai-agent-interfaces/src/main/java/com/zj/aiagent/interfaces/workflow/WorkflowController.java:127`.
 
+## Scenario: Chat route remount stream recovery
+
+### 1. Scope / Trigger
+
+- Trigger: Chat streaming crosses frontend route lifecycle, persisted chat
+  messages, workflow execution ids, and SSE reconnect behavior.
+- Use this scenario when fixing or extending behavior after the user leaves
+  `/chat` while an assistant response is still running and then returns.
+
+### 2. Signatures
+
+- Persisted assistant messages carry the workflow execution id in
+  `metadata.runId`: `ai-agent-domain/src/main/java/com/zj/aiagent/domain/chat/entity/Message.java:52`.
+- `MessageResponse` exposes `metadata`:
+  `ai-agent-interfaces/src/main/java/com/zj/aiagent/interfaces/chat/dto/MessageResponse.java:25`.
+- Frontend `MessageDTO` must include `metadata: Record<string, unknown> | null`:
+  `ai-agent-foward/src/shared/api/adapters/chatAdapter.ts:32`.
+- Frontend resume uses `resumeChatStream(executionId, handlers, signal)`:
+  `ai-agent-foward/src/modules/chat/api/chatService.ts:357`.
+
+### 3. Contracts
+
+- Recovery candidate:
+  - `role === "ASSISTANT"`
+  - `status === "PENDING"` or `status === "STREAMING"`
+  - `typeof metadata.runId === "string"` and non-empty
+- Route restore keys are tab-scoped `sessionStorage` values:
+  - `ai-agent.chat.activeAgentId`
+  - `ai-agent.chat.activeConversationId`
+- The frontend optimistic assistant placeholder should attach the execution id
+  received from `onConnected` back onto `metadata.runId`, so an interrupted
+  local stream has the same recovery handle as a persisted message.
+- Recovery must check `GET /api/workflow/execution/{executionId}` before
+  opening a resumed stream. `PAUSED` / `PAUSED_FOR_REVIEW` executions are not
+  terminal, and `GET /api/workflow/execution/{executionId}/stream` does not
+  replay the already-published pause event for them.
+- Recovery must reconnect to `GET /api/workflow/execution/{runId}/stream`;
+  it must not call `POST /api/workflow/execution/start`.
+
+### 4. Validation & Error Matrix
+
+- Missing `metadata.runId` -> do not reconnect automatically.
+- Unknown saved agent id -> clear selected agent state after agent list load.
+- Saved conversation id not in the selected agent's conversation list -> clear
+  active conversation state.
+- Stream resumes to a terminal execution with no deltas -> rely on the
+  existing finish refresh path to reload persisted messages.
+- Local or history-loaded blank assistant messages with terminal status
+  (`COMPLETED` or `FAILED`) -> refresh conversation messages from history
+  instead of leaving an empty assistant bubble.
+- `fetchExecution(runId).status === "PAUSED_FOR_REVIEW"` -> find the paused
+  node from `nodeStatuses`, refresh persisted messages, fetch review detail,
+  open the review modal, and stop the local sending state. Do not continue to
+  hang on the SSE stream.
+- Live streams should periodically reconcile execution state while sending; if
+  the browser misses the one-time pause SSE event because of route changes or a
+  broken pipe, the UI must still enter the review state.
+- Resume stream error -> mark the reused assistant message failed and show the
+  existing stream error feedback.
+
+### 5. Good/Base/Bad Cases
+
+- Good: user returns to `/chat` in the same tab; the last conversation is
+  restored, a pending assistant message with `metadata.runId` is loaded, and
+  the UI continues appending deltas to that existing message.
+- Base: user manually re-selects a conversation after remount; the same pending
+  assistant recovery logic applies after history load.
+- Base: a workflow pauses for review while the page's SSE request is broken or
+  replaced; execution-state polling detects `PAUSED_FOR_REVIEW`, refreshes the
+  persisted pause summary, and opens the review dialog.
+- Bad: starting a new workflow for a pending assistant message; this duplicates
+  backend execution and creates mismatched chat history.
+- Bad: blindly subscribing to `/stream` for an execution already in
+  `PAUSED_FOR_REVIEW`; the backend has no terminal event to replay and the UI
+  remains stuck in a blank streaming state.
+
+### 6. Tests Required
+
+- Component test: loaded pending assistant message with `metadata.runId`
+  triggers exactly one `resumeChatStream` call and appends deltas to the
+  existing message.
+- Component test: saved agent/conversation ids in `sessionStorage` restore the
+  conversation on page mount and then reconnect to the unfinished execution.
+- Component test: an empty failed assistant placeholder is refreshed from
+  persisted history and displays backend terminal content.
+- Component test: a live stream that misses pause SSE enters review via
+  execution-state reconciliation.
+- Component test: a remounted pending assistant whose execution is already
+  `PAUSED_FOR_REVIEW` opens review and does not call `resumeChatStream`.
+- SSE parser tests should continue covering finish fallback, duplicate content
+  prevention, and error events.
+
+### 7. Wrong vs Correct
+
+#### Wrong
+
+```typescript
+// Starts a second execution for a message that already has a runId.
+startChatStream({ agentId, conversationId, content }, handlers);
+```
+
+#### Correct
+
+```typescript
+const runId = message.metadata?.runId;
+if (typeof runId === "string" && runId.trim()) {
+  const execution = await fetchExecution(runId);
+  if (execution.status === "PAUSED_FOR_REVIEW") {
+    openReview(runId, pausedNodeId);
+  } else {
+    startResumedStream(runId, message.id);
+  }
+}
+```
+
 ## Gotchas
 
 1. The primary frontend chat path does not call `ChatController.sendMessage`;
@@ -180,4 +295,13 @@ between chat UI, workflow execution, message persistence, and SSE updates.
    assistant messages.
 8. Direct stream and workflow stream are similar but not identical entry points;
    changes must be tested against both when both are kept public.
-
+9. Navigating away from `/chat` aborts the browser stream request but should not
+   cancel backend execution. Returning to `/chat` must recover through the
+   persisted assistant message `metadata.runId` and the workflow stream resume
+   endpoint.
+10. A workflow can fail after the browser stream disconnects; if the local
+    assistant placeholder has no content, the UI must reconcile from message
+    history for both success and failure terminal states.
+11. `PAUSED_FOR_REVIEW` is not terminal. The stream resume endpoint only
+    replays immediate finish events for terminal statuses, so the frontend must
+    use the execution detail endpoint to recover pause state.

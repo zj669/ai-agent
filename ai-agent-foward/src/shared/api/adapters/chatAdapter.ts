@@ -35,6 +35,7 @@ export interface MessageDTO {
   role: MessageRole;
   content: string;
   thoughtProcess: ThoughtStepDTO[] | null;
+  metadata: Record<string, unknown> | null;
   status: MessageStatus;
   createdAt: string;
 }

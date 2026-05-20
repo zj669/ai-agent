@@ -38,6 +38,7 @@ import {
   startChatStream,
   resumeChatStream,
   stopChatExecution,
+  fetchExecution,
   fetchReviewDetail,
   submitResumeExecution,
   submitRejectExecution,
@@ -71,9 +72,44 @@ interface ChatMessage extends BaseChatMessage {
 const { Text } = Typography;
 const { TextArea } = Input;
 const USER_ID = 1;
+const CHAT_ACTIVE_AGENT_KEY = "ai-agent.chat.activeAgentId";
+const CHAT_ACTIVE_CONVERSATION_KEY = "ai-agent.chat.activeConversationId";
 
 function makeLocalId(prefix: string): string {
   return `${prefix}-${Date.now()}-${Math.random().toString(16).slice(2)}`;
+}
+
+function readSessionValue(key: string): string | null {
+  try {
+    const value = sessionStorage.getItem(key);
+    return value && value.trim() ? value : null;
+  } catch {
+    return null;
+  }
+}
+
+function writeSessionValue(key: string, value: string | null): void {
+  try {
+    if (value) {
+      sessionStorage.setItem(key, value);
+    } else {
+      sessionStorage.removeItem(key);
+    }
+  } catch {
+    // Ignore unavailable storage; stream recovery still works after manual selection.
+  }
+}
+
+function readSessionNumber(key: string): number | null {
+  const value = readSessionValue(key);
+  if (!value) return null;
+  const parsed = Number(value);
+  return Number.isFinite(parsed) ? parsed : null;
+}
+
+function getMessageRunId(message: ChatMessage): string | null {
+  const runId = message.metadata?.runId;
+  return typeof runId === "string" && runId.trim() ? runId : null;
 }
 
 function isHumanReviewPauseSummary(content?: string): boolean {
@@ -82,6 +118,34 @@ function isHumanReviewPauseSummary(content?: string): boolean {
   return (
     normalized.startsWith("⏸️ 工作流已在节点「") &&
     normalized.includes("暂停，等待人工审核")
+  );
+}
+
+function isRecoverableAssistantMessage(message: ChatMessage): boolean {
+  return (
+    message.role === "ASSISTANT" &&
+    (message.status === "PENDING" || message.status === "STREAMING") &&
+    getMessageRunId(message) !== null
+  );
+}
+
+function isBlankAssistantMessage(message: ChatMessage): boolean {
+  return message.role === "ASSISTANT" && !message.content.trim();
+}
+
+function isPausedExecutionStatus(status: string): boolean {
+  return status === "PAUSED" || status === "PAUSED_FOR_REVIEW";
+}
+
+function isTerminalExecutionStatus(status: string): boolean {
+  return status === "SUCCEEDED" || status === "FAILED" || status === "CANCELLED";
+}
+
+function getPausedNodeId(nodeStatuses: Record<string, string>): string {
+  return (
+    Object.entries(nodeStatuses).find(([, status]) =>
+      isPausedExecutionStatus(status),
+    )?.[0] ?? "__MANUAL_PAUSE__"
   );
 }
 
@@ -900,9 +964,13 @@ function HumanReviewModal({
 
 function ChatPage() {
   const [agents, setAgents] = useState<AgentListItem[]>([]);
-  const [selectedAgentId, setSelectedAgentId] = useState<number | null>(null);
+  const [selectedAgentId, setSelectedAgentId] = useState<number | null>(() =>
+    readSessionNumber(CHAT_ACTIVE_AGENT_KEY),
+  );
   const [conversations, setConversations] = useState<ChatConversation[]>([]);
-  const [activeConversationId, setActiveConversationId] = useState<string>("");
+  const [activeConversationId, setActiveConversationId] = useState<string>(
+    () => readSessionValue(CHAT_ACTIVE_CONVERSATION_KEY) ?? "",
+  );
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [input, setInput] = useState("");
   const [listError, setListError] = useState("");
@@ -917,10 +985,15 @@ function ChatPage() {
   const hasStreamErrorRef = useRef(false);
   const isPausedRef = useRef(false);
   const pendingStopRef = useRef(false);
+  const attemptedResumeExecutionIdsRef = useRef<Set<string>>(new Set());
+  const attemptedBlankRefreshKeysRef = useRef<Set<string>>(new Set());
+  const attemptedPauseSyncExecutionIdsRef = useRef<Set<string>>(new Set());
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const skipMessageLoadRef = useRef(false);
   const selectedAgentIdRef = useRef<number | null>(selectedAgentId);
+  const activeConversationIdRef = useRef(activeConversationId);
   selectedAgentIdRef.current = selectedAgentId;
+  activeConversationIdRef.current = activeConversationId;
 
   // Human review state
   const [reviewModalOpen, setReviewModalOpen] = useState(false);
@@ -946,11 +1019,44 @@ function ChatPage() {
         const published = data.filter(
           (a) => a.status === "PUBLISHED" || a.status === "1",
         );
-        setAgents(published.length > 0 ? published : data);
+        const availableAgents = published.length > 0 ? published : data;
+        setAgents(availableAgents);
+
+        const currentAgentId = selectedAgentIdRef.current;
+        if (
+          currentAgentId &&
+          !availableAgents.some((agent) => agent.id === currentAgentId)
+        ) {
+          setSelectedAgentId(null);
+          return;
+        }
+
+        const savedAgentId = readSessionNumber(CHAT_ACTIVE_AGENT_KEY);
+        if (
+          !currentAgentId &&
+          savedAgentId &&
+          availableAgents.some((agent) => agent.id === savedAgentId)
+        ) {
+          setSelectedAgentId(savedAgentId);
+        }
       })
       .catch(() => setAgents([]))
       .finally(() => setLoadingAgents(false));
   }, []);
+
+  useEffect(() => {
+    writeSessionValue(
+      CHAT_ACTIVE_AGENT_KEY,
+      selectedAgentId ? String(selectedAgentId) : null,
+    );
+  }, [selectedAgentId]);
+
+  useEffect(() => {
+    writeSessionValue(
+      CHAT_ACTIVE_CONVERSATION_KEY,
+      activeConversationId || null,
+    );
+  }, [activeConversationId]);
 
   // Load conversations when agent selected
   useEffect(() => {
@@ -965,6 +1071,25 @@ function ChatPage() {
       .then((data) => {
         setConversations(data);
         setListError("");
+        const currentConversationId = activeConversationIdRef.current;
+        const currentStillAvailable =
+          !!currentConversationId &&
+          data.some(
+            (conversation) => conversation.id === currentConversationId,
+          );
+        if (!currentStillAvailable) {
+          const savedConversationId = readSessionValue(
+            CHAT_ACTIVE_CONVERSATION_KEY,
+          );
+          const savedStillAvailable =
+            !!savedConversationId &&
+            data.some(
+              (conversation) => conversation.id === savedConversationId,
+            );
+          setActiveConversationId(
+            savedStillAvailable ? savedConversationId : "",
+          );
+        }
       })
       .catch(() => {
         setConversations([]);
@@ -983,6 +1108,9 @@ function ChatPage() {
 
   // Load messages when conversation selected
   useEffect(() => {
+    attemptedResumeExecutionIdsRef.current.clear();
+    attemptedBlankRefreshKeysRef.current.clear();
+    attemptedPauseSyncExecutionIdsRef.current.clear();
     if (!activeConversationId) {
       setMessages([]);
       return;
@@ -1034,16 +1162,56 @@ function ChatPage() {
     );
   }, [agents, agentSearch]);
 
-  const visibleMessages = useMemo(
-    () =>
-      messages.filter(
-        (message) =>
-          !(
-            message.role === "ASSISTANT" &&
-            isHumanReviewPauseSummary(message.content)
-          ),
-      ),
-    [messages],
+  const visibleMessages = messages;
+
+  const loadActiveConversationMessages = useCallback(async () => {
+    const cid = activeConversationIdRef.current;
+    if (!cid) return false;
+
+    try {
+      const data = await fetchConversationMessages(USER_ID, cid);
+      if (activeConversationIdRef.current === cid) {
+        setMessages(data);
+        setStreamError("");
+      }
+      return true;
+    } catch {
+      return false;
+    }
+  }, []);
+
+  const refreshActiveConversationMessages = useCallback((delayMs = 0) => {
+    const refresh = () => {
+      void loadActiveConversationMessages();
+    };
+
+    if (delayMs > 0) {
+      window.setTimeout(refresh, delayMs);
+      return;
+    }
+
+    refresh();
+  }, [loadActiveConversationMessages]);
+
+  const attachRunIdToAssistantMessage = useCallback(
+    (messageId: string, executionId: string) => {
+      setMessages((cur) =>
+        cur.map((m) => {
+          if (m.id !== messageId || m.role !== "ASSISTANT") {
+            return m;
+          }
+
+          return {
+            ...m,
+            metadata: {
+              ...(m.metadata ?? {}),
+              runId: executionId,
+            },
+          };
+        }),
+      );
+    },
+    [],
   );
 
   const appendDelta = (id: string, delta: string) => {
@@ -1112,9 +1280,6 @@ function ChatPage() {
     );
   };
 
-  const activeConversationIdRef = useRef(activeConversationId);
-  activeConversationIdRef.current = activeConversationId;
-
   const refreshPendingReviews = useCallback(async () => {
     const agentId = selectedAgentIdRef.current;
     if (!agentId) {
@@ -1132,31 +1297,20 @@ function ChatPage() {
     }
   }, []);
 
-  const finishMsg = (id: string, status: "COMPLETED" | "FAILED") => {
+  const finishMsg = useCallback((id: string, status: "COMPLETED" | "FAILED") => {
     setMessages((cur) => {
       const target = cur.find((m) => m.id === id);
       // 如果 assistant 消息没有流式内容，延迟从后端拉取最终消息
       if (
         target &&
-        target.role === "ASSISTANT" &&
-        (!target.content || target.content === "...") &&
-        status === "COMPLETED" &&
+        isBlankAssistantMessage(target) &&
         activeConversationIdRef.current
       ) {
-        setTimeout(() => {
-          const cid = activeConversationIdRef.current;
-          if (!cid) return;
-          void fetchConversationMessages(USER_ID, cid)
-            .then((data) => {
-              setMessages(data);
-              setStreamError("");
-            })
-            .catch(() => {});
-        }, 500);
+        refreshActiveConversationMessages(500);
       }
       return cur.map((m) => (m.id === id ? { ...m, status } : m));
     });
-  };
+  }, [refreshActiveConversationMessages]);
 
   const resetRuntime = (ctrl?: AbortController) => {
     if (ctrl && abortControllerRef.current !== ctrl) return;
@@ -1249,6 +1403,7 @@ function ChatPage() {
         {
           onConnected: (id) => {
             executionIdRef.current = id;
+            attachRunIdToAssistantMessage(aId, id);
             if (pendingStopRef.current) void submitStop();
           },
           onDelta: (d) => {
@@ -1296,7 +1451,7 @@ function ChatPage() {
       )
         finishMsg(aId, "COMPLETED");
     } catch {
-      if (!isStoppedRef.current) {
+      if (!isStoppedRef.current && !isPausedRef.current) {
         finishMsg(aId, "FAILED");
         setStreamError("流式消息发送失败");
       }
@@ -1359,6 +1514,38 @@ function ChatPage() {
     [refreshPendingReviews],
   );
 
+  const synchronizeExecutionState = useCallback(
+    async (executionId: string, assistantMessageId?: string) => {
+      try {
+        const execution = await fetchExecution(executionId);
+
+        if (isPausedExecutionStatus(execution.status)) {
+          isPausedRef.current = true;
+          abortControllerRef.current?.abort();
+          await loadActiveConversationMessages();
+          await handlePaused(
+            executionId,
+            getPausedNodeId(execution.nodeStatuses),
+            assistantMessageId,
+          );
+          return true;
+        }
+
+        if (isTerminalExecutionStatus(execution.status)) {
+          abortControllerRef.current?.abort();
+          await loadActiveConversationMessages();
+          setIsSending(false);
+          return true;
+        }
+
+        return false;
+      } catch {
+        return false;
+      }
+    },
+    [handlePaused, loadActiveConversationMessages],
+  );
+
   const openPendingReview = useCallback(async (review: PendingReview) => {
     pausedExecutionRef.current = {
       executionId: review.executionId,
@@ -1382,7 +1569,14 @@ function ChatPage() {
           const next = cur.map((m) => {
             if (m.id === assistantMessageId && m.role === "ASSISTANT") {
               reusedExistingMessage = true;
-              return { ...m, status: "STREAMING" as const };
+              return {
+                ...m,
+                status: "STREAMING" as const,
+                metadata: {
+                  ...(m.metadata ?? {}),
+                  runId: executionId,
+                },
+              };
             }
             return m;
           });
@@ -1397,6 +1591,7 @@ function ChatPage() {
           content: "",
           status: "STREAMING",
           createdAt: new Date().toISOString(),
+          metadata: { runId: executionId },
         };
         return [...cur, assistantMsg];
       });
@@ -1410,51 +1605,59 @@ function ChatPage() {
       isPausedRef.current = false;
       setIsSending(true);
 
-      void resumeChatStream(
-        executionId,
-        {
-          onConnected: (id) => {
-            executionIdRef.current = id;
-            if (pendingStopRef.current) void submitStop();
+      void (async () => {
+        const alreadyHandled = await synchronizeExecutionState(executionId, aId);
+        if (alreadyHandled) {
+          return;
+        }
+
+        await resumeChatStream(
+          executionId,
+          {
+            onConnected: (id) => {
+              executionIdRef.current = id;
+              attachRunIdToAssistantMessage(aId, id);
+              if (pendingStopRef.current) void submitStop();
+            },
+            onDelta: (d) => {
+              if (!isStoppedRef.current && !hasStreamErrorRef.current)
+                appendDelta(aId, d);
+            },
+            onThought: (d, nid, name, ntype) => {
+              if (!isStoppedRef.current && !hasStreamErrorRef.current)
+                appendThought(aId, d, nid, name, ntype);
+            },
+            onNodeStart: (nid, name, ntype) => {
+              if (!isStoppedRef.current && !hasStreamErrorRef.current)
+                updateNodeStatus(aId, nid, name, ntype, "running");
+            },
+            onNodeFinish: (nid, name, ntype, st) => {
+              if (!isStoppedRef.current && !hasStreamErrorRef.current)
+                updateNodeStatus(
+                  aId,
+                  nid,
+                  name,
+                  ntype,
+                  st === "FAILED" ? "failed" : "done",
+                );
+            },
+            onFinish: () => {
+              if (!isStoppedRef.current && !hasStreamErrorRef.current)
+                finishMsg(aId, "COMPLETED");
+            },
+            onError: (msg) => {
+              hasStreamErrorRef.current = true;
+              finishMsg(aId, "FAILED");
+              setStreamError(msg);
+            },
+            onPaused: (eid, nid) => {
+              isPausedRef.current = true;
+              void handlePaused(eid, nid, aId);
+            },
           },
-          onDelta: (d) => {
-            if (!isStoppedRef.current && !hasStreamErrorRef.current)
-              appendDelta(aId, d);
-          },
-          onThought: (d, nid, name, ntype) => {
-            if (!isStoppedRef.current && !hasStreamErrorRef.current)
-              appendThought(aId, d, nid, name, ntype);
-          },
-          onNodeStart: (nid, name, ntype) => {
-            if (!isStoppedRef.current && !hasStreamErrorRef.current)
-              updateNodeStatus(aId, nid, name, ntype, "running");
-          },
-          onNodeFinish: (nid, name, ntype, st) => {
-            if (!isStoppedRef.current && !hasStreamErrorRef.current)
-              updateNodeStatus(
-                aId,
-                nid,
-                name,
-                ntype,
-                st === "FAILED" ? "failed" : "done",
-              );
-          },
-          onFinish: () => {
-            if (!isStoppedRef.current && !hasStreamErrorRef.current)
-              finishMsg(aId, "COMPLETED");
-          },
-          onError: (msg) => {
-            hasStreamErrorRef.current = true;
-            finishMsg(aId, "FAILED");
-            setStreamError(msg);
-          },
-          onPaused: (eid, nid) => {
-            isPausedRef.current = true;
-            void handlePaused(eid, nid, aId);
-          },
-        },
-        ctrl.signal,
-      )
+          ctrl.signal,
+        );
+      })()
         .then(() => {
           if (
             !isStoppedRef.current &&
@@ -1464,7 +1667,7 @@ function ChatPage() {
             finishMsg(aId, "COMPLETED");
         })
         .catch(() => {
-          if (!isStoppedRef.current) {
+          if (!isStoppedRef.current && !isPausedRef.current) {
             finishMsg(aId, "FAILED");
             setStreamError("恢复后的流式消息接收失败");
           }
@@ -1475,8 +1678,160 @@ function ChatPage() {
           void refreshPendingReviews();
         });
     },
-    [handlePaused, refreshPendingReviews],
+    [
+      attachRunIdToAssistantMessage,
+      finishMsg,
+      handlePaused,
+      refreshPendingReviews,
+      synchronizeExecutionState,
+    ],
   );
+
+  useEffect(() => {
+    if (!activeConversationId || isSending || abortControllerRef.current) {
+      return;
+    }
+
+    const recoverableMessage = [...messages]
+      .reverse()
+      .find(isRecoverableAssistantMessage);
+    if (!recoverableMessage) {
+      return;
+    }
+
+    const executionId = getMessageRunId(recoverableMessage);
+    if (
+      !executionId ||
+      attemptedResumeExecutionIdsRef.current.has(executionId)
+    ) {
+      return;
+    }
+
+    attemptedResumeExecutionIdsRef.current.add(executionId);
+    startResumedStream(executionId, recoverableMessage.id);
+  }, [activeConversationId, isSending, messages, startResumedStream]);
+
+  useEffect(() => {
+    if (
+      !activeConversationId ||
+      isSending ||
+      abortControllerRef.current ||
+      reviewModalOpen
+    ) {
+      return;
+    }
+
+    const pauseMessage = [...messages]
+      .reverse()
+      .find(
+        (message) =>
+          message.role === "ASSISTANT" &&
+          isHumanReviewPauseSummary(message.content) &&
+          getMessageRunId(message) !== null,
+      );
+    if (!pauseMessage) {
+      return;
+    }
+
+    const executionId = getMessageRunId(pauseMessage);
+    if (
+      !executionId ||
+      attemptedPauseSyncExecutionIdsRef.current.has(executionId)
+    ) {
+      return;
+    }
+
+    attemptedPauseSyncExecutionIdsRef.current.add(executionId);
+    void synchronizeExecutionState(executionId, pauseMessage.id);
+  }, [
+    activeConversationId,
+    isSending,
+    messages,
+    reviewModalOpen,
+    synchronizeExecutionState,
+  ]);
+
+  useEffect(() => {
+    if (!activeConversationId || !isSending || reviewModalOpen) {
+      return;
+    }
+
+    const executionId = executionIdRef.current;
+    if (!executionId || isPausedRef.current || isStoppedRef.current) {
+      return;
+    }
+
+    const assistantMessageId = [...messages]
+      .reverse()
+      .find(
+        (message) =>
+          message.role === "ASSISTANT" &&
+          (getMessageRunId(message) === executionId ||
+            message.status === "STREAMING"),
+      )?.id;
+
+    const intervalId = window.setInterval(() => {
+      const currentExecutionId = executionIdRef.current;
+      if (
+        !currentExecutionId ||
+        isPausedRef.current ||
+        isStoppedRef.current
+      ) {
+        return;
+      }
+
+      void synchronizeExecutionState(currentExecutionId, assistantMessageId);
+    }, 2500);
+
+    return () => {
+      window.clearInterval(intervalId);
+    };
+  }, [
+    activeConversationId,
+    isSending,
+    messages,
+    reviewModalOpen,
+    synchronizeExecutionState,
+  ]);
+
+  useEffect(() => {
+    if (!activeConversationId || isSending || abortControllerRef.current) {
+      return;
+    }
+
+    const blankMessage = [...messages]
+      .reverse()
+      .find((message) => {
+        if (!isBlankAssistantMessage(message)) return false;
+        if (isRecoverableAssistantMessage(message)) return false;
+        return (
+          message.status === "COMPLETED" ||
+          message.status === "FAILED" ||
+          message.status === "STREAMING"
+        );
+      });
+    if (!blankMessage) {
+      return;
+    }
+
+    const refreshKey = [
+      activeConversationId,
+      blankMessage.id,
+      blankMessage.status,
+      getMessageRunId(blankMessage) ?? "no-run",
+    ].join(":");
+    if (attemptedBlankRefreshKeysRef.current.has(refreshKey)) {
+      return;
+    }
+
+    attemptedBlankRefreshKeysRef.current.add(refreshKey);
+    refreshActiveConversationMessages(700);
+  }, [
+    activeConversationId,
+    isSending,
+    messages,
+    refreshActiveConversationMessages,
+  ]);
 
   const handleResumeExecution = useCallback(
     async (

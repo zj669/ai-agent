@@ -25,6 +25,7 @@ export interface ChatMessage {
   content: string;
   status: MessageStatus;
   createdAt: string;
+  metadata?: Record<string, unknown> | null;
   thinkingSteps?: {
     nodeId: string;
     nodeName: string;
@@ -222,6 +223,7 @@ function toChatMessage(message: MessageDTO): ChatMessage {
     content: message.content,
     status: message.status,
     createdAt: message.createdAt,
+    metadata: message.metadata,
   };
   if (message.thoughtProcess?.length) {
     msg.thinkingSteps = flattenThoughtSteps(message.thoughtProcess);
